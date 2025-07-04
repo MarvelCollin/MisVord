@@ -14,6 +14,7 @@ class VoiceCallSection {
 
     this.initialized = false;
     this.streamProcessingDebounce = new Map();
+    this.coordinator = null;
     this.bindEvents();
   }
 
@@ -51,6 +52,8 @@ class VoiceCallSection {
 
   init() {
     if (this.initialized) return;
+
+    this.setupCoordinator();
 
     this.micBtn = document.getElementById("micBtn");
     this.videoBtn = document.getElementById("videoBtn");
@@ -97,6 +100,15 @@ class VoiceCallSection {
     }, 1000);
 
     this.startVideoOverlaySafetyMonitor();
+  }
+
+  setupCoordinator() {
+    if (window.participantCoordinator) {
+      this.coordinator = window.participantCoordinator;
+      this.coordinator.registerSystem('VoiceCallSection');
+    } else {
+      setTimeout(() => this.setupCoordinator(), 100);
+    }
   }
 
   retryInitialization() {
@@ -480,7 +492,7 @@ class VoiceCallSection {
       return;
     }
 
-    // First, check if this is a screen share stream regardless of the kind parameter
+
     let isScreenShare = false;
     if (kind === "share") {
       isScreenShare = true;
@@ -488,7 +500,7 @@ class VoiceCallSection {
       isScreenShare = true;
     }
 
-    // If it's a screen share, ONLY create/remove screen share card, don't process as video
+
     if (isScreenShare) {
       if (stream) {
         this.createScreenShareCard(participantId, stream);
@@ -499,7 +511,7 @@ class VoiceCallSection {
       return;
     }
 
-    // Only process regular video streams (not screen shares) for participant card overlay
+
     if (kind === "video") {
       const participantCard = document.querySelector(
         `[data-participant-id="${participantId}"]`
@@ -517,9 +529,9 @@ class VoiceCallSection {
       );
 
       if (stream) {
-        // Double-check that this is NOT a screen share before processing as video overlay
+
         if (this.isScreenShareStream(stream)) {
-          // If it's actually a screen share, handle it properly
+
           this.updateParticipantStream(participantId, stream, "share");
           return;
         }
@@ -693,11 +705,11 @@ class VoiceCallSection {
     const eventType = e.type;
     const isEnabled = eventType === "videosdkStreamEnabled";
 
-    // Detect if this is a screen share stream
+
     const isScreenShare = kind === "share" || (stream && this.isScreenShareStream(stream));
 
     if (isScreenShare) {
-      // Handle screen share streams - only create/remove screen share cards
+
       if (isEnabled && stream) {
         this.createScreenShareCard(participant, stream);
       } else {
@@ -707,7 +719,7 @@ class VoiceCallSection {
       return;
     }
 
-    // Handle regular video streams for participant card overlays
+
     if (kind === "video") {
       this.updateParticipantStream(
         participant,
@@ -727,8 +739,18 @@ class VoiceCallSection {
       return;
     }
 
+
     if (grid.querySelector(`[data-participant-id="${participantId}"]`)) {
       return;
+    }
+
+
+    const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
+    if (this.coordinator && this.coordinator.hasParticipant(currentChannelId, participantId)) {
+      const existingData = this.coordinator.getParticipantData(participantId);
+      if (existingData && existingData.addedBy !== 'VoiceCallSection') {
+        return; // Another system is already managing this participant
+      }
     }
 
     const name = participantObj?.displayName || participantObj?.name || "Unknown";
@@ -770,6 +792,12 @@ class VoiceCallSection {
       participantObj,
       userData
     );
+    
+
+    if (this.coordinator && userData) {
+      this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection');
+    }
+    
     grid.appendChild(participantElement);
 
     setTimeout(() => {
@@ -788,6 +816,12 @@ class VoiceCallSection {
     );
     if (element) {
       element.remove();
+    }
+
+
+    const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
+    if (this.coordinator) {
+      this.coordinator.removeParticipant(currentChannelId, participantId, 'VoiceCallSection');
     }
 
     this.removeScreenShareCard(participantId);
@@ -1303,7 +1337,7 @@ class VoiceCallSection {
   }
 
   toggleScreenShareFullscreen(participantId) {
-    // Find the screen share card directly
+
     const screenShareCard = document.querySelector(
       `[data-screen-share-id="${participantId}"]`
     );
@@ -1318,7 +1352,7 @@ class VoiceCallSection {
       return;
     }
 
-    // Get the participant name from the screen share header
+
     const headerText = screenShareCard.querySelector(".screen-share-header span")?.textContent || "Unknown";
     const participantName = headerText.replace(" - Screen Share", "").trim();
 
@@ -1467,7 +1501,7 @@ class VoiceCallSection {
       return false;
     }
 
-    // Console debug for screen share detection
+
     let isScreen = false;
     let detectionMethod = "none";
 
@@ -1518,7 +1552,7 @@ class VoiceCallSection {
       if (isScreen) detectionMethod = "stream.track-label";
     }
 
-    // Debug logging for screen share detection
+
     if (isScreen) {
       console.log(`🖥️ [VideoSDK-UI] Screen share detected via ${detectionMethod}:`, {
         streamType: stream.constructor.name,
@@ -1637,7 +1671,7 @@ class VoiceCallSection {
       console.warn('[VOICE-CALL] No participant in bot-voice-participant-joined event');
       return;
     }
-    // Debug: check grid and participant
+
     const grid = document.getElementById("participantGrid");
     if (!grid) {
       console.error('[VOICE-CALL] Participant grid not found in DOM');
@@ -1646,12 +1680,12 @@ class VoiceCallSection {
     }
 
     this.addBotParticipant(participant);
-    // Force UI update
+
     setTimeout(() => {
       this.updateGridLayout();
       this.updateParticipantCount();
     }, 100);
-    // Extra: highlight bot card for debug
+
     setTimeout(() => {
       const botCard = grid?.querySelector(`[data-participant-id="bot-${participant.user_id}"]`);
       if (botCard) {

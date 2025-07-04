@@ -1,11 +1,11 @@
 <?php
-// Start output buffering immediately to prevent header issues
+
 ob_start();
 
-// Now include session handling
+
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
-// Start session if not already started
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

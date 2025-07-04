@@ -148,10 +148,10 @@ async function initializeChatSection() {
     }
 }
 
-// Make initializeChatSection globally available
+
 window.initializeChatSection = initializeChatSection;
 
-// Add a function to manually retry chat initialization
+
 window.retryChatInitialization = function() {
 
     if (window.chatSection) {
@@ -171,7 +171,7 @@ window.retryChatInitialization = function() {
     }
 };
 
-// Add a diagnostic function
+
 window.diagnoseChatSection = function() {
 
     
@@ -413,41 +413,41 @@ class ChatSection {
     findDOMElements() {
 
         
-        // Chat container - try multiple selectors
+
         this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || 
                             document.getElementById('chat-container') ||
                             document.querySelector('.chat-section') ||
                             document.querySelector('[data-channel-type="text"]') ||
                             document.querySelector('.main-content-area');
         
-        // Chat messages - try multiple selectors and wait for dynamic content
+
         this.chatMessages = document.getElementById('chat-messages') ||
                            document.querySelector('#chat-messages') ||
                            document.querySelector('.chat-messages') ||
                            document.querySelector('[data-messages-container]');
         
-        // Message form - try multiple selectors
+
         this.messageForm = document.getElementById('message-form') ||
                           document.querySelector('#message-form') ||
                           document.querySelector('.message-form') ||
                           document.querySelector('form[data-message-form]') ||
                           document.querySelector('form:has(#message-input)');
         
-        // Message input - try multiple selectors
+
         this.messageInput = document.getElementById('message-input') ||
                            document.querySelector('#message-input') ||
                            document.querySelector('.message-input') ||
                            document.querySelector('input[placeholder*="message"]') ||
                            document.querySelector('textarea[placeholder*="message"]');
         
-        // Send button - try multiple selectors
+
         this.sendButton = document.getElementById('send-button') ||
                          document.querySelector('#send-button') ||
                          document.querySelector('.send-button') ||
                          document.querySelector('[data-send-button]') ||
                          document.querySelector('button[type="submit"]');
         
-        // Other elements with fallbacks
+
         this.loadMoreButton = document.getElementById('load-more-messages') ||
                              document.querySelector('#load-more-messages') ||
                              document.querySelector('.load-more-button');
@@ -488,7 +488,7 @@ class ChatSection {
             fileUploadInput: !!this.fileUploadInput
         });
         
-        // If we're missing critical elements, log detailed info for debugging
+
         if (!this.chatMessages || !this.messageForm || !this.messageInput) {
             console.warn('⚠️ [CHAT-SECTION] Missing critical elements, debugging DOM state:', {
                 url: window.location.href,
@@ -510,7 +510,7 @@ class ChatSection {
             const isChannelPage = window.location.pathname.includes('/channels/');
             const isExcluded = isExcludedPage();
             
-            // Adjust timing for different page types
+
             const maxAttempts = isExcluded ? 5 : (isDMPage ? 40 : 30); // More time for DM switches
             const interval = isDMPage ? 150 : 200; // Faster polling for DMs
             
@@ -758,7 +758,7 @@ class ChatSection {
     }
     
     setupEventListeners() {
-        // Message form submission
+
         if (this.messageForm) {
             this.messageForm.addEventListener('submit', (e) => {
                 e.preventDefault();
@@ -772,7 +772,7 @@ class ChatSection {
             console.warn('⚠️ [CHAT-SECTION] Message form not found');
         }
         
-        // Message input events
+
         if (this.messageInput) {
             this.messageInput.addEventListener('input', () => {
                 this.updateSendButton();
@@ -808,7 +808,7 @@ class ChatSection {
 
         } else {
             console.warn('⚠️ [CHAT-SECTION] Message input not found, will retry in 2 seconds');
-            // Retry finding and setting up message input after delay
+
             setTimeout(() => {
                 this.findDOMElements();
                 if (this.messageInput && !this.messageInput.dataset.listenersAttached) {
@@ -842,14 +842,14 @@ class ChatSection {
             }, 2000);
         }
         
-        // Load more button
+
         if (this.loadMoreButton) {
             this.loadMoreButton.addEventListener('click', () => {
                 this.loadMoreMessages();
             });
         }
         
-        // File upload
+
         if (this.fileUploadInput) {
             this.fileUploadInput.addEventListener('change', () => {
                 if (this.fileUploadHandler) {
@@ -858,7 +858,7 @@ class ChatSection {
             });
         }
         
-        // File upload button
+
         const fileUploadButton = document.getElementById('file-upload-button');
         if (fileUploadButton && this.fileUploadInput) {
             fileUploadButton.addEventListener('click', (e) => {
@@ -870,7 +870,7 @@ class ChatSection {
             console.warn('⚠️ [CHAT-SECTION] File upload button or input not found');
         }
         
-        // Global event delegation for message actions (reply, edit, delete, etc.)
+
         document.addEventListener('click', (e) => {
             this.handleMessageActions(e);
         });
@@ -882,12 +882,12 @@ class ChatSection {
             }
         });
         
-        // Setup file preview event listeners
+
         if (this.fileUploadHandler) {
             this.fileUploadHandler.setupFilePreviewEventListeners();
         }
         
-        // Chat messages scroll event listener
+
         if (this.chatMessages) {
             this.chatMessages.addEventListener('scroll', () => {
                 this.handleChatScroll();
@@ -1522,13 +1522,13 @@ class ChatSection {
             return;
         }
         
-        // Handle both bubble messages and regular messages
+
         const isBubbleMessage = messageElement.closest('.bubble-message-group');
         let username = 'Unknown User';
         let content = 'a message';
         
         if (isBubbleMessage) {
-            // Bubble message handling
+
             const messageGroup = messageElement.closest('.bubble-message-group');
             const usernameElement = messageGroup?.querySelector('.bubble-username');
             const contentElement = messageElement.querySelector('.bubble-message-text');
@@ -1536,7 +1536,7 @@ class ChatSection {
             username = usernameElement?.textContent?.trim() || 'Unknown User';
             content = contentElement?.textContent?.trim() || 'a message';
         } else {
-            // Regular message handling
+
             const messageGroup = messageElement.closest('.message-group');
             const usernameElement = messageGroup?.querySelector('.font-medium, .message-username');
             const contentElement = messageElement.querySelector('.message-main-text');
@@ -1555,7 +1555,7 @@ class ChatSection {
         
         this.showReplyUI();
         
-        // Focus the input
+
         if (this.messageInput) {
             this.messageInput.focus();
         }
@@ -1569,32 +1569,32 @@ class ChatSection {
         
 
         
-        // Validate required data
+
         if (!this.replyingTo.messageId || !this.replyingTo.username) {
             console.error('❌ [CHAT-SECTION] Invalid reply data:', this.replyingTo);
             return;
         }
         
-        // Store reply data locally before clearing
+
         const replyData = {
             messageId: this.replyingTo.messageId,
             username: this.replyingTo.username,
             content: this.replyingTo.content || 'a message'
         };
         
-        // Remove any existing reply UI first (but keep replyingTo data)
+
         this.clearExistingReplyUI();
         
-        // Create reply preview
+
         const replyPreview = document.createElement('div');
         replyPreview.id = 'reply-preview';
         replyPreview.className = 'bg-[#2b2d31] p-3 mb-2 rounded-lg border-l-4 border-[#5865f2] flex items-start gap-3';
         
-        // Reply icon and content wrapper
+
         const replyContent = document.createElement('div');
         replyContent.className = 'flex-grow min-w-0';
         
-        // Reply header with icon and "Replying to username"
+
         const replyHeader = document.createElement('div');
         replyHeader.className = 'flex items-center gap-2 text-xs text-[#b9bbbe] mb-1';
         
@@ -1612,18 +1612,18 @@ class ChatSection {
         replyHeader.appendChild(replyLabel);
         replyHeader.appendChild(replyUsername);
         
-        // Reply message preview
+
         const replyText = document.createElement('div');
         replyText.className = 'text-sm text-[#dcddde] truncate';
         
-        // Limit content length and clean it up
+
         let displayContent = replyData.content || 'a message';
         if (displayContent.length > 100) {
             displayContent = displayContent.substring(0, 100) + '...';
         }
         replyText.textContent = displayContent;
         
-        // Close button
+
         const closeButton = document.createElement('button');
         closeButton.className = 'text-[#b9bbbe] hover:text-white transition-colors p-1 rounded hover:bg-[#4f545c]';
         closeButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -1635,7 +1635,7 @@ class ChatSection {
         replyPreview.appendChild(replyContent);
         replyPreview.appendChild(closeButton);
         
-        // Find the best insertion point - try multiple selectors
+
         let insertionPoint = this.messageForm || 
                            document.querySelector('#message-form') ||
                            document.querySelector('.message-form') ||
@@ -1646,7 +1646,7 @@ class ChatSection {
             insertionPoint.parentNode.insertBefore(replyPreview, insertionPoint);
 
         } else {
-            // Fallback: try to find the chat input container
+
             const chatInputContainer = document.querySelector('#chat-input-container') || 
                                      document.querySelector('.chat-input-container') ||
                                      document.querySelector('[class*="chat-input"]') ||
@@ -1661,20 +1661,20 @@ class ChatSection {
             }
         }
         
-        // Add slide-in animation
+
         replyPreview.style.animation = 'replyInputSlideIn 0.2s ease-out forwards';
     }
     
     clearExistingReplyUI() {
 
         
-        // Remove reply preview
+
         const replyPreview = document.getElementById('reply-preview');
         if (replyPreview) {
             replyPreview.remove();
         }
         
-        // Remove legacy reply containers
+
         const legacyReplyContainer = document.getElementById('reply-container');
         if (legacyReplyContainer) {
             legacyReplyContainer.remove();
@@ -1696,7 +1696,7 @@ class ChatSection {
             }, 200);
         }
         
-        // Also remove any legacy reply containers
+
         const legacyReplyContainer = document.getElementById('reply-container');
         if (legacyReplyContainer) {
             legacyReplyContainer.remove();
@@ -1849,15 +1849,15 @@ class ChatSection {
         
         const { messageId, originalContent, originalHTML, element, isBubbleMessage } = this.currentEditingMessage;
         
-        // Restore original content
+
         if (originalHTML) {
-            // Restore the exact original HTML
+
             element.innerHTML = originalHTML;
         } else {
-            // Fallback: recreate the content with formatting
+
             element.innerHTML = this.formatMessageContent(originalContent);
             
-            // Add edited badge if it was there before
+
             if (originalContent && originalHTML && originalHTML.includes('(edited)')) {
                 let editedBadge = element.querySelector('.edited-badge, .bubble-edited-badge');
                 if (!editedBadge) {
@@ -1869,13 +1869,13 @@ class ChatSection {
             }
         }
         
-        // Remove editing visual feedback
+
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (messageElement) {
             messageElement.classList.remove('message-editing');
         }
         
-        // Clear editing state
+
         this.currentEditingMessage = null;
         
 
@@ -1985,21 +1985,21 @@ class ChatSection {
     applyTempEdit(messageId, newContent, tempEditId) {
 
         
-        // Cancel editing UI first
+
         this.cancelEditing();
         
-        // Find message element and update content
+
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (messageElement) {
             const messageTextElement = messageElement.querySelector('.message-main-text, .bubble-message-text');
             if (messageTextElement) {
-                // Update content
+
                 messageTextElement.innerHTML = this.formatMessageContent(newContent);
                 
-                // Add temp edit indicator
+
                 this.markMessageAsTempEdit(messageElement, tempEditId);
                 
-                // Add/update edited badge
+
                 let editedBadge = messageElement.querySelector('.edited-badge, .bubble-edited-badge');
                 if (!editedBadge) {
                     editedBadge = document.createElement('span');
@@ -2397,7 +2397,7 @@ class ChatSection {
     
     playMessageSound() {
         try {
-            // Check if we should play sounds (respect user settings)
+
             const soundsEnabled = localStorage.getItem('message_sounds_enabled') !== 'false';
             
             if (!soundsEnabled) {
@@ -2405,11 +2405,11 @@ class ChatSection {
                 return;
             }
             
-            // Create and play the sound
+
             const audio = new Audio('/public/assets/sound/message_sound.mp3');
             audio.volume = 0.5; // Set to 50% volume
             audio.play().catch(error => {
-                // This often fails due to browser autoplay restrictions
+
 
             });
         } catch (error) {
@@ -2424,7 +2424,7 @@ class ChatSection {
             
             if (!this.chatMessages) {
                 console.error('❌ [CHAT-SECTION] Cannot get messages container: chat messages element still not found after search');
-                // Try one more fallback search for messages container
+
                 const fallbackContainer = document.querySelector('.messages-container') ||
                                         document.querySelector('[data-messages-container]') ||
                                         document.querySelector('.chat-messages') ||
@@ -2439,7 +2439,7 @@ class ChatSection {
         }
         
         try {
-            // Try multiple selectors for the messages container
+
             const messagesContainer = this.chatMessages.querySelector('.messages-container') ||
                                     this.chatMessages.querySelector('[data-messages-container]') ||
                                     this.chatMessages.querySelector('.flex-1') ||
@@ -2460,30 +2460,30 @@ class ChatSection {
     formatMessageContent(content) {
         if (!content) return '';
         
-        // Convert URLs to links
+
         content = content.replace(
             /(https?:\/\/[^\s]+)/g,
             '<a href="$1" target="_blank" class="text-[#00a8fc] hover:underline">$1</a>'
         );
         
-        // Convert line breaks to <br>
+
         content = content.replace(/\n/g, '<br>');
         
         return content;
     }
     
     showNotification(message, type = 'info') {
-        // Create notification element
+
         const notification = document.createElement('div');
         notification.className = `notification fixed bottom-4 right-4 p-3 rounded shadow-lg z-50 ${
             type === 'error' ? 'bg-red-500' : type === 'success' ? 'bg-green-500' : 'bg-blue-500'
         } text-white`;
         notification.textContent = message;
         
-        // Add to document
+
         document.body.appendChild(notification);
         
-        // Remove after 3 seconds
+
         setTimeout(() => {
             notification.classList.add('opacity-0');
                 setTimeout(() => {
@@ -2812,7 +2812,7 @@ class ChatSection {
 
         }
         
-        // Wait for DM elements to be available after SPA navigation
+
         let dmElementsReady = false;
         let attempts = 0;
         const maxAttempts = 20;
@@ -3003,7 +3003,7 @@ class ChatSection {
             return false;
         }
 
-        // Check if socket is already working properly
+
         const status = this.getDetailedSocketStatus();
         if (status.isReady) {
 
@@ -3022,11 +3022,11 @@ class ChatSection {
             return false;
         }
 
-        // Only retry if socket is not already connecting or connected
+
         if (window.globalSocketManager.isConnecting || window.globalSocketManager.isConnected) {
 
             
-            // Wait for existing connection to complete
+
             setTimeout(() => {
                 const newStatus = this.getDetailedSocketStatus();
                 if (newStatus.isReady && this.targetId) {
@@ -3037,7 +3037,7 @@ class ChatSection {
             return true;
         }
 
-        // Reset only if truly needed and no connection exists
+
         if (!window.globalSocketManager.io) {
             window.__SOCKET_INITIALISED__ = false;
             const result = window.globalSocketManager.init(userData);
@@ -3437,11 +3437,11 @@ class ChatSection {
 
 }
 
-// Make functions and classes globally available for dynamic initialization
+
 window.initializeChatSection = initializeChatSection;
 window.ChatSection = ChatSection;
 
-// Global DM switching helper function
+
 window.switchToDMGlobal = async function(dmId, roomType = 'direct') {
 
     
@@ -3459,7 +3459,7 @@ window.switchToDMGlobal = async function(dmId, roomType = 'direct') {
     }
 };
 
-// Debug log to confirm availability
+
 console.log('✅ [CHAT-SECTION] Global functions exposed:', {
     initializeChatSection: typeof window.initializeChatSection,
     ChatSection: typeof window.ChatSection,
@@ -3467,7 +3467,7 @@ console.log('✅ [CHAT-SECTION] Global functions exposed:', {
     timestamp: new Date().toISOString()
   });
 
-// Add global debug function for testing
+
 window.debugChatSection = function() {
 
 

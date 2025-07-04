@@ -171,9 +171,9 @@ class VideoSDKManager {
         }
     }
 
-    // Meeting initialization removed - now handled by voice-not-join.php
+
     
-    // External interface methods for voice-not-join.php
+
     async externalInitMeeting(meetingId, participantName, micEnabled = true, webcamEnabled = false) {
         if (!this.initialized) {
             throw new Error("VideoSDK not initialized - call init() first");
@@ -186,7 +186,7 @@ class VideoSDKManager {
         try {
 
             
-            // Initialize the meeting object using VideoSDK
+
             this.meeting = VideoSDK.initMeeting({
                 meetingId: meetingId,
                 name: participantName,
@@ -200,7 +200,7 @@ class VideoSDKManager {
             
 
             
-            // Setup event handlers
+
             this.setupEvents();
             
             return true;
@@ -224,7 +224,7 @@ class VideoSDKManager {
             
 
 
-            // Set presence to "In Voice Call" immediately
+
             if (window.globalSocketManager) {
                 const channelName = document.querySelector('meta[name="channel-name"]')?.content || 'Voice';
                 window.globalSocketManager.updatePresence(
@@ -252,8 +252,8 @@ class VideoSDKManager {
                 window.globalSocketManager.updatePresence('online', activityDetails);
 
                 
-                // 🎯 VOICE PRESENCE PROTECTION
-                // Ensure the presence hierarchy protects this voice call status
+
+
 
             }
 
@@ -281,13 +281,13 @@ class VideoSDKManager {
         }
     }
     
-    // Method to mark connection as successful after external joining
+
     markExternalJoinSuccess() {
         this.isConnected = true;
         this.isMeetingJoined = true;
 
         
-        // Update voice manager state if available
+
         if (window.voiceManager) {
             window.voiceManager.isConnected = true;
             window.voiceJoinInProgress = false;
@@ -721,7 +721,7 @@ class VideoSDKManager {
     }
 
 
-    // Join meeting function removed - now handled by voice-not-join.php
+
     
     async waitForMeetingJoined(timeout = 10000) {
         return new Promise((resolve, reject) => {

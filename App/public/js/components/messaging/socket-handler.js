@@ -6,7 +6,7 @@ class SocketHandler {
     }
 
     setupIoListeners() {
-        // If socket is not ready, wait for it
+
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
 
             window.addEventListener('globalSocketReady', this.handleSocketReady.bind(this));
@@ -321,7 +321,7 @@ class SocketHandler {
             if (!data || !data.message_id) return;
 
             
-            // Add pin icon to message
+
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
                 const pinIcon = document.createElement('span');
@@ -343,7 +343,7 @@ class SocketHandler {
             if (!data || !data.message_id) return;
 
             
-            // Remove pin icon from message
+
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
                 const pinIcon = messageElement.querySelector('.pin-icon');
@@ -368,19 +368,19 @@ class SocketHandler {
                 realId: data.real_message_id
             });
             
-            // Find the temporary message element
+
             const tempElement = document.querySelector(`[data-message-id="${data.temp_message_id}"]`);
             if (tempElement) {
 
                 
-                // Update the message ID to the real server ID
+
                 tempElement.dataset.messageId = data.real_message_id;
                 
-                // Remove temporary styling
+
                 tempElement.classList.remove('temporary-message');
                 tempElement.classList.remove('bubble-message-temporary');
                 
-                // Remove any error indicators
+
                 tempElement.classList.remove('message-error');
                 tempElement.style.borderLeft = '';
                 
@@ -389,30 +389,30 @@ class SocketHandler {
                     errorIndicator.remove();
                 }
                 
-                // Update processed IDs if handler exists
+
                 if (this.chatSection.messageHandler) {
                     this.chatSection.messageHandler.processedMessageIds.delete(data.temp_message_id);
                     this.chatSection.messageHandler.processedMessageIds.add(data.real_message_id);
                     
-                    // Clean up temporary messages map
+
                     if (this.chatSection.messageHandler.temporaryMessages) {
                         this.chatSection.messageHandler.temporaryMessages.delete(data.temp_message_id);
                     }
                     
-                    // Update message with complete data from database (including reply_data)
+
                     if (data.message_data && data.message_data.reply_data) {
 
                         
-                        // Check if reply container already exists
+
                         let replyContainer = tempElement.querySelector('.bubble-reply-container');
                         
                         if (!replyContainer && data.message_data.reply_data) {
-                            // Create reply container
+
                             const messageContent = tempElement.querySelector('.bubble-message-content');
                             if (messageContent) {
                                 replyContainer = this.chatSection.messageHandler.createReplyContainer(data.message_data);
                                 
-                                // Insert reply container as the first child
+
                                 const firstChild = messageContent.firstChild;
                                 if (firstChild) {
                                     messageContent.insertBefore(replyContainer, firstChild);
@@ -426,16 +426,16 @@ class SocketHandler {
                     }
                 }
                 
-                // Re-enable reaction button now that we have a real message ID
+
                 this.updateReactionButtonForPermanentId(tempElement, data.real_message_id);
                 
-                // Notify emoji reactions system of the ID change
+
                 if (window.emojiReactions) {
 
                     window.emojiReactions.handleMessageIdUpdated(data.temp_message_id, data.real_message_id);
                 }
                 
-                // Dispatch global event for other systems that might need to know
+
                 window.dispatchEvent(new CustomEvent('messageIdUpdated', {
                     detail: {
                         tempId: data.temp_message_id,
@@ -450,7 +450,7 @@ class SocketHandler {
 
             }
 
-            // Update any bot reply messages that reference this temp ID
+
             this.updateBotReplyReferences(data.temp_message_id, data.real_message_id);
             
         } catch (error) {
@@ -532,12 +532,12 @@ class SocketHandler {
         try {
             console.error('❌ Message error received:', data);
             
-            // Show notification
+
             if (this.chatSection && this.chatSection.showNotification) {
                 this.chatSection.showNotification(data.error || 'Message error occurred', 'error');
             }
             
-            // If there's a temp_message_id, mark that message as failed
+
             if (data.temp_message_id) {
                 this.handleMessageSaveFailed(data);
             }
@@ -749,7 +749,7 @@ class SocketHandler {
         
         this.updateTypingIndicatorDisplay();
         
-        // Auto-remove typing indicator after 5 seconds of inactivity
+
         setTimeout(() => {
             if (this.typingUsers.has(userId)) {
                 const typingData = this.typingUsers.get(userId);
@@ -839,45 +839,45 @@ class SocketHandler {
         }
     }
     
-    // handleMentionNotification(data) {
-    //     // DISABLED: Now handled by GlobalNotificationHandler to prevent notification bursts
-    //     // try {
-    //         const currentUserId = window.globalSocketManager?.userId;
-    //         if (!currentUserId) return;
-    //         
 
-    //         
-    //         const isCurrentChat = this.isCurrentChat(data);
-    //         
-    //         if (data.type === 'all') {
 
-    //             if (isCurrentChat && this.chatSection.mentionHandler) {
-    //                 this.chatSection.mentionHandler.handleMentionNotification({
-    //                     ...data,
-    //                     mentions: [{ type: 'all', username: 'all', user_id: 'all' }]
-    //                 });
-    //             }
-    //         } else if (data.type === 'role' && data.mentioned_user_id === currentUserId) {
 
-    //             if (isCurrentChat && this.chatSection.mentionHandler) {
-    //                 this.chatSection.mentionHandler.handleMentionNotification({
-    //                     ...data,
-    //                     mentions: [{ type: 'role', username: data.role, user_id: data.role }]
-    //                 });
-    //             }
-    //         } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
 
-    //             if (isCurrentChat && this.chatSection.mentionHandler) {
-    //                 this.chatSection.mentionHandler.handleMentionNotification({
-    //                     ...data,
-    //                     mentions: [{ type: 'user', username: data.mentioned_username, user_id: data.mentioned_user_id }]
-    //                 });
-    //             }
-    //         }
-    //     } catch (error) {
-    //         console.error('❌ [SOCKET-HANDLER] Error handling local mention notification:', error);
-    //     }
-    // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     isCurrentChat(data) {
         try {
@@ -955,16 +955,16 @@ class SocketHandler {
 
     updateBotReplyReferences(tempId, permanentId) {
         try {
-            // Find all bot messages that have reply containers referencing the temp ID
+
             const botReplyElements = document.querySelectorAll(`[data-reply-message-id="${tempId}"]`);
             
             botReplyElements.forEach(replyContainer => {
 
                 
-                // Update the data attribute
+
                 replyContainer.dataset.replyMessageId = permanentId;
                 
-                // Update the onclick handler if it exists
+
                 const onclickValue = replyContainer.getAttribute('onclick');
                 if (onclickValue && onclickValue.includes(tempId)) {
                     const updatedOnclick = onclickValue.replace(tempId, permanentId);
@@ -974,7 +974,7 @@ class SocketHandler {
 
             });
             
-            // Also update any reply containers that might have the temp ID in their data
+
             const allReplyContainers = document.querySelectorAll('.bubble-reply-container');
             allReplyContainers.forEach(container => {
                 if (container.dataset.replyMessageId === tempId) {

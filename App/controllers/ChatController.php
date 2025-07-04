@@ -892,7 +892,6 @@ class ChatController extends BaseController
             'type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text'),
             'message_type' => is_array($message) ? ($message['message_type'] ?? 'text') : ($message->message_type ?? 'text'),
             'attachments' => is_array($message) ? ($message['attachments'] ?? []) : $this->parseAttachments($message->attachment_url ?? null),
-            // Default to false for has_reactions
             'has_reactions' => false,
             'reaction_count' => 0
         ];
@@ -1292,7 +1291,6 @@ class ChatController extends BaseController
                 
                 $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
             } else {
-                    // Verify chat room exists and user is a participant
                 $chatRoom = $this->chatRoomRepository->find($targetId);
                 if (!$chatRoom) {
                     error_log("[ChatController] Chat room not found - ID: $targetId");
@@ -1564,7 +1562,6 @@ class ChatController extends BaseController
             error_log("Socket message save result: " . json_encode($result));
 
             if ($result['success']) {
-                // Handle nested data structure from internalSuccess response
                 $messageData = null;
                 if (isset($result['data']['data']['message'])) {
                     $messageData = $result['data']['data']['message'];

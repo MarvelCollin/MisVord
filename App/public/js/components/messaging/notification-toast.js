@@ -81,10 +81,10 @@ class NotificationToast {
         const toast = document.createElement('div');
         toast.className = 'notification-toast pointer-events-auto w-full max-w-sm toast-enter';
         
-        // Configure toast based on type
+
         const config = this.getToastConfig(type);
         
-        // Create toast content
+
         const toastHTML = `
             <div class="relative overflow-hidden rounded-lg shadow-lg ${config.gradientBorder}">
                 <div class="toast-backdrop bg-gray-900/80 border border-gray-700/50 rounded-lg overflow-hidden">
@@ -124,13 +124,13 @@ class NotificationToast {
         toast.innerHTML = toastHTML;
         this.container.appendChild(toast);
         
-        // Apply enter animation
+
         setTimeout(() => {
             toast.classList.remove('toast-enter');
             toast.classList.add('toast-enter-active');
         }, 10);
         
-        // Add event listeners
+
         const closeBtn = toast.querySelector('.toast-close');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => this.hide(toast));
@@ -145,7 +145,7 @@ class NotificationToast {
             });
         }
         
-        // Handle progress bar
+
         let progressInterval;
         if (progress && duration > 0) {
             const progressBar = toast.querySelector('.toast-progress');
@@ -163,7 +163,7 @@ class NotificationToast {
             }, interval);
         }
         
-        // Auto-hide after duration
+
         if (duration > 0) {
             setTimeout(() => {
                 this.hide(toast);
@@ -171,7 +171,7 @@ class NotificationToast {
             }, duration);
         }
         
-        // Store toast reference
+
         this.toasts.push(toast);
         
         return toast;
@@ -268,7 +268,7 @@ class NotificationToast {
         `;
     }
     
-    // Shorthand methods for different toast types
+
     info(message, options = {}) {
         return this.show({ message, type: 'info', ...options });
     }
@@ -294,7 +294,7 @@ class NotificationToast {
     }
 }
 
-// Create global instance
+
 if (typeof window !== 'undefined') {
     window.notificationToast = window.notificationToast || new NotificationToast();
 }

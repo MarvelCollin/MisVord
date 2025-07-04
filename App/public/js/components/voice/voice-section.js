@@ -1,6 +1,6 @@
 if (typeof window.VoiceSection === 'undefined') {
 
-// Define global voice events if not already defined
+
 if (!window.VOICE_EVENTS) {
     window.VOICE_EVENTS = {
         VOICE_CONNECT: 'voiceConnect',
@@ -170,15 +170,15 @@ class VoiceSection {
     
     async handleJoinClick() {
 
-        // Direct joining disabled - all joins now go through voice-not-join.php
-        // This method is kept for compatibility but does nothing
+
+
         return;
     }
     
     async connectToVoice() {
 
-        // Direct connection disabled - all connections now go through voice-not-join.php
-        // This method is kept for compatibility but does nothing
+
+
         return;
     }
     
@@ -310,7 +310,7 @@ class VoiceSection {
             }
         }
         
-        // Update unified voice state manager with new channel context if connected
+
         if (window.unifiedVoiceStateManager) {
             const currentState = window.unifiedVoiceStateManager.getState();
             if (currentState.isConnected) {

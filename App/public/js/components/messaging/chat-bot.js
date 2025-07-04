@@ -8,18 +8,16 @@ class ChatBot {
     }
 
     setupBotListeners() {
-        // Set up socket listeners for bot events
         if (window.globalSocketManager?.io) {
             const io = window.globalSocketManager.io;
             
-            // Listen for bot messages
             io.on('new-channel-message', (data) => {
                 if (data.is_bot && data.bot_id) {
 
                 }
             });
             
-            // Listen for bot music commands
+
             io.on('bot-music-command', (data) => {
 
                 if (!data || !data.music_data) {
@@ -27,7 +25,7 @@ class ChatBot {
                     return;
                 }
                 
-                // Forward to music player
+
                 if (window.musicPlayer) {
                     window.musicPlayer.processBotMusicCommand(data);
                 } else {
@@ -205,7 +203,7 @@ class ChatBot {
     async executeMusicCommand(musicData) {
 
         
-        // Try the music player first
+
         if (window.musicPlayer) {
 
             try {
@@ -216,7 +214,7 @@ class ChatBot {
             }
         }
         
-        // Fallback to voice call section music player if available
+
         if (window.voiceCallSection && window.voiceCallSection.musicPlayer) {
 
             try {
@@ -300,7 +298,7 @@ class ChatBot {
     }
 
     updateBotParticipantStatus(statusText) {
-        // Update bot participant card status if visible in voice call
+
         const botCard = document.querySelector('[data-participant-id="bot-4"]');
         if (botCard) {
             const statusElement = botCard.querySelector('.music-status');
@@ -344,29 +342,29 @@ class ChatBot {
         this.botReady = true;
     }
 
-    // Debug function to test voice context detection and message sending
+
     debugSendTitiBotCommand(command = 'play test song') {
 
         
-        // Step 1: Test voice context detection
+
 
         if (typeof window.debugTitiBotVoiceContext === 'function') {
             const voiceContext = window.debugTitiBotVoiceContext();
 
         }
         
-        // Step 2: Test message input
+
         if (!this.chatSection || !this.chatSection.messageInput) {
             console.error('❌ [DEBUG] Chat section or message input not available');
             return;
         }
         
-        // Step 3: Set command in input
+
         const fullCommand = `/titibot ${command}`;
 
         this.chatSection.messageInput.value = fullCommand;
         
-        // Step 4: Trigger send
+
 
         if (this.chatSection.sendReceiveHandler?.sendMessage) {
             this.chatSection.sendReceiveHandler.sendMessage();
@@ -377,11 +375,11 @@ class ChatBot {
     }
 }
 
-// Make ChatBot available globally for non-module contexts
+
 if (typeof window !== 'undefined') {
     window.ChatBot = ChatBot;
     
-    // Add global debug function for TitiBot command testing
+
     window.debugSendTitiBotCommand = function(command = 'play test song') {
         if (window.chatBot && typeof window.chatBot.debugSendTitiBotCommand === 'function') {
             window.chatBot.debugSendTitiBotCommand(command);
@@ -391,7 +389,7 @@ if (typeof window !== 'undefined') {
     };
 }
 
-// Export for module contexts
+
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatBot;
 }

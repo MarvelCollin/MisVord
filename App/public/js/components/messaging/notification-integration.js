@@ -35,15 +35,15 @@ class NotificationIntegration {
     }
 
     setupIntegration() {
-        // Store original showNotification method for reference
+
         const originalShowNotification = window.globalNotificationHandler.showNotification;
         
-        // Override the showNotification method to use our new toast system
+
         window.globalNotificationHandler.showNotification = (data, isAllMention, isRoleMention) => {
-            // Call original method if needed (for backward compatibility)
-            // originalShowNotification.call(window.globalNotificationHandler, data, isAllMention, isRoleMention);
+
+
             
-            // Use our new toast system instead
+
             this.showModernNotification(data, isAllMention, isRoleMention);
         };
         
@@ -66,7 +66,7 @@ class NotificationIntegration {
             title = `@${mentionerUsername} mentioned your role`;
         }
         
-        // Format the message content
+
         const message = `
             <div class="flex items-center gap-1 text-xs mb-1">
                 <span class="text-gray-400">in</span>
@@ -79,7 +79,7 @@ class NotificationIntegration {
             </div>
         `;
         
-        // Create the notification with actions
+
         window.notificationToast.show({
             title: title,
             message: message,
@@ -99,10 +99,10 @@ class NotificationIntegration {
             ]
         });
         
-        // Play notification sound
+
         window.globalNotificationHandler.playNotificationSound();
     }
 }
 
-// Initialize the integration
+
 new NotificationIntegration(); 

@@ -303,13 +303,13 @@ class GlobalSocketManager {
             this.lastActivityTime = Date.now();
             this.isUserActive = true;
             
-            // 🎯 PRESENCE HIERARCHY PROTECTION FOR AUTH
-            // Check if user is in voice call - preserve voice presence
+
+
             const isInVoiceCall = this.isUserInVoiceCall();
             
             if (isInVoiceCall) {
 
-                // Keep existing presence status and activity
+
                 this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails, 'authentication');
             } else {
 
@@ -320,7 +320,7 @@ class GlobalSocketManager {
             this.startPresenceHeartbeat();
             
             setTimeout(() => {
-                // 🎯 SECONDARY UPDATE WITH VOICE PROTECTION
+
                 const stillInVoiceCall = this.isUserInVoiceCall();
                 
                 if (stillInVoiceCall) {
@@ -488,17 +488,17 @@ class GlobalSocketManager {
         this.io.on('voice-meeting-status', (data) => {
 
             
-            // Always process voice meeting status for cross-channel visibility
+
             this.handleVoiceMeetingStatus(data);
         });
         
         this.io.on('voice-meeting-update', (data) => {
 
             
-            // Always process voice meeting updates for cross-channel visibility
+
             this.handleVoiceMeetingUpdate(data);
             
-            // If this is about our own connection and VideoSDK is managing, let VideoSDK handle
+
             const isOwnConnection = data.user_id === this.userId;
             if (isOwnConnection && window.videoSDKManager?.isReady()) {
 
@@ -544,7 +544,7 @@ class GlobalSocketManager {
     }
     
     getSessionId() {
-        // Try to get session ID from cookie
+
         const cookies = document.cookie.split(';');
         for (let cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
@@ -553,7 +553,7 @@ class GlobalSocketManager {
             }
         }
         
-        // Fallback: try to get from meta tag or other sources
+
         return document.querySelector('meta[name="session-id"]')?.content || 
                sessionStorage.getItem('session_id') || 
                null;
@@ -589,7 +589,7 @@ class GlobalSocketManager {
         this.joinedChannels.add(roomName);
         this.joinedRooms.add(roomName);
         
-        // Also join the channel via the channel-specific event
+
         this.io.emit('join-channel', {
             channel_id: channelId
         });
@@ -621,7 +621,7 @@ class GlobalSocketManager {
         this.joinedDMRooms.add(roomName);
         this.joinedRooms.add(roomName);
         
-        // Also join via the DM-specific event
+
         this.io.emit('join-dm-room', {
             room_id: roomId
         });
@@ -640,16 +640,16 @@ class GlobalSocketManager {
             return false;
         }
         
-        // Use consistent room name format
+
         const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
         
-        // Join the room with the server
+
         this.io.emit('join-room', { 
             room_type: roomType, 
             room_id: roomId 
         });
         
-        // Add to our local tracking sets
+
         if (roomType === 'channel') {
             this.joinedChannels.add(roomId);
             this.joinedRooms.add(roomName);
@@ -660,14 +660,14 @@ class GlobalSocketManager {
         
 
         
-        // For debugging purposes, log all rooms we're in
+
         console.log(`🏠 [SOCKET] Currently joined rooms:`, {
             channels: Array.from(this.joinedChannels),
             dms: Array.from(this.joinedDMRooms),
             all: Array.from(this.joinedRooms)
         });
         
-        // Dispatch an event that we've joined the room
+
         window.dispatchEvent(new CustomEvent('socketRoomJoined', {
             detail: {
                 roomType: roomType,
@@ -692,13 +692,13 @@ class GlobalSocketManager {
             return false;
         }
         
-        // Use consistent room name format
+
         const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
         
-        // Leave the room with the server
+
         this.io.emit('leave-room', { room_type: roomType, room_id: roomId });
         
-        // Remove from tracked rooms
+
         this.joinedRooms.delete(roomName);
         
 
@@ -711,22 +711,22 @@ class GlobalSocketManager {
             return false;
         }
         
-        // Normalize roomId for DM rooms (strip prefix if present)
+
         let normalizedRoomId = roomId;
         if (roomType === 'dm' && typeof roomId === 'string' && roomId.startsWith('dm-room-')) {
             normalizedRoomId = roomId.replace('dm-room-', '');
 
         }
         
-        // Use consistent room name format
+
         const roomName = roomType === 'channel' ? `channel-${normalizedRoomId}` : `dm-room-${normalizedRoomId}`;
         
-        // First join the room if not already joined
+
         if (!this.joinedRooms.has(roomName)) {
 
             this.joinRoom(roomType, normalizedRoomId);
             
-            // Wait a moment to ensure room join completes
+
             setTimeout(() => {
 
                 this.emitToRoomDirect(eventName, data, roomType, normalizedRoomId);
@@ -739,10 +739,10 @@ class GlobalSocketManager {
     }
     
     emitToRoomDirect(eventName, data, roomType, roomId) {
-        // Use consistent room name format
+
         const roomName = roomType === 'channel' ? `channel-${roomId}` : `dm-room-${roomId}`;
         
-        // Add room information to data
+
         const roomData = {
             ...data,
             room_type: roomType,
@@ -752,7 +752,7 @@ class GlobalSocketManager {
         
 
         
-        // Emit the event to the room
+
         this.io.emit(eventName, roomData);
         return true;
     }
@@ -800,8 +800,8 @@ class GlobalSocketManager {
     }
     
     updatePresence(status, activityDetails = null, source = 'unknown') {
-        // Determine if the user is currently in a voice call using the dedicated helper.
-        // We still fall back to sessionStorage for legacy pages where the helper may not be available yet.
+
+
         const inVoice = (this.isUserInVoiceCall && typeof this.isUserInVoiceCall === 'function')
             ? this.isUserInVoiceCall()
             : (sessionStorage.getItem('isInVoiceCall') === 'true');
@@ -819,14 +819,14 @@ class GlobalSocketManager {
             return false;
         }
 
-        // 🎯 PRESENCE HIERARCHY PROTECTION
+
         if (window.globalPresenceManager) {
             const isValidChange = window.globalPresenceManager.canUpdatePresence(status, activityDetails);
             
             if (!isValidChange) {
 
                 
-                // Fire a debug event for the panel
+
                 window.dispatchEvent(new CustomEvent('presenceUpdateBlocked', {
                     detail: {
                         newStatus: status,
@@ -859,7 +859,7 @@ class GlobalSocketManager {
         
         this.io.emit('update-presence', presenceData);
         
-        // Dispatch local event for immediate UI updates
+
         window.dispatchEvent(new CustomEvent('ownPresenceUpdate', {
             detail: {
                 user_id: this.userId,
@@ -1028,7 +1028,7 @@ class GlobalSocketManager {
     }
     
     handleChannelMessage(data) {
-        // ... existing code ...
+
     }
     
     handleGlobalMentionNotification(data) {
@@ -1197,17 +1197,17 @@ class GlobalSocketManager {
             if (!this.isUserActive || this.currentPresenceStatus === 'afk') {
                 this.isUserActive = true;
                 
-                // 🎯 PRESENCE HIERARCHY PROTECTION
-                // Check if user is in voice call - if so, preserve voice presence
+
+
                 const isInVoiceCall = this.isUserInVoiceCall();
                 
                 if (isInVoiceCall) {
 
-                    // Don't change presence - stay in voice call
+
                     return;
                 }
                 
-                // Only update to online if not in higher priority activity
+
 
                 this.currentPresenceStatus = 'online';
                 this.updatePresence('online', { type: 'active' }, 'activity');
@@ -1231,12 +1231,12 @@ class GlobalSocketManager {
 
     }
     
-    // 🎯 NEW METHOD: Check if user is in voice call
+
     isUserInVoiceCall() {
-        // Check multiple sources for voice call status
+
         const activityType = this.currentActivityDetails?.type;
         
-        // Voice call patterns to protect
+
         const voiceCallPatterns = [
             'In Voice Call',
             'In Voice -',
@@ -1247,7 +1247,7 @@ class GlobalSocketManager {
             return voiceCallPatterns.some(pattern => activityType.includes(pattern));
         }
         
-        // Also check VideoSDK connection status
+
         if (window.videoSDKManager?.isConnected || window.voiceManager?.isConnected) {
             return true;
         }
@@ -1264,8 +1264,8 @@ class GlobalSocketManager {
             if (timeSinceActivity >= this.afkTimeout && this.isUserActive) {
                 this.isUserActive = false;
                 
-                // 🎯 PRESENCE HIERARCHY PROTECTION FOR AFK
-                // Don't set AFK if user is in voice call or playing games
+
+
                 const isInVoiceCall = this.isUserInVoiceCall();
                 
                 if (isInVoiceCall) {
@@ -1291,7 +1291,7 @@ class GlobalSocketManager {
     }
     
     handleVoiceMeetingStatus(data) {
-        // Forward to voice participants manager if available
+
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             if (instance.handleVoiceMeetingUpdate) {
@@ -1305,7 +1305,7 @@ class GlobalSocketManager {
     }
 
     handleVoiceMeetingUpdate(data) {
-        // Forward to voice participants manager if available
+
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             if (instance.handleVoiceMeetingUpdate) {

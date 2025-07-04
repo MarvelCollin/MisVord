@@ -357,12 +357,10 @@ export class ServerManager {
       return;
     }
 
-    // Show loading skeleton immediately
     this.renderServerDetailsLoadingSkeleton();
 
     window.serverAPI.getServerDetails(serverId)
       .then(response => {
-        // Remove loading skeleton and show actual content
         this.closeServerModal();
         if (response.success) {
           this.renderServerDetailsModal(response.data);
@@ -464,7 +462,6 @@ export class ServerManager {
       }
     });
 
-    // Add escape key handler
     this.escHandler = (e) => {
       if (e.key === 'Escape') {
         this.closeServerModal();
@@ -484,7 +481,6 @@ export class ServerManager {
       }, 300);
     }
     
-    // Remove escape key handler
     if (this.escHandler) {
       document.removeEventListener('keydown', this.escHandler);
       this.escHandler = null;
@@ -492,10 +488,8 @@ export class ServerManager {
   }
 
   renderServerDetailsModal(data) {
-    // First, ensure any existing modal is completely removed
     this.closeServerModal();
     
-    // Wait a bit to ensure DOM cleanup is complete
     setTimeout(() => {
       const server = data.server;
       const members = data.members;
@@ -617,7 +611,6 @@ export class ServerManager {
         });
       }
 
-      // Add escape key handler
       this.escHandler = (e) => {
         if (e.key === 'Escape') {
           this.closeServerModal();

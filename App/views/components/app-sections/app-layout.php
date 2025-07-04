@@ -97,7 +97,7 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
                     $channels = $GLOBALS['serverChannels'] ?? [];
                     $activeChannel = null;
                     
-                    // Fix: Use URL parameter first, then channel data detection
+
                     $channelType = isset($_GET['type']) ? $_GET['type'] : null;
                     
                     if ($activeChannelId) {
@@ -105,7 +105,7 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
                             if ($channel['id'] == $activeChannelId) {
                                 $activeChannel = $channel;
                                 
-                                // Only override URL type if no URL parameter exists
+
                                 if (!$channelType) {
                                     if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
                                         $channelType = 'voice';
@@ -121,12 +121,12 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
                         }
                     }
                     
-                    // Final fallback to text if still no type
+
                     if (!$channelType) {
                         $channelType = 'text';
                     }
                     
-                    // Recalculate section visibility based on final channel type
+
                     $finalIsVoiceChannel = ($channelType === 'voice');
                     $finalIsTextChannel = !$finalIsVoiceChannel;
                     ?>

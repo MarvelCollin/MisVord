@@ -20,10 +20,10 @@ foreach ($members as $member) {
     $role = $member['role'] ?? 'member';
     $isBot = isset($member['status']) && $member['status'] === 'bot';
     
-    // Check if user is in voice (activity details might not be available server-side initially)
+
     $isInVoice = false; // This will be updated by JavaScript for real-time data
     
-    // Rule: If bubble indicator would be grey and not in voice, put in offline section
+
     $isActuallyOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
     $hasGreyStatus = !in_array($member['status'], ['online', 'appear', 'afk', 'do_not_disturb']) && !$isBot;
     $shouldShowAsOffline = ($isActuallyOffline || $hasGreyStatus) && !$isInVoice;
@@ -101,8 +101,8 @@ foreach ($members as $member) {
                     </h4>
                     <div class="space-y-0.5 members-list">
                         <?php foreach ($roleMembers as $member):
-                            // Note: Activity details for "In Voice" check will be handled by JavaScript
-                            // This is initial server-side rendering, real-time updates happen via JS
+
+
                             $statusColor = 'bg-[#747f8d]'; // Default grey
                             
                             switch ($member['status']) {
@@ -334,7 +334,7 @@ function scheduleUpdate() {
 }
 
 function getStatusClass(status, activityDetails) {
-    // Rule: If presence is "In Voice" then bubble indicator must be green
+
     const isInVoice = activityDetails?.type && 
                       (activityDetails.type === 'In Voice Call' || 
                        activityDetails.type.startsWith('In Voice'));
@@ -359,7 +359,7 @@ function getStatusClass(status, activityDetails) {
 }
 
 function getActivityText(activityDetails, status) {
-    // Hide presence text when user is offline or invisible
+
     if (status === 'offline' || status === 'invisible') {
         return '';
     }
@@ -404,7 +404,7 @@ function updateParticipantDisplay() {
         const isBot = member.status === 'bot';
         let userData = onlineUsers[member.id];
 
-        // Inject/update own presence data to ensure it's always current
+
         if (String(member.id) === String(currentUserId)) {
             const isVideoSDKConnected = window.videoSDKManager?.isConnected && 
                                        window.videoSDKManager?.isMeetingJoined;
@@ -435,7 +435,7 @@ function updateParticipantDisplay() {
             });
         }
         
-        // Store corrected userData in member object for later use
+
         member._correctedUserData = userData;
         
         const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
@@ -444,7 +444,7 @@ function updateParticipantDisplay() {
                            userData.activity_details.type.startsWith('In Voice'));
         const isActuallyOffline = userData?.status === 'offline' || userData?.status === 'invisible';
         
-        // Rule: If bubble indicator would be grey and not in voice, put in offline section
+
         const wouldHaveGreyBubble = !isOnline && !isInVoice;
         const shouldShowAsOffline = (isActuallyOffline || wouldHaveGreyBubble) && !isInVoice;
         

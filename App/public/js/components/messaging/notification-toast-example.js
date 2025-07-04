@@ -1,7 +1,7 @@
-// Example usage of the NotificationToast component
+
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Basic usage examples
+
     const demoButtons = `
         <div class="fixed bottom-4 left-4 z-50 p-4 bg-gray-800/80 backdrop-blur-sm rounded-lg border border-gray-700 shadow-lg">
             <h3 class="text-white text-sm font-medium mb-3">Notification Toast Demo</h3>
@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
     `;
     
-    // Create demo panel
+
     const demoPanel = document.createElement('div');
     demoPanel.innerHTML = demoButtons;
     document.body.appendChild(demoPanel);
     
-    // Add event listeners to demo buttons
+
     document.getElementById('demo-info').addEventListener('click', () => {
         window.notificationToast.info('This is an informational notification', {
             title: 'Information'
@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// API Documentation
+
 
 /*
 NotificationToast API:

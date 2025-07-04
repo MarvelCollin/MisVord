@@ -24,7 +24,6 @@ export class UserManager {
         this.initialized = true;
       });
     } else {
-      // Add a small delay to wait for userAdminAPI to be loaded
       setTimeout(() => {
         this.loadUserStats().then(() => {
           this.loadUsers();
@@ -434,15 +433,12 @@ export class UserManager {
       return;
     }
     
-    // Create container for table overflow
     const tableContainer = document.createElement('div');
     tableContainer.className = 'user-table-container';
     
-    // Create a table element
     const table = document.createElement('table');
     table.className = 'user-table';
     
-    // Create the table header
     const tableHeader = document.createElement('thead');
     tableHeader.innerHTML = `
       <tr>
@@ -457,12 +453,9 @@ export class UserManager {
     `;
     table.appendChild(tableHeader);
     
-    // Create the table body
     const tableBody = document.createElement('tbody');
     
-    // Add user rows
     users.forEach(user => {
-      // Extract user properties with fallbacks
       const userId = user.id || 'N/A';
       const username = user.username || 'Unknown User';
       const discriminator = user.discriminator || '0000';
@@ -471,7 +464,6 @@ export class UserManager {
       const isBanned = user.status === 'banned';
       const isAdmin = user.email === 'admin@admin.com';
       
-      // Set status display and styling based on banned status
       let statusDisplay = isBanned ? 'Banned' : 'Active';
       let statusClass = isBanned ? 'banned' : 'active';
       
@@ -479,15 +471,12 @@ export class UserManager {
         ? 'background-color: rgba(237, 66, 69, 0.1); color: #ed4245;' 
         : 'background-color: rgba(59, 165, 93, 0.1); color: #3ba55d;';
       
-      // Create the user avatar
       let avatarContent = user.avatar_url 
         ? `<img src="${user.avatar_url}" alt="${username}">`
         : `${username.charAt(0).toUpperCase()}`;
       
-      // Create the row element
       const row = document.createElement('tr');
       
-      // Populate the row with user data
       row.innerHTML = `
         <td>
           <div class="user-avatar-sm">${avatarContent}</div>
@@ -519,14 +508,11 @@ export class UserManager {
         </td>
       `;
       
-      // Add the row to the table body
       tableBody.appendChild(row);
     });
     
-    // Add the table body to the table
     table.appendChild(tableBody);
     
-    // Add the table to the container
     tableContainer.appendChild(table);
     container.appendChild(tableContainer);
   }
@@ -545,15 +531,12 @@ export class UserManager {
       return;
     }
     
-    // Create container for table overflow
     const tableContainer = document.createElement('div');
     tableContainer.className = 'user-table-container';
     
-    // Create a table with different columns for the grid view
     const table = document.createElement('table');
     table.className = 'user-table';
     
-    // Create the table header
     const tableHeader = document.createElement('thead');
     tableHeader.innerHTML = `
       <tr>
@@ -564,12 +547,9 @@ export class UserManager {
     `;
     table.appendChild(tableHeader);
     
-    // Create the table body
     const tableBody = document.createElement('tbody');
     
-    // Add user rows
     users.forEach(user => {
-      // Extract user properties with fallbacks
       const userId = user.id || 'N/A';
       const username = user.username || 'Unknown User';
       const discriminator = user.discriminator || '0000';
@@ -579,18 +559,14 @@ export class UserManager {
       const createdAt = user.created_at ? this.formatDate(user.created_at) : 'Unknown';
       const isBanned = user.status === 'banned';
       
-      // Set status class based on banned status
       let statusClass = isBanned ? 'banned' : 'active';
       
-      // Create the user avatar
       let avatarContent = user.avatar_url 
         ? `<img src="${user.avatar_url}" alt="${username}">`
         : `${username.charAt(0).toUpperCase()}`;
       
-      // Create the row element
       const row = document.createElement('tr');
       
-      // Populate the row with user data
       row.innerHTML = `
         <td>
           <div class="flex items-center">
@@ -626,14 +602,11 @@ export class UserManager {
         </td>
       `;
       
-      // Add the row to the table body
       tableBody.appendChild(row);
     });
     
-    // Add the table body to the table
     table.appendChild(tableBody);
     
-    // Add the table to the container
     tableContainer.appendChild(table);
     container.innerHTML = '';
     container.appendChild(tableContainer);

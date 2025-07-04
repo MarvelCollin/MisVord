@@ -36,7 +36,6 @@ class MisVordLogger {
 
     init() {
         if (typeof window !== 'undefined') {
-            // Create fallback logger if none exists
             if (!window.logger) {
                 window.logger = {
                     debug: () => {},
@@ -142,7 +141,6 @@ class MisVordLogger {
     }
 
     debug(module = 'general', message, ...data) {
-        // If only one argument is passed, treat it as message with default module
         if (arguments.length === 1 && typeof module === 'string') {
             this.log('debug', 'general', module);
         } else {
@@ -151,7 +149,6 @@ class MisVordLogger {
     }
 
     info(module = 'general', message, ...data) {
-        // If only one argument is passed, treat it as message with default module
         if (arguments.length === 1 && typeof module === 'string') {
             this.log('info', 'general', module);
         } else {
@@ -160,7 +157,6 @@ class MisVordLogger {
     }
 
     warn(module = 'general', message, ...data) {
-        // If only one argument is passed, treat it as message with default module
         if (arguments.length === 1 && typeof module === 'string') {
             this.log('warn', 'general', module);
         } else {
@@ -169,7 +165,6 @@ class MisVordLogger {
     }
 
     error(module = 'general', message, ...data) {
-        // If only one argument is passed, treat it as message with default module
         if (arguments.length === 1 && typeof module === 'string') {
             this.log('error', 'general', module);
         } else {

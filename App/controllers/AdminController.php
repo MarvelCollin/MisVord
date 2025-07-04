@@ -652,7 +652,6 @@ class AdminController extends BaseController
         
         $userId = $this->getCurrentUserId();
         
-        // Check if user is admin by session
         if (isset($_SESSION['username']) && $_SESSION['username'] === 'Admin' && 
             isset($_SESSION['discriminator']) && $_SESSION['discriminator'] === '0000') {
             return true;
@@ -662,7 +661,6 @@ class AdminController extends BaseController
         
         if (!$user || $user->email !== 'admin@admin.com') {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                // Return the forbidden response instead of calling it (which exits)
                 header('Content-Type: application/json');
                 http_response_code(403);
                 echo json_encode([

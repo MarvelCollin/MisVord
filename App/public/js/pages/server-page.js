@@ -308,7 +308,7 @@ function initVoicePage() {
   }
 }
 
-// These functions are now handled by SimpleChannelSwitcher
+
 window.getServerIdFromURL = getServerIdFromURL;
 
 window.isServerPageReady = function() {

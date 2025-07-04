@@ -381,7 +381,7 @@ class MessageHandler {
 
 
         
-        // Check if this might be a bot command
+
         const isLikelyBotCommand = data.content && data.content.toLowerCase().includes('/titibot');
 
         
@@ -452,7 +452,7 @@ class MessageHandler {
                 broadcastData.context = data.context;
             }
 
-            // Step 2: Fetch reply data if needed (for temporary broadcast)
+
             if (data.reply_message_id) {
 
                 try {
@@ -495,7 +495,7 @@ class MessageHandler {
                 ? roomManager.getChannelRoom(data.target_id)
                 : roomManager.getDMRoom(data.target_id);
             
-            // Broadcast temporary message to other users (excluding sender)
+
             if (targetRoom) {
                 console.log(`📡 [SAVE-AND-SEND] About to emit bot-message-intercept with data:`, JSON.stringify({
                     id: broadcastData.id,
@@ -550,7 +550,7 @@ class MessageHandler {
                     broadcastData.voice_context = voiceChannelData;
                 }
                 
-                // Process bot commands once, regardless of room targeting
+
                 console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
                     messageId: broadcastData.id,
                     content: broadcastData.content?.substring(0, 50) + '...',
@@ -562,9 +562,9 @@ class MessageHandler {
                 });
                 BotHandler.emitBotMessageIntercept(broadcastData);
                 
-            // Broadcast temporary message to other users (excluding sender)
+
             if (targetRoom) {
-                // Handle mentions notification
+
                 this.handleMentionNotifications(io, client, broadcastData, targetRoom);
                 
                 client.to(targetRoom).emit(eventName, broadcastData);
@@ -580,7 +580,7 @@ class MessageHandler {
                     userId: broadcastData.user_id,
                     username: broadcastData.username
                 });
-                // Note: Bot intercept already called above, no need to call again
+
                 
                 this.handleMentionNotifications(io, client, broadcastData, null);
                 
@@ -592,11 +592,11 @@ class MessageHandler {
                 });
             }
             
-            // Now save to database via direct HTTP call to PHP
+
 
             
             try {
-                // First test the debug endpoint
+
 
                 const debugResponse = await fetch('http://app:1001/api/debug/test-socket-save', {
                     method: 'POST',
@@ -622,7 +622,7 @@ class MessageHandler {
                     console.error(`❌ [SAVE-AND-SEND] Debug endpoint failed: ${debugResponse.status} ${debugResponse.statusText}`);
                 }
                 
-                // Now try the actual save endpoint
+
                 const response = await fetch('http://app:1001/api/chat/save-message', {
                     method: 'POST',
                     headers: {
@@ -665,7 +665,7 @@ class MessageHandler {
                 if (saveResult.success) {
                     let realMessageId = null;
                     
-                    // Check multiple possible locations for message_id
+
                     if (saveResult.data && saveResult.data.message_id) {
                         realMessageId = saveResult.data.message_id;
                     } else if (saveResult.message_id) {
@@ -689,7 +689,7 @@ class MessageHandler {
                         throw new Error('No message_id found in server response');
                     }
                     
-                    // Extract complete message data 
+
                     let completeMessageData = null;
                     if (saveResult.data && saveResult.data.data && saveResult.data.data.message) {
                         completeMessageData = saveResult.data.data.message;
@@ -703,7 +703,7 @@ class MessageHandler {
                         replyMessageId: completeMessageData?.reply_message_id
                     });
                     
-                    // Broadcast the permanent ID update
+
                     const updateData = {
                         temp_message_id: data.temp_message_id || temp_message_id,
                         real_message_id: realMessageId,
@@ -733,7 +733,7 @@ class MessageHandler {
             } catch (error) {
                 console.error(`❌ [SAVE-AND-SEND] Database save failed:`, error);
                 
-                // Mark temporary message as failed
+
                 const errorData = {
                     temp_message_id: data.temp_message_id || temp_message_id,
                     error: error.message || 'Failed to save to database'
@@ -798,7 +798,7 @@ class MessageHandler {
         
 
         
-        // Determine target room based on message data
+
         let targetRoom;
         const messageData = data.message_data;
         
@@ -817,9 +817,9 @@ class MessageHandler {
             };
             
 
-            // Broadcast to ALL users in the room (including sender) so everyone can react
+
             io.to(targetRoom).emit('message_id_updated', updateData);
-            // Also send directly to sender to ensure they get it
+
             client.emit('message_id_updated', updateData);
             
 

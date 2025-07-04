@@ -479,12 +479,10 @@ class BaseController
             $input = [];
         }
         
-        // Merge with POST data
         foreach ($_POST as $key => $value) {
             $input[$key] = $value;
         }
 
-        // Add debug log for input processing
         if (function_exists('logger')) {
             logger()->debug("Input received", [
                 'content_type' => $contentType,

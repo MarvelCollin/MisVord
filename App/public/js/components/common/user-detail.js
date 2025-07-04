@@ -34,7 +34,6 @@ class UserDetailModal {
         this.messageBtn = this.modal.querySelector('#user-detail-message-btn');
         this.addFriendBtn = this.modal.querySelector('#user-detail-add-friend-btn');
         
-        // Mutual detail modal elements
         this.mutualDetailTitle = this.modal.querySelector('#mutual-detail-title');
         this.mutualDetailContent = this.modal.querySelector('#mutual-detail-content');
         this.mutualDetailCloseBtn = this.modal.querySelector('.mutual-detail-close-btn');

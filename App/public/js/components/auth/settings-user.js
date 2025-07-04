@@ -395,7 +395,7 @@ function uploadBanner(dataUrl) {
                 removeBannerBtn.classList.remove('hidden');
             }
             
-            // Reload page after successful upload to ensure all UI is updated
+
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
@@ -1540,17 +1540,14 @@ function updateBio(bio) {
 }
 
 function initConnectionToggles() {
-    // Import and use LocalStorageManager
     import('/public/js/utils/local-storage-manager.js')
         .then(module => {
             const LocalStorageManager = module.LocalStorageManager;
             const localStorageManager = module.default;
             
-            // Get user preferences or set defaults
             const userPrefs = localStorageManager.getUserPreferences();
             const displayActivity = userPrefs.displayActivity !== undefined ? userPrefs.displayActivity : true;
             
-            // Initialize toggle state from localStorage
             const activityToggle = document.getElementById('toggle-activity');
             
             if (activityToggle) {

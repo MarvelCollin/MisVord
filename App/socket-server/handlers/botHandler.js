@@ -175,7 +175,7 @@ class BotHandler extends EventEmitter {
             return;
         }
         
-        // Ensure proper type comparison for bot filtering
+
         if (String(data.user_id) === String(botId)) {
             console.log(`🤖 [BOT-DEBUG] Ignoring bot's own message to prevent recursion:`, {
                 messageUserId: data.user_id,
@@ -187,7 +187,7 @@ class BotHandler extends EventEmitter {
 
         const content = data.content?.toLowerCase().trim();
         
-        // Prepare voiceChannelToJoin variable early so later checks can use it safely
+
         let voiceChannelToJoin = null;
 
         if (!content) {
@@ -224,7 +224,7 @@ class BotHandler extends EventEmitter {
 
 
             
-            // Join voice channel ONLY for play command
+
             if (voiceChannelToJoin) {
 
                 await this.ensureBotInVoiceChannel(io, botId, username, voiceChannelToJoin);
@@ -236,10 +236,10 @@ class BotHandler extends EventEmitter {
         } else if (content.toLowerCase() === '/titibot stop') {
 
             
-            // Leave voice channel on stop command
+
             let channelIdForLeave = voiceChannelToJoin;
             if (!channelIdForLeave) {
-                // If not provided, detect the channel the bot is currently in
+
                 for (const key of this.botVoiceParticipants.keys()) {
                     if (key.startsWith(`${botId}-`)) {
                         channelIdForLeave = key.split('-')[1];
@@ -315,7 +315,7 @@ class BotHandler extends EventEmitter {
 
 
         
-        // Emit to both voice channel room and regular channel room
+
         const voiceChannelRoom = `voice-channel-${channelId}`;
         const eventData = {
             participant: botParticipant,
@@ -426,7 +426,7 @@ class BotHandler extends EventEmitter {
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Send bot response through database to maintain proper message flow
+
         await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
     }
 
@@ -475,7 +475,7 @@ class BotHandler extends EventEmitter {
 
         io.to(targetRoom).emit(eventName, immediateData);
         
-        // Send music command immediately
+
         if (musicData) {
             const musicCommandData = {
                 channel_id: channelId,
@@ -487,7 +487,7 @@ class BotHandler extends EventEmitter {
             
 
             
-            // Emit to multiple rooms
+
             io.to(targetRoom).emit('bot-music-command', musicCommandData);
             
             if (channelId) {
@@ -495,7 +495,7 @@ class BotHandler extends EventEmitter {
                 io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
             }
             
-            // Global emit as fallback
+
             io.emit('bot-music-command', musicCommandData);
             
 
@@ -534,7 +534,7 @@ class BotHandler extends EventEmitter {
         const indonesiaTime = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
         const currentTimestamp = indonesiaTime.toISOString();
 
-        // Create bot message data in the same format as user messages
+
         const botMessageData = {
             user_id: parseInt(botId),
             target_type: targetType,
@@ -556,7 +556,7 @@ class BotHandler extends EventEmitter {
         });
 
         try {
-            // Send to the same endpoint that regular socket messages use
+
             const http = require('http');
             const querystring = require('querystring');
             
@@ -639,7 +639,7 @@ class BotHandler extends EventEmitter {
                     sentAt: savedMessage.sent_at
                 });
                 
-                // Prepare broadcast data with real database ID and all required fields
+
                 const broadcastData = {
                     id: savedMessage.id,
                     message_id: savedMessage.id,
@@ -672,7 +672,7 @@ class BotHandler extends EventEmitter {
                     }
                 };
 
-                // Add target-specific fields
+
                 if (messageType === 'channel') {
                     broadcastData.channel_id = channelId;
                     broadcastData.target_type = 'channel';
@@ -683,7 +683,7 @@ class BotHandler extends EventEmitter {
                     broadcastData.target_id = roomId;
                 }
 
-                // Add music data if present
+
                 if (musicData) {
                     broadcastData.music_data = musicData;
 
@@ -699,10 +699,10 @@ class BotHandler extends EventEmitter {
                     content: responseContent?.substring(0, 30) + '...'
                 });
                 
-                // Use the same message forwarding as regular messages
+
                 const MessageHandler = require('./messageHandler');
                 
-                // Create a mock client for the bot
+
                 const mockBotClient = {
                     id: `bot-${botId}`,
                     data: {
@@ -720,12 +720,12 @@ class BotHandler extends EventEmitter {
                 
 
                 
-                // Forward the message using the standard message handler
+
                 MessageHandler.forwardMessage(io, mockBotClient, eventName, broadcastData);
                 
-                // Send music command if needed
+
                 if (musicData) {
-                    // Emit to multiple rooms to ensure delivery
+
                     const musicCommandData = {
                         channel_id: channelId,
                         room_id: roomId,
@@ -741,17 +741,17 @@ class BotHandler extends EventEmitter {
                         action: musicData.action
                     });
                     
-                    // Emit to target room
+
                     io.to(targetRoom).emit('bot-music-command', musicCommandData);
                     
-                    // Also emit to voice channel room if this is a channel
+
                     if (channelId) {
                         const voiceChannelRoom = `voice-channel-${channelId}`;
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
 
                     }
                     
-                    // Emit globally to all sockets (fallback)
+
                     io.emit('bot-music-command', musicCommandData);
                     
 
@@ -766,7 +766,7 @@ class BotHandler extends EventEmitter {
         } catch (error) {
             console.error(`❌ [BOT-DEBUG] Error processing bot message:`, error.message);
             
-            // Fallback: send temporary message if database save fails
+
             const fallbackData = {
                 id: temp_message_id,
                 user_id: parseInt(botId),
@@ -848,21 +848,21 @@ class BotHandler extends EventEmitter {
 
 
         
-        // Create a proper bot client and join the voice room
+
         const botClient = this.activeConnections.get(botId);
         const roomManager = require('../services/roomManager');
         const voiceChannelRoom = `voice-channel-${channelId}`;
         
-        // Make sure bot joins the voice channel room
+
         if (botClient) {
             try {
-                // Create a mock socket for room joining
+
                 const mockSocket = {
                     id: `bot-${botId}`,
                     rooms: new Set(),
                     join: (room) => {
 
-                        // Don't actually join - just track the intent
+
                     },
                     leave: (room) => {
 
@@ -888,7 +888,7 @@ class BotHandler extends EventEmitter {
 
         this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
 
-        // Emit to both the voice channel room and channel room for maximum compatibility
+
 
         
         io.to(voiceChannelRoom).emit('bot-voice-participant-joined', {
@@ -897,7 +897,7 @@ class BotHandler extends EventEmitter {
             meetingId: `voice_channel_${channelId}`
         });
         
-        // Also emit to regular channel room in case users are there
+
         io.to(`channel-${channelId}`).emit('bot-voice-participant-joined', {
             participant: botParticipantData,
             channelId: channelId,

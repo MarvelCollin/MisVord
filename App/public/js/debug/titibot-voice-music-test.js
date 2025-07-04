@@ -23,7 +23,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
 
 
     
-    // Phase 1: Environment validation
+
 
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -38,7 +38,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
     
 
     
-    // Phase 2: Component availability check
+
 
     
     const components = {
@@ -61,7 +61,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
 
     }
     
-    // Phase 3: Voice connection check
+
 
     
     const voiceChecks = {
@@ -80,7 +80,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
 
     }
     
-    // Phase 4: Bot voice join test
+
     if (!skipBotJoin) {
 
         
@@ -118,7 +118,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
         }
     }
     
-    // Phase 5: Music command test
+
     if (!skipMusicCommand) {
         setTimeout(() => {
 
@@ -131,15 +131,15 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
             const command = `/titibot play ${songName}`;
 
             
-            // Set the command in the input
+
             window.chatSection.messageInput.value = command;
             
-            // Trigger the send
+
             if (window.chatSection.sendReceiveHandler?.sendMessage) {
                 window.chatSection.sendReceiveHandler.sendMessage();
 
                 
-                // Monitor for bot response
+
                 setTimeout(() => {
 
                     const messages = document.querySelectorAll('.bubble-message-content');
@@ -154,7 +154,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
 
                     }
                     
-                    // Check music player status
+
                     if (window.musicPlayer) {
                         setTimeout(() => {
                             const musicStatus = {
@@ -184,7 +184,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
     return true;
 };
 
-// Quick test functions
+
 window.testBotJoinOnly = () => testTitiBotVoiceMusicIntegration({ skipMusicCommand: true });
 window.testMusicCommandOnly = () => testTitiBotVoiceMusicIntegration({ skipBotJoin: true });
 

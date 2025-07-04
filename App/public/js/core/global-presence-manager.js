@@ -311,11 +311,15 @@ class GlobalPresenceManager {
                     };
                 }
                 
-                voiceChannels[channelId].participants.push({
-                    ...friend,
-                    status: userData.status,
-                    activity: activity
-                });
+
+                const existingParticipant = voiceChannels[channelId].participants.find(p => p.id === friend.id);
+                if (!existingParticipant) {
+                    voiceChannels[channelId].participants.push({
+                        ...friend,
+                        status: userData.status,
+                        activity: activity
+                    });
+                }
             }
         });
 
@@ -659,7 +663,7 @@ class GlobalPresenceManager {
         }
     }
 
-    // 🎯 NEW: Centralized Presence Hierarchy System
+
     static PRESENCE_HIERARCHY = {
         'offline': 0,
         'online': 1,
@@ -672,12 +676,12 @@ class GlobalPresenceManager {
     static getPresenceLevel(activityType) {
         if (!activityType) return this.PRESENCE_HIERARCHY['online'];
         
-        // Check for exact matches first
+
         if (this.PRESENCE_HIERARCHY[activityType] !== undefined) {
             return this.PRESENCE_HIERARCHY[activityType];
         }
         
-        // Check for pattern matches
+
         for (const [pattern, level] of Object.entries(this.PRESENCE_HIERARCHY)) {
             if (activityType.includes(pattern)) {
                 return level;
@@ -691,8 +695,8 @@ class GlobalPresenceManager {
         const currentLevel = this.getPresenceLevel(currentActivity?.type);
         const newLevel = this.getPresenceLevel(newActivity?.type);
         
-        // Higher level activities can override lower level ones
-        // Same level activities can override each other
+
+
         return newLevel >= currentLevel;
     }
 
@@ -702,7 +706,7 @@ class GlobalPresenceManager {
             to: { status: newStatus, activity: newActivity?.type }
         });
         
-        // Special case: AFK can only be overridden by user activity or higher priority activities
+
         if (currentStatus === 'afk' && newStatus === 'online') {
             if (!newActivity || newActivity.type === 'active') {
 
@@ -710,7 +714,7 @@ class GlobalPresenceManager {
             }
         }
         
-        // Check activity hierarchy
+
         const canOverride = this.canOverridePresence(currentActivity, newActivity);
         
         if (canOverride) {

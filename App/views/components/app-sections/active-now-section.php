@@ -367,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function initializeActiveNowSection() {
 
         
-        // Initialize fallback image handler
+
         if (window.FallbackImageHandler) {
             window.fallbackImageHandler = window.FallbackImageHandler.getInstance();
         }

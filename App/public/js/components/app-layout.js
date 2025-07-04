@@ -166,17 +166,15 @@ async function loadOnlineFriends(forceRefresh = false) {
             const status = userData?.status || 'offline';
             const activityDetails = userData?.activity_details;
             
-            // HARDCODED: If presence is "In Voice", always put in Online tab regardless of actual status
             const isInVoice = activityDetails && (
                 activityDetails.type === 'In Voice Call' || 
                 (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
             );
             
             if (isInVoice) {
-                return true; // Always include in Online tab
+                return true;
             }
             
-            // For non-voice users, use normal logic
             return (status === 'online' || status === 'afk');
         });
 
@@ -198,7 +196,6 @@ async function loadOnlineFriends(forceRefresh = false) {
             const userDataA = onlineUsers[a.id];
             const userDataB = onlineUsers[b.id];
             
-            // Check if users are in voice
             const isInVoiceA = userDataA?.activity_details && (
                 userDataA.activity_details.type === 'In Voice Call' || 
                 (userDataA.activity_details.type && userDataA.activity_details.type.startsWith('In Voice - '))
@@ -208,11 +205,9 @@ async function loadOnlineFriends(forceRefresh = false) {
                 (userDataB.activity_details.type && userDataB.activity_details.type.startsWith('In Voice - '))
             );
             
-            // Voice users come first
             if (isInVoiceA && !isInVoiceB) return -1;
             if (!isInVoiceA && isInVoiceB) return 1;
             
-            // Then sort by name
             const nameA = a.display_name || a.username;
             const nameB = b.display_name || b.username;
             return nameA.localeCompare(nameB);
@@ -224,14 +219,13 @@ async function loadOnlineFriends(forceRefresh = false) {
             let status = userData?.status || 'offline';
             const activityDetails = userData?.activity_details;
             
-            // HARDCODED: If presence is "In Voice", force green active indicator
             const isInVoice = activityDetails && (
                 activityDetails.type === 'In Voice Call' || 
                 (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
             );
             
             if (isInVoice) {
-                status = 'online'; // Force green active indicator
+                status = 'online';
             }
             
             const statusClass = getStatusClass(status);
@@ -343,7 +337,6 @@ async function loadAllFriends(forceRefresh = false) {
             const statusA = userDataA?.status || 'offline';
             const statusB = userDataB?.status || 'offline';
             
-            // Check if users are in voice
             const isInVoiceA = userDataA?.activity_details && (
                 userDataA.activity_details.type === 'In Voice Call' || 
                 (userDataA.activity_details.type && userDataA.activity_details.type.startsWith('In Voice - '))
@@ -353,18 +346,15 @@ async function loadAllFriends(forceRefresh = false) {
                 (userDataB.activity_details.type && userDataB.activity_details.type.startsWith('In Voice - '))
             );
             
-            // Voice users come first (treated as highest priority)
             if (isInVoiceA && !isInVoiceB) return -1;
             if (!isInVoiceA && isInVoiceB) return 1;
             
-            // Then sort by status priority
             const priorityOrder = { 'online': 0, 'afk': 1, 'offline': 2 };
             const priorityA = priorityOrder[statusA] || 2;
             const priorityB = priorityOrder[statusB] || 2;
             
             if (priorityA !== priorityB) return priorityA - priorityB;
             
-            // Finally sort by name
             const nameA = a.display_name || a.username;
             const nameB = b.display_name || b.username;
             return nameA.localeCompare(nameB);
@@ -376,19 +366,17 @@ async function loadAllFriends(forceRefresh = false) {
             let status = userData?.status || 'offline';
             const activityDetails = userData?.activity_details;
             
-            // HARDCODED: If presence is "In Voice", force green active indicator
             const isInVoice = activityDetails && (
                 activityDetails.type === 'In Voice Call' || 
                 (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
             );
             
             if (isInVoice) {
-                status = 'online'; // Force green active indicator
+                status = 'online'; 
             }
             
             const statusClass = getStatusClass(status);
             
-            // Show appropriate text based on status
             let activityText, activityIcon;
             if (status === 'offline') {
                 activityText = 'Offline';
@@ -1147,7 +1135,6 @@ function setupFriendPresenceUpdates() {
                 updateFriendPresenceInDOM(data);
                 break;
             case 'online-users-updated':
-                // Refresh current tab data
                 refreshCurrentTab();
                 break;
         }
@@ -1161,19 +1148,17 @@ function updateFriendPresenceInDOM(presenceData) {
     let status = presenceData.status || 'offline';
     const activityDetails = presenceData.activity_details;
     
-    // HARDCODED: If presence is "In Voice", force green active indicator
     const isInVoice = activityDetails && (
         activityDetails.type === 'In Voice Call' || 
         (activityDetails.type && activityDetails.type.startsWith('In Voice - '))
     );
     
     if (isInVoice) {
-        status = 'online'; // Force green active indicator
+        status = 'online'; 
     }
     
     const statusClass = getStatusClass(status);
     
-    // Show appropriate text based on status
     let activityText, activityIcon;
     if (status === 'offline') {
         activityText = 'Offline';
@@ -1183,14 +1168,12 @@ function updateFriendPresenceInDOM(presenceData) {
         activityIcon = getActivityIcon(activityDetails);
     }
     
-    // Update status indicators
     const statusIndicators = document.querySelectorAll(`.friend-status-indicator[data-user-id="${userId}"]`);
     statusIndicators.forEach(indicator => {
         indicator.className = `friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300`;
         indicator.setAttribute('data-user-id', userId);
     });
     
-    // Update status text
     const statusTexts = document.querySelectorAll(`.friend-status-text[data-user-id="${userId}"]`);
     statusTexts.forEach(textEl => {
         textEl.innerHTML = `<i class="${activityIcon} mr-1"></i>${activityText}`;

@@ -24,7 +24,7 @@ $include_socket_io = true;
 <meta name="user-avatar" content="<?php echo htmlspecialchars($_SESSION['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>">
 <meta name="user-authenticated" content="true">
 <script>
-// Global username initialization - available on all pages
+
 window.currentUserId = <?php echo json_encode($_SESSION['user_id']); ?>;
 window.currentUsername = <?php echo json_encode($_SESSION['username'] ?? ''); ?>;
 window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/public/assets/common/default-profile-picture.png'); ?>;
@@ -799,7 +799,7 @@ function refreshBotStatus() {
         botSocketEl.className = socketReady ? 'text-sm text-green-400' : 'text-sm text-red-400';
     }
     
-    // Enhanced debugging - add detailed voice context analysis
+
     const debugInfo = analyzeVoiceContextForBot();
     addBotDebugLog(`🔍 Voice Context Analysis: ${debugInfo.summary}`, debugInfo.status);
     if (debugInfo.details) {
@@ -810,7 +810,7 @@ function refreshBotStatus() {
     }
 }
 
-// New function to analyze voice context for bot commands
+
 function analyzeVoiceContextForBot() {
     const urlParams = new URLSearchParams(window.location.search);
     const currentChannelId = urlParams.get('channel');
@@ -822,7 +822,7 @@ function analyzeVoiceContextForBot() {
     const voiceManagerConnected = window.voiceManager?.isConnected;
     const voiceManagerChannelId = window.voiceManager?.currentChannelId;
     
-    // Simulate the exact logic used in send-receive-handler.js
+
     let voiceChannelId = null;
     let userInVoice = false;
     let detectionMethod = 'none';
@@ -868,7 +868,7 @@ function analyzeVoiceContextForBot() {
     return { summary, status, details, recommendation };
 }
 
-// Enhanced sendBotCommand with detailed voice context logging
+
 function sendBotCommand(command) {
     const input = document.getElementById('bot-command-input');
     const messageText = command || input?.value;
@@ -885,7 +885,7 @@ function sendBotCommand(command) {
         return;
     }
     
-    // Detailed voice context analysis for debugging
+
     addBotDebugLog('🔍 Analyzing voice context before sending...', 'info');
     
     const urlParams = new URLSearchParams(window.location.search);
@@ -911,7 +911,7 @@ function sendBotCommand(command) {
     };
     addBotDebugLog(`   🎙️ Voice Manager: Connected ${voiceManagerState.connected}, Channel ${voiceManagerState.channelId}`, 'info');
     
-    // Simulate the exact detection logic from send-receive-handler.js
+
     let voiceChannelId = null;
     let userInVoice = false;
     let detectionMethod = 'none';
@@ -1012,11 +1012,11 @@ function testMusicPlay() {
     sendBotCommand('/titibot play never gonna give you up');
 }
 
-// New function to test voice context detection for bot commands
+
 function testVoiceContextDetection() {
     addBotDebugLog('🔍 Testing voice context detection for bot commands...', 'info');
     
-    // Simulate the exact logic from send-receive-handler.js
+
     let voiceChannelId = null;
     let userInVoice = false;
     let detectionMethod = 'none';
@@ -1068,7 +1068,7 @@ function testVoiceContextDetection() {
         }
     }
     
-    // Final verification steps
+
     if (voiceChannelId && !userInVoice) {
         addBotDebugLog('🔍 Step 3: Performing additional verification checks...', 'info');
         
@@ -1100,7 +1100,7 @@ function testVoiceContextDetection() {
         }
     }
     
-    // Final result
+
     addBotDebugLog('🎯 FINAL DETECTION RESULT:', 'info');
     addBotDebugLog(`   Voice Channel ID: ${voiceChannelId || 'None'}`, voiceChannelId ? 'success' : 'error');
     addBotDebugLog(`   User In Voice: ${userInVoice}`, userInVoice ? 'success' : 'error');

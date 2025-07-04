@@ -292,7 +292,7 @@ function initServerProfileForm() {
         }, 300));
     }
     
-    // Initialize approve buttons for all inputs
+
     initServerInputApproveButtons(serverId);
 }
 
@@ -472,11 +472,11 @@ function initMemberManagementTab() {
             const isABot = a.username.toLowerCase() === 'titibot';
             const isBBot = b.username.toLowerCase() === 'titibot';
             
-            // Always place bots at the end of the list
+
             if (isABot && !isBBot) return 1;
             if (!isABot && isBBot) return -1;
             
-            // Define role precedence: owner → admin → members → others
+
             const roleOrder = { 'owner': 0, 'admin': 1, 'members': 2, 'member': 2, 'moderator': 3 };
             const roleA = roleOrder[a.role] !== undefined ? roleOrder[a.role] : 4;
             const roleB = roleOrder[b.role] !== undefined ? roleOrder[b.role] : 4;
@@ -1281,7 +1281,7 @@ function initDeleteServerTab() {
  * Initialize approve buttons for server input fields
  */
 function initServerInputApproveButtons(serverId) {
-    // Server Name
+
     const serverNameInput = document.getElementById('server-name');
     const approveServerNameBtn = document.getElementById('approve-server-name');
     
@@ -1306,7 +1306,7 @@ function initServerInputApproveButtons(serverId) {
         });
     }
     
-    // Server Description
+
     const serverDescriptionInput = document.getElementById('server-description');
     const approveServerDescriptionBtn = document.getElementById('approve-server-description');
     
@@ -1331,7 +1331,7 @@ function initServerInputApproveButtons(serverId) {
         });
     }
     
-    // Public checkbox
+
     const isPublicInput = document.getElementById('is-public');
     const approveIsPublicBtn = document.getElementById('approve-is-public');
     
@@ -1348,7 +1348,7 @@ function initServerInputApproveButtons(serverId) {
         });
     }
     
-    // Server Category
+
     const serverCategoryInput = document.getElementById('server-category');
     const approveServerCategoryBtn = document.getElementById('approve-server-category');
     
@@ -1444,13 +1444,13 @@ async function updateServerName(serverId, name) {
             nameInput.dataset.originalValue = name;
             nameInput.value = name;
             
-            // Update page title if exists
+
             const titleElement = document.querySelector('title');
             if (titleElement) {
                 titleElement.textContent = `${name} - Server Settings`;
             }
             
-            // Update server name in UI
+
             updateServerNameInUI(name);
             
             approveBtn.classList.remove('show');

@@ -179,7 +179,7 @@ class VoiceManager {
                            channelElement?.textContent?.trim() || 'Voice Channel';
         this.currentChannelName = channelName;
         
-        // Update unified voice state manager if user is connected
+
         if (window.unifiedVoiceStateManager) {
             const currentState = window.unifiedVoiceStateManager.getState();
             if (currentState.isConnected) {
@@ -212,7 +212,7 @@ class VoiceManager {
         const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
         const targetChannelId = this.currentChannelId || metaChannelId;
 
-        // If already connected, check whether it is the same channel
+
         if (this.isConnected) {
             if (this.currentChannelId === targetChannelId) {
 
@@ -223,7 +223,7 @@ class VoiceManager {
         }
         
         if (window.voiceJoinInProgress) {
-            // leaveVoice might set this flag indirectly; ensure it's reset
+
             window.voiceJoinInProgress = false;
         }
         
@@ -233,7 +233,7 @@ class VoiceManager {
         }
         
         if (window.voiceJoinInProgress) {
-            // Another join started while waiting
+
             return Promise.resolve();
         }
         
@@ -262,7 +262,7 @@ class VoiceManager {
             
             window.videoSDKJoiningInProgress = true;
 
-            // 🎯 STEP 1: Check if meeting already exists for this channel
+
 
             const existingMeeting = await this.checkExistingMeeting(targetChannelId);
             
@@ -281,23 +281,23 @@ class VoiceManager {
             }
 
             
-            // 🎯 STEP 3b: Meeting initialization and joining now handled by voice-not-join.php
+
 
             
-            // Get proper username from multiple sources
+
             const userName = this.getUsernameFromMultipleSources();
 
             
-            // Store meeting details for potential external use
+
             this.currentMeetingId = meetingId;
             this.currentChannelId = targetChannelId;
             
-            // 🎯 STEP 4: Register with socket for meeting tracking
+
 
             await this.registerMeetingWithSocket(targetChannelId, meetingId);
             
-            // VideoSDK joining is now handled externally by voice-not-join.php
-            // Just mark as prepared for external joining
+
+
             console.log(`� [VOICE-MANAGER] Meeting prepared for external joining`, {
                 meetingId: meetingId,
                 channelId: targetChannelId,
@@ -405,34 +405,34 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
-        // Set flags first to prevent any new joins
+
         this.isConnected = false;
         window.voiceJoinInProgress = false;
         
-        // Unregister from socket first
+
         if (this.currentChannelId && window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
             });
         }
         
-        // Leave VideoSDK meeting
+
         if (this.videoSDKManager) {
             this.videoSDKManager.leaveMeeting();
         }
         
-        // Clear state
+
         const previousChannelId = this.currentChannelId;
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
-        // Update voice state manager
+
         if (window.unifiedVoiceStateManager) {
             window.unifiedVoiceStateManager.handleDisconnect();
         }
         
-        // Remove own participant from UI
+
         if (previousChannelId && window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
@@ -498,7 +498,7 @@ class VoiceManager {
             this.videoSDKManager.refreshExistingParticipants();
         }
         
-        // Also trigger a general participant refresh event
+
         window.dispatchEvent(new CustomEvent('voiceParticipantsRefresh'));
     }
 
@@ -511,16 +511,16 @@ class VoiceManager {
     }
 
     getUsernameFromMultipleSources() {
-        // Priority order: window.currentUsername > meta tag > session storage > app container data > fallback
+
         let username = null;
         
-        // 1. Check window.currentUsername (set on home page)
+
         if (window.currentUsername && window.currentUsername !== 'Anonymous') {
             username = window.currentUsername;
 
         }
         
-        // 2. Check meta tag (available on most pages)
+
         if (!username) {
             const metaUsername = document.querySelector('meta[name="username"]')?.content;
             if (metaUsername && metaUsername !== 'Anonymous' && metaUsername.trim() !== '') {
@@ -529,7 +529,7 @@ class VoiceManager {
             }
         }
         
-        // 3. Check app container data attributes
+
         if (!username) {
             const appContainer = document.getElementById('app-container');
             const dataUsername = appContainer?.getAttribute('data-username');
@@ -539,7 +539,7 @@ class VoiceManager {
             }
         }
         
-        // 4. Check socket data div
+
         if (!username) {
             const socketData = document.getElementById('socket-data');
             const socketUsername = socketData?.getAttribute('data-username');
@@ -549,7 +549,7 @@ class VoiceManager {
             }
         }
         
-        // 5. Fallback - but make it unique to avoid collisions
+
         if (!username) {
             const timestamp = Date.now().toString().slice(-4);
             username = `User${timestamp}`;
@@ -607,7 +607,7 @@ window.addEventListener(window.VOICE_EVENTS?.VOICE_UI_READY || 'voiceUIReady', f
 });
 
 window.addEventListener(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect', function() {
-    // Removed circular call to leaveVoice() to prevent auto-rejoin bugs
+
 
 });
 

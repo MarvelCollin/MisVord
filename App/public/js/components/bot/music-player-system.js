@@ -55,30 +55,25 @@ class MusicPlayerSystem {
     forceInitialize() {
 
         
-        // Ensure global availability
         if (typeof window !== 'undefined') {
             window.musicPlayer = this;
             window.MusicPlayerSystem = MusicPlayerSystem;
         }
         
-        // Set up immediate listeners
         this.setupImmediateListeners();
         
-        // Mark as initialized
         this.initialized = true;
         
 
     }
 
     setupImmediateListeners() {
-        // Listen for commands immediately
         if (typeof window !== 'undefined') {
             window.addEventListener('bot-music-command', (e) => {
 
                 this.processBotMusicCommand(e.detail);
             });
             
-            // Set up socket listeners if available
             if (window.globalSocketManager?.io) {
 
                 window.globalSocketManager.io.on('bot-music-command', (data) => {
@@ -97,7 +92,6 @@ class MusicPlayerSystem {
             this.initializeAudioEvents();
         });
         
-        // Listen for bot-music-command globally
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.on('bot-music-command', (data) => {
 
@@ -110,7 +104,6 @@ class MusicPlayerSystem {
             this.processBotMusicCommand(e.detail);
         });
         
-        // Setup socket listeners when socket is ready
         this.setupSocketListeners();
     }
 
@@ -124,7 +117,6 @@ class MusicPlayerSystem {
             const io = window.globalSocketManager.io;
 
             
-            // Remove existing listeners to prevent duplicates
             io.off('bot-music-command');
             
             io.on('bot-music-command', (data) => {
@@ -147,7 +139,6 @@ class MusicPlayerSystem {
         const { music_data } = data;
         const { action, query, track } = music_data;
         
-        // Show immediate feedback
         this.showStatus(`Processing ${action} command...`);
         
         try {
@@ -664,14 +655,13 @@ class MusicPlayerSystem {
             this.currentTrack = track;
             this.audio.src = track.previewUrl;
             
-            // Wait for audio to be loaded
             await new Promise((resolve, reject) => {
                 this.audio.addEventListener('canplaythrough', resolve, { once: true });
                 this.audio.addEventListener('error', reject, { once: true });
                 this.audio.load();
             });
 
-            // Start playback
+             Start playback
             await this.audio.play();
             this.isPlaying = true;
             
@@ -859,7 +849,7 @@ class MusicPlayerSystem {
     showNowPlaying(track) {
         this.removeExistingPlayer();
         
-        // === NEW: Inject bot participant card into voice grid ===
+         === NEW: Inject bot participant card into voice grid ===
         try {
             if (!this.botParticipantAdded) {
                 const botData = {
@@ -872,7 +862,7 @@ class MusicPlayerSystem {
                     this.botParticipantAdded = true;
 
                 } else {
-                    // Fallback: dispatch event for voice-call-section listener
+                     Fallback: dispatch event for voice-call-section listener
                     window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', { detail: { participant: botData } }));
                     this.botParticipantAdded = true;
 
@@ -996,7 +986,7 @@ class MusicPlayerSystem {
             clearInterval(this.progressInterval);
             this.progressInterval = null;
         }
-        // === NEW: Remove bot participant card when music stops ===
+         === NEW: Remove bot participant card when music stops ===
         try {
             if (this.botParticipantAdded) {
                 if (window.voiceCallSection && typeof window.voiceCallSection.removeBotParticipant === 'function') {
@@ -1070,4 +1060,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = MusicPlayerSystem;
 }
 
-} // End of conditional block
+}  End of conditional block

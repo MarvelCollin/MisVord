@@ -1,11 +1,11 @@
-// Fallback logger for early script loading
+
 (function() {
     'use strict';
     
     if (typeof window !== 'undefined' && !window.logger) {
         window.logger = {
             debug: function(module = 'general', message, ...data) {
-                // If only one argument, treat as message with default module
+
                 if (arguments.length === 1 && typeof module === 'string') {
                     console.log(`[DEBUG] [GENERAL] ${module}`);
                 } else {
@@ -14,7 +14,7 @@
             },
             
             info: function(module = 'general', message, ...data) {
-                // If only one argument, treat as message with default module
+
                 if (arguments.length === 1 && typeof module === 'string') {
                     console.log(`[INFO] [GENERAL] ${module}`);
                 } else {
@@ -23,7 +23,7 @@
             },
             
             warn: function(module = 'general', message, ...data) {
-                // If only one argument, treat as message with default module
+
                 if (arguments.length === 1 && typeof module === 'string') {
                     console.warn(`[WARN] [GENERAL] ${module}`);
                 } else {
@@ -32,7 +32,7 @@
             },
             
             error: function(module = 'general', message, ...data) {
-                // If only one argument, treat as message with default module
+
                 if (arguments.length === 1 && typeof module === 'string') {
                     console.error(`[ERROR] [GENERAL] ${module}`);
                 } else {

@@ -152,7 +152,7 @@ class UserProfileVoiceControls {
                 const hasMusicLoader = !!window.MusicLoaderStatic;
                 const hasUnifiedState = !!window.unifiedVoiceStateManager;
                 
-                // We need at least one voice state manager and music loader
+
                 const hasVoiceManager = hasLocalStorage || hasUnifiedState;
                 
                 if (hasVoiceManager && hasMusicLoader) {
@@ -220,12 +220,12 @@ class UserProfileVoiceControls {
             });
         }
         
-        // Listen to voice state changes
+
         window.addEventListener('voiceStateChanged', () => {
             this.updateControls();
         });
         
-        // Listen to voice connect/disconnect events
+
         window.addEventListener('voiceConnect', () => {
             setTimeout(() => this.updateControls(), 100);
         });
@@ -234,7 +234,7 @@ class UserProfileVoiceControls {
             setTimeout(() => this.updateControls(), 100);
         });
         
-        // Listen to videoSDK events for real-time sync
+
         window.addEventListener('videosdkMeetingJoined', () => {
             setTimeout(() => this.updateControls(), 100);
         });
@@ -243,7 +243,7 @@ class UserProfileVoiceControls {
             setTimeout(() => this.updateControls(), 100);
         });
         
-        // Listen to both local storage and unified state manager
+
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener(() => {
                 this.updateControls();
@@ -256,14 +256,14 @@ class UserProfileVoiceControls {
             });
         }
         
-        // Add cross-tab sync listener
+
         window.addEventListener('storage', (e) => {
             if (e.key && (e.key.includes('voice') || e.key.includes('Voice'))) {
                 setTimeout(() => this.updateControls(), 50);
             }
         });
         
-        // Set up periodic sync check (every 2 seconds when in voice)
+
         this.setupPeriodicSync();
         
         this.eventListenersAttached = true;
@@ -271,7 +271,7 @@ class UserProfileVoiceControls {
     
     updateControls() {
         try {
-            // Use unified state manager as primary source, fallback to local storage
+
             let state = null;
             
             if (window.unifiedVoiceStateManager) {
@@ -280,7 +280,7 @@ class UserProfileVoiceControls {
                 state = window.localStorageManager.getVoiceState();
             }
             
-            // If no state manager available, get state from videoSDK directly
+
             if (!state && window.videoSDKManager?.isReady()) {
                 state = {
                     isMuted: window.videoSDKManager.meeting?.localParticipant?.micEnabled === false,
@@ -290,7 +290,7 @@ class UserProfileVoiceControls {
                 };
             }
             
-            // Default fallback state
+
             if (!state) {
                 state = {
                     isMuted: false,
@@ -354,19 +354,19 @@ class UserProfileVoiceControls {
         try {
             let wasToggled = false;
             
-            // Use unified state manager as primary, fallback to local storage
+
             if (window.unifiedVoiceStateManager) {
                 wasToggled = window.unifiedVoiceStateManager.toggleMute();
             } else if (window.localStorageManager) {
                 wasToggled = window.localStorageManager.toggleVoiceMute();
             }
             
-            // If connected to videoSDK, toggle the actual mic
+
             if (window.videoSDKManager?.isReady()) {
                 window.videoSDKManager.toggleMic();
             }
             
-            // Play sound feedback
+
             if (window.MusicLoaderStatic) {
                 if (wasToggled) {
                     window.MusicLoaderStatic.playDiscordMuteSound();
@@ -375,7 +375,7 @@ class UserProfileVoiceControls {
                 }
             }
             
-            // Dispatch event for cross-component sync
+
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: {
                     type: 'mic',
@@ -384,7 +384,7 @@ class UserProfileVoiceControls {
                 }
             }));
             
-            // Update UI immediately and after short delay
+
             this.updateControls();
             setTimeout(() => this.updateControls(), 100);
             
@@ -398,12 +398,12 @@ class UserProfileVoiceControls {
             let wasToggled = false;
             let currentState = null;
             
-            // Use unified state manager as primary, fallback to local storage
+
             if (window.unifiedVoiceStateManager) {
                 currentState = window.unifiedVoiceStateManager.getState();
                 wasToggled = window.unifiedVoiceStateManager.toggleDeafen();
                 
-                // When deafening, also mute the microphone
+
                 if (wasToggled && !currentState.isMuted) {
                     window.unifiedVoiceStateManager.setMute(true);
                 }
@@ -411,23 +411,23 @@ class UserProfileVoiceControls {
                 currentState = window.localStorageManager.getVoiceState();
                 wasToggled = window.localStorageManager.toggleVoiceDeafen();
                 
-                // When deafening, also mute the microphone
+
                 if (wasToggled && !currentState.isMuted) {
                     window.localStorageManager.setVoiceMute(true);
                 }
             }
             
-            // If connected to videoSDK, toggle the actual audio
+
             if (window.videoSDKManager?.isReady()) {
                 window.videoSDKManager.toggleDeafen();
                 
-                // When deafening, also mute the microphone
+
                 if (wasToggled && currentState && !currentState.isMuted) {
                     window.videoSDKManager.toggleMic(false); // Force mute
                 }
             }
             
-            // Dispatch deafen event for cross-component sync
+
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: {
                     type: 'deafen',
@@ -436,7 +436,7 @@ class UserProfileVoiceControls {
                 }
             }));
             
-            // If we're deafening, also dispatch mic mute event
+
             if (wasToggled && currentState && !currentState.isMuted) {
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: {
@@ -446,13 +446,13 @@ class UserProfileVoiceControls {
                     }
                 }));
                 
-                // Play mute sound
+
                 if (window.MusicLoaderStatic) {
                     window.MusicLoaderStatic.playDiscordMuteSound();
                 }
             }
             
-            // Update UI immediately and after short delay
+
             this.updateControls();
             setTimeout(() => this.updateControls(), 100);
             
@@ -462,7 +462,7 @@ class UserProfileVoiceControls {
     }
     
     setupPeriodicSync() {
-        // Check for sync every 2 seconds when in voice call
+
         setInterval(() => {
             if (this.isInVoiceCall()) {
                 this.updateControls();
@@ -471,7 +471,7 @@ class UserProfileVoiceControls {
     }
     
     isInVoiceCall() {
-        // Check multiple sources to determine if user is in voice call
+
         if (window.videoSDKManager?.isConnected) {
             return true;
         }
@@ -493,11 +493,11 @@ class UserProfileVoiceControls {
     }
     
     forceSync() {
-        // Public method to force synchronization
+
 
         this.updateControls();
         
-        // Also try to sync with other components
+
         if (window.voiceCallManager) {
             window.voiceCallManager.updateButtonStates();
         }
@@ -508,7 +508,7 @@ class UserProfileVoiceControls {
     }
     
     debugState() {
-        // Debug method to check current state
+
 
 
         
@@ -568,7 +568,7 @@ function initializeUserProfileVoiceControls() {
 
         window.userProfileVoiceControls = new UserProfileVoiceControls();
         
-        // Expose debugging methods globally
+
         window.debugUserProfileVoiceControls = () => {
             if (window.userProfileVoiceControls) {
                 window.userProfileVoiceControls.debugState();

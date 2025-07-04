@@ -404,14 +404,14 @@ function initFriendRequestInput() {
 document.addEventListener('DOMContentLoaded', function() {
     initFriendRequestInput();
     
-    // Ensure toast.js is loaded
+
     if (!window.showToast) {
-        // Try to load toast module dynamically
+
         try {
             const scriptPath = '/public/js/core/ui/toast.js';
 
             
-            // Create a script element and append it to the document
+
             const script = document.createElement('script');
             script.src = scriptPath;
             script.type = 'module';
@@ -906,7 +906,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Show loading state
+
         pendingContainer.innerHTML = `
             <div class="p-4 bg-discord-dark rounded text-center">
                 <div class="mb-2 text-gray-400">
@@ -916,7 +916,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        // Fetch pending requests from API
+
         if (window.FriendAPI) {
             window.FriendAPI.getPendingRequests()
                 .then(data => {
@@ -1049,7 +1049,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         pendingContainer.innerHTML = html;
         
-        // Process images after rendering
+
         if (window.fallbackImageHandler) {
             pendingContainer.querySelectorAll('img.user-avatar').forEach(img => {
                 window.fallbackImageHandler.processImage(img);
@@ -1075,7 +1075,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (window.showToast) {
                         window.showToast('Friend request accepted!', 'success');
                     }
-                    // Refresh the pending requests list
+
                     window.loadPendingRequests(true);
                 })
                 .catch(err => {
@@ -1111,7 +1111,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (window.showToast) {
                         window.showToast('Friend request declined', 'info');
                     }
-                    // Refresh the pending requests list
+
                     window.loadPendingRequests(true);
                 })
                 .catch(err => {
@@ -1147,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (window.showToast) {
                         window.showToast('Friend request canceled', 'info');
                     }
-                    // Refresh the pending requests list
+
                     window.loadPendingRequests(true);
                 })
                 .catch(err => {
@@ -1170,17 +1170,17 @@ document.addEventListener('DOMContentLoaded', function() {
     window.hideNoResultsMessage = hideNoResultsMessage;
     window.searchFriends = searchFriends;
     
-    // Function to open user detail modal
+
     window.openUserDetail = function(userId) {
 
         
-        // Try to use the user detail modal if available
+
         if (window.userDetailModal && typeof window.userDetailModal.show === 'function') {
             window.userDetailModal.show({ userId: userId });
         } else {
 
             
-            // Wait a moment for the modal to be initialized and try again
+
             setTimeout(() => {
                 if (window.userDetailModal && typeof window.userDetailModal.show === 'function') {
                     window.userDetailModal.show({ userId: userId });

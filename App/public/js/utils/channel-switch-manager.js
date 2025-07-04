@@ -119,12 +119,12 @@ class SimpleChannelSwitcher {
     async switchToChannel(channelId, channelType = 'text', forceFresh = false, highlightMessageId = null) {
         if (this.isLoading) return;
         
-        // Capture previous context BEFORE any changes
+
         const previousChannelId = this.currentChannelId;
         const previousChannelType = this.currentChannelType;
         const isSameVoiceChannel = previousChannelType === 'voice' && channelType === 'voice' && previousChannelId === channelId;
         
-        // CRITICAL FIX: Preserve voice connection state when switching from voice to text
+
         const wasInVoiceCall = window.unifiedVoiceStateManager?.getState()?.isConnected || false;
         const voiceChannelId = wasInVoiceCall ? (window.unifiedVoiceStateManager?.getState()?.channelId || window.voiceManager?.currentChannelId) : null;
         const voiceChannelName = wasInVoiceCall ? (window.unifiedVoiceStateManager?.getState()?.channelName || 'Voice Channel') : null;
@@ -144,7 +144,7 @@ class SimpleChannelSwitcher {
 
         }
         
-        // Update current context AFTER capturing previous
+
         this.currentChannelId = channelId;
         this.currentChannelType = channelType;
         
@@ -156,11 +156,11 @@ class SimpleChannelSwitcher {
         
 
         
-        // CRITICAL FIX: When switching from voice to text while in voice call, preserve voice context
+
         if (wasInVoiceCall && channelType === 'text' && voiceChannelId) {
 
             
-            // Ensure unified voice state maintains the connection and channel context
+
             if (window.unifiedVoiceStateManager) {
                 const currentState = window.unifiedVoiceStateManager.getState();
                 window.unifiedVoiceStateManager.setState({
@@ -168,21 +168,21 @@ class SimpleChannelSwitcher {
                     isConnected: true,
                     channelId: voiceChannelId,
                     channelName: voiceChannelName,
-                    // Add flag to indicate we're in voice but viewing text channel
+
                     isViewingDifferentChannel: true,
                     originalVoiceChannelId: voiceChannelId
                 });
 
             }
             
-            // Update voice manager to maintain channel context
+
             if (window.voiceManager) {
                 window.voiceManager.currentChannelId = voiceChannelId;
                 window.voiceManager.currentChannelName = voiceChannelName;
 
             }
             
-            // Dispatch event to notify other components about voice context preservation
+
             window.dispatchEvent(new CustomEvent('voiceContextPreserved', {
                 detail: { 
                     voiceChannelId, 
@@ -193,14 +193,14 @@ class SimpleChannelSwitcher {
             }));
         }
         
-        // Immediate sync for voice channels to ensure voice context is available
+
         if (channelType === 'voice') {
             const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
             const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
                                channelElement?.getAttribute('data-channel-name') || 
                                'Voice Channel';
             
-            // Quick sync before any async operations
+
             this.forceSyncVoiceContext(channelId, channelName);
         }
         
@@ -209,7 +209,7 @@ class SimpleChannelSwitcher {
             window.emojiReactions.updateChannelContext(channelId, 'channel');
         }
 
-        // Preserve voice participants when switching channels
+
         this.preserveVoiceParticipants();
         
         if (channelType === 'text') {
@@ -221,14 +221,14 @@ class SimpleChannelSwitcher {
                 }, 1000);
             }
         } else if (channelType === 'voice') {
-            // Only force fresh initialization if different voice channel
+
             await this.initializeVoiceChannel(channelId, !isSameVoiceChannel);
         }
 
-        // Update voice participants after channel switch
+
         this.updateVoiceParticipantsAfterSwitch(channelId, channelType);
         
-        // Force sync voice context to ensure consistency
+
         if (channelType === 'voice') {
             const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
             const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
@@ -237,9 +237,9 @@ class SimpleChannelSwitcher {
             this.forceSyncVoiceContext(channelId, channelName);
         }
         
-        // CRITICAL FIX: Final voice context verification for text channels when user is in voice
+
         if (channelType === 'text' && wasInVoiceCall && voiceChannelId) {
-            // Verify that voice context is properly preserved for bot commands
+
             setTimeout(() => {
                 const finalState = window.unifiedVoiceStateManager?.getState();
                 if (finalState && finalState.isConnected && finalState.channelId === voiceChannelId) {
@@ -367,7 +367,7 @@ class SimpleChannelSwitcher {
         } else {
 
             
-            // Try to initialize chat section
+
             try {
                 if (typeof window.initializeChatSection === 'function') {
 
@@ -377,7 +377,7 @@ class SimpleChannelSwitcher {
                     await initializeChatSection();
                 }
                 
-                // Now check if it's available
+
                 if (window.chatSection) {
 
                     await window.chatSection.resetForNewChannel();
@@ -431,13 +431,13 @@ class SimpleChannelSwitcher {
     fallbackTextChannelInit(channelId) {
 
         
-        // Update meta tags
+
         this.updateMetaTags(channelId, 'text');
         
-        // Update header
+
         this.updateChannelHeader(channelId, 'text');
         
-        // Hide skeleton after a short delay to simulate loading
+
         setTimeout(() => {
             const skeletonContainer = document.getElementById('chat-skeleton-loading');
             const realContent = document.getElementById('chat-real-content');
@@ -457,7 +457,7 @@ class SimpleChannelSwitcher {
     async initializeVoiceChannel(channelId, forceFresh = false) {
 
         
-        // Store current participants before cleanup
+
         const currentParticipants = window.voiceManager?.getParticipants?.() || [];
         const wasConnected = window.voiceManager?.isConnected || false;
         const previousChannelId = window.voiceManager?.currentChannelId;
@@ -468,20 +468,20 @@ class SimpleChannelSwitcher {
             window.chatSection.forceStopAllOperations();
         }
         
-        // Only reset state if we're switching to a different channel
+
         if (window.voiceSection && (forceFresh || previousChannelId !== channelId)) {
             await window.voiceSection.resetState();
             await window.voiceSection.updateChannelId(channelId, true);
         } else if (window.voiceSection && previousChannelId === channelId) {
-            // Same channel - just refresh the UI and participants
+
 
             
-            // Update voice section to show connected state if still connected
+
             if (wasConnected && window.voiceManager && window.voiceManager.isConnected) {
                 if (typeof window.voiceSection.restoreConnectedState === 'function') {
                     window.voiceSection.restoreConnectedState();
                 } else {
-                    // Fallback to manual UI update
+
                     if (window.voiceSection.elements.joinView) {
                         window.voiceSection.elements.joinView.classList.add('hidden');
                     }
@@ -493,18 +493,18 @@ class SimpleChannelSwitcher {
                     }
                 }
                 
-                // Refresh participants UI
+
                 if (typeof window.voiceManager.refreshParticipantsUI === 'function') {
                     window.voiceManager.refreshParticipantsUI();
                 }
             }
         }
         
-        // Sync voice manager to the new channel
+
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = channelId;
             
-            // Update unified voice state manager with new channel
+
             if (window.unifiedVoiceStateManager) {
 
                 const currentState = window.unifiedVoiceStateManager.getState();
@@ -517,19 +517,19 @@ class SimpleChannelSwitcher {
             }
             
             try {
-                // Only leave voice if switching to a different channel
+
                 if (wasConnected && previousChannelId !== channelId) {
                     window.voiceManager.leaveVoice();
                 }
                 
-                // Setup voice for the new channel
+
                 await window.voiceManager.setupVoice(channelId);
                 
-                // If we were connected and have participants, restore them
+
                 if (wasConnected && currentParticipants.length > 0) {
 
                     
-                    // Update participant grid
+
                     const participantGrid = document.getElementById('participantGrid');
                     if (participantGrid) {
                         participantGrid.innerHTML = ''; // Clear existing
@@ -540,7 +540,7 @@ class SimpleChannelSwitcher {
                         });
                     }
                     
-                    // Update participant count
+
                     const participantCount = document.getElementById('voiceParticipantCount');
                     if (participantCount) {
                         participantCount.textContent = currentParticipants.length.toString();
@@ -551,7 +551,7 @@ class SimpleChannelSwitcher {
             }
         }
         
-        // Update unified voice state manager if connected to ensure correct channel context
+
         if (window.unifiedVoiceStateManager && wasConnected) {
             const currentState = window.unifiedVoiceStateManager.getState();
             if (currentState.isConnected && previousChannelId !== channelId) {
@@ -574,13 +574,13 @@ class SimpleChannelSwitcher {
             }
         }
         
-        // Ensure voice UI is properly shown
+
         const voiceCallApp = document.querySelector('.voice-call-app');
         if (voiceCallApp) {
             voiceCallApp.style.display = 'flex';
         }
         
-        // Additional refresh for same channel to ensure participants are displayed
+
         if (previousChannelId === channelId && wasConnected) {
             setTimeout(() => {
 
@@ -702,28 +702,28 @@ class SimpleChannelSwitcher {
     }
     
     preserveVoiceParticipants() {
-        // DISABLED: Voice participants now use presence-only system
-        // Automatic presence updates handle channel switches without manual refresh
+
+
     }
 
     updateVoiceParticipantsAfterSwitch(channelId, channelType) {
-        // DISABLED: Voice participants now use presence-only system  
-        // Prevents blinking caused by manual refreshes during channel switches
+
+
     }
 
-    // Utility function to force sync voice context after channel switch
+
     forceSyncVoiceContext(channelId, channelName) {
 
         
-        // First, ensure meta tags are updated
+
         this.updateMetaTags(channelId, 'voice');
         this.updateURL(channelId, 'voice');
         
-        // Update unified voice state manager
+
         if (window.unifiedVoiceStateManager) {
             const currentState = window.unifiedVoiceStateManager.getState();
             
-            // Always update the channel context, even if not connected
+
 
             window.unifiedVoiceStateManager.setState({
                 ...currentState,
@@ -732,21 +732,21 @@ class SimpleChannelSwitcher {
             });
         }
         
-        // Update voice manager
+
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = channelId;
             window.voiceManager.currentChannelName = channelName;
 
         }
         
-        // Update channel switcher context
+
         this.currentChannelId = channelId;
         this.currentChannelType = 'voice';
         
-        // Force update channel header
+
         this.updateChannelHeader(channelId, 'voice');
         
-        // Trigger a custom event to notify other components
+
         window.dispatchEvent(new CustomEvent('voiceContextChanged', {
             detail: { channelId, channelName, channelType: 'voice' }
         }));
@@ -754,7 +754,7 @@ class SimpleChannelSwitcher {
 
     }
 
-    // Debug function to check voice context consistency
+
     debugVoiceContext() {
 
         
@@ -777,7 +777,7 @@ class SimpleChannelSwitcher {
             switcher: { channelId: switcherChannel, channelType: this.currentChannelType }
         });
         
-        // Check for inconsistencies
+
         const allChannelIds = [urlChannelId, metaChannelId, unifiedState?.channelId, voiceManagerChannel, switcherChannel].filter(Boolean);
         const uniqueChannelIds = [...new Set(allChannelIds)];
         
@@ -803,16 +803,16 @@ if (typeof window !== 'undefined') {
     }
 }
 
-// Global debug functions for voice context debugging
+
 window.debugAllVoiceContext = function() {
 
     
-    // Call TitiBot debug function
+
     if (typeof window.debugTitiBotVoiceContext === 'function') {
         window.debugTitiBotVoiceContext();
     }
     
-    // Call channel switcher debug function
+
     if (window.simpleChannelSwitcher && typeof window.simpleChannelSwitcher.debugVoiceContext === 'function') {
 
         const isConsistent = window.simpleChannelSwitcher.debugVoiceContext();
@@ -838,7 +838,7 @@ window.fixVoiceContextInconsistency = function() {
             
             window.simpleChannelSwitcher.forceSyncVoiceContext(currentChannelId, channelName);
             
-            // Wait a moment then recheck
+
             setTimeout(() => {
 
                 window.debugAllVoiceContext();
@@ -849,7 +849,7 @@ window.fixVoiceContextInconsistency = function() {
     }
 };
 
-// Test function to validate voice context after channel switch
+
 window.testVoiceContextAfterSwitch = function() {
 
     
@@ -862,7 +862,7 @@ window.testVoiceContextAfterSwitch = function() {
     if (currentChannelType === 'voice') {
 
         
-        // Run the same detection logic as send-receive-handler
+
         let voiceChannelId = null;
         let userInVoice = false;
         let detectionMethod = 'none';

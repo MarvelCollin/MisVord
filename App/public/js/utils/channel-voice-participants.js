@@ -1,17 +1,27 @@
 class ChannelVoiceParticipants {
     constructor() {
         this.participants = new Map();
+        this.coordinator = null;
         this.init();
     }
 
     init() {
+        this.setupCoordinator();
         this.setupSocketListeners();
         this.setupVideoSDKListeners();
         this.loadExistingMeetings();
         this.attachVoiceEvents();
         this.setupChannelSwitchListeners();
         this.setupPresenceValidation();
+    }
 
+    setupCoordinator() {
+        if (window.participantCoordinator) {
+            this.coordinator = window.participantCoordinator;
+            this.coordinator.registerSystem('ChannelVoiceParticipants');
+        } else {
+            setTimeout(() => this.setupCoordinator(), 100);
+        }
     }
 
     setupPresenceValidation() {
@@ -61,7 +71,7 @@ class ChannelVoiceParticipants {
     setupVideoSDKListeners() {
 
         
-        // Listen for VideoSDK participant events
+
         window.addEventListener('videosdkParticipantJoined', (event) => {
             const { participant, participantObj } = event.detail;
 
@@ -74,7 +84,7 @@ class ChannelVoiceParticipants {
             this.handleVideoSDKParticipantLeft(participant);
         });
 
-        // Periodically sync with VideoSDK participants
+
         this.startVideoSDKSync();
     }
 
@@ -123,8 +133,8 @@ class ChannelVoiceParticipants {
     }
 
     startVideoSDKSync() {
-        // Sync every 5 seconds to ensure participants are up to date
-        // Reduced frequency to prevent conflicts with socket events
+
+
         setInterval(async () => {
             await this.syncWithVideoSDK();
         }, 5000);
@@ -145,12 +155,12 @@ class ChannelVoiceParticipants {
         const videoSDKParticipants = new Map();
         const existingParticipants = this.participants.get(currentVoiceChannelId) || new Map();
         
-        // Collect all VideoSDK participants and fetch their proper user data
+
         if (window.videoSDKManager.meeting.participants) {
             for (const [participantId, participant] of window.videoSDKManager.meeting.participants.entries()) {
                 const username = participant.displayName || participant.name || 'Unknown';
                 
-                // Check if we already have this participant with proper data
+
                 const existingData = existingParticipants.get(participantId);
                 if (existingData && existingData.avatar_url !== '/public/assets/common/default-profile-picture.png') {
                     videoSDKParticipants.set(participantId, existingData);
@@ -158,12 +168,12 @@ class ChannelVoiceParticipants {
                 }
                 
                 try {
-                    // Fetch proper user data using the same method as addParticipant
+
                     const userData = await window.userDataHelper?.getUserData(username, username);
                     if (userData) {
                         videoSDKParticipants.set(participantId, userData);
                     } else {
-                        // Fallback to basic data
+
                         videoSDKParticipants.set(participantId, {
                             id: participantId,
                             username: username,
@@ -173,7 +183,7 @@ class ChannelVoiceParticipants {
                     }
                 } catch (error) {
                     console.warn('[VOICE-PARTICIPANT] Failed to fetch user data for:', username, error);
-                    // Fallback to basic data
+
                     videoSDKParticipants.set(participantId, {
                         id: participantId,
                         username: username,
@@ -184,7 +194,7 @@ class ChannelVoiceParticipants {
             }
         }
 
-        // Add local participant with proper user data
+
         if (window.videoSDKManager.meeting.localParticipant) {
             const localParticipant = window.videoSDKManager.meeting.localParticipant;
             const currentUserData = window.userDataHelper?.getCurrentUserData();
@@ -197,7 +207,7 @@ class ChannelVoiceParticipants {
             });
         }
 
-        // Update UI with VideoSDK participants
+
         if (videoSDKParticipants.size > 0) {
             this.participants.set(currentVoiceChannelId, videoSDKParticipants);
             this.updateParticipantContainer(currentVoiceChannelId);
@@ -211,6 +221,11 @@ class ChannelVoiceParticipants {
             return;
         }
 
+
+        const channelParticipants = this.participants.get(currentVoiceChannelId);
+        if (channelParticipants && channelParticipants.has(participant.id)) {
+            return;
+        }
 
         this.addParticipant(currentVoiceChannelId, participant.id, participant.displayName || participant.name);
         this.updateParticipantContainer(currentVoiceChannelId);
@@ -252,25 +267,25 @@ class ChannelVoiceParticipants {
         if (!channel_id) return;
 
 
-
-        // Always update channel count regardless of action
         if (participant_count !== undefined) {
             this.updateChannelCount(channel_id, participant_count);
         }
 
-        // Don't process our own events if VideoSDK is managing our connection
+
         const isOwnEvent = user_id === window.currentUserId || user_id === window.globalSocketManager?.userId;
         if (isOwnEvent && window.videoSDKManager?.isReady()) {
-
             return;
         }
 
-        if (action === 'join' && user_id) {
+
+        const channelParticipants = this.participants.get(channel_id);
+        const participantExists = channelParticipants && channelParticipants.has(user_id?.toString());
+
+        if (action === 'join' && user_id && !participantExists) {
             await this.addParticipant(channel_id, user_id, username);
         } else if (action === 'leave' && user_id) {
             this.removeParticipant(channel_id, user_id);
-        } else if (action === 'already_registered' && user_id) {
-
+        } else if (action === 'already_registered' && user_id && !participantExists) {
             await this.addParticipant(channel_id, user_id, username);
         }
 
@@ -291,25 +306,24 @@ class ChannelVoiceParticipants {
 
         await this.addParticipant(channelId, window.currentUserId, window.currentUsername);
         this.updateParticipantContainer(channelId);
-    }
-
-    async addParticipant(channelId, userId, username) {
+    }    async addParticipant(channelId, userId, username) {
         if (!this.participants.has(channelId)) {
             this.participants.set(channelId, new Map());
         }
 
         const channelParticipants = this.participants.get(channelId);
-        
         const normalizedUserId = userId.toString();
         
-        if (channelParticipants.has(normalizedUserId)) {
 
+        if (this.coordinator && this.coordinator.hasParticipant(channelId, normalizedUserId)) {
+            return;
+        }
+        
+        if (channelParticipants.has(normalizedUserId)) {
             return;
         }
 
 
-
-        // Use the centralized user data helper
         if (!window.userDataHelper) {
             await this.waitForUserDataHelper();
         }
@@ -319,7 +333,6 @@ class ChannelVoiceParticipants {
             try {
                 participantData = await window.userDataHelper.getUserData(normalizedUserId, username);
             } catch (error) {
-                console.warn('[VOICE-PARTICIPANT] Failed to fetch user data:', error);
                 participantData = {
                     id: normalizedUserId,
                     username: username || 'Unknown',
@@ -328,7 +341,6 @@ class ChannelVoiceParticipants {
                 };
             }
         } else {
-            // Fallback if helper is not available
             participantData = {
                 id: normalizedUserId,
                 username: username || 'Unknown',
@@ -337,66 +349,77 @@ class ChannelVoiceParticipants {
             };
         }
 
-        channelParticipants.set(normalizedUserId, participantData);
 
+        if (this.coordinator) {
+            const added = this.coordinator.addParticipant(channelId, normalizedUserId, participantData, 'ChannelVoiceParticipants');
+            if (!added) {
+                return; // Already exists in coordinator
+            }
+        }
+
+        channelParticipants.set(normalizedUserId, participantData);
     }
 
     removeParticipant(channelId, userId) {
-        if (!this.participants.has(channelId)) {
+        const normalizedUserId = userId.toString();
+        
 
+        if (this.coordinator) {
+            this.coordinator.removeParticipant(channelId, normalizedUserId, 'ChannelVoiceParticipants');
+        }
+        
+        if (!this.participants.has(channelId)) {
             return;
         }
 
         const channelParticipants = this.participants.get(channelId);
-        const normalizedUserId = userId.toString();
         const participant = channelParticipants.get(normalizedUserId);
         
         if (participant) {
             channelParticipants.delete(normalizedUserId);
-
             
-            // Update UI immediately
+
             this.updateParticipantContainer(channelId);
             this.updateChannelCount(channelId, channelParticipants.size);
-        } else {
-
         }
 
         if (channelParticipants.size === 0) {
             this.participants.delete(channelId);
-
         }
     }
 
     updateParticipantContainer(channelId) {
-
-        
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) {
-            console.warn('[VOICE-PARTICIPANT] Container not found for channel:', channelId);
             return;
         }
 
         const channelParticipants = this.participants.get(channelId);
-
-        
-
         
         if (!channelParticipants || channelParticipants.size === 0) {
-
             container.classList.add('hidden');
             container.style.display = 'none';
             container.innerHTML = '';
             return;
         }
 
-
         container.classList.remove('hidden');
         container.style.display = 'block';
         container.style.visibility = 'visible';
+        
+
         container.innerHTML = '';
 
+
+        const addedParticipants = new Set();
+
         channelParticipants.forEach(participant => {
+
+            if (addedParticipants.has(participant.id)) {
+                return;
+            }
+            
+            addedParticipants.add(participant.id);
             const participantEl = this.createParticipantElement(participant);
             container.appendChild(participantEl);
         });
@@ -407,7 +430,7 @@ class ChannelVoiceParticipants {
         div.className = 'flex items-center py-1 px-2 text-gray-300 hover:text-white transition-colors duration-200';
         div.setAttribute('data-user-id', participant.id);
         
-        // Use the avatar from the participant data (already fetched)
+
         const avatarUrl = participant.avatar_url || '/public/assets/common/default-profile-picture.png';
         const displayName = participant.display_name || participant.username || 'Unknown';
         
@@ -422,7 +445,7 @@ class ChannelVoiceParticipants {
             <span class="text-sm truncate">${displayName}</span>
         `;
 
-        // Apply fallback image handler if available
+
         if (window.fallbackImageHandler) {
             const img = div.querySelector('img.user-avatar');
             if (img) {
@@ -433,10 +456,10 @@ class ChannelVoiceParticipants {
         return div;
     }
 
-    // Avatar loading is now handled in addParticipant method using UserDataHelper
-    // This method is kept for compatibility but should not be needed
+
+
     loadParticipantAvatar(participantElement, userId) {
-        // No longer needed - avatars are loaded in addParticipant method
+
 
     }
 
@@ -495,7 +518,7 @@ class ChannelVoiceParticipants {
         
         const nameStr = String(name);
         
-        // Remove user ID suffix if present (format: "username_123456")
+
         if (nameStr.includes('_') && !isNaN(nameStr.split('_').pop())) {
             return nameStr.substring(0, nameStr.lastIndexOf('_'));
         }
@@ -539,12 +562,12 @@ class ChannelVoiceParticipants {
     refreshAllChannelParticipants() {
 
         
-        // Refresh current voice channel participants from VideoSDK
+
         if (window.videoSDKManager?.isReady()) {
             this.syncWithVideoSDK();
         }
 
-        // Update all visible participant containers
+
         document.querySelectorAll('.voice-participants').forEach(container => {
             const channelId = container.getAttribute('data-channel-id');
             if (channelId) {
@@ -560,7 +583,7 @@ class ChannelVoiceParticipants {
 
 
         
-        // Keep the current participants data intact during channel switch
+
         this.preservedChannelId = voiceState.channelId;
         this.preservedMeetingId = voiceState.meetingId;
     }

@@ -293,7 +293,7 @@ class RichTextHandler {
     }
 }
 
-// Create global instance
+
 window.RichTextHandler = RichTextHandler;
 window.richTextHandler = new RichTextHandler();
 

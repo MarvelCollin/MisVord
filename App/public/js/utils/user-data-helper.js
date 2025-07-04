@@ -4,7 +4,7 @@
  * Used by voice components to get avatars and display names
  */
 
-// Prevent duplicate declarations
+
 if (typeof window.UserDataHelper === 'undefined') {
     
 class UserDataHelper {
@@ -19,18 +19,18 @@ class UserDataHelper {
     extractUserId(participantId, participantName = null) {
         if (!participantId) return null;
 
-        // Convert to string for processing
+
         const idStr = String(participantId);
         
 
 
-        // Method 1: Direct numeric ID
+
         if (/^\d+$/.test(idStr)) {
 
             return idStr;
         }
 
-        // Method 2: Extract from participant name format "username_userid"
+
         if (idStr.includes('_')) {
             const parts = idStr.split('_');
             const lastPart = parts[parts.length - 1];
@@ -40,7 +40,7 @@ class UserDataHelper {
             }
         }
 
-        // Method 3: Extract from participant name if provided
+
         if (participantName && typeof participantName === 'string' && participantName.includes('_')) {
             const nameParts = participantName.split('_');
             const lastPart = nameParts[nameParts.length - 1];
@@ -50,7 +50,7 @@ class UserDataHelper {
             }
         }
 
-        // Method 4: Check if it's already a valid user ID format
+
         if (idStr.length > 0 && /^\d+$/.test(idStr)) {
 
             return idStr;
@@ -68,7 +68,7 @@ class UserDataHelper {
         
         const nameStr = String(name);
         
-        // Remove user ID suffix if present (format: "username_123456")
+
         if (nameStr.includes('_') && !isNaN(nameStr.split('_').pop())) {
             return nameStr.substring(0, nameStr.lastIndexOf('_'));
         }
@@ -105,13 +105,13 @@ class UserDataHelper {
             if (searchName && typeof searchName === 'string' && searchName !== 'Unknown') {
                 const cacheKey = `username_${searchName.toLowerCase()}`;
                 
-                // Check cache for username search
+
                 if (this.cache.has(cacheKey)) {
 
                     return this.cache.get(cacheKey);
                 }
                 
-                // Check if username search is already pending
+
                 if (this.pendingRequests.has(cacheKey)) {
 
                     return this.pendingRequests.get(cacheKey);
@@ -143,19 +143,19 @@ class UserDataHelper {
 
 
 
-        // Check cache first
+
         if (this.cache.has(userId)) {
 
             return this.cache.get(userId);
         }
 
-        // Check if request is already pending
+
         if (this.pendingRequests.has(userId)) {
 
             return this.pendingRequests.get(userId);
         }
 
-        // Create new request
+
 
         const requestPromise = this.fetchUserProfile(userId, participantName);
         this.pendingRequests.set(userId, requestPromise);
@@ -169,7 +169,7 @@ class UserDataHelper {
         } catch (error) {
 
             this.pendingRequests.delete(userId);
-            // Return fallback data
+
             const fallbackData = {
                 id: userId,
                 display_name: this.getCleanDisplayName(participantName || participantId),
@@ -278,7 +278,7 @@ class UserDataHelper {
 
 
 
-        // Check if the image already has a valid non-default avatar
+
         const currentSrc = imgElement.src;
         const isCurrentValid = currentSrc && 
                               !currentSrc.includes('/public/assets/common/default-profile-picture.png') &&
@@ -309,7 +309,7 @@ class UserDataHelper {
                 }
             };
         } else {
-            // Use initials only if no valid image is already present
+
             if (!isCurrentValid) {
 
                 imgElement.classList.add('hidden');
@@ -355,13 +355,13 @@ class UserDataHelper {
     }
 }
 
-// Create global instance only if not already created
+
 window.UserDataHelper = UserDataHelper;
 window.userDataHelper = UserDataHelper.getInstance();
 
 
 
-// Add test function for VideoSDK participant data
+
 window.testVideoSDKParticipant = function(participantId, participantName) {
     if (!window.userDataHelper) {
         console.error('❌ UserDataHelper not available');
@@ -371,15 +371,15 @@ window.testVideoSDKParticipant = function(participantId, participantName) {
 
 
     
-    // Test user ID extraction
+
     const userId = window.userDataHelper.extractUserId(participantId, participantName);
 
     
-    // Test display name cleaning
+
     const cleanName = window.userDataHelper.getCleanDisplayName(participantName);
 
     
-    // Test full user data fetch
+
     window.userDataHelper.getUserData(participantId, participantName)
         .then(userData => {
 

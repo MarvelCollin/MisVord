@@ -141,14 +141,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
 
             
-            // Check if voice is connected and we should preserve it
+
             const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
                                     window.voiceManager?.isConnected || 
                                     window.videoSDKManager?.isConnected;
             
             if (isVoiceConnected) {
 
-                // Use the enhanced server sidebar JS handler instead of direct navigation
+
                 if (window.handleServerClick) {
                     window.handleServerClick(serverId, e);
                     return;

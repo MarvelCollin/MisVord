@@ -1659,7 +1659,6 @@ Route::post('/api/debug/test-bot', function() {
             return;
         }
         
-        // Test bot response
         $testMessage = [
             'id' => 'test-' . time(),
             'user_id' => 1,

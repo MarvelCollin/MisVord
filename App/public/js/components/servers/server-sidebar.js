@@ -419,11 +419,11 @@ function resetServersToMainList() {
 function setupTooltipForElement(element) {
     const tooltip = element.querySelector('.tooltip');
     if (tooltip) {
-        // Remove existing listeners to avoid duplicates
+
         element.removeEventListener('mouseenter', showTooltip);
         element.removeEventListener('mouseleave', hideTooltip);
         
-        // Add new listeners
+
         element.addEventListener('mouseenter', showTooltip);
         element.addEventListener('mouseleave', hideTooltip);
         
@@ -444,12 +444,12 @@ function setupTooltipForElement(element) {
 function setupAllTooltips() {
 
     
-    // Setup tooltips for all server icons (individual and in groups)
+
     document.querySelectorAll('.server-sidebar-icon').forEach(icon => {
         setupTooltipForElement(icon);
     });
     
-    // Setup tooltips for folder headers
+
     document.querySelectorAll('.server-sidebar-group .group-header').forEach(header => {
         setupTooltipForElement(header);
     });
@@ -517,7 +517,7 @@ function createFolderElement(group) {
     const serversContainer = document.createElement('div');
     serversContainer.className = 'group-servers';
     
-    // Add tooltip to folder header
+
     const tooltip = document.createElement('div');
     tooltip.className = 'tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50';
     tooltip.textContent = group.name || 'Server Folder';
@@ -533,7 +533,7 @@ function createFolderPreview(group, folderElement, serverImageData) {
     const header = folderElement.querySelector('.group-header');
     const existingTooltip = header.querySelector('.tooltip');
     
-    // Clear header but preserve tooltip
+
     const tooltipText = existingTooltip ? existingTooltip.textContent : group.name;
     header.innerHTML = '';
     
@@ -592,7 +592,7 @@ function createFolderPreview(group, folderElement, serverImageData) {
     previewContainer.appendChild(gridContainer);
     header.appendChild(previewContainer);
     
-    // Re-add tooltip
+
     const tooltip = document.createElement('div');
     tooltip.className = 'tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50';
     tooltip.textContent = tooltipText;
@@ -1005,7 +1005,7 @@ export async function handleHomeClick(event) {
     }
 
     try {
-        // Check if user is connected to voice and if navigation should be protected
+
         const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
                                 window.voiceManager?.isConnected || 
                                 window.videoSDKManager?.isConnected;
@@ -1017,13 +1017,13 @@ export async function handleHomeClick(event) {
         if (isVoiceConnected && isOnAllowedPage) {
 
             
-            // Store voice state before navigation
+
             if (window.unifiedVoiceStateManager) {
                 const voiceState = window.unifiedVoiceStateManager.getState();
 
             }
             
-            // Use history API for smooth navigation
+
             history.pushState({ 
                 pageType: 'home',
                 preserveVoice: true 
@@ -1065,7 +1065,7 @@ export async function handleServerClick(serverId, event) {
     }
 
     try {
-        // Check if user is connected to voice and if navigation should be protected
+
         const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
                                 window.voiceManager?.isConnected || 
                                 window.videoSDKManager?.isConnected;
@@ -1077,7 +1077,7 @@ export async function handleServerClick(serverId, event) {
         if (isVoiceConnected && isOnAllowedPage) {
 
             
-            // Store voice state before navigation
+
             if (window.unifiedVoiceStateManager) {
                 const voiceState = window.unifiedVoiceStateManager.getState();
 
@@ -1097,7 +1097,7 @@ export async function handleServerClick(serverId, event) {
         
 
         
-        // Use history API for allowed pages to preserve voice connection
+
         if (isVoiceConnected && isOnAllowedPage) {
 
             history.pushState({ 
@@ -1214,7 +1214,7 @@ function testServerPositioning() {
     };
 }
 
-// Make functions globally available
+
 window.updateActiveServer = updateActiveServer;
 window.handleServerClick = handleServerClick;
 window.handleHomeClick = handleHomeClick;

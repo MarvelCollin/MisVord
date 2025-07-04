@@ -270,22 +270,22 @@ async function joinVoiceChannel() {
             throw new Error('Voice manager not available after script loading');
         }
         
-        // Get meeting details from voice manager first
+
 
         await window.voiceManager.joinVoice(); // This will prepare meeting ID and registration
         
-        // Now use VideoSDK directly for actual meeting joining
+
         if (!window.videoSDKManager) {
             throw new Error('VideoSDK manager not available');
         }
         
-        // Get meeting details
+
         const meetingId = window.voiceManager.currentMeetingId;
         const channelId = document.querySelector('meta[name="channel-id"]')?.content;
         const userName = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
         const userId = document.querySelector('meta[name="user-id"]')?.content || window.currentUserId || '';
         
-        // Create participant name with user ID for avatar lookup
+
         const participantName = userId ? `${userName}_${userId}` : userName;
         
         if (!meetingId) {
@@ -298,7 +298,7 @@ async function joinVoiceChannel() {
 
         await window.videoSDKManager.externalJoinMeeting();
         
-        // Mark connection as successful
+
         window.videoSDKManager.markExternalJoinSuccess();
         
         if (window.waitForVideoSDKReady) {
@@ -306,7 +306,7 @@ async function joinVoiceChannel() {
             await window.waitForVideoSDKReady();
         }
         
-        // Wait for voice call section to be fully loaded and ready
+
 
         await waitForVoiceCallSectionReady();
         
@@ -327,9 +327,9 @@ async function joinVoiceChannel() {
             }, 3000);
         }
         
-        // Reset UI state on error - with longer delay to prevent flickering and ensure voice call section has time to load
+
         setTimeout(() => {
-            // Only reset UI if voice call section is not ready or visible
+
             const voiceCallContainer = document.getElementById('voice-call-container');
             const isVoiceCallVisible = voiceCallContainer && !voiceCallContainer.classList.contains('hidden');
             
@@ -349,7 +349,7 @@ async function waitForVoiceCallSectionReady(timeout = 5000) {
         const startTime = Date.now();
         
         const checkReady = () => {
-            // Check if voice call section container is visible and loaded
+
             const voiceCallContainer = document.getElementById('voice-call-container');
             const participantGrid = document.getElementById('participantGrid');
             const voiceControls = document.querySelector('.voice-controls');
@@ -372,7 +372,7 @@ async function waitForVoiceCallSectionReady(timeout = 5000) {
                 return;
             }
             
-            // Continue checking
+
             setTimeout(checkReady, 100);
         };
         

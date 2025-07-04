@@ -158,7 +158,7 @@ window.addEventListener('beforeunload', function() {
   </script>
 
   <script>
-  // Initialize music player system early
+
   if (typeof window !== 'undefined' && !window.musicPlayer) {
 
       window.musicPlayer = new MusicPlayerSystem();

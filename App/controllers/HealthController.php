@@ -66,7 +66,6 @@ class HealthController extends BaseController
                 $health['status'] = 'degraded';
             }
 
-            // Check essential directories
             $directories = [
                 'storage' => '/var/www/html/storage',
                 'logs' => '/var/www/html/logs',

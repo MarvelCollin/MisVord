@@ -182,7 +182,6 @@ window.debugTitiBotVoiceContext = function() {
         window.BotComponent.debugVoiceContext();
     }
     
-    // Additional debug information
     console.log('🔍 [DEBUG] URL Info:', {
         pathname: window.location.pathname,
         search: window.location.search,
@@ -190,18 +189,15 @@ window.debugTitiBotVoiceContext = function() {
         typeParam: new URLSearchParams(window.location.search).get('type')
     });
     
-    // Check meta tags
     const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
     const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
 
     
-    // Check unified voice state manager
     if (window.unifiedVoiceStateManager) {
         const voiceState = window.unifiedVoiceStateManager.getState();
 
     }
     
-    // Check channel switch manager
     if (window.simpleChannelSwitcher) {
         console.log('🔄 [DEBUG] Channel Switcher State:', {
             currentChannelId: window.simpleChannelSwitcher.currentChannelId,
@@ -215,7 +211,6 @@ window.debugTitiBotVoiceContext = function() {
     let userInVoice = false;
     let detectionMethod = 'none';
     
-    // Priority 1: Current channel context (if we're in a voice channel)
     const urlParams = new URLSearchParams(window.location.search);
     const currentChannelId = urlParams.get('channel');
     const currentChannelType = urlParams.get('type');
@@ -226,7 +221,6 @@ window.debugTitiBotVoiceContext = function() {
         if (channelElement) {
             voiceChannelId = currentChannelId;
             
-            // Check if user is actually connected to any voice channel
             const isActuallyConnected = (window.unifiedVoiceStateManager?.getState()?.isConnected) ||
                                       (window.videoSDKManager?.isConnected && window.videoSDKManager?.isMeetingJoined) ||
                                       (window.voiceManager?.isConnected);
@@ -235,7 +229,6 @@ window.debugTitiBotVoiceContext = function() {
                 userInVoice = true;
                 detectionMethod = 'currentVoiceChannel+connected';
             } else {
-                // User is in voice channel page but not connected - still valid for bot commands
                 userInVoice = true;
                 detectionMethod = 'currentVoiceChannel+present';
             }

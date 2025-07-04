@@ -336,6 +336,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 }
 </style>
 
+<script src="/public/js/utils/participant-coordination.js"></script>
 <script src="/public/js/utils/channel-voice-participants.js"></script>
 
 <script>
@@ -575,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 });
 
-// Test functions for VideoSDK-based voice participants
+
 function testVideoSDKVoiceParticipants() {
 
     
@@ -631,7 +632,7 @@ function testVideoSDKParticipantEvents() {
     const testParticipantId = 'test-participant-' + Date.now();
     const testParticipantName = 'Test User';
     
-    // Simulate VideoSDK participant joined
+
 
     window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
         detail: {
@@ -645,7 +646,7 @@ function testVideoSDKParticipantEvents() {
     }));
     
     setTimeout(() => {
-        // Simulate VideoSDK participant left
+
 
         window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
             detail: {
@@ -750,7 +751,7 @@ function testGlobalParticipantBroadcast() {
     const testParticipantId = 'test-global-' + Date.now();
     const testParticipantName = 'Test Global User';
     
-    // Test the broadcast functionality
+
     voiceCallManager.broadcastParticipantUpdate('join', testParticipantId, testParticipantName);
     
     setTimeout(() => {
@@ -776,7 +777,7 @@ function verifyGlobalParticipantSystem() {
     
 
     
-    // Test VideoSDK participant detection
+
     if (results.videoSDKExists && results.voiceConnected) {
         const videoSDK = window.videoSDKManager;
 
@@ -792,7 +793,7 @@ function verifyGlobalParticipantSystem() {
         }
     }
     
-    // Test channel display participants  
+
     if (results.participantSystemExists) {
         const participantSystem = window.ChannelVoiceParticipants.getInstance();
         const currentChannelId = window.voiceManager?.currentChannelId;
@@ -806,7 +807,7 @@ function verifyGlobalParticipantSystem() {
         }
     }
     
-    // Test global broadcasting capability
+
     if (results.voiceCallManagerExists && results.globalSocketReady) {
 
     } else {

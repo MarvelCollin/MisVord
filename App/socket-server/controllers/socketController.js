@@ -56,7 +56,7 @@ function setup(io) {
                 client.emit('room-joined', { room_id: data.room_id, room_type: 'channel', room_name: roomName });
 
                 
-                // Log all clients in this room
+
                 const roomClients = io.sockets.adapter.rooms.get(roomName);
                 if (roomClients) {
 
@@ -65,7 +65,7 @@ function setup(io) {
                     });
                 }
                 
-                // Debug: Send a test message to the room to verify connectivity
+
                 setTimeout(() => {
 
                     io.to(roomName).emit('room-debug', { 
@@ -80,7 +80,7 @@ function setup(io) {
                 client.emit('room-joined', { room_id: data.room_id, room_type: 'dm', room_name: roomName });
 
                 
-                // Log all clients in this room
+
                 const roomClients = io.sockets.adapter.rooms.get(roomName);
                 if (roomClients) {
 
@@ -128,7 +128,7 @@ function setup(io) {
                 source: data.source
             });
             
-            // Log the complete message data
+
 
             
             const messageId = data.id || data.message_id;
@@ -144,7 +144,7 @@ function setup(io) {
                 data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
                 
-                // Ensure the message has an ID
+
                 if (!data.id && data.message_id) {
                     data.id = data.message_id;
                 }
@@ -172,7 +172,7 @@ function setup(io) {
                 source: data.source
             });
             
-            // Log the complete message data
+
 
             
             const messageId = data.id || data.message_id;
@@ -188,7 +188,7 @@ function setup(io) {
                 data.user_id = data.user_id || client.data.user_id;
                 data.username = data.username || client.data.username;
                 
-                // Ensure the message has an ID
+
                 if (!data.id && data.message_id) {
                     data.id = data.message_id;
                 }
@@ -205,7 +205,7 @@ function setup(io) {
             }
         });
         
-        // WebSocket-only message sending (saves to database and broadcasts)
+
         client.on('save-and-send-message', async (data) => {
             console.log(`💾 [SAVE-SEND] WebSocket-only message from ${client.id}:`, {
                 targetType: data.target_type,
@@ -214,18 +214,18 @@ function setup(io) {
                 messageType: data.message_type || 'text'
             });
             
-            // Use the new saveAndSendMessage method for WebSocket-only messaging
+
             await MessageHandler.saveAndSendMessage(io, client, data);
         });
         
-        // Handle database save confirmation and broadcast permanent ID
+
         client.on('message-database-saved', (data) => {
             console.log(`💾 [DATABASE-SAVED] Database save confirmation from ${client.id}:`, {
                 tempMessageId: data.temp_message_id,
                 realMessageId: data.real_message_id
             });
             
-            // Broadcast the permanent ID to all clients
+
             MessageHandler.handleMessageDatabaseSaved(io, client, data);
         });
         
@@ -435,7 +435,7 @@ function setup(io) {
                 
                 VoiceConnectionTracker.addUserToVoice(userId, channel_id, meeting_id, username || client.data?.username);
                 
-                // Add voice meeting to room manager for proper tracking
+
                 roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
 
                 
@@ -460,11 +460,11 @@ function setup(io) {
                     participantCount
                 });
                 
-                // Broadcast to voice channel room
+
                 io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
 
                 
-                // Broadcast globally for cross-channel visibility
+
                 io.emit('voice-meeting-update', updateData);
 
                 
@@ -660,7 +660,7 @@ function handleCheckVoiceMeeting(io, client, data) {
 
 
     
-    // Check both VoiceConnectionTracker and roomManager for comprehensive status
+
     const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
     const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
     
@@ -669,7 +669,7 @@ function handleCheckVoiceMeeting(io, client, data) {
     
     const meetingId = hasMeeting ? (participants[0]?.meetingId || roomManagerMeeting?.meeting_id) : null;
     
-    // Debug: Log both sources for troubleshooting
+
     console.log(`🔍 [VOICE-PARTICIPANT] Voice check debug:`, {
         channel_id,
         trackerParticipants: participantCount,
@@ -773,7 +773,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         
 
         
-        // Broadcast to ALL users for cross-channel visibility
+
         io.emit('voice-meeting-update', {
             channel_id,
             meeting_id: roomManagerMeeting.meeting_id,
@@ -877,7 +877,7 @@ function handleDisconnect(io, client) {
         voiceMeetingsUpdated.forEach(update => {
 
             
-            // Broadcast the leave event for this specific user only
+
             io.emit('voice-meeting-update', {
                 channel_id: update.channel_id,
                 meeting_id: update.meeting_id,

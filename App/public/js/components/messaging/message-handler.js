@@ -17,11 +17,11 @@ class MessageHandler {
             return;
         }
         
-        // Bot messages should never be temporary if they have a real database ID
+
         const isTemporary = messageData.is_bot ? false : 
                            (messageData.is_temporary === true || messageData.id.toString().startsWith('temp-'));
         
-        // Debug logging for bot messages
+
         if (messageData.is_bot) {
             console.log('🤖 [MESSAGE-HANDLER] Processing bot message:', {
                 id: messageData.id,
@@ -45,7 +45,7 @@ class MessageHandler {
             return;
         }
         
-        // Special handling for bot messages - remove duplicates with same content and user
+
         if (messageData.user_id && messageData.content && messageData.is_bot && !isTemporary) {
             const duplicateSelectors = [
                 `[data-user-id="${messageData.user_id}"].bubble-message-temporary`,
@@ -106,7 +106,7 @@ class MessageHandler {
             this.temporaryMessages.set(messageData.id, messageData);
         }
         
-        // Process reactions for non-temporary messages (database-loaded messages)
+
         if (!isTemporary && messageData.reactions && messageData.reactions.length > 0) {
 
             setTimeout(() => {
@@ -763,10 +763,10 @@ class MessageHandler {
         const lastMessageTimestamp = parseInt(this.lastMessageGroup.dataset.timestamp);
         const currentMessageTimestamp = messageData.timestamp ? parseInt(messageData.timestamp) : Date.now();
         
-        // Group messages if:
-        // 1. Same user
-        // 2. Within time threshold
-        // 3. Not a reply message (replies always start a new group)
+
+
+
+
         return (
             lastMessageUserId === (messageData.user_id || messageData.userId).toString() &&
             (currentMessageTimestamp - lastMessageTimestamp) < this.messageGroupTimeThreshold &&
@@ -784,24 +784,24 @@ class MessageHandler {
             return;
         }
         
-        // Find the temporary message element
+
         const tempMessageContent = document.querySelector(`[data-message-id="${temp_message_id}"]`);
         if (!tempMessageContent) {
             console.warn(`⚠️ [MESSAGE-HANDLER] Temporary message ${temp_message_id} not found`);
             return;
         }
         
-        // Update the message ID
+
         tempMessageContent.dataset.messageId = permanent_message_id;
         
-        // Remove temporary styling using bubble component
+
         this.markAsConfirmed(tempMessageContent);
         
-        // Update processed IDs
+
         this.processedMessageIds.delete(temp_message_id);
         this.processedMessageIds.add(permanent_message_id);
         
-        // Remove from temporary messages map
+
         this.temporaryMessages.delete(temp_message_id);
         
 
@@ -817,17 +817,17 @@ class MessageHandler {
             return;
         }
         
-        // Find the temporary message element
+
         const tempMessageContent = document.querySelector(`[data-message-id="${temp_message_id}"]`);
         if (!tempMessageContent) {
             console.warn(`⚠️ [MESSAGE-HANDLER] Failed message ${temp_message_id} not found`);
             return;
         }
         
-        // Mark as failed using bubble component
+
         this.markAsFailed(tempMessageContent, error);
         
-        // Remove from temporary messages map
+
         this.temporaryMessages.delete(temp_message_id);
         
 

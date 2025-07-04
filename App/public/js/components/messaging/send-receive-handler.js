@@ -171,24 +171,24 @@ class SendReceiveHandler {
 
 
 
-            // ENHANCED VOICE DETECTION LOGIC
+
             const voiceState = window.unifiedVoiceStateManager?.getState();
             
-            // Primary detection: Check if user is actually connected to voice
+
             if (voiceState && voiceState.isConnected && voiceState.channelId) {
                 voiceChannelId = voiceState.channelId;
                 userInVoice = true;
                 detectionMethod = 'unifiedVoiceStateManager';
 
             } 
-            // Secondary detection: Check voice manager for active connection
+
             else if (window.voiceManager && window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
                 voiceChannelId = window.voiceManager.currentChannelId;
                 userInVoice = true;
                 detectionMethod = 'voiceManagerConnected';
 
             }
-            // Tertiary detection: Check session storage for voice call state
+
             else if (sessionStorage.getItem('isInVoiceCall') === 'true') {
                 const sessionVoiceChannelId = sessionStorage.getItem('voiceChannelId') || 
                                             sessionStorage.getItem('currentVoiceChannelId');
@@ -199,7 +199,7 @@ class SendReceiveHandler {
 
                 }
             }
-            // Quaternary detection: Check if currently viewing voice channel page
+
             else {
                 const urlParams = new URLSearchParams(window.location.search);
                 const currentChannelId = urlParams.get('channel');
@@ -207,10 +207,10 @@ class SendReceiveHandler {
 
                 if (metaChannelType === 'voice' && currentChannelId) {
                     voiceChannelId = currentChannelId;
-                    // CRITICAL FIX: Check if user is actually in voice, not just viewing the page
+
                     const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
                     if (channelElement) {
-                        // Additional check: look for voice connection indicators
+
                         const hasVoiceIndicator = document.querySelector('.voice-call-app:not(.hidden)') || 
                                                 document.querySelector('[data-voice-connected="true"]') ||
                                                 window.videoSDKManager?.isMeetingJoined;
@@ -223,18 +223,18 @@ class SendReceiveHandler {
                 }
             }
             
-            // FINAL VERIFICATION: Cross-check multiple sources for consistency
+
             if (voiceChannelId && !userInVoice) {
 
                 
-                // Check if VideoSDK is connected
+
                 if (window.videoSDKManager && window.videoSDKManager.isMeetingJoined) {
                     userInVoice = true;
                     detectionMethod += '+videoSDKVerified';
 
                 }
                 
-                // Check for voice UI indicators
+
                 if (!userInVoice) {
                     const voiceUIVisible = document.querySelector('.voice-call-app:not(.hidden)') || 
                                          document.querySelector('.voice-controls:not(.hidden)') ||
@@ -247,7 +247,7 @@ class SendReceiveHandler {
                     }
                 }
                 
-                // Check unified voice state one more time for edge cases
+
                 if (!userInVoice && window.unifiedVoiceStateManager) {
                     const freshState = window.unifiedVoiceStateManager.getState();
                     if (freshState && freshState.isConnected) {
@@ -281,7 +281,7 @@ class SendReceiveHandler {
             voiceContext: messageData.voice_context
         });
 
-        // Debug: Log the complete message data for TitiBot commands
+
         if (isTitiBotCommand) {
             console.log('🤖 [SEND-RECEIVE] Complete TitiBot message data being sent:', {
                 content: messageData.content,

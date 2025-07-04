@@ -19,7 +19,7 @@ async function loginUser(page, userCredentials) {
 
   await page.goto('/login');
   
-  // Wait for page to load, but be more lenient
+
   try {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('input[name="email"], input[type="email"]', { timeout: 10000 });
@@ -59,14 +59,14 @@ async function navigateToDirectMessage(page) {
 
     await dmFriendItem.click();
     
-    // Wait for chat to load
+
     await page.waitForSelector('#chat-messages, .messages-container', { timeout: 15000 });
 
   } catch (error) {
 
 
     
-    // Try to show what DM items are available
+
     const dmItems = await page.locator('.dm-friend-item').count();
 
     

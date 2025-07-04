@@ -1,5 +1,5 @@
 <?php
-// Validate message data before rendering
+
 $messageId = $messageData['id'] ?? '';
 $userId = $messageData['user_id'] ?? 0;
 $username = $messageData['username'] ?? 'Unknown User';
@@ -13,7 +13,7 @@ $reactions = $messageData['reactions'] ?? [];
 $replyMessageId = $messageData['reply_message_id'] ?? null;
 $replyData = $messageData['reply_data'] ?? null;
 
-// Prevent rendering empty/invalid messages
+
 if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
     error_log("❌ [BUBBLE-CHAT] Invalid message data - ID: '$messageId', Content: '$content', Attachments: " . count($attachments));
     return; // Don't render empty messages

@@ -25,7 +25,7 @@ class AuthHandler {
             console.warn(`⚠️ [AUTH-HANDLER] Username not provided for user ${user_id}, generating default`);
         }
         
-        // Set client data with all authentication info
+
         client.data = client.data || {};
         client.data.user_id = user_id;
         client.data.username = username || `User-${user_id}`;
@@ -42,7 +42,7 @@ class AuthHandler {
             authenticated: client.data.authenticated
         });
         
-        // Join user room and track socket
+
         const userRoom = roomManager.getUserRoom(user_id);
 
         roomManager.joinRoom(client, userRoom);
@@ -50,7 +50,7 @@ class AuthHandler {
 
         roomManager.addUserSocket(user_id, client.id);
         
-        // Prepare authentication response with underscores
+
         const response = { 
             user_id, 
             user_id: user_id, // Keep both for compatibility

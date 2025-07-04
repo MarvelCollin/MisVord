@@ -17,7 +17,7 @@ class EmojiReactions {
         this.debounceTimers = new Map();
         this.emojiPickerContainer = null;
         
-        // Tooltip properties
+
         this.currentTooltip = null;
         this.tooltipTimeout = null;
         
@@ -384,13 +384,13 @@ class EmojiReactions {
                 });
             });
             
-            // Process messages in batch to avoid repeated calls
+
             messagesToProcess.forEach(messageId => {
                 const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
                 if (messageElement) {
                     this.updateReactionButtonState(messageElement, messageId);
                     
-                    // Check if message has reaction data embedded
+
                     const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
                     if (messageGroup && messageGroup.dataset.messageReactions) {
                         try {
@@ -406,7 +406,7 @@ class EmojiReactions {
                         }
                     }
                     
-                    // Load reactions via API for permanent IDs only
+
                     if (/^\d+$/.test(String(messageId))) {
                         this.loadMessageReactions(messageId);
                     }
@@ -419,13 +419,13 @@ class EmojiReactions {
             subtree: true
         });
 
-        // Process existing messages only once
+
         document.querySelectorAll('.message-content').forEach(message => {
             const messageId = message.dataset.messageId;
             if (messageId && !this.loadedMessageIds.has(messageId)) {
                 this.updateReactionButtonState(message, messageId);
                 
-                // Check if message has reaction data embedded
+
                 const messageGroup = message.closest('.bubble-message-group, .message-group');
                 if (messageGroup && messageGroup.dataset.messageReactions) {
                     try {
@@ -441,7 +441,7 @@ class EmojiReactions {
                     }
                 }
                 
-                // Load reactions via API for permanent IDs only
+
                 if (/^\d+$/.test(String(messageId))) {
                     this.loadMessageReactions(messageId);
                 }
@@ -579,7 +579,7 @@ class EmojiReactions {
         try {
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content || window.globalSocketManager?.userId;
             
-            // Check if current user has already reacted with this emoji using actual data
+
             const hasUserReacted = this.hasUserReacted(messageId, emoji, currentUserId);
             
             console.log('🔄 [EMOJI-REACTIONS] Toggle reaction:', {
@@ -635,7 +635,7 @@ class EmojiReactions {
         const tooltipContent = document.createElement('div');
         tooltipContent.className = 'reaction-tooltip-content';
         
-        // Tooltip header
+
         const header = document.createElement('div');
         header.className = 'reaction-tooltip-header';
         header.innerHTML = `
@@ -644,7 +644,7 @@ class EmojiReactions {
         `;
         tooltipContent.appendChild(header);
         
-        // Users list
+
         const usersList = document.createElement('div');
         usersList.className = 'reaction-tooltip-users';
         
@@ -693,7 +693,7 @@ class EmojiReactions {
     }
 
     showReactionTooltip(reactionElement, messageId, emoji) {
-        // Remove any existing tooltips
+
         this.hideReactionTooltip();
         
         const users = this.getUsersWhoReacted(messageId, emoji);
@@ -702,14 +702,14 @@ class EmojiReactions {
         const tooltip = this.createReactionTooltip(messageId, emoji, users);
         document.body.appendChild(tooltip);
         
-        // Position the tooltip
+
         const rect = reactionElement.getBoundingClientRect();
         const tooltipRect = tooltip.getBoundingClientRect();
         
         let left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
         let top = rect.top - tooltipRect.height - 8;
         
-        // Ensure tooltip stays within viewport
+
         if (left < 8) left = 8;
         if (left + tooltipRect.width > window.innerWidth - 8) {
             left = window.innerWidth - tooltipRect.width - 8;
@@ -725,7 +725,7 @@ class EmojiReactions {
         
         this.currentTooltip = tooltip;
         
-        // Auto-hide after delay if not hovered
+
         this.tooltipTimeout = setTimeout(() => {
             if (this.currentTooltip && !this.currentTooltip.matches(':hover')) {
                 this.hideReactionTooltip();
@@ -982,7 +982,7 @@ class EmojiReactions {
             const emoji = reaction.emoji;
             emojiCounts[emoji] = (emojiCounts[emoji] || 0) + 1;
             
-            // Store users who reacted with each emoji for tooltips
+
             if (!emojiUsers[emoji]) {
                 emojiUsers[emoji] = [];
             }
@@ -1003,7 +1003,7 @@ class EmojiReactions {
             reactionPill.dataset.emoji = emoji;
             reactionPill.dataset.messageId = messageId;
             
-            // Create descriptive title for accessibility
+
             const usersWhoReacted = emojiUsers[emoji] || [];
             const usernames = usersWhoReacted.map(u => u.username).slice(0, 3);
             let title = `${emoji} ${count} reaction${count > 1 ? 's' : ''}`;
@@ -1037,16 +1037,16 @@ class EmojiReactions {
                 reactionPill.classList.add('reaction-appear');
             }, 10);
 
-            // Add click handler for toggle functionality
+
             reactionPill.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleReaction(messageId, emoji);
             });
 
-            // Add hover handlers for tooltip
+
             let hoverTimeout;
             reactionPill.addEventListener('mouseenter', (e) => {
-                // Small delay before showing tooltip to avoid flicker
+
                 hoverTimeout = setTimeout(() => {
                     this.showReactionTooltip(reactionPill, messageId, emoji);
                 }, 500);
@@ -1057,7 +1057,7 @@ class EmojiReactions {
                     clearTimeout(hoverTimeout);
                     hoverTimeout = null;
                 }
-                // Delay hiding to allow moving to tooltip
+
                 setTimeout(() => {
                     if (this.currentTooltip && !this.currentTooltip.matches(':hover') && !reactionPill.matches(':hover')) {
                         this.hideReactionTooltip();
@@ -1075,7 +1075,7 @@ class EmojiReactions {
     setupSocketListeners() {
         const self = this;
         
-        // First, clear any existing listeners to avoid duplicates
+
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.off('reaction-added');
             window.globalSocketManager.io.off('reaction-removed');
@@ -1173,10 +1173,10 @@ class EmojiReactions {
         });
             
         if (existingIndex === -1) {
-            // Determine avatar URL from multiple sources
+
             let finalAvatarUrl = avatar_url;
             if (!finalAvatarUrl) {
-                // Try to get from existing user data or use default
+
                 const existingUser = this.currentReactions[message_id].find(r => 
                     String(r.user_id) === String(user_id));
                 finalAvatarUrl = existingUser?.avatar_url || '/public/assets/common/default-profile-picture.png';
@@ -1263,10 +1263,10 @@ class EmojiReactions {
                 String(r.user_id) === String(user_id) && r.emoji === emoji);
                 
             if (existingIndex === -1) {
-                // Determine avatar URL from multiple sources
+
                 let finalAvatarUrl = avatar_url;
                 if (!finalAvatarUrl) {
-                    // Try to get from existing user data or use default
+
                     const existingUser = this.currentReactions[message_id].find(r => 
                         String(r.user_id) === String(user_id));
                     finalAvatarUrl = existingUser?.avatar_url || '/public/assets/common/default-profile-picture.png';
@@ -1280,9 +1280,9 @@ class EmojiReactions {
                     is_permanent: true
                 });
             } else {
-                // Update existing temporary reaction to permanent
+
                 this.currentReactions[message_id][existingIndex].is_permanent = true;
-                // Ensure avatar URL is set
+
                 if (avatar_url && !this.currentReactions[message_id][existingIndex].avatar_url) {
                     this.currentReactions[message_id][existingIndex].avatar_url = avatar_url;
                 }
@@ -1348,13 +1348,13 @@ class EmojiReactions {
                 permanentId
             });
             
-            // Update currentReactions mapping from temp ID to permanent ID
+
             if (this.currentReactions[tempId]) {
                 this.currentReactions[permanentId] = this.currentReactions[tempId];
                 delete this.currentReactions[tempId];
 
                 
-                // Only mark as loaded if we actually have reactions to transfer
+
                 if (this.currentReactions[permanentId] && this.currentReactions[permanentId].length > 0) {
                     if (this.loadedMessageIds.has(tempId)) {
                         this.loadedMessageIds.delete(tempId);
@@ -1363,28 +1363,28 @@ class EmojiReactions {
 
                 }
             } else {
-                // No reactions to transfer - allow loading from database later
+
                 if (this.loadedMessageIds.has(tempId)) {
                     this.loadedMessageIds.delete(tempId);
                 }
 
             }
             
-            // Clear any loading states for temp ID
+
             this.loadingReactions.delete(tempId);
             
-            // Update debounce timers
+
             if (this.debounceTimers.has(tempId)) {
                 clearTimeout(this.debounceTimers.get(tempId));
                 this.debounceTimers.delete(tempId);
             }
             
-            // Find the message element and update reaction button state
+
             const messageElement = document.querySelector(`[data-message-id="${permanentId}"]`);
             if (messageElement) {
                 this.updateReactionButtonState(messageElement, permanentId);
                 
-                // Update any existing reaction elements with the new message ID
+
                 const reactionElements = messageElement.querySelectorAll('[data-message-id]');
                 reactionElements.forEach(element => {
                     if (element.dataset.messageId === tempId) {
@@ -1392,11 +1392,11 @@ class EmojiReactions {
                     }
                 });
                 
-                // Refresh reactions display to ensure everything is working
+
                 if (this.currentReactions[permanentId]) {
                     this.updateReactionsDisplay(permanentId, this.currentReactions[permanentId]);
                 } else {
-                    // No reactions transferred, try to load from database
+
 
                     this.loadMessageReactions(permanentId);
                 }
@@ -1427,7 +1427,7 @@ class EmojiReactions {
     }
 
     setupTooltipEventListeners() {
-        // Hide tooltip when clicking elsewhere
+
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.reaction-tooltip') && 
                 !e.target.closest('.bubble-reaction') && 
@@ -1436,12 +1436,12 @@ class EmojiReactions {
             }
         });
 
-        // Hide tooltip when scrolling
+
         document.addEventListener('scroll', () => {
             this.hideReactionTooltip();
         }, true);
 
-        // Hide tooltip when window resizes
+
         window.addEventListener('resize', () => {
             this.hideReactionTooltip();
         });
@@ -1449,7 +1449,7 @@ class EmojiReactions {
 
     }
 
-    // Process reactions from message data (for database-loaded messages)
+
     processMessageReactions(messageData) {
         if (!messageData || !messageData.id) return;
         
@@ -1462,7 +1462,7 @@ class EmojiReactions {
                 reactionCount: reactions.length
             });
             
-            // Store reactions in memory
+
             this.currentReactions[messageId] = reactions.map(reaction => ({
                 emoji: reaction.emoji,
                 user_id: String(reaction.user_id),
@@ -1470,10 +1470,10 @@ class EmojiReactions {
                 avatar_url: reaction.avatar_url || '/public/assets/common/default-profile-picture.png'
             }));
             
-            // Update display
+
             this.updateReactionsDisplay(messageId, this.currentReactions[messageId]);
             
-            // Mark as loaded to prevent duplicate API calls
+
             this.loadedMessageIds.add(messageId);
             
 
@@ -1561,10 +1561,10 @@ function initEmojiReactions() {
         emojiReactions.init();
 
         
-        // Attach to window object for global access
+
         window.emojiReactions = emojiReactions;
         
-        // Check if socket is connected
+
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
 
             emojiReactions.setupSocketListeners();
@@ -1580,20 +1580,20 @@ function initEmojiReactions() {
     }
 }
 
-// Initialize on page load
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initEmojiReactions);
 } else {
     initEmojiReactions();
 }
 
-// Make sure it's attached to window
+
 window.emojiReactions = emojiReactions; 
 
-// Add a deferred init method for when DOM is ready but other components need to initialize it
+
 window.initializeEmojiReactions = initEmojiReactions;
 
-// Debug utilities
+
 window.debugEmojis = function() {
 
 
@@ -1630,7 +1630,7 @@ window.debugEmojis = function() {
     };
 };
 
-// Force-load all reactions
+
 window.forceLoadAllReactions = function() {
 
     const messages = document.querySelectorAll('.message-content[data-message-id]');
@@ -1639,17 +1639,17 @@ window.forceLoadAllReactions = function() {
         const messageId = msg.dataset.messageId;
 
         
-        // Clear cached state
+
         emojiReactions.loadedMessageIds.delete(messageId);
         
-        // Load reactions
+
         emojiReactions.loadMessageReactions(messageId);
     });
     
     return `Started loading reactions for ${messages.length} messages`;
 };
 
-// Debug function to test reaction system after reload
+
 window.debugReactionSystem = function() {
 
     
@@ -1670,7 +1670,7 @@ window.debugReactionSystem = function() {
             isTemp: messageId.toString().startsWith('temp-')
         });
         
-        // If message has no reactions but should, try to load them
+
         if (!hasReactions && !/^temp-/.test(messageId) && /^\d+$/.test(messageId)) {
 
             emojiReactions.loadedMessageIds.delete(messageId);
@@ -1685,21 +1685,21 @@ window.debugReactionSystem = function() {
     };
 };
 
-// Helper to reinitialize if needed
+
 window.reinitializeEmojiSystem = function() {
     try {
 
         
-        // Reset state
+
         emojiReactions.initialized = false;
         emojiReactions.currentReactions = {};
         emojiReactions.loadedMessageIds.clear();
         emojiReactions.loadingReactions.clear();
         
-        // Reinit
+
         initEmojiReactions();
         
-        // Check for messages and load reactions
+
         const messages = document.querySelectorAll('.message-content[data-message-id]');
         messages.forEach(msg => {
             const messageId = msg.dataset.messageId;
@@ -1715,7 +1715,7 @@ window.reinitializeEmojiSystem = function() {
     }
 };
 
-// Add global debug function for testing
+
 window.debugReactionsSystem = function() {
 
     
