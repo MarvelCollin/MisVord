@@ -7,14 +7,26 @@ class DirectMessageNavigation {
     init() {
 
         
-        if (window.SimpleDMSwitcher) {
-            this.dmSwitcher = new window.SimpleDMSwitcher();
-        } else {
-            console.warn('⚠️ [DM-NAV] SimpleDMSwitcher not available, loading it...');
-            this.loadDMSwitcher();
+        this.waitForSimpleDMSwitcher();
+        this.setInitialState();
+    }
+    
+    async waitForSimpleDMSwitcher() {
+        let attempts = 0;
+        const maxAttempts = 50;
+        
+        while (!window.SimpleDMSwitcher && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
         }
         
-        this.setInitialState();
+        if (window.SimpleDMSwitcher) {
+            this.dmSwitcher = new window.SimpleDMSwitcher();
+
+        } else {
+            console.warn('⚠️ [DM-NAV] SimpleDMSwitcher not available after waiting, trying dynamic import...');
+            await this.loadDMSwitcher();
+        }
     }
     
     async loadDMSwitcher() {

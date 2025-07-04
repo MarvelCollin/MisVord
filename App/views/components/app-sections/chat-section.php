@@ -8,54 +8,113 @@ $chatData = $GLOBALS['chatData'] ?? null;
 $messages = $GLOBALS['messages'] ?? [];
 
 if (!$chatType) {
-    $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
-    $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
-    $activeChannel = $GLOBALS['activeChannel'] ?? null;
-    $channelMessages = $GLOBALS['channelMessages'] ?? [];
-    $serverChannels = $GLOBALS['serverChannels'] ?? [];
-
-    if (!isset($currentServer) || empty($currentServer)) {
-        echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
-        return;
-    }
-
-    $chatType = 'channel';
-    $targetId = $activeChannelId;
-    $messages = $channelMessages;
+    $currentUri = $_SERVER['REQUEST_URI'] ?? '';
+    $isDMPage = strpos($currentUri, '/home/channels/dm/') === 0;
     
-    if ($activeChannel) {
-        $chatData = is_array($activeChannel) ? $activeChannel : [
-            'id' => $activeChannel->id,
-            'name' => $activeChannel->name,
-            'type' => $activeChannel->type ?? 'text',
-            'description' => $activeChannel->description ?? '',
-            'server_id' => $activeChannel->server_id
-        ];
-        $chatTitle = $chatData['name'];
-        $chatTitle = preg_replace('/=+/', '', $chatTitle);
-        $chatTitle = preg_replace('/\b(Edit|Delete)\b/i', '', $chatTitle);
-        $chatTitle = preg_replace('/\s+/', ' ', trim($chatTitle));
-        if (empty($chatTitle)) $chatTitle = 'Channel';
-        $chatIcon = 'fas fa-hashtag';
-        $placeholder = "Message #{$chatTitle}";
-    } else {
-        foreach ($serverChannels as $channel) {
-            if ($channel['id'] == $activeChannelId) {
-                $activeChannel = $channel;
-                $chatData = $channel;
-                $chatTitle = $channel['name'];
-                $chatTitle = preg_replace('/=+/', '', $chatTitle);
-                $chatTitle = preg_replace('/\b(Edit|Delete)\b/i', '', $chatTitle);
-                $chatTitle = preg_replace('/\s+/', ' ', trim($chatTitle));
-                if (empty($chatTitle)) $chatTitle = 'Channel';
-                $chatIcon = 'fas fa-hashtag';
-                $placeholder = "Message #{$chatTitle}";
-                break;
+    if ($isDMPage) {
+        preg_match('/\/home\/channels\/dm\/(\d+)/', $currentUri, $matches);
+        $activeDmId = $matches[1] ?? null;
+        
+        if ($activeDmId) {
+            $chatType = 'direct';
+            $targetId = $activeDmId;
+            
+            require_once dirname(dirname(dirname(__DIR__))) . '/database/repositories/ChatRoomRepository.php';
+            $chatRoomRepository = new ChatRoomRepository();
+            
+            $chatRoom = $chatRoomRepository->find($activeDmId);
+            if ($chatRoom) {
+                $participants = $chatRoomRepository->getParticipants($activeDmId);
+                $friend = null;
+                
+                foreach ($participants as $participant) {
+                    if ($participant['user_id'] != $currentUserId) {
+                        $friend = [
+                            'id' => $participant['user_id'],
+                            'username' => $participant['username'],
+                            'display_name' => $participant['display_name'] ?? $participant['username'],
+                            'avatar_url' => $participant['avatar_url']
+                        ];
+                        break;
+                    }
+                }
+                
+                if ($friend) {
+                    $chatData = [
+                        'friend_username' => $friend['display_name'] ?? $friend['username'] ?? 'Unknown User',
+                        'friend_id' => $friend['id'] ?? null,
+                        'friend_avatar_url' => $friend['avatar_url'] ?? null
+                    ];
+                    
+                    require_once dirname(dirname(dirname(__DIR__))) . '/database/repositories/ChatRoomMessageRepository.php';
+                    $chatRoomMessageRepository = new ChatRoomMessageRepository();
+                    $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
+                    
+                    require_once dirname(dirname(dirname(__DIR__))) . '/controllers/ChatController.php';
+                    $chatController = new ChatController();
+                    
+                    $formattedMessages = [];
+                    foreach ($rawMessages as $rawMessage) {
+                        $reflection = new ReflectionClass($chatController);
+                        $formatMethod = $reflection->getMethod('formatMessage');
+                        $formatMethod->setAccessible(true);
+                        $formattedMessages[] = $formatMethod->invoke($chatController, $rawMessage);
+                    }
+                    
+                    $messages = $formattedMessages;
+                }
             }
         }
+    } else {
+        $currentServer = $GLOBALS['currentServer'] ?? $GLOBALS['server'] ?? null;
+        $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
+        $activeChannel = $GLOBALS['activeChannel'] ?? null;
+        $channelMessages = $GLOBALS['channelMessages'] ?? [];
+        $serverChannels = $GLOBALS['serverChannels'] ?? [];
+
+        if (!isset($currentServer) || empty($currentServer)) {
+            echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
+            return;
+        }
+
+        $chatType = 'channel';
+        $targetId = $activeChannelId;
+        $messages = $channelMessages;
         
-        if (!$activeChannel) {
-        $chatType = null;
+        if ($activeChannel) {
+            $chatData = is_array($activeChannel) ? $activeChannel : [
+                'id' => $activeChannel->id,
+                'name' => $activeChannel->name,
+                'type' => $activeChannel->type ?? 'text',
+                'description' => $activeChannel->description ?? '',
+                'server_id' => $activeChannel->server_id
+            ];
+            $chatTitle = $chatData['name'];
+            $chatTitle = preg_replace('/=+/', '', $chatTitle);
+            $chatTitle = preg_replace('/\b(Edit|Delete)\b/i', '', $chatTitle);
+            $chatTitle = preg_replace('/\s+/', ' ', trim($chatTitle));
+            if (empty($chatTitle)) $chatTitle = 'Channel';
+            $chatIcon = 'fas fa-hashtag';
+            $placeholder = "Message #{$chatTitle}";
+        } else {
+            foreach ($serverChannels as $channel) {
+                if ($channel['id'] == $activeChannelId) {
+                    $activeChannel = $channel;
+                    $chatData = $channel;
+                    $chatTitle = $channel['name'];
+                    $chatTitle = preg_replace('/=+/', '', $chatTitle);
+                    $chatTitle = preg_replace('/\b(Edit|Delete)\b/i', '', $chatTitle);
+                    $chatTitle = preg_replace('/\s+/', ' ', trim($chatTitle));
+                    if (empty($chatTitle)) $chatTitle = 'Channel';
+                    $chatIcon = 'fas fa-hashtag';
+                    $placeholder = "Message #{$chatTitle}";
+                    break;
+                }
+            }
+            
+            if (!$activeChannel) {
+                $chatType = null;
+            }
         }
     }
 }
@@ -726,7 +785,7 @@ if (!function_exists('renderMessage')) {
     </div>
 
     <?php if ($chatType): ?>
-    <div class="px-2 py-[10px] bg-[#313338] border-t border-[#3f4147]">
+    <div class="px-2 py-1.5 bg-[#313338] border-t border-[#3f4147]">
         <div id="reply-container" class="hidden"></div>
 
         <div id="typing-indicator" class="hidden px-4 py-2 text-xs text-[#a3a6aa] bg-[#2b2d31] rounded-lg mb-2 border-l-4 border-[#5865f2] transition-all duration-200 ease-in-out">

@@ -31,7 +31,7 @@ function isChatPage() {
         }
         
 
-        return true;
+        return false;
     }
     
     const serverMatch = currentPath.match(/^\/server\/(\d+)$/);
@@ -249,7 +249,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             setTimeout(() => {
                 if (!checkSocketReady()) {
-                    initWhenReady();
+                    console.warn('⚠️ [CHAT-SECTION] Socket not ready after timeout, initializing anyway for DM pages');
+                    if (window.location.pathname.includes('/channels/dm/')) {
+                        initWhenReady();
+                    }
                 }
             }, 3000);
         }
@@ -331,7 +334,7 @@ class ChatSection {
             if (currentPath.includes('/channels/dm/')) {
                 return 'direct';
             }
-            return 'direct';
+            return null;
         }
         
         if (currentPath.match(/^\/server\/\d+$/)) {
@@ -386,7 +389,7 @@ class ChatSection {
                 return chatIdMeta.content;
             }
             
-            const dmMatch = currentPath.match(/\/channels\/dm\/(\d+)/);
+            const dmMatch = currentPath.match(/\/home\/channels\/dm\/(\d+)/);
             if (dmMatch) {
                 return dmMatch[1];
             }
@@ -570,15 +573,25 @@ class ChatSection {
             return;
         }
 
+        console.log('🚀 [CHAT-SECTION] Starting initialization', {
+            url: window.location.href,
+            chatType: this.chatType,
+            targetId: this.targetId
+        });
+
         document.addEventListener('channelContentLoaded', this.handleChannelContentLoaded);
 
         if (!this.chatType || !this.targetId) {
             this.chatType = this.detectChatType();
             
+            console.log('🔍 [CHAT-SECTION] Detected chat type:', this.chatType);
+            
             await this.waitForRequiredElements();
         
             if (!this.targetId) {
                 this.targetId = this.detectTargetId();
+                
+                console.log('🔍 [CHAT-SECTION] Detected target ID:', this.targetId);
                 
                 if (!this.targetId) {
                     await new Promise(resolve => setTimeout(resolve, 500));
@@ -598,20 +611,29 @@ class ChatSection {
             this.setupEventListeners();
             
             if (this.targetId && this.chatType) {
+                console.log('✅ [CHAT-SECTION] Setting up handlers and loading messages');
                 this.setupHandlers();
             
                 if (this.messageHandler) {
                     this.messageHandler.ensureFallbackStyles();
-            }
+                }
             
                 this.joinSocketRoom();
                 
                 await this.loadMessages();
             
-            this.initializeExistingMessages();
+                this.initializeExistingMessages();
             
                 this.updateChannelHeader();
             } else {
+                console.warn('⚠️ [CHAT-SECTION] Missing targetId or chatType, hiding skeleton anyway', {
+                    targetId: this.targetId,
+                    chatType: this.chatType,
+                    url: window.location.href
+                });
+                setTimeout(() => {
+                    this.hideChatSkeleton();
+                }, 1000);
             }
             
             this.addTopReloadButtonStyles();
@@ -625,6 +647,17 @@ class ChatSection {
             
             this.chatBot.init();
             
+            setTimeout(() => {
+                this.hideChatSkeleton();
+                this.updateSendButton();
+                console.log('✅ [CHAT-SECTION] Initialization complete', {
+                    chatType: this.chatType,
+                    targetId: this.targetId,
+                    sendReceiveHandler: !!this.sendReceiveHandler,
+                    messageInput: !!this.messageInput,
+                    messageForm: !!this.messageForm
+                });
+            }, 2000);
         }
 
         this.userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content');
