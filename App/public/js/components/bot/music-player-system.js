@@ -19,6 +19,8 @@ class MusicPlayerSystem {
         this.currentTrack = null;
         this.processedMessageIds = new Set();
         this.initialized = false;
+        this.botParticipantAdded = false; // Track if bot participant is shown
+        this.botParticipantId = 'music-bot'; // Unique ID for dummy bot card
         
         console.log('🎵 [MUSIC-PLAYER] Music player system initialized');
         this.setupEventListeners();
@@ -857,6 +859,29 @@ class MusicPlayerSystem {
     showNowPlaying(track) {
         this.removeExistingPlayer();
         
+        // === NEW: Inject bot participant card into voice grid ===
+        try {
+            if (!this.botParticipantAdded) {
+                const botData = {
+                    user_id: this.botParticipantId,
+                    username: 'TitiBot',
+                    avatar_url: '/public/assets/common/default-profile-picture.png'
+                };
+                if (window.voiceCallSection && typeof window.voiceCallSection.addBotParticipant === 'function') {
+                    window.voiceCallSection.addBotParticipant(botData);
+                    this.botParticipantAdded = true;
+                    console.log('🤖 [MUSIC-PLAYER] Bot participant card injected into voice grid');
+                } else {
+                    // Fallback: dispatch event for voice-call-section listener
+                    window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', { detail: { participant: botData } }));
+                    this.botParticipantAdded = true;
+                    console.log('🤖 [MUSIC-PLAYER] Bot participant event dispatched');
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [MUSIC-PLAYER] Failed to inject bot participant:', e);
+        }
+        
         const playerHtml = `
             <div id="music-player-widget" style="
                 position: fixed;
@@ -970,6 +995,20 @@ class MusicPlayerSystem {
         if (this.progressInterval) {
             clearInterval(this.progressInterval);
             this.progressInterval = null;
+        }
+        // === NEW: Remove bot participant card when music stops ===
+        try {
+            if (this.botParticipantAdded) {
+                if (window.voiceCallSection && typeof window.voiceCallSection.removeBotParticipant === 'function') {
+                    window.voiceCallSection.removeBotParticipant(this.botParticipantId);
+                } else {
+                    window.dispatchEvent(new CustomEvent('bot-voice-participant-left', { detail: { participant: { user_id: this.botParticipantId } } }));
+                }
+                this.botParticipantAdded = false;
+                console.log('🤖 [MUSIC-PLAYER] Bot participant card removed');
+            }
+        } catch (e) {
+            console.warn('⚠️ [MUSIC-PLAYER] Failed to remove bot participant:', e);
         }
     }
 
