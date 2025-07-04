@@ -368,25 +368,33 @@ function initFriendRequestInput() {
     });
     
     function showError(message) {
-        if (errorDiv) {
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
-        if (successDiv) {
-            successDiv.classList.add('hidden');
+        if (window.showToast) {
+            window.showToast(message, 'error');
+        } else {
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+            }
+            if (successDiv) {
+                successDiv.classList.add('hidden');
+            }
         }
     }
     
     function showSuccess(message) {
-        if (successDiv) {
-            successDiv.textContent = message;
-            successDiv.classList.remove('hidden');
-            setTimeout(() => {
-                successDiv.classList.add('hidden');
-            }, 3000);
-        }
-        if (errorDiv) {
-            errorDiv.classList.add('hidden');
+        if (window.showToast) {
+            window.showToast(message, 'success');
+        } else {
+            if (successDiv) {
+                successDiv.textContent = message;
+                successDiv.classList.remove('hidden');
+                setTimeout(() => {
+                    successDiv.classList.add('hidden');
+                }, 3000);
+            }
+            if (errorDiv) {
+                errorDiv.classList.add('hidden');
+            }
         }
     }
     
@@ -395,6 +403,31 @@ function initFriendRequestInput() {
 
 document.addEventListener('DOMContentLoaded', function() {
     initFriendRequestInput();
+    
+    // Ensure toast.js is loaded
+    if (!window.showToast) {
+        // Try to load toast module dynamically
+        try {
+            const scriptPath = '/public/js/core/ui/toast.js';
+            console.log('🍞 [HOME-FRIENDS] Loading toast module from:', scriptPath);
+            
+            // Create a script element and append it to the document
+            const script = document.createElement('script');
+            script.src = scriptPath;
+            script.type = 'module';
+            document.head.appendChild(script);
+            
+            script.onload = () => {
+                console.log('🍞 [HOME-FRIENDS] Toast module loaded successfully');
+            };
+            
+            script.onerror = (err) => {
+                console.error('❌ [HOME-FRIENDS] Failed to load toast module:', err);
+            };
+        } catch (err) {
+            console.error('❌ [HOME-FRIENDS] Error loading toast module:', err);
+        }
+    }
     
     if (window.FallbackImageHandler) {
         window.fallbackImageHandler = window.FallbackImageHandler.getInstance();
@@ -866,6 +899,270 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     window.loadPendingRequests = function(forceRefresh = false) {
         console.log('📊 [HOME-FRIENDS] Loading pending requests data');
+        const pendingContainer = document.getElementById('pending-friends-container');
+        
+        if (!pendingContainer) {
+            console.error('❌ [HOME-FRIENDS] Pending container not found');
+            return;
+        }
+        
+        // Show loading state
+        pendingContainer.innerHTML = `
+            <div class="p-4 bg-discord-dark rounded text-center">
+                <div class="mb-2 text-gray-400">
+                    <i class="fas fa-spinner fa-spin text-3xl"></i>
+                </div>
+                <p class="text-gray-300 mb-1">Loading pending requests...</p>
+            </div>
+        `;
+        
+        // Fetch pending requests from API
+        if (window.FriendAPI) {
+            window.FriendAPI.getPendingRequests()
+                .then(data => {
+                    console.log('✅ [HOME-FRIENDS] Pending requests loaded:', data);
+                    renderPendingRequests(data);
+                })
+                .catch(err => {
+                    console.error('❌ [HOME-FRIENDS] Failed to load pending requests:', err);
+                    pendingContainer.innerHTML = `
+                        <div class="p-4 bg-discord-dark rounded text-center">
+                            <div class="mb-2 text-gray-400">
+                                <i class="fas fa-exclamation-circle text-3xl"></i>
+                            </div>
+                            <p class="text-gray-300 mb-1">Failed to load pending requests</p>
+                            <p class="text-gray-500 text-sm">Please try again later</p>
+                        </div>
+                    `;
+                });
+        } else {
+            console.error('❌ [HOME-FRIENDS] FriendAPI not available');
+            pendingContainer.innerHTML = `
+                <div class="p-4 bg-discord-dark rounded text-center">
+                    <div class="mb-2 text-gray-400">
+                        <i class="fas fa-clock text-3xl"></i>
+                    </div>
+                    <p class="text-gray-300 mb-1">No pending friend requests</p>
+                    <p class="text-gray-500 text-sm">Friend requests will appear here</p>
+                </div>
+            `;
+        }
+    };
+    
+    function renderPendingRequests(data) {
+        const pendingContainer = document.getElementById('pending-friends-container');
+        if (!pendingContainer) return;
+        
+        const incomingRequests = data.incoming || [];
+        const outgoingRequests = data.outgoing || [];
+        
+        if (incomingRequests.length === 0 && outgoingRequests.length === 0) {
+            pendingContainer.innerHTML = `
+                <div class="p-4 bg-discord-dark rounded text-center">
+                    <div class="mb-2 text-gray-400">
+                        <i class="fa-solid fa-clock text-3xl"></i>
+                    </div>
+                    <p class="text-gray-300 mb-1">No pending friend requests</p>
+                    <p class="text-gray-500 text-sm">Friend requests will appear here</p>
+                </div>
+            `;
+            return;
+        }
+        
+        let html = '';
+        
+        if (incomingRequests.length > 0) {
+            html += `<h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — ${incomingRequests.length}</h3>`;
+            html += '<div class="space-y-2">';
+            
+            incomingRequests.forEach(request => {
+                const displayName = request.display_name || request.username;
+                const userTag = request.discriminator ? `${request.username}#${request.discriminator}` : request.username;
+                
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item" 
+                         data-username="${request.username}"
+                         data-display-name="${displayName}">
+                        <div class="flex items-center">
+                            <div class="relative mr-3">
+                                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <img src="${request.avatar_url || ''}" 
+                                         alt="${displayName}" 
+                                         class="w-full h-full object-cover user-avatar">
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-white truncate friend-name">${displayName}</div>
+                                <div class="text-xs text-gray-400">${userTag}</div>
+                                <div class="text-xs text-gray-400">Incoming Friend Request</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors"
+                                    onclick="acceptFriendRequest('${request.friendship_id}')">Accept</button>
+                            <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm border border-gray-600 transition-colors"
+                                    onclick="ignoreFriendRequest('${request.friendship_id}')">Ignore</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+        }
+        
+        if (outgoingRequests.length > 0) {
+            html += `<h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — ${outgoingRequests.length}</h3>`;
+            html += '<div class="space-y-2">';
+            
+            outgoingRequests.forEach(request => {
+                const displayName = request.display_name || request.username;
+                const userTag = request.discriminator ? `${request.username}#${request.discriminator}` : request.username;
+                
+                html += `
+                    <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item" 
+                         data-username="${request.username}"
+                         data-display-name="${displayName}">
+                        <div class="flex items-center">
+                            <div class="relative mr-3">
+                                <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                                    <img src="${request.avatar_url || ''}" 
+                                         alt="${displayName}" 
+                                         class="w-full h-full object-cover user-avatar">
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-medium text-white truncate friend-name">${displayName}</div>
+                                <div class="text-xs text-gray-400">${userTag}</div>
+                                <div class="text-xs text-gray-400">Outgoing Friend Request</div>
+                            </div>
+                        </div>
+                        <div>
+                            <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors"
+                                    onclick="cancelFriendRequest('${request.friendship_id}')">Cancel</button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+        }
+        
+        pendingContainer.innerHTML = html;
+        
+        // Process images after rendering
+        if (window.fallbackImageHandler) {
+            pendingContainer.querySelectorAll('img.user-avatar').forEach(img => {
+                window.fallbackImageHandler.processImage(img);
+            });
+        }
+    }
+    
+    window.acceptFriendRequest = function(friendshipId) {
+        if (!friendshipId) {
+            console.error('❌ [HOME-FRIENDS] Invalid friendship ID for accept');
+            return;
+        }
+        
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Accepting...';
+        
+        if (window.FriendAPI) {
+            window.FriendAPI.acceptFriendRequest(friendshipId)
+                .then(data => {
+                    console.log('✅ [HOME-FRIENDS] Friend request accepted:', data);
+                    if (window.showToast) {
+                        window.showToast('Friend request accepted!', 'success');
+                    }
+                    // Refresh the pending requests list
+                    window.loadPendingRequests(true);
+                })
+                .catch(err => {
+                    console.error('❌ [HOME-FRIENDS] Failed to accept friend request:', err);
+                    if (window.showToast) {
+                        window.showToast('Failed to accept friend request', 'error');
+                    }
+                    button.disabled = false;
+                    button.textContent = originalText;
+                });
+        } else {
+            console.error('❌ [HOME-FRIENDS] FriendAPI not available');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    };
+    
+    window.ignoreFriendRequest = function(friendshipId) {
+        if (!friendshipId) {
+            console.error('❌ [HOME-FRIENDS] Invalid friendship ID for ignore');
+            return;
+        }
+        
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Ignoring...';
+        
+        if (window.FriendAPI) {
+            window.FriendAPI.declineFriendRequest(friendshipId)
+                .then(data => {
+                    console.log('✅ [HOME-FRIENDS] Friend request declined:', data);
+                    if (window.showToast) {
+                        window.showToast('Friend request declined', 'info');
+                    }
+                    // Refresh the pending requests list
+                    window.loadPendingRequests(true);
+                })
+                .catch(err => {
+                    console.error('❌ [HOME-FRIENDS] Failed to decline friend request:', err);
+                    if (window.showToast) {
+                        window.showToast('Failed to decline friend request', 'error');
+                    }
+                    button.disabled = false;
+                    button.textContent = originalText;
+                });
+        } else {
+            console.error('❌ [HOME-FRIENDS] FriendAPI not available');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    };
+    
+    window.cancelFriendRequest = function(friendshipId) {
+        if (!friendshipId) {
+            console.error('❌ [HOME-FRIENDS] Invalid friendship ID for cancel');
+            return;
+        }
+        
+        const button = event.target;
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Canceling...';
+        
+        if (window.FriendAPI) {
+            window.FriendAPI.declineFriendRequest(friendshipId)
+                .then(data => {
+                    console.log('✅ [HOME-FRIENDS] Friend request canceled:', data);
+                    if (window.showToast) {
+                        window.showToast('Friend request canceled', 'info');
+                    }
+                    // Refresh the pending requests list
+                    window.loadPendingRequests(true);
+                })
+                .catch(err => {
+                    console.error('❌ [HOME-FRIENDS] Failed to cancel friend request:', err);
+                    if (window.showToast) {
+                        window.showToast('Failed to cancel friend request', 'error');
+                    }
+                    button.disabled = false;
+                    button.textContent = originalText;
+                });
+        } else {
+            console.error('❌ [HOME-FRIENDS] FriendAPI not available');
+            button.disabled = false;
+            button.textContent = originalText;
+        }
     };
     
     initializeHomeFriends();
