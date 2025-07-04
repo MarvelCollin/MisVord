@@ -819,7 +819,7 @@ class MentionHandler {
         const isUserMention = mentions.some(m => m.type === 'user' && m.user_id === currentUserId);
         
         if (isAllMention || isRoleMention || isUserMention) {
-            console.log('💬 [MENTION-HANDLER] Local mention detected - playing sound only');
+
             this.playMentionSound();
         }
     }

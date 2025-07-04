@@ -54,19 +54,19 @@ class VideoSDKManager {
         
         this.lastPresenceCheck = stateSignature;
         
-        console.log('🔍 [VideoSDK-Presence] Checking presence sync:', currentState);
+
         
         if (!isActuallyInVoice && (sessionInVoice || isPresenceInVoice)) {
-            console.log('⚠️ [VideoSDK-Presence] Presence out of sync - not in voice but marked as in voice');
+
             this.forcePresenceReset();
         } else if (isActuallyInVoice && !isPresenceInVoice) {
-            console.log('⚠️ [VideoSDK-Presence] Presence out of sync - in voice but not marked');
+
             this.syncPresenceToVoice();
         }
     }
 
     forcePresenceReset() {
-        console.log('🔧 [VideoSDK-Presence] Force resetting presence to online/active');
+
         
         sessionStorage.removeItem('isInVoiceCall');
         sessionStorage.removeItem('voiceChannelName');
@@ -91,7 +91,7 @@ class VideoSDKManager {
         const channelName = sessionStorage.getItem('voiceChannelName') || 'Voice Channel';
         const channelId = document.querySelector('meta[name="channel-id"]')?.content;
         
-        console.log('🔧 [VideoSDK-Presence] Syncing presence to voice state');
+
         
         if (window.globalSocketManager?.isReady()) {
             const activityDetails = {
@@ -106,7 +106,7 @@ class VideoSDKManager {
     }
 
     async getAuthToken() {
-        console.log('🔑 Using fresh VideoSDK token...');
+
         return this.fallbackToken;
     }
 
@@ -123,7 +123,7 @@ class VideoSDKManager {
         VideoSDK.config(authToken);
         this.initialized = true;
         
-        console.log("✅ VideoSDK initialized with fresh token");
+
         return this;
     }
     
@@ -138,7 +138,7 @@ class VideoSDKManager {
     
     async createMeetingRoom(customId = null) {
         try {
-            console.log("Creating meeting room" + (customId ? `: ${customId}` : ""));
+
             
             if (!this.authToken) {
                 this.authToken = await this.getAuthToken();
@@ -157,7 +157,7 @@ class VideoSDKManager {
             
             if (response.ok) {
                 const data = await response.json();
-                console.log(`✅ Meeting room created: ${data.roomId}`);
+
                 return data.roomId;
             } else {
                 console.error(`❌ Failed to create meeting room: ${response.status}`);
@@ -184,7 +184,7 @@ class VideoSDKManager {
         }
         
         try {
-            console.log(`[VideoSDK External] 🚀 Initializing meeting: ${meetingId} for ${participantName}`);
+
             
             // Initialize the meeting object using VideoSDK
             this.meeting = VideoSDK.initMeeting({
@@ -198,7 +198,7 @@ class VideoSDKManager {
                 throw new Error("Failed to initialize meeting object");
             }
             
-            console.log('[VideoSDK External] ✅ Meeting object created successfully');
+
             
             // Setup event handlers
             this.setupEvents();
@@ -217,12 +217,12 @@ class VideoSDKManager {
         }
         
         try {
-            console.log('[VideoSDK External] 🚀 Joining meeting...');
+
             
             this.isConnected = true;
             this.meeting.join();
             
-            console.log('[VideoSDK External] ✅ Meeting join initiated');
+
 
             // Set presence to "In Voice Call" immediately
             if (window.globalSocketManager) {
@@ -250,11 +250,11 @@ class VideoSDKManager {
                     channel_name: channelName,
                 };
                 window.globalSocketManager.updatePresence('online', activityDetails);
-                console.log('[VideoSDK External] 🎤 Presence updated to "In Voice" for channel:', channelName);
+
                 
                 // 🎯 VOICE PRESENCE PROTECTION
                 // Ensure the presence hierarchy protects this voice call status
-                console.log('[VideoSDK External] 🛡️ Voice call presence is now protected from activity overrides');
+
             }
 
             window.dispatchEvent(new CustomEvent('voiceConnect', {
@@ -265,7 +265,7 @@ class VideoSDKManager {
                 }
             }));
             
-            console.log('[VideoSDK External] ✅ Meeting join completed successfully');
+
             return true;
         } catch (error) {
             this.isConnected = false;
@@ -285,7 +285,7 @@ class VideoSDKManager {
     markExternalJoinSuccess() {
         this.isConnected = true;
         this.isMeetingJoined = true;
-        console.log('[VideoSDK External] Connection marked as successful');
+
         
         // Update voice manager state if available
         if (window.voiceManager) {
@@ -315,11 +315,11 @@ class VideoSDKManager {
                 if (eventName === 'error') {
                     console.error("Meeting error:", args[0]);
                 } else if (eventName === 'meeting-joined') {
-                    console.log(`✅ [VideoSDK] Meeting joined successfully`);
+
                     this.isMeetingJoined = true;
                     setTimeout(() => {
                         if (this.meeting?.localParticipant) {
-                            console.log(`👤 [VideoSDK] Emitting local participant joined: ${this.meeting.localParticipant.id}`);
+
                             window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                                 detail: { 
                                     participant: this.meeting.localParticipant.id, 
@@ -330,16 +330,16 @@ class VideoSDKManager {
                         window.dispatchEvent(new CustomEvent('videosdkMeetingFullyJoined'));
                     }, 100);
                 } else if (eventName === 'meeting-left') {
-                    console.log(`📤 [VideoSDK] Meeting left`);
+
                     this.isMeetingJoined = false;
                 } else if (eventName === 'participant-joined') {
-                    console.log(`🎉 [VideoSDK] Participant joined:`, args[0]);
+
                     const participant = args[0];
                     if (participant && participant.id) {
                         this.handleParticipantJoined(participant);
                     }
                 } else if (eventName === 'participant-left') {
-                    console.log(`👋 [VideoSDK] Participant left:`, args[0]);
+
                     const participant = args[0];
                     if (participant && participant.id) {
                         this.handleParticipantLeft(participant);
@@ -363,10 +363,10 @@ class VideoSDKManager {
     }
     
     handleParticipantJoined(participant) {
-        console.log(`👤 [VideoSDK] Participant joined: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
+
         
         if (this.processedParticipants.has(participant.id)) {
-            console.log(`👤 [VideoSDK] Participant ${participant.id} already processed, skipping`);
+
             return;
         }
         
@@ -377,7 +377,7 @@ class VideoSDKManager {
                 if (processedParticipant && 
                     (processedParticipant.displayName === existingParticipantName || 
                      processedParticipant.name === existingParticipantName)) {
-                    console.log(`⚠️ [VideoSDK] Found duplicate participant name '${existingParticipantName}' - replacing old ID: ${processedId} with new ID: ${participant.id}`);
+
                     
                     if (processedId !== participant.id) {
                         this.processedParticipants.delete(processedId);
@@ -396,7 +396,7 @@ class VideoSDKManager {
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
-        console.log(`✅ [VideoSDK] Dispatching participant joined event for: ${participant.id}`);
+
         setTimeout(() => {
             window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                 detail: { participant: participant.id, participantObj: participant }
@@ -405,12 +405,12 @@ class VideoSDKManager {
     }
     
     handleParticipantLeft(participant) {
-        console.log(`👋 [VideoSDK] Participant left: ${participant.id}`);
+
         
         this.processedParticipants.delete(participant.id);
         this.cleanupParticipantResourcesById(participant.id);
         
-        console.log(`✅ [VideoSDK] Dispatching participant left event for: ${participant.id}`);
+
         window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
             detail: { participant: participant.id }
         }));
@@ -419,15 +419,15 @@ class VideoSDKManager {
     setupExistingParticipants() {
         if (!this.meeting || !this.meeting.participants) return;
         
-        console.log(`👥 [VideoSDK] Setting up existing participants - Total: ${this.meeting.participants.size}, Local: ${this.meeting.localParticipant?.id}`);
+
         
         try {
             setTimeout(() => {
                 this.meeting.participants.forEach((participant, participantId) => {
-                    console.log(`👤 [VideoSDK] Processing participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
+
                     
                     if (this.processedParticipants.has(participant.id)) {
-                        console.log(`👤 [VideoSDK] Participant ${participant.id} already processed, skipping`);
+
                         return;
                     }
                     
@@ -464,7 +464,7 @@ class VideoSDKManager {
                         participant._previousStreams = null;
                     }
                     
-                    console.log(`🧹 [VideoSDK] Cleaned up resources for participant: ${participantId}`);
+
                 }
             }
         } catch (error) {
@@ -518,7 +518,7 @@ class VideoSDKManager {
                 }
                 
                 if (!stream && data.track) {
-                    console.log('[VideoSDK] Creating MediaStream from track for', data.track.kind);
+
                     stream = new MediaStream([data.track]);
                     kind = data.track.kind === 'video' ? 'video' : 'audio';
                 }
@@ -561,7 +561,7 @@ class VideoSDKManager {
                 if (!data) return;
                 
                 const kind = data.kind || 'unknown';
-                console.log(`🔇 [VideoSDK] Stream disabled: ${kind} for participant ${participant.id}`);
+
                 
                 if (participant.id === this.meeting.localParticipant?.id) {
                     if (kind === 'video') {
@@ -590,13 +590,13 @@ class VideoSDKManager {
     checkExistingStreamsForParticipant(participant) {
         if (!participant || !participant.streams) return;
         
-        console.log(`🔍 [VideoSDK] Checking existing streams for participant: ${participant.id}`);
+
         
         participant.streams.forEach((stream, streamId) => {
             if (stream && stream.track && stream.track.kind === 'video') {
                 const kind = this.detectStreamKind(stream, { stream, streamId });
                 
-                console.log(`📹 [VideoSDK] Found existing ${kind} stream for ${participant.id}: ${streamId}`);
+
                 
                 window.dispatchEvent(new CustomEvent('videosdkStreamEnabled', { 
                     detail: { kind, stream, participant: participant.id, data: { stream, streamId } } 
@@ -674,7 +674,7 @@ class VideoSDKManager {
                     if (!participant._previousStreams.has(streamId)) {
                         let kind = this.detectStreamKind(stream, { stream, streamId });
                         
-                        console.log(`🔍 [VideoSDK] New stream detected: ${streamId} (${kind}) for ${participant.id}`, stream);
+
                         
                         participant._previousStreams.set(streamId, kind);
                         
@@ -693,7 +693,7 @@ class VideoSDKManager {
                 
                 participant._previousStreams.forEach((kind, streamId) => {
                     if (!participant.streams.has(streamId)) {
-                        console.log(`🔍 [VideoSDK] Stream removed: ${streamId} (${kind}) for ${participant.id}`);
+
                         
                         if (kind === 'video' || kind === 'share') {
                             window.dispatchEvent(new CustomEvent('videosdkStreamDisabled', {
@@ -717,7 +717,7 @@ class VideoSDKManager {
         participant._streamMonitorInterval = interval;
         participant._streamMonitoringActive = true;
         
-        console.log(`🔍 [VideoSDK] Stream monitoring started for ${participant.id}`);
+
     }
 
 
@@ -745,7 +745,7 @@ class VideoSDKManager {
     }
 
     async leaveMeeting() {
-        console.log("📤 [VideoSDK] Leaving meeting...");
+
 
         try {
             if (this.meeting) {
@@ -788,7 +788,7 @@ class VideoSDKManager {
 
         this.checkAndSyncPresence();
 
-        console.log('✅ [VideoSDK] Meeting left and resources cleaned up');
+
     }
     
     cleanupParticipantResources() {
@@ -800,7 +800,7 @@ class VideoSDKManager {
         
         try {
             if (this.meeting?.participants) {
-                console.log(`🧹 [VideoSDK] Cleaning up resources for ${this.meeting.participants.size} participants`);
+
                 
                 this.meeting.participants.forEach((participant, participantId) => {
                     if (participant._streamMonitorInterval) {
@@ -815,7 +815,7 @@ class VideoSDKManager {
                         participant._previousStreams = null;
                     }
                     
-                    console.log(`🧹 [VideoSDK] Cleaned up participant: ${participantId}`);
+
                 });
             }
             
@@ -834,7 +834,7 @@ class VideoSDKManager {
                     participant._previousStreams = null;
                 }
                 
-                console.log(`🧹 [VideoSDK] Cleaned up local participant: ${participant.id}`);
+
             }
         } catch (error) {
             console.error("Error cleaning up participant resources:", error);
@@ -869,7 +869,7 @@ class VideoSDKManager {
     toggleDeafen() {
         if (!this.meeting) {
             this.isDeafened = !this.isDeafened;
-            console.log('[VideoSDKManager] No meeting active, toggling local deafen state to:', this.isDeafened);
+
             
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: { type: 'deafen', state: this.isDeafened }
@@ -883,12 +883,12 @@ class VideoSDKManager {
             
             if (wasDeafened) {
                 this.isDeafened = false;
-                console.log('[VideoSDKManager] Undeafened - audio reception restored');
+
             } else {
                 this.meeting.muteMic();
                 this._micState = false;
                 this.isDeafened = true;
-                console.log('[VideoSDKManager] Deafened - microphone muted and audio reception disabled');
+
             }
             
             if (window.ChannelVoiceParticipants) {
@@ -904,7 +904,7 @@ class VideoSDKManager {
                 detail: { type: 'deafen', state: this.isDeafened }
             }));
             
-            console.log('[VideoSDKManager] Deafen toggled to:', this.isDeafened);
+
             return this.isDeafened;
         } catch (error) {
             console.error("Error toggling deafen:", error);
@@ -937,9 +937,9 @@ class VideoSDKManager {
     
     async checkCameraPermission() {
         try {
-            console.log('[VideoSDK] Checking camera permission...');
+
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            console.log('[VideoSDK] Camera permission granted, got stream with', stream.getTracks().length, 'tracks');
+
             stream.getTracks().forEach(track => track.stop());
             return true;
         } catch (error) {
@@ -959,14 +959,14 @@ class VideoSDKManager {
 
     async toggleWebcam() {
         if (this._webcamToggling) {
-            console.log('[VideoSDK] Webcam toggle already in progress, skipping');
+
             return this.getWebcamState();
         }
         
         this._webcamToggling = true;
         
         try {
-            console.log('[VideoSDK] toggleWebcam called');
+
             
             if (!this.meeting || !this.isConnected || !this.isMeetingJoined || !this.meeting.localParticipant) {
                 console.error('[VideoSDK] Meeting not ready for webcam toggle');
@@ -975,13 +975,13 @@ class VideoSDKManager {
             }
             
             const isWebcamOn = this.getWebcamState();
-            console.log('[VideoSDK] Current webcam state:', isWebcamOn);
+
             
             if (isWebcamOn) {
-                console.log('[VideoSDK] Disabling webcam...');
+
                 await this.meeting.disableWebcam();
                 this._webcamState = false;
-                console.log('[VideoSDK] Webcam disabled successfully');
+
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'video', state: false }
@@ -993,17 +993,17 @@ class VideoSDKManager {
                 
                 return false;
             } else {
-                console.log('[VideoSDK] Enabling webcam...');
+
                 const hasPermission = await this.checkCameraPermission();
                 if (!hasPermission) {
                     console.error('[VideoSDK] Camera permission denied');
                     return false;
                 }
                 
-                console.log('[VideoSDK] Camera permission OK, calling meeting.enableWebcam()...');
+
                 await this.meeting.enableWebcam();
                 this._webcamState = true;
-                console.log('[VideoSDK] Webcam enabled successfully');
+
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'video', state: true }
@@ -1056,7 +1056,7 @@ class VideoSDKManager {
             if (isScreenSharing) {
                 await this.meeting.disableScreenShare();
                 this._screenShareState = false;
-                console.log('[VideoSDK] Screen sharing disabled');
+
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'screen', state: false }
@@ -1070,7 +1070,7 @@ class VideoSDKManager {
             } else {
                 await this.meeting.enableScreenShare();
                 this._screenShareState = true;
-                console.log('[VideoSDK] Screen sharing enabled');
+
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'screen', state: true }
@@ -1176,13 +1176,13 @@ class VideoSDKManager {
     refreshExistingParticipants() {
         if (!this.meeting || !this.meeting.participants || !this.isMeetingJoined) return;
         
-        console.log(`🔄 [VideoSDK] Refreshing existing participants - Total: ${this.meeting.participants.size}, Local: ${this.meeting.localParticipant?.id}`);
+
         
         try {
             let delay = 0;
             
             this.meeting.participants.forEach((participant, participantId) => {
-                console.log(`🔄 [VideoSDK] Refreshing participant: ${participant.id} (${participant.displayName || participant.name || 'Unknown'})`);
+
                 
                 setTimeout(() => {
                     window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
@@ -1203,7 +1203,7 @@ class VideoSDKManager {
                 }, delay);
             }
             
-            console.log(`✅ [VideoSDK] Participant refresh complete`);
+
         } catch (error) {
             console.error('Error refreshing existing participants:', error);
         }
@@ -1220,14 +1220,14 @@ class VideoSDKManager {
 if (!window.videoSDKManager) {
     const videoSDKManager = new VideoSDKManager();
     window.videoSDKManager = videoSDKManager;
-    console.log('✅ VideoSDKManager instance created and attached to window');
+
 } else {
-    console.log('ℹ️ VideoSDKManager already exists, skipping creation');
+
 }
 
 window.addEventListener('beforeunload', () => {
     if (window.videoSDKManager?.isConnected) {
-        console.log('🚨 [VideoSDK] Page unloading, forcing presence reset');
+
         if (window.globalSocketManager) {
             window.globalSocketManager.updatePresence('online', { type: 'active' }, 'page-unload');
         }
@@ -1238,7 +1238,7 @@ window.addEventListener('beforeunload', () => {
 
 window.addEventListener('pagehide', () => {
     if (window.videoSDKManager?.isConnected) {
-        console.log('🚨 [VideoSDK] Page hidden, forcing presence reset');
+
         if (window.globalSocketManager) {
             window.globalSocketManager.updatePresence('online', { type: 'active' }, 'page-hide');
         }

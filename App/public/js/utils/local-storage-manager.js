@@ -321,7 +321,7 @@ class LocalStorageManager {
         if (window.showToast) {
             window.showToast(message, type, 3000);
         } else {
-            console.log(`Toast (${type}): ${message}`);
+
         }
     }
 

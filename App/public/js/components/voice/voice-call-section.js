@@ -1308,13 +1308,13 @@ class VoiceCallSection {
       `[data-screen-share-id="${participantId}"]`
     );
     if (!screenShareCard) {
-      console.log("Screen share card not found for participant:", participantId);
+
       return;
     }
 
     const video = screenShareCard.querySelector(".screen-share-video");
     if (!video || !video.srcObject) {
-      console.log("Screen share video not found or no source for participant:", participantId);
+
       return;
     }
 
@@ -1409,7 +1409,7 @@ class VoiceCallSection {
       }
     }, 5000);
 
-    console.log(`🖥️ [VideoSDK-UI] Screen share fullscreen opened for: ${participantName}`);
+
   }
 
   updateActivityStatus() {
@@ -1582,7 +1582,7 @@ class VoiceCallSection {
   }
 
   addBotParticipant(botData) {
-    console.log('🤖 [VOICE-CALL] Adding bot participant:', botData);
+
     
     if (!botData || !botData.user_id) {
       console.error('❌ [VOICE-CALL] Invalid bot data provided');
@@ -1597,7 +1597,7 @@ class VoiceCallSection {
 
     const existingBotCard = grid.querySelector(`[data-participant-id="bot-${botData.user_id}"]`);
     if (existingBotCard) {
-      console.log('🔄 [VOICE-CALL] Bot participant already exists, updating...');
+
       return;
     }
 
@@ -1607,11 +1607,11 @@ class VoiceCallSection {
     this.updateGridLayout();
     this.updateParticipantCount();
     
-    console.log('✅ [VOICE-CALL] Bot participant added to grid');
+
   }
 
   removeBotParticipant(botUserId) {
-    console.log('🤖❌ [VOICE-CALL] Removing bot participant:', botUserId);
+
     
     const grid = document.getElementById("participantGrid");
     if (!grid) {
@@ -1624,14 +1624,14 @@ class VoiceCallSection {
       botCard.remove();
       this.updateGridLayout();
       this.updateParticipantCount();
-      console.log('✅ [VOICE-CALL] Bot participant removed from grid');
+
     } else {
-      console.log('⚠️ [VOICE-CALL] Bot participant not found in grid');
+
     }
   }
 
   handleBotParticipantJoined(e) {
-    console.log('🤖➕ [VOICE-CALL] Bot participant joined event:', e.detail);
+
     const { participant } = e.detail;
     if (!participant) {
       console.warn('[VOICE-CALL] No participant in bot-voice-participant-joined event');
@@ -1642,9 +1642,9 @@ class VoiceCallSection {
     if (!grid) {
       console.error('[VOICE-CALL] Participant grid not found in DOM');
     } else {
-      console.log('[VOICE-CALL] Current grid children:', grid.children.length);
+
     }
-    console.log('[VOICE-CALL] Adding bot participant to grid:', participant);
+
     this.addBotParticipant(participant);
     // Force UI update
     setTimeout(() => {
@@ -1662,7 +1662,7 @@ class VoiceCallSection {
   }
 
   handleBotParticipantLeft(e) {
-    console.log('🤖➖ [VOICE-CALL] Bot participant left event:', e.detail);
+
     const { participant } = e.detail;
     
     if (participant && participant.user_id) {
@@ -1713,5 +1713,5 @@ class VoiceCallSection {
 
 if (typeof window !== "undefined") {
   window.voiceCallSection = new VoiceCallSection();
-  console.log("✅ VoiceCallSection loaded successfully");
+
 }

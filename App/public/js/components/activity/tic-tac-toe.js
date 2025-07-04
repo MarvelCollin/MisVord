@@ -220,7 +220,7 @@ class TicTacToeGame {
         if (window.showToast) {
             window.showToast(message, type);
         } else {
-            console.log(`[${type.toUpperCase()}] ${message}`);
+
         }
     }
 
@@ -555,11 +555,11 @@ class TicTacToeModal {
     }
 
     createGameBoard() {
-        console.log('🎯 [FRONTEND] Creating game board');
+
         
         const gameBoard = document.getElementById('game-board');
         if (!gameBoard) {
-            console.log('🎯 [FRONTEND] Game board element not found!');
+
             return;
         }
         
@@ -571,28 +571,28 @@ class TicTacToeModal {
             gameBoard.appendChild(cell);
         }
         
-        console.log('🎯 [FRONTEND] Game board created with 9 cells');
+
         this.updateGameBoard();
     }
 
     updateGameBoard() {
         if (!this.currentGameData) {
-            console.log('🎯 [FRONTEND] Cannot update game board - no game data');
+
             return;
         }
         
         if (!this.currentGameData.board || !Array.isArray(this.currentGameData.board)) {
-            console.log('🎯 [FRONTEND] Invalid board data:', this.currentGameData.board);
+
             return;
         }
         
         const cells = document.querySelectorAll('#game-board button');
         if (cells.length !== 9) {
-            console.log('🎯 [FRONTEND] Incorrect number of board cells:', cells.length);
+
             return;
         }
         
-        console.log('🎯 [FRONTEND] Updating game board with:', this.currentGameData.board);
+
         
         cells.forEach((cell, index) => {
             const value = this.currentGameData.board[index];
@@ -806,10 +806,10 @@ class TicTacToeModal {
         });
         
         newGameButton.addEventListener('click', () => {
-            console.log('🎯 [FRONTEND] Play again button clicked');
+
             
             if (window.globalSocketManager.isReady()) {
-                console.log('🎯 [FRONTEND] Socket ready, emitting play-again-request');
+
                 
                 window.globalSocketManager.io.emit('tic-tac-toe-play-again-request', {});
                 newGameButton.innerHTML = '<span class="relative z-10">Request Sent...</span>';
@@ -820,7 +820,7 @@ class TicTacToeModal {
                     window.showToast('Play again request sent!', 'info');
                 }
             } else {
-                console.log('🎯 [FRONTEND] Socket not ready!');
+
                 if (window.showToast) {
                     window.showToast('Connection not ready. Please try again.', 'error');
                 }
@@ -839,13 +839,13 @@ class TicTacToeModal {
     }
 
     connectToSocket() {
-        console.log('🎯 [FRONTEND] Connecting to socket for server:', this.serverId);
+
         
         window.globalSocketManager.io.emit('join-tic-tac-toe', { server_id: this.serverId });
         
         const io = window.globalSocketManager.io;
         
-        console.log('🎯 [FRONTEND] Registering socket event listeners');
+
         
         io.on('tic-tac-toe-joined', (data) => this.updatePlayerList(data.players));
         io.on('tic-tac-toe-player-joined', (data) => this.updatePlayerList([data.player]));
@@ -859,7 +859,7 @@ class TicTacToeModal {
             }
         });
         io.on('tic-tac-toe-game-start', (data) => {
-            console.log('🎯 [FRONTEND] Received tic-tac-toe-game-start:', data);
+
             
             this.currentGameData = data;
             
@@ -869,30 +869,30 @@ class TicTacToeModal {
             
             if (welcomeSection) {
                 welcomeSection.classList.add('hidden');
-                console.log('🎯 [FRONTEND] Hidden welcome section');
+
             }
             
             if (gameSection) {
                 gameSection.classList.remove('hidden');
-                console.log('🎯 [FRONTEND] Shown game section');
+
             }
             
             if (gameResult) {
                 gameResult.classList.add('hidden');
-                console.log('🎯 [FRONTEND] Hidden game result');
+
             }
             
             const playAgainRequest = document.getElementById('play-again-request');
             if (playAgainRequest) {
                 playAgainRequest.remove();
-                console.log('🎯 [FRONTEND] Removed play again request popup');
+
             }
             
             this.resetPlayAgainButton();
             this.updateGameInfo();
             this.createGameBoard();
             
-            console.log('🎯 [FRONTEND] Game started successfully');
+
             
             if (window.showToast) {
                 window.showToast('New game started!', 'success');
@@ -914,13 +914,13 @@ class TicTacToeModal {
             }
         });
         io.on('tic-tac-toe-play-again-request', (data) => {
-            console.log('🎯 [FRONTEND] Received play-again-request from:', data.player);
+
             
             const newGameButton = document.getElementById('new-game-button');
-            console.log('🎯 [FRONTEND] New game button text:', newGameButton?.textContent);
+
             
             if (newGameButton && newGameButton.textContent.includes('Request Sent')) {
-                console.log('🎯 [FRONTEND] Both players want play again - showing success message');
+
                 
                 if (window.showToast) {
                     window.showToast('Both players want to play again! Starting new game...', 'success');
@@ -928,7 +928,7 @@ class TicTacToeModal {
                 newGameButton.innerHTML = '<span class="relative z-10">Starting Game...</span>';
                 newGameButton.className = 'w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300';
             } else {
-                console.log('🎯 [FRONTEND] Showing play again request popup');
+
                 this.showPlayAgainRequest(data.player);
             }
         });
@@ -957,14 +957,14 @@ class TicTacToeModal {
     }
 
     updateGameInfo() {
-        console.log('🎯 [FRONTEND] Updating game info');
+
         
         if (!this.currentGameData) {
-            console.log('🎯 [FRONTEND] No current game data available');
+
             return;
         }
         
-        console.log('🎯 [FRONTEND] Current game data:', this.currentGameData);
+
         
         const currentTurn = document.getElementById('current-turn');
         const gamePlayers = document.getElementById('game-players');
@@ -972,8 +972,8 @@ class TicTacToeModal {
         const currentPlayer = this.currentGameData.players.find(p => p.user_id == this.currentGameData.current_turn);
         const isMyTurn = this.currentGameData.current_turn == this.userId;
         
-        console.log('🎯 [FRONTEND] Current turn user:', this.currentGameData.current_turn);
-        console.log('🎯 [FRONTEND] Is my turn:', isMyTurn);
+
+
         
         if (currentTurn) {
             currentTurn.textContent = isMyTurn ? 'Your turn' : `${currentPlayer ? currentPlayer.username : 'Unknown'}'s turn`;
@@ -1038,17 +1038,17 @@ class TicTacToeModal {
     }
 
     showPlayAgainRequest(player) {
-        console.log('🎯 [FRONTEND] Showing play again request from:', player.username);
+
         
         const gameResult = document.getElementById('game-result');
         if (!gameResult) {
-            console.log('🎯 [FRONTEND] Game result element not found');
+
             return;
         }
         
         const newGameButton = document.getElementById('new-game-button');
         if (newGameButton && newGameButton.textContent.includes('Request Sent')) {
-            console.log('🎯 [FRONTEND] Both players already want play again - skipping popup');
+
             if (window.showToast) {
                 window.showToast('Both players want to play again! Game starting...', 'success');
             }
@@ -1057,7 +1057,7 @@ class TicTacToeModal {
         
         const existingRequest = document.getElementById('play-again-request');
         if (existingRequest) {
-            console.log('🎯 [FRONTEND] Removing existing play again request popup');
+
             existingRequest.remove();
         }
         
@@ -1104,12 +1104,12 @@ class TicTacToeModal {
     resetPlayAgainButton() {
         const newGameButton = document.getElementById('new-game-button');
         if (newGameButton) {
-            console.log('🎯 [FRONTEND] Resetting play again button');
+
             newGameButton.innerHTML = '<span class="relative z-10">Play Again</span>';
             newGameButton.disabled = false;
             newGameButton.className = 'new-game-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-300';
         } else {
-            console.log('🎯 [FRONTEND] Play again button not found when trying to reset');
+
         }
     }
 }
@@ -1117,4 +1117,4 @@ class TicTacToeModal {
 window.TicTacToeGame = TicTacToeGame;
 window.TicTacToeModal = TicTacToeModal;
 
-console.log('✅ [TIC-TAC-TOE] Tic Tac Toe components loaded and available globally');
+

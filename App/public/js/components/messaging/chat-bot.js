@@ -4,7 +4,7 @@ class ChatBot {
         this.botActive = false;
         this.setupBotListeners();
         this.ensureBotActive();
-        console.log('🤖 [CHAT-BOT] ChatBot initialized');
+
     }
 
     setupBotListeners() {
@@ -15,13 +15,13 @@ class ChatBot {
             // Listen for bot messages
             io.on('new-channel-message', (data) => {
                 if (data.is_bot && data.bot_id) {
-                    console.log('🤖 [CHAT-BOT] Bot message received:', data);
+
                 }
             });
             
             // Listen for bot music commands
             io.on('bot-music-command', (data) => {
-                console.log('🤖 [CHAT-BOT] Bot music command received:', data);
+
                 if (!data || !data.music_data) {
                     console.warn('⚠️ [CHAT-BOT] Invalid bot-music-command data:', data);
                     return;
@@ -35,21 +35,21 @@ class ChatBot {
                 }
             });
             
-            console.log('🤖 [CHAT-BOT] Bot listeners set up');
+
         } else {
-            console.log('🤖 [CHAT-BOT] Socket not ready, will retry...');
+
             setTimeout(() => this.setupBotListeners(), 1000);
         }
     }
 
     ensureBotActive() {
         this.botActive = true;
-        console.log('🤖 [CHAT-BOT] Bot activated');
+
     }
 
     setChatSection(chatSection) {
         this.chatSection = chatSection;
-        console.log('🤖 [CHAT-BOT] Chat section set:', chatSection?.chatType);
+
     }
 
     async handleTitiBotCommand(content) {
@@ -58,11 +58,11 @@ class ChatBot {
         }
 
         if (this.chatSection.chatType !== 'channel') {
-            console.log('🤖 TitiBot commands only work in channels, not DMs');
+
             return true;
         }
 
-        console.log('🤖 [CHAT-BOT] TitiBot command detected, ensuring bot is active...');
+
         this.ensureBotActive();
 
         return false;
@@ -203,11 +203,11 @@ class ChatBot {
     }
 
     async executeMusicCommand(musicData) {
-        console.log('🎵 [CHAT-BOT] Executing music command:', musicData);
+
         
         // Try the music player first
         if (window.musicPlayer) {
-            console.log('🎵 [CHAT-BOT] Using global music player');
+
             try {
                 await this.processWithMusicPlayer(musicData);
                 return;
@@ -218,7 +218,7 @@ class ChatBot {
         
         // Fallback to voice call section music player if available
         if (window.voiceCallSection && window.voiceCallSection.musicPlayer) {
-            console.log('🎵 [CHAT-BOT] Using voice call section music player');
+
             try {
                 await window.voiceCallSection.musicPlayer.executeMusicCommand?.(musicData);
                 return;
@@ -237,11 +237,11 @@ class ChatBot {
         switch (action) {
             case 'play':
                 if (query && query.trim()) {
-                    console.log('🎵 [CHAT-BOT] Searching and playing:', query);
+
                     const searchResult = await window.musicPlayer.searchMusic(query.trim());
                     if (searchResult && searchResult.previewUrl) {
                         const result = await window.musicPlayer.playTrack(searchResult);
-                        console.log('✅ [CHAT-BOT] Successfully started playing:', searchResult.title);
+
                         
                         window.musicPlayer.showNowPlaying(searchResult);
                         this.updateBotParticipantStatus('🎵 Playing: ' + searchResult.title);
@@ -250,9 +250,9 @@ class ChatBot {
                         this.updateBotParticipantStatus('❌ Track not found');
                     }
                 } else if (track && track.previewUrl) {
-                    console.log('🎵 [CHAT-BOT] Playing provided track:', track.title);
+
                     const result = await window.musicPlayer.playTrack(track);
-                    console.log('✅ [CHAT-BOT] Successfully started playing:', track.title);
+
                     
                     window.musicPlayer.showNowPlaying(track);
                     this.updateBotParticipantStatus('🎵 Playing: ' + track.title);
@@ -264,9 +264,9 @@ class ChatBot {
 
             case 'queue':
                 if (query && query.trim()) {
-                    console.log('🎵 [CHAT-BOT] Searching and queueing:', query);
+
                     const result = await window.musicPlayer.addToQueue(query.trim());
-                    console.log('✅ [CHAT-BOT] Queue operation result:', result);
+
                     this.updateBotParticipantStatus('➕ Added to queue');
                 } else {
                     console.warn('⚠️ [CHAT-BOT] Queue command missing query parameter');
@@ -275,20 +275,20 @@ class ChatBot {
                 break;
 
             case 'stop':
-                console.log('🎵 [CHAT-BOT] Stopping music');
+
                 await window.musicPlayer.stop();
                 window.musicPlayer.hideNowPlaying();
                 this.updateBotParticipantStatus('⏹️ Music stopped');
                 break;
 
             case 'next':
-                console.log('🎵 [CHAT-BOT] Playing next track');
+
                 await window.musicPlayer.playNext();
                 this.updateBotParticipantStatus('⏭️ Next track');
                 break;
 
             case 'prev':
-                console.log('🎵 [CHAT-BOT] Playing previous track');
+
                 await window.musicPlayer.playPrevious();
                 this.updateBotParticipantStatus('⏮️ Previous track');
                 break;
@@ -306,7 +306,7 @@ class ChatBot {
             const statusElement = botCard.querySelector('.music-status');
             if (statusElement) {
                 statusElement.innerHTML = `<i class="fas fa-music mr-1"></i>${statusText}`;
-                console.log('🤖 [CHAT-BOT] Updated bot participant status:', statusText);
+
             }
         }
     }
@@ -315,7 +315,7 @@ class ChatBot {
         this.hideTitiBotSuggestions();
         this.initialized = false;
         this.socketListenersSetup = false;
-        console.log('🧹 [CHAT-BOT] ChatBot component cleaned up');
+
     }
 
     ensureBotActive() {
@@ -334,7 +334,7 @@ class ChatBot {
         const titiBotUsername = 'titibot';
         
         if (!window.BotComponent.getBotStatus(titiBotId)) {
-            console.log('🤖 [CHAT-BOT] Initializing TitiBot on server...');
+
             window.globalSocketManager.io.emit('bot-init', {
                 bot_id: titiBotId,
                 username: titiBotUsername
@@ -346,13 +346,13 @@ class ChatBot {
 
     // Debug function to test voice context detection and message sending
     debugSendTitiBotCommand(command = 'play test song') {
-        console.log('🧪 [CHAT-BOT-DEBUG] Testing TitiBot command sending...');
+
         
         // Step 1: Test voice context detection
-        console.log('🔍 [DEBUG] Step 1: Voice context detection');
+
         if (typeof window.debugTitiBotVoiceContext === 'function') {
             const voiceContext = window.debugTitiBotVoiceContext();
-            console.log('Voice detection result:', voiceContext);
+
         }
         
         // Step 2: Test message input
@@ -363,14 +363,14 @@ class ChatBot {
         
         // Step 3: Set command in input
         const fullCommand = `/titibot ${command}`;
-        console.log('📝 [DEBUG] Step 2: Setting command:', fullCommand);
+
         this.chatSection.messageInput.value = fullCommand;
         
         // Step 4: Trigger send
-        console.log('🚀 [DEBUG] Step 3: Triggering send...');
+
         if (this.chatSection.sendReceiveHandler?.sendMessage) {
             this.chatSection.sendReceiveHandler.sendMessage();
-            console.log('✅ [DEBUG] Send triggered successfully');
+
         } else {
             console.error('❌ [DEBUG] Send handler not available');
         }

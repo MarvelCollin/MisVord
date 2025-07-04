@@ -91,7 +91,7 @@ class UserDetailModal {
     }
 
     show(options = {}) {
-        console.log('User detail requested for user ID:', options.userId);
+
         
         if (!options.userId) {
             console.error('User ID is required to show user detail modal');
@@ -321,9 +321,9 @@ class UserDetailModal {
                 throw new Error('User API not available');
             }
             
-            console.log('Fetching user profile for user ID:', this.currentUserId, 'server ID:', this.currentServerId);
+
             const userData = await window.userAPI.getUserProfile(this.currentUserId, this.currentServerId);
-            console.log('User profile API response:', userData);
+
             
             if (!userData || !userData.success) {
                 const errorMessage = userData?.message || 'Failed to fetch user data';
@@ -346,27 +346,27 @@ class UserDetailModal {
             const currentUserId = document.getElementById('app-container')?.dataset.userId;
             if (currentUserId && this.currentUserId !== currentUserId) {
                 try {
-                    console.log('Fetching mutual relations for user ID:', this.currentUserId);
+
                     const mutualData = await window.userAPI.getMutualRelations(this.currentUserId);
-                    console.log('Mutual relations API response:', mutualData);
+
                     
                     if (mutualData && mutualData.success && mutualData.data) {
-                        console.log('Mutual data received successfully');
-                        console.log('Mutual servers count:', mutualData.data.mutual_server_count);
-                        console.log('Mutual friends count:', mutualData.data.mutual_friend_count);
+
+
+
                         
                         if (mutualData.data.mutual_servers && mutualData.data.mutual_servers.length > 0) {
-                            console.log('Sample mutual server:', mutualData.data.mutual_servers[0]);
+
                         }
                         
                         if (mutualData.data.mutual_friends && mutualData.data.mutual_friends.length > 0) {
-                            console.log('Sample mutual friend:', mutualData.data.mutual_friends[0]);
+
                         }
                         
                         userData.data.mutualData = mutualData.data;
                     } else {
                         console.warn('Mutual data API returned unsuccessful response or no data:', mutualData);
-                        console.log('Setting default mutual data values');
+
                         userData.data.mutualData = {
                             mutual_friend_count: 0,
                             mutual_server_count: 0,
@@ -376,7 +376,7 @@ class UserDetailModal {
                     }
                 } catch (error) {
                     console.error('Error fetching mutual data:', error);
-                    console.log('Setting fallback mutual data due to error');
+
                     userData.data.mutualData = {
                         mutual_friend_count: 0,
                         mutual_server_count: 0,
@@ -385,7 +385,7 @@ class UserDetailModal {
                     };
                 }
             } else {
-                console.log('Skipping mutual relations fetch - viewing own profile or no current user');
+
             }
             
             this.userData = userData.data;
@@ -803,17 +803,17 @@ class UserDetailModal {
     }
     
     showMutualFriendsDetail() {
-        console.log('showMutualFriendsDetail called');
-        console.log('userData:', this.userData);
-        console.log('mutualData:', this.userData?.mutualData);
-        console.log('mutual_friends:', this.userData?.mutualData?.mutual_friends);
+
+
+
+
         
         if (!this.userData || !this.userData.mutualData || !this.userData.mutualData.mutual_friends || this.userData.mutualData.mutual_friends.length === 0) {
-            console.log('No mutual friends data available');
+
             return;
         }
         
-        console.log('Showing mutual friends detail with', this.userData.mutualData.mutual_friends.length, 'friends');
+
         
         this.mutualDetailTitle.textContent = 'Mutual Friends';
         this.mutualDetailContent.innerHTML = '';
@@ -821,7 +821,7 @@ class UserDetailModal {
         const friends = this.userData.mutualData.mutual_friends;
         
         friends.forEach(friend => {
-            console.log('Processing friend:', friend);
+
             const friendItem = document.createElement('div');
             friendItem.className = 'mutual-detail-item';
             
@@ -905,7 +905,7 @@ class UserDetailModal {
         }
         
         this.mutualDetailModal.classList.add('active');
-        console.log('Mutual friends detail modal activated');
+
     }
     
     hideMutualDetail() {
@@ -922,7 +922,7 @@ document.addEventListener('click', (e) => {
 
     if (trigger) {
         if (trigger.classList.contains('mention-all') || trigger.classList.contains('bubble-mention-all') || trigger.dataset.mentionType === 'all') {
-            console.log('🚫 [USER-DETAIL] @all mention clicked, ignoring user detail trigger');
+
             return;
         }
 
@@ -939,12 +939,12 @@ document.addEventListener('click', (e) => {
             });
         } else if (username && trigger.classList.contains('mention-user')) {
             e.preventDefault();
-            console.log('🔍 [USER-DETAIL] Mention clicked without user ID, looking up:', username);
+
             
             if (window.chatSection?.mentionHandler?.availableUsers) {
                 const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
                 if (user && user.id) {
-                    console.log('✅ [USER-DETAIL] Found user in cache:', user);
+
                     userDetailModal.show({
                         userId: user.id,
                         serverId,
@@ -954,7 +954,7 @@ document.addEventListener('click', (e) => {
                 }
             }
             
-            console.log('🔍 [USER-DETAIL] User not in cache, attempting API lookup');
+
         }
     }
 });

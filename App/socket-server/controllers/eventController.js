@@ -98,7 +98,7 @@ function handleBroadcast(req, res, query) {
                 roomManager.broadcastToRoom(io, room, event, payload);
             } else {
                 io.emit(event, payload);
-                console.log(`Broadcasted event ${event} to all clients`);
+
             }
             
             res.setHeader('Content-Type', 'application/json');

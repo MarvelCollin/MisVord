@@ -19,22 +19,22 @@ echo '</div>';
 echo '<script src="/public/js/utils/voice-presence-debug.js"></script>';
 echo '<script>
     document.addEventListener("DOMContentLoaded", function() {
-        console.log("[Voice Section] DOM loaded, setting up voice section");
+
         
         window.addEventListener("voiceConnect", function() {
-            console.log("[Voice Section] Voice connect event received");
+
             document.getElementById("voice-not-join-container")?.classList.add("hidden");
             document.getElementById("voice-call-container")?.classList.remove("hidden");
         });
         
         window.addEventListener("voiceDisconnect", function() {
-            console.log("[Voice Section] Voice disconnect event received");
+
             document.getElementById("voice-not-join-container")?.classList.remove("hidden");
             document.getElementById("voice-call-container")?.classList.add("hidden");
         });
         
         if (typeof window.initializeVoiceSection === "function") {
-            console.log("[Voice Section] Calling voice section initializer");
+
             window.initializeVoiceSection();
         }
         
@@ -42,20 +42,20 @@ echo '<script>
             if (window.voiceManager && typeof window.voiceManager.setupVoice === "function") {
                 const channelId = "' . htmlspecialchars($activeChannelId) . '";
                 if (channelId) {
-                    console.log("[Voice Section] Setting up voice manager for channel:", channelId);
+
                     window.voiceManager.setupVoice(channelId);
                 }
             }
             
             if (window.VoiceSection && !window.voiceSection) {
-                console.log("[Voice Section] Creating voice section instance");
+
                 window.voiceSection = new window.VoiceSection();
             }
         }, 100);
     });
     
     if (document.readyState === "complete") {
-        console.log("[Voice Section] Document already loaded, running initialization immediately");
+
         setTimeout(() => {
             if (typeof window.initializeVoiceSection === "function") {
                 window.initializeVoiceSection();

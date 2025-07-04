@@ -169,14 +169,14 @@ class VoiceSection {
     }
     
     async handleJoinClick() {
-        console.log('🚫 [VOICE-SECTION] Direct join clicked - now routed through voice-not-join.php');
+
         // Direct joining disabled - all joins now go through voice-not-join.php
         // This method is kept for compatibility but does nothing
         return;
     }
     
     async connectToVoice() {
-        console.log('🚫 [VOICE-SECTION] Direct connect called - now routed through voice-not-join.php');
+
         // Direct connection disabled - all connections now go through voice-not-join.php
         // This method is kept for compatibility but does nothing
         return;
@@ -214,7 +214,7 @@ class VoiceSection {
     }
 
     resetState() {
-        console.log('🔄 [VOICE-SECTION] Resetting voice section state.');
+
         
         this.findElements();
         
@@ -245,11 +245,11 @@ class VoiceSection {
         this.isProcessing = false;
         this.autoJoinInProgress = false;
         window.voiceJoinInProgress = false;
-        console.log('✅ [VOICE-SECTION] State reset completed');
+
     }
     
     enableJoinButton() {
-        console.log('✅ [VOICE-SECTION] Enabling join button.');
+
         if (this.elements.joinBtn) {
             const btnText = this.elements.joinBtn.querySelector('#btnText');
             this.elements.joinBtn.disabled = false;
@@ -271,7 +271,7 @@ class VoiceSection {
     }
     
     updateChannelId(channelId, force = false) {
-        console.log('🔄 [VOICE-SECTION] Updating channel ID:', channelId, 'force:', force);
+
         
         if (!this.initialized && this.initializationAttempts < this.maxInitAttempts) {
             this.initializationAttempts++;
@@ -328,12 +328,12 @@ class VoiceSection {
             }
         }
         
-        console.log('✅ [VOICE-SECTION] Channel ID updated:', channelId);
+
     }
     
     async fetchChannelData(channelId) {
         try {
-            console.log('📡 [VOICE-SECTION] Fetching channel data for:', channelId);
+
             
             const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
             const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
@@ -347,14 +347,14 @@ class VoiceSection {
             };
             
             this.updateChannelNames(channelName);
-            console.log('✅ [VOICE-SECTION] Channel data set from DOM:', window.currentChannelData);
+
         } catch (error) {
             console.error('❌ [VOICE-SECTION] Error setting channel data:', error);
         }
     }
     
     restoreConnectedState() {
-        console.log('🔄 [VOICE-SECTION] Restoring connected state without reset');
+
         
         this.findElements();
         
@@ -368,7 +368,7 @@ class VoiceSection {
             this.elements.voiceControls.classList.remove('hidden');
         }
         
-        console.log('✅ [VOICE-SECTION] Connected state restored');
+
     }
 }
 
@@ -377,7 +377,7 @@ window.VoiceSection = VoiceSection;
 document.addEventListener('DOMContentLoaded', function() {
     const voiceSection = document.querySelector('.voice-section:not(.hidden)');
     if (voiceSection || window.location.search.includes('type=voice')) {
-        console.log('🎤 [VOICE-SECTION] Voice section needed, initializing...');
+
         if (!window.voiceSection) {
             window.voiceSection = new VoiceSection();
         }

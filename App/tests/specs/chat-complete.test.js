@@ -33,7 +33,7 @@ const SELECTORS = {
 };
 
 async function loginUser(page, userCredentials, userLabel) {
-  console.log(`🔐 Logging in ${userLabel}...`);
+
   
   await page.addInitScript(() => {
     window.BYPASS_CAPTCHA = true;
@@ -45,7 +45,7 @@ async function loginUser(page, userCredentials, userLabel) {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('input[name="email"], input[type="email"]', { timeout: 10000 });
   } catch (error) {
-    console.log(`❌ ${userLabel}: Could not find email input, current URL:`, page.url());
+
     throw error;
   }
   
@@ -61,15 +61,15 @@ async function loginUser(page, userCredentials, userLabel) {
   
   try {
     await page.waitForURL('**/home', { timeout: 20000 });
-    console.log(`✅ ${userLabel}: Login successful`);
+
   } catch (error) {
-    console.log(`❌ ${userLabel}: Login failed, URL:`, page.url());
+
     throw error;
   }
 }
 
 async function navigateToDirectMessage(page, userLabel) {
-  console.log(`📱 ${userLabel}: Navigating to DM...`);
+
   
   try {
     await page.waitForSelector(SELECTORS.dmFriendItem, { timeout: 5000 });
@@ -85,19 +85,19 @@ async function navigateToDirectMessage(page, userLabel) {
     // Wait for ChatSection to be initialized
     await page.waitForFunction(() => window.chatSection, { timeout: 5000 });
     
-    console.log(`✅ ${userLabel}: Successfully navigated to DM and chat is ready`);
+
   } catch (error) {
-    console.log(`❌ ${userLabel}: DM navigation failed:`, error.message);
+
     
     const dmItems = await page.locator('.dm-friend-item').count();
-    console.log(`📊 ${userLabel}: Found ${dmItems} DM items`);
+
     
     throw error;
   }
 }
 
 async function sendMessage(page, content, userLabel) {
-  console.log(`📝 ${userLabel}: Sending message: "${content}"`);
+
   
   // Based on successful simple test - simplified approach
   await page.waitForSelector(SELECTORS.messageInput, { timeout: 8000 });
@@ -112,18 +112,18 @@ async function sendMessage(page, content, userLabel) {
   
   // Wait for message to appear
   await page.waitForSelector(`text="${content}"`, { timeout: 12000 });
-  console.log(`✅ ${userLabel}: Message sent successfully`);
+
 }
 
 async function waitForMessageReceived(page, content, userLabel) {
-  console.log(`⏳ ${userLabel}: Waiting to receive message: "${content}"`);
+
   
   await page.waitForSelector(`text="${content}"`, { timeout: 15000 });
-  console.log(`✅ ${userLabel}: Message received`);
+
 }
 
 async function tryAddReaction(page, messageText, emoji, userLabel) {
-  console.log(`😊 ${userLabel}: Trying to add reaction ${emoji} to message: "${messageText}"`);
+
   
   try {
     // Find the message by its text content
@@ -135,34 +135,34 @@ async function tryAddReaction(page, messageText, emoji, userLabel) {
     
     if (await reactionButton.isVisible({ timeout: 3000 })) {
       await reactionButton.click();
-      console.log(`✅ ${userLabel}: Reaction button clicked`);
+
       
       // Wait for emoji picker and click the first emoji
       const emojiButton = page.locator(SELECTORS.emojiPickerButton).first();
       if (await emojiButton.isVisible({ timeout: 3000 })) {
         await emojiButton.click();
-        console.log(`✅ ${userLabel}: Emoji selected`);
+
         
         // Check if reaction pill appears
         await page.waitForSelector(SELECTORS.reactionPill, { timeout: 5000 });
-        console.log(`✅ ${userLabel}: Reaction pill appeared`);
+
         return true;
       } else {
-        console.log(`⚠️ ${userLabel}: Emoji picker not found`);
+
         return false;
       }
     } else {
-      console.log(`⚠️ ${userLabel}: Reaction button not visible`);
+
       return false;
     }
   } catch (error) {
-    console.log(`❌ ${userLabel}: Error adding reaction:`, error.message);
+
     return false;
   }
 }
 
 async function tryEditMessage(page, messageText, newText, userLabel) {
-  console.log(`✏️ ${userLabel}: Trying to edit message: "${messageText}" to "${newText}"`);
+
   
   try {
     const messageElement = page.locator(SELECTORS.messageContent).filter({ hasText: messageText });
@@ -172,7 +172,7 @@ async function tryEditMessage(page, messageText, newText, userLabel) {
     
     if (await editButton.isVisible({ timeout: 3000 })) {
       await editButton.click();
-      console.log(`✅ ${userLabel}: Edit button clicked`);
+
       
       // Wait for edit form
       const editForm = page.locator(SELECTORS.editForm);
@@ -184,18 +184,18 @@ async function tryEditMessage(page, messageText, newText, userLabel) {
         
         // Wait for edited badge
         await page.waitForSelector(SELECTORS.editedBadge, { timeout: 5000 });
-        console.log(`✅ ${userLabel}: Message edited successfully`);
+
         return true;
       } else {
-        console.log(`⚠️ ${userLabel}: Edit form not found`);
+
         return false;
       }
     } else {
-      console.log(`⚠️ ${userLabel}: Edit button not visible (might not be own message)`);
+
       return false;
     }
   } catch (error) {
-    console.log(`❌ ${userLabel}: Error editing message:`, error.message);
+
     return false;
   }
 }
@@ -209,7 +209,7 @@ test.describe('Complete Chat System Test', () => {
 
     try {
       // === SETUP: Login both users ===
-      console.log('🚀 === CHAT SYSTEM TEST STARTING ===');
+
       
       user1Context = await browser.newContext();
       user2Context = await browser.newContext();
@@ -241,13 +241,13 @@ test.describe('Complete Chat System Test', () => {
              { timeout: 5000 }
            )
          ]);
-         console.log('✅ Socket connections established');
+
        } catch (error) {
-         console.log('⚠️ Socket connection timeout (continuing without sockets)');
+
        }
       
              // === TEST 1: Basic Message Exchange ===
-       console.log('\n📝 === TEST 1: Message Exchange ===');
+
        
        const message1 = `Hello from User1 - ${Date.now()}`;
        const message2 = `Hello back from User2 - ${Date.now()}`;
@@ -271,10 +271,10 @@ test.describe('Complete Chat System Test', () => {
       expect(user2Messages1).toBeGreaterThan(0);
       expect(user2Messages2).toBeGreaterThan(0);
       
-      console.log('✅ TEST 1 PASSED: Message exchange works!');
+
       
       // === TEST 2: Reactions ===
-      console.log('\n😊 === TEST 2: Reactions ===');
+
       
       const reactionMessage = `React to this - ${Date.now()}`;
       
@@ -289,16 +289,16 @@ test.describe('Complete Chat System Test', () => {
                  // Check if User1 sees the reaction
          try {
            await user1Page.waitForSelector(SELECTORS.reactionPill, { timeout: 6000 });
-           console.log('✅ TEST 2 PASSED: Reactions work between users!');
+
          } catch (error) {
-           console.log('⚠️ TEST 2 PARTIAL: Reaction added but not synced');
+
          }
       } else {
-        console.log('⚠️ TEST 2 SKIPPED: Could not add reaction');
+
       }
       
       // === TEST 3: Message Editing ===
-      console.log('\n✏️ === TEST 3: Message Editing ===');
+
       
       const editMessage = `Edit this message - ${Date.now()}`;
       const editedContent = `EDITED: ${editMessage}`;
@@ -315,16 +315,16 @@ test.describe('Complete Chat System Test', () => {
          try {
            await user2Page.waitForSelector(`text="${editedContent}"`, { timeout: 6000 });
            await user2Page.waitForSelector(SELECTORS.editedBadge, { timeout: 4000 });
-           console.log('✅ TEST 3 PASSED: Message editing works!');
+
          } catch (error) {
-           console.log('⚠️ TEST 3 PARTIAL: Edit worked but not synced');
+
          }
       } else {
-        console.log('⚠️ TEST 3 SKIPPED: Could not edit message');
+
       }
       
       // === TEST 4: Permission Check ===
-      console.log('\n🔒 === TEST 4: Permission Check ===');
+
       
       const permissionMessage = `Permission test - ${Date.now()}`;
       
@@ -336,21 +336,21 @@ test.describe('Complete Chat System Test', () => {
       const illegalEdit = await tryEditMessage(user2Page, permissionMessage, 'HACKED', 'User2');
       
       if (!illegalEdit) {
-        console.log('✅ TEST 4 PASSED: Users cannot edit others\' messages!');
+
       } else {
-        console.log('❌ TEST 4 FAILED: User2 was able to edit User1\'s message!');
+
       }
       
-      console.log('\n🎉 === ALL TESTS COMPLETED ===');
+
       
     } catch (error) {
-      console.log('❌ Test execution error:', error.message);
-      console.log('🔍 Current URLs:');
-      if (user1Page) console.log('  User1:', await user1Page.url().catch(() => 'N/A'));
-      if (user2Page) console.log('  User2:', await user2Page.url().catch(() => 'N/A'));
+
+
+
+
       throw error;
     } finally {
-      console.log('🧹 Cleaning up...');
+
       if (user1Context) await user1Context.close();
       if (user2Context) await user2Context.close();
     }

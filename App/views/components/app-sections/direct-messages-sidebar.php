@@ -205,10 +205,10 @@ if (file_exists($tooltipPath)) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🔌 [DM-SIDEBAR] Direct messages sidebar loaded');
+
     
     function initializeDMSkeleton() {
-        console.log('🎨 [DM-SIDEBAR] Initializing skeleton loading');
+
         
         setTimeout(() => {
             hideDMSkeleton();
@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function hideDMSkeleton() {
-        console.log('🧹 [DM-SIDEBAR] Hiding skeleton and showing real content');
+
         
         const skeletonContainer = document.getElementById('dm-skeleton-loading');
         const realContent = document.getElementById('dm-real-content');
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function showDMSkeleton() {
-        console.log('🎨 [DM-SIDEBAR] Showing skeleton loading');
+
         
         const skeletonContainer = document.getElementById('dm-skeleton-loading');
         const realContent = document.getElementById('dm-real-content');
@@ -263,15 +263,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const statusIndicator = document.querySelector(`.user-status-indicator[data-user-id="${userId}"]`);
         if (statusIndicator) {
             statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark user-status-indicator ${getStatusColor(isOnline)}`;
-            console.log(`📊 [DM-SIDEBAR] Updated user ${userId} status to ${isOnline ? 'online' : 'offline'}`);
+
         }
     }
     
     function updateAllUserStatuses() {
-        console.log('🔄 [DM-SIDEBAR] Updating all user statuses');
+
         
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.log('⏳ [DM-SIDEBAR] Socket not ready, will wait for socket events');
+
             return;
         }
         
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
             const onlineUsers = friendsManager.cache.onlineUsers || {};
-            console.log('📊 [DM-SIDEBAR] Retrieved online users:', onlineUsers);
+
             
             const allStatusIndicators = document.querySelectorAll('.user-status-indicator[data-user-id]');
             allStatusIndicators.forEach(indicator => {
@@ -293,59 +293,59 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateUserStatus(userId, isOnline);
             });
             
-            console.log(`✅ [DM-SIDEBAR] Updated status for ${allStatusIndicators.length} users`);
+
         }
         
     }
     
     function setupSocketListeners() {
-        console.log('🔌 [DM-SIDEBAR] Setting up socket listeners');
+
         if (window.globalSocketManager && window.globalSocketManager.io && window.globalSocketManager.isReady()) {
-            console.log('✅ [DM-SIDEBAR] Socket manager available and ready, setting up listeners');
+
             
             window.globalSocketManager.io.on('user-online', (data) => {
-                console.log('👥 [DM-SIDEBAR] User came online:', data);
+
                 if (data.user_id) {
                     updateUserStatus(data.user_id, true);
                 }
             });
             
             window.globalSocketManager.io.on('user-offline', (data) => {
-                console.log('👥 [DM-SIDEBAR] User went offline:', data);
+
                 if (data.user_id) {
                     updateUserStatus(data.user_id, false);
                 }
             });
             
             window.globalSocketManager.io.on('user-presence-update', (data) => {
-                console.log('👥 [DM-SIDEBAR] User presence updated:', data);
+
                 if (data.user_id) {
                     const isOnline = data.status === 'online' || data.status === 'appear';
                     updateUserStatus(data.user_id, isOnline);
                 }
             });
             
-            console.log('✅ [DM-SIDEBAR] All socket listeners set up');
+
             updateAllUserStatuses();
             return true;
         }
-        console.log('⏳ [DM-SIDEBAR] Socket manager not ready, waiting for events');
+
         return false;
     }
     
     window.addEventListener('globalSocketReady', function() {
-        console.log('🔌 [DM-SIDEBAR] Global socket ready event received');
+
         setupSocketListeners();
     });
     
     window.addEventListener('socketAuthenticated', function() {
-        console.log('🔐 [DM-SIDEBAR] Socket authenticated event received');
+
         setupSocketListeners();
     });
     
     setTimeout(() => {
         if (!setupSocketListeners()) {
-            console.log('🔄 [DM-SIDEBAR] Initial setup failed, waiting for socket events...');
+
         }
     }, 1000);
     

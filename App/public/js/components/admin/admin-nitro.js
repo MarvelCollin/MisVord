@@ -53,12 +53,12 @@ export class NitroManager {
         return response.json();
       })
       .then(data => {
-        console.log('Background user load response:', data);
+
         
         if (data.success && data.data && data.data.users && Array.isArray(data.data.users)) {
           this.allUsersCache = data.data.users;
           this.allUsersLoaded = true;
-          console.log(`Loaded ${data.data.users.length} users for fuzzy search`);
+
         } else {
           console.warn('Unexpected response format for user preload:', data);
         }
@@ -285,7 +285,7 @@ export class NitroManager {
         return response.json();
       })
       .then(data => {
-        console.log('Search response:', data);
+
         
         const searchDuration = Date.now() - searchStartTime;
         const minLoadingTime = 1500;
@@ -746,7 +746,7 @@ export class NitroManager {
         return response.json();
       })
       .then(data => {
-        console.log('Load all users response:', data);
+
         
         const loadDuration = Date.now() - loadStartTime;
         const minLoadingTime = 1200;

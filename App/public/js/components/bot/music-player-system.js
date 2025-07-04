@@ -1,5 +1,5 @@
 if (typeof window !== 'undefined' && window.MusicPlayerSystem) {
-    console.log('🎵 [MUSIC-PLAYER] MusicPlayerSystem already loaded, skipping redeclaration');
+
 } else {
 
 class MusicPlayerSystem {
@@ -22,7 +22,7 @@ class MusicPlayerSystem {
         this.botParticipantAdded = false; // Track if bot participant is shown
         this.botParticipantId = 'music-bot'; // Unique ID for dummy bot card
         
-        console.log('🎵 [MUSIC-PLAYER] Music player system initialized');
+
         this.setupEventListeners();
         this.forceInitialize();
 
@@ -36,24 +36,24 @@ class MusicPlayerSystem {
         });
 
         this.audio.addEventListener('loadstart', () => {
-            console.log('🎵 [MUSIC-PLAYER] Audio loading started');
+
         });
 
         this.audio.addEventListener('canplay', () => {
-            console.log('🎵 [MUSIC-PLAYER] Audio can play');
+
         });
 
         this.audio.addEventListener('abort', () => {
-            console.log('🎵 [MUSIC-PLAYER] Audio loading aborted');
+
         });
 
         this.audio.addEventListener('stalled', () => {
-            console.log('🎵 [MUSIC-PLAYER] Audio loading stalled');
+
         });
     }
 
     forceInitialize() {
-        console.log('🎵 [MUSIC-PLAYER] Force initializing music player...');
+
         
         // Ensure global availability
         if (typeof window !== 'undefined') {
@@ -67,26 +67,26 @@ class MusicPlayerSystem {
         // Mark as initialized
         this.initialized = true;
         
-        console.log('🎵 [MUSIC-PLAYER] Music player force initialized and globally available');
+
     }
 
     setupImmediateListeners() {
         // Listen for commands immediately
         if (typeof window !== 'undefined') {
             window.addEventListener('bot-music-command', (e) => {
-                console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Window event received:', e.detail);
+
                 this.processBotMusicCommand(e.detail);
             });
             
             // Set up socket listeners if available
             if (window.globalSocketManager?.io) {
-                console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Setting up socket listeners');
+
                 window.globalSocketManager.io.on('bot-music-command', (data) => {
-                    console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Socket command received:', data);
+
                     this.processBotMusicCommand(data);
                 });
             } else {
-                console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Socket not ready, will retry...');
+
                 setTimeout(() => this.setupImmediateListeners(), 1000);
             }
         }
@@ -100,13 +100,13 @@ class MusicPlayerSystem {
         // Listen for bot-music-command globally
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.on('bot-music-command', (data) => {
-                console.log('🎵 [MUSIC-PLAYER] [GLOBAL] Received bot-music-command:', data);
+
                 this.processBotMusicCommand(data);
             });
         }
         
         window.addEventListener('bot-music-command', (e) => {
-            console.log('🎵 [MUSIC-PLAYER] [EVENT] bot-music-command:', e.detail);
+
             this.processBotMusicCommand(e.detail);
         });
         
@@ -122,13 +122,13 @@ class MusicPlayerSystem {
             }
             
             const io = window.globalSocketManager.io;
-            console.log('🎵 [MUSIC-PLAYER] Setting up socket listeners');
+
             
             // Remove existing listeners to prevent duplicates
             io.off('bot-music-command');
             
             io.on('bot-music-command', (data) => {
-                console.log('🎵 [MUSIC-PLAYER] Received bot music command via socket:', data);
+
                 this.processBotMusicCommand(data);
             });
         };
@@ -137,7 +137,7 @@ class MusicPlayerSystem {
     }
 
     async processBotMusicCommand(data) {
-        console.log('🎵 [MUSIC-PLAYER] Processing bot music command:', data);
+
         
         if (!data || !data.music_data) {
             console.warn('⚠️ [MUSIC-PLAYER] Invalid bot music command data:', data);
@@ -153,7 +153,7 @@ class MusicPlayerSystem {
         try {
             switch (action) {
                 case 'play':
-                    console.log('🎵 [MUSIC-PLAYER] Executing PLAY command:', query);
+
                     if (query && query.trim()) {
                         this.showStatus(`Searching for: ${query}`);
                         const searchResult = await this.searchMusic(query.trim());
@@ -161,7 +161,7 @@ class MusicPlayerSystem {
                             await this.playTrack(searchResult);
                             this.showNowPlaying(searchResult);
                             this.showStatus(`Now playing: ${searchResult.title}`);
-                            console.log('✅ [MUSIC-PLAYER] Successfully started playing:', searchResult.title);
+
                         } else {
                             console.warn('⚠️ [MUSIC-PLAYER] No playable track found for:', query);
                             this.showError('No playable track found for: ' + query);
@@ -170,33 +170,33 @@ class MusicPlayerSystem {
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.showStatus(`Now playing: ${track.title}`);
-                        console.log('✅ [MUSIC-PLAYER] Successfully started playing provided track:', track.title);
+
                     } else {
                         this.showError('No song specified or found');
                     }
                     break;
                     
                 case 'stop':
-                    console.log('🎵 [MUSIC-PLAYER] Executing STOP command');
+
                     await this.stop();
                     this.hideNowPlaying();
                     this.showStatus('Music stopped');
                     break;
                     
                 case 'next':
-                    console.log('🎵 [MUSIC-PLAYER] Executing NEXT command');
+
                     await this.playNext();
                     this.showStatus('Playing next song');
                     break;
                     
                 case 'prev':
-                    console.log('🎵 [MUSIC-PLAYER] Executing PREV command');
+
                     await this.playPrevious();
                     this.showStatus('Playing previous song');
                     break;
                     
                 case 'queue':
-                    console.log('🎵 [MUSIC-PLAYER] Executing QUEUE command:', query);
+
                     if (query && query.trim()) {
                         await this.addToQueue(query.trim());
                         this.showStatus('Added to queue: ' + query);
@@ -435,9 +435,9 @@ class MusicPlayerSystem {
         }
         
         this.queue.push(track);
-        console.log(`➕ Added "${track.title}" to queue (Position: ${this.queue.length})`);
+
         
-        console.log(`🎵 Added to queue: ${track.title} by ${track.artist}`);
+
     }
 
     removeExistingSearchModal() {
@@ -566,7 +566,7 @@ class MusicPlayerSystem {
                 }
             }
             
-            console.log(`🗑️ Removed "${removedTrack.title}" from queue`);
+
             
             this.showQueueModal();
         }
@@ -585,7 +585,7 @@ class MusicPlayerSystem {
         this.currentIndex = this.queue.findIndex(track => track.id === currentSong.id);
         if (this.currentIndex === -1) this.currentIndex = 0;
         
-        console.log('🔀 Queue shuffled!');
+
         
         this.showQueueModal();
     }
@@ -595,7 +595,7 @@ class MusicPlayerSystem {
         this.currentIndex = 0;
         
         this.removeExistingQueueModal();
-        console.log('🎵 Queue cleared');
+
     }
 
     initializeAudioEvents() {
@@ -610,19 +610,19 @@ class MusicPlayerSystem {
             });
 
             this.audio.addEventListener('loadstart', () => {
-                console.log('🎵 [MUSIC-PLAYER] Audio loading started');
+
             });
 
             this.audio.addEventListener('canplay', () => {
-                console.log('🎵 [MUSIC-PLAYER] Audio can play');
+
             });
 
             this.audio.addEventListener('abort', () => {
-                console.log('🎵 [MUSIC-PLAYER] Audio loading aborted');
+
             });
 
             this.audio.addEventListener('stalled', () => {
-                console.log('🎵 [MUSIC-PLAYER] Audio loading stalled');
+
             });
         }
     }
@@ -675,7 +675,7 @@ class MusicPlayerSystem {
             await this.audio.play();
             this.isPlaying = true;
             
-            console.log('🎵 Now playing:', track.title);
+
             return true;
         } catch (error) {
             console.error('🎵 Music Player Error:', error.message || 'Failed to play audio');
@@ -702,18 +702,18 @@ class MusicPlayerSystem {
         
         if (this.currentTrack || this.currentSong) {
             const failedTrack = this.currentTrack || this.currentSong;
-            console.log('🎵 [MUSIC-PLAYER] Attempting to recover from playback error for:', failedTrack.title);
+
             
                             console.error(`❌ Failed to play "${failedTrack.title}" - skipping`);
             
             this.queue = this.queue.filter(t => t.id !== failedTrack.id);
             
             if (this.queue.length > 0) {
-                console.log('🎵 [MUSIC-PLAYER] Trying to play next track...');
+
                 setTimeout(() => this.playNext(), 1000);
             } else {
-                console.log('🎵 [MUSIC-PLAYER] No more tracks in queue');
-                            console.log('🎵 No more playable tracks');
+
+
             }
         }
     }
@@ -747,7 +747,7 @@ class MusicPlayerSystem {
         }
 
         try {
-            console.log('🎵 [MUSIC-PLAYER] Attempting to play:', track.title, 'URL:', track.previewUrl);
+
             
             await this.stop();
             
@@ -774,11 +774,11 @@ class MusicPlayerSystem {
                 const onCanPlay = async () => {
                     cleanup();
                     try {
-                        console.log('🎵 [MUSIC-PLAYER] Audio ready, starting playback for:', track.title);
+
                         await this.audio.play();
                         this.isPlaying = true;
                         this.showNowPlaying(track);
-                        console.log('🎵 [MUSIC-PLAYER] Successfully playing:', track.title);
+
                         resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
                     } catch (playError) {
                         console.error('🎵 [MUSIC-PLAYER] Play error:', playError);
@@ -808,7 +808,7 @@ class MusicPlayerSystem {
                 this.audio.addEventListener('loadeddata', onLoadedData, { once: true });
                 this.audio.addEventListener('error', onError, { once: true });
 
-                console.log('🎵 [MUSIC-PLAYER] Setting audio source and loading...');
+
                 this.audio.src = track.previewUrl;
                 this.audio.load();
             });
@@ -870,12 +870,12 @@ class MusicPlayerSystem {
                 if (window.voiceCallSection && typeof window.voiceCallSection.addBotParticipant === 'function') {
                     window.voiceCallSection.addBotParticipant(botData);
                     this.botParticipantAdded = true;
-                    console.log('🤖 [MUSIC-PLAYER] Bot participant card injected into voice grid');
+
                 } else {
                     // Fallback: dispatch event for voice-call-section listener
                     window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', { detail: { participant: botData } }));
                     this.botParticipantAdded = true;
-                    console.log('🤖 [MUSIC-PLAYER] Bot participant event dispatched');
+
                 }
             }
         } catch (e) {
@@ -1005,7 +1005,7 @@ class MusicPlayerSystem {
                     window.dispatchEvent(new CustomEvent('bot-voice-participant-left', { detail: { participant: { user_id: this.botParticipantId } } }));
                 }
                 this.botParticipantAdded = false;
-                console.log('🤖 [MUSIC-PLAYER] Bot participant card removed');
+
             }
         } catch (e) {
             console.warn('⚠️ [MUSIC-PLAYER] Failed to remove bot participant:', e);
@@ -1020,7 +1020,7 @@ class MusicPlayerSystem {
     }
 
     showStatus(message) {
-        console.log(`🎵 Music Player: ${message}`);
+
     }
 
     showError(message) {
@@ -1037,12 +1037,12 @@ class MusicPlayerSystem {
     }
 
     showMusicDebugPanel() {
-        console.log('🎵 [MUSIC-PLAYER] === DEBUG INFO ===');
-        console.log('🎵 Current Song:', this.currentSong);
-        console.log('🎵 Current Track:', this.currentTrack);
-        console.log('🎵 Is Playing:', this.isPlaying);
-        console.log('🎵 Queue Length:', this.queue.length);
-        console.log('🎵 Current Index:', this.currentIndex);
+
+
+
+
+
+
         console.log('🎵 Audio State:', {
             src: this.audio.src,
             currentSrc: this.audio.currentSrc,
@@ -1054,16 +1054,16 @@ class MusicPlayerSystem {
             volume: this.audio.volume,
             crossOrigin: this.audio.crossOrigin
         });
-        console.log('🎵 === END DEBUG ===');
+
         
-        console.log('🎛️ Debug info logged to console');
+
     }
 }
 
 if (typeof window !== 'undefined' && !window.musicPlayer) {
     window.MusicPlayerSystem = MusicPlayerSystem;
     window.musicPlayer = new MusicPlayerSystem();
-    console.log('🎵 [MUSIC-PLAYER] Music player system initialized');
+
 }
 
 if (typeof module !== 'undefined' && module.exports) {

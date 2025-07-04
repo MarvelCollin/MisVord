@@ -211,10 +211,10 @@ async function ensureVoiceScriptsLoaded() {
 
                 
                 if (!window.voiceManager && window.VoiceManager) {
-                    console.log('[Voice Not Join] Creating VoiceManager instance...');
+
                     try {
                         window.voiceManager = new window.VoiceManager();
-                        console.log('[Voice Not Join] ✅ VoiceManager instance created');
+
                     } catch (error) {
                         console.error('[Voice Not Join] Error creating VoiceManager:', error);
                     }
@@ -222,7 +222,7 @@ async function ensureVoiceScriptsLoaded() {
                 
                 resolve(true);
             } else {
-                console.log('[Voice Not Join] Still waiting for components:', Object.keys(components).filter(key => !components[key]));
+
                 setTimeout(checkComponents, 300);
             }
         };
@@ -248,7 +248,7 @@ async function joinVoiceChannel() {
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
     
-    console.log('[Voice Not Join] Join voice channel button clicked');
+
     
     if (joinBtn) joinBtn.disabled = true;
     if (joinView) joinView.classList.add('hidden');
@@ -259,7 +259,7 @@ async function joinVoiceChannel() {
     }
     
     try {
-        console.log('[Voice Not Join] Ensuring voice scripts are loaded...');
+
         const scriptsLoaded = await ensureVoiceScriptsLoaded();
         
         if (!scriptsLoaded) {
@@ -271,7 +271,7 @@ async function joinVoiceChannel() {
         }
         
         // Get meeting details from voice manager first
-        console.log('[Voice Not Join] Getting meeting details from voice manager...');
+
         await window.voiceManager.joinVoice(); // This will prepare meeting ID and registration
         
         // Now use VideoSDK directly for actual meeting joining
@@ -292,25 +292,25 @@ async function joinVoiceChannel() {
             throw new Error('Meeting ID not available from voice manager');
         }
         
-        console.log('[Voice Not Join] Initializing VideoSDK meeting...');
+
         await window.videoSDKManager.externalInitMeeting(meetingId, participantName, true, false);
         
-        console.log('[Voice Not Join] Joining VideoSDK meeting...');
+
         await window.videoSDKManager.externalJoinMeeting();
         
         // Mark connection as successful
         window.videoSDKManager.markExternalJoinSuccess();
         
         if (window.waitForVideoSDKReady) {
-            console.log('[Voice Not Join] Waiting for VideoSDK to be fully ready...');
+
             await window.waitForVideoSDKReady();
         }
         
         // Wait for voice call section to be fully loaded and ready
-        console.log('[Voice Not Join] Waiting for voice call section to be ready...');
+
         await waitForVoiceCallSectionReady();
         
-        console.log('[Voice Not Join] ✅ Voice channel join completed successfully');
+
         
     } catch (error) {
         console.error('[VOICE] Error joining voice:', error);
@@ -360,7 +360,7 @@ async function waitForVoiceCallSectionReady(timeout = 5000) {
             const isVoiceCallSectionReady = window.voiceCallSection && window.voiceCallSection.initialized;
             
             if (isVoiceCallContainerVisible && hasParticipantGrid && hasVoiceControls && isVoiceCallSectionReady) {
-                console.log('[Voice Not Join] Voice call section is ready');
+
                 resolve(true);
                 return;
             }
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetJoinState();
             }
         });
-        console.log('🎧 [VOICE-NOT-JOIN] Join button event listener attached');
+
     }
     
     setTimeout(() => {

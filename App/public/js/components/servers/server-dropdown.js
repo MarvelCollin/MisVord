@@ -50,11 +50,11 @@ async function getUserRole(serverId) {
         if (response && response.success && response.data && response.data.is_member) {
             const role = response.data.membership.role || 'member';
             currentUserRole = role;
-            console.log('✅ User role:', role);
+
             return role;
         } else {
             currentUserRole = 'non-member';
-            console.log('❌ User is not a member');
+
             return 'non-member';
         }
     } catch (error) {
@@ -70,7 +70,7 @@ function isAdminOrOwner(role) {
 }
 
 function applyRoleBasedVisibility(userRole) {
-    console.log('Applying role-based visibility for role:', userRole);
+
     
     const adminOnlyItems = [
         'Invite People',
@@ -80,7 +80,7 @@ function applyRoleBasedVisibility(userRole) {
     ];
 
     const dropdownItems = document.querySelectorAll('.server-dropdown-item');
-    console.log('Found dropdown items:', dropdownItems.length);
+
     
     dropdownItems.forEach(item => {
         const spanElement = item.querySelector('span');
@@ -90,40 +90,40 @@ function applyRoleBasedVisibility(userRole) {
         }
         
         const actionText = spanElement.textContent.trim();
-        console.log('Processing dropdown item:', actionText);
+
         
         if (adminOnlyItems.includes(actionText)) {
             if (userRole === 'non-member' || !isAdminOrOwner(userRole)) {
                 item.style.display = 'none';
                 item.setAttribute('data-role-restricted', 'true');
-                console.log('Hiding admin-only item:', actionText);
+
             } else {
                 item.style.display = 'flex';
                 item.setAttribute('data-role-restricted', 'false');
-                console.log('Showing admin-only item:', actionText);
+
             }
         } else if (actionText === 'Leave Server') {
             if (userRole === 'non-member') {
                 item.style.display = 'none';
                 item.setAttribute('data-role-restricted', 'true');
-                console.log('Hiding leave server for non-member');
+
             } else {
                 item.style.display = 'flex';
                 item.setAttribute('data-role-restricted', 'false');
-                console.log('Showing leave server for member');
+
             }
         } else {
             item.style.display = 'flex';
             item.setAttribute('data-role-restricted', 'false');
-            console.log('Showing general item:', actionText);
+
         }
     });
     
-    console.log('Role-based visibility applied successfully');
+
 }
 
 async function initServerDropdown() {
-    console.log('Initializing server dropdown...');
+
     
     const dropdown = document.getElementById('server-dropdown');
     if (dropdown && dropdown.hasAttribute('data-actions-initialized')) {
@@ -147,7 +147,7 @@ async function initServerDropdown() {
             e.preventDefault();
             e.stopPropagation();
             dropdown.classList.toggle('hidden');
-            console.log('Dropdown toggled, hidden:', dropdown.classList.contains('hidden'));
+
         });
         dropdownBtn.setAttribute('data-initialized', 'true');
     }
@@ -176,7 +176,7 @@ async function initServerDropdown() {
 
     initServerActions();
     isInitialized = true;
-    console.log('Server dropdown initialization complete');
+
 }
 
 function initServerActions() {
@@ -199,7 +199,7 @@ function initServerActions() {
         if (!spanElement) return;
         
         const actionText = spanElement.textContent.trim();
-        console.log('Dropdown action clicked:', actionText);
+
 
         dropdown.classList.add('hidden');
 
@@ -207,11 +207,11 @@ function initServerActions() {
     });
     
     dropdown.setAttribute('data-actions-initialized', 'true');
-    console.log('Server dropdown actions initialized');
+
 }
 
 function executeDropdownAction(actionText) {
-    console.log('Executing dropdown action:', actionText);
+
 
             switch(actionText) {
                 case 'Invite People':
@@ -238,7 +238,7 @@ function getCurrentServerId() {
     const path = window.location.pathname;
     const match = path.match(/\/server\/(\d+)/);
     const serverId = match ? match[1] : null;
-    console.log('getCurrentServerId - path:', path, 'serverId:', serverId);
+
     
     if (!serverId) {
         console.warn('Server ID not found in URL path. Expected format: /server/{id}');
@@ -556,37 +556,37 @@ function closeModal(modalId) {
 
 window.debugServerDropdown = async function() {
     console.clear();
-    console.log('🔍 SERVER DROPDOWN DEBUG');
-    console.log('=======================');
+
+
     
     const serverId = getCurrentServerId();
-    console.log('Server ID:', serverId);
-    console.log('Current Role:', currentUserRole);
-    console.log('Initialized:', isInitialized);
+
+
+
     
     const dropdownBtn = document.getElementById('server-dropdown-btn');
     const dropdown = document.getElementById('server-dropdown');
-    console.log('Dropdown Button:', !!dropdownBtn);
-    console.log('Dropdown Menu:', !!dropdown);
+
+
     
     if (serverId && window.serverAPI) {
-        console.log('Testing API...');
+
         const response = await window.serverAPI.getUserServerMembership(serverId);
-        console.log('API Response:', response);
-        console.log('Is Member:', response?.data?.is_member);
-        console.log('Role:', response?.data?.membership?.role);
+
+
+
     }
     
-    console.log('Dropdown Items:');
+
     document.querySelectorAll('.server-dropdown-item').forEach((item, index) => {
         const text = item.querySelector('span')?.textContent;
         const visible = !item.style.display || item.style.display !== 'none';
-        console.log(`${index + 1}. ${text}: ${visible ? 'VISIBLE' : 'HIDDEN'}`);
+
     });
 };
 
 window.testDropdownClick = function() {
-    console.log('🎯 TESTING DROPDOWN CLICK...');
+
     
     const dropdownBtn = document.getElementById('server-dropdown-btn');
     const dropdown = document.getElementById('server-dropdown');
@@ -596,17 +596,14 @@ window.testDropdownClick = function() {
         return;
     }
     
-    console.log('Before click - dropdown hidden:', dropdown.classList.contains('hidden'));
-    console.log('Before click - dropdown display:', getComputedStyle(dropdown).display);
+
+
     
     dropdownBtn.click();
         
         setTimeout(() => {
-        console.log('After click - dropdown hidden:', dropdown.classList.contains('hidden'));
-        console.log('After click - dropdown display:', getComputedStyle(dropdown).display);
-        
         const items = document.querySelectorAll('.server-dropdown-item');
-        console.log('Dropdown items visible:', Array.from(items).map(item => ({
+        console.log('Dropdown items:', Array.from(items).map(item => ({
             text: item.querySelector('span')?.textContent?.trim(),
             display: getComputedStyle(item).display,
             visible: item.offsetParent !== null
@@ -615,7 +612,7 @@ window.testDropdownClick = function() {
 };
 
 window.forceShowDropdown = function() {
-    console.log('🔧 FORCING DROPDOWN TO SHOW...');
+
     
     const dropdown = document.getElementById('server-dropdown');
     if (!dropdown) {
@@ -634,14 +631,14 @@ window.forceShowDropdown = function() {
         item.style.visibility = 'visible';
     });
     
-    console.log('✅ Dropdown forced to show. Items:', items.length);
+
 };
 
-console.log('🔧 Server Dropdown Debug Functions Loaded!');
-console.log('Run these in console:');
-console.log('- debugServerDropdown() - Full diagnostic report');
-console.log('- testDropdownClick() - Test button click');
-console.log('- forceShowDropdown() - Force dropdown to show');
+
+
+
+
+
 
 window.initServerDropdown = initServerDropdown;
 window.initializeServerDropdown = initServerDropdown;
@@ -654,7 +651,7 @@ window.getUserRole = getUserRole;
 
 window.testMembershipAPI = async function() {
     console.clear();
-    console.log('🧪 TESTING MEMBERSHIP API DIRECTLY...');
+
     
     const serverId = getCurrentServerId();
     if (!serverId) {
@@ -662,27 +659,27 @@ window.testMembershipAPI = async function() {
         return;
     }
     
-    console.log('🎯 Server ID:', serverId);
+
     
     try {
-        console.log('📡 Calling API...');
+
         const response = await window.serverAPI.getUserServerMembership(serverId);
         
-        console.log('📦 RAW RESPONSE:');
-        console.log(JSON.stringify(response, null, 2));
+
+
         
-        console.log('🔍 RESPONSE ANALYSIS:');
-        console.log('- success:', response?.success);
-        console.log('- is_member:', response?.data?.is_member);
-        console.log('- role:', response?.data?.membership?.role);
-        console.log('- is_owner:', response?.data?.membership?.is_owner);
+
+
+
+
+
         
         if (response?.success && response?.data?.is_member) {
-            console.log('✅ USER IS MEMBER');
-            console.log('👤 Role:', response.data.membership.role);
-            console.log('👑 Is Owner:', response.data.membership.is_owner);
+
+
+
         } else {
-            console.log('❌ USER IS NOT MEMBER');
+
         }
         
         return response;
@@ -693,4 +690,3 @@ window.testMembershipAPI = async function() {
     }
 };
 
-console.log('🔧 Added testMembershipAPI() function');

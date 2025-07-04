@@ -1,11 +1,11 @@
 class DirectMessageNavigation {
     constructor() {
-        console.log('🔄 [DM-NAV] DirectMessageNavigation initialized - delegating to SimpleDMSwitcher');
+
         this.activeDmId = null;
     }
 
     init() {
-        console.log('🔄 [DM-NAV] DirectMessageNavigation init - SimpleDMSwitcher will handle everything');
+
         
         if (window.SimpleDMSwitcher) {
             this.dmSwitcher = new window.SimpleDMSwitcher();
@@ -22,7 +22,7 @@ class DirectMessageNavigation {
             const { default: SimpleDMSwitcher } = await import('/public/js/utils/dm-switch-manager.js');
             window.SimpleDMSwitcher = SimpleDMSwitcher;
             this.dmSwitcher = new SimpleDMSwitcher();
-            console.log('✅ [DM-NAV] SimpleDMSwitcher loaded successfully');
+
         } catch (error) {
             console.error('❌ [DM-NAV] Failed to load SimpleDMSwitcher:', error);
         }
@@ -35,14 +35,14 @@ class DirectMessageNavigation {
         if (dmMatch) {
             const dmId = dmMatch[1];
             this.activeDmId = dmId;
-            console.log('🎯 [DM-NAV] Initial DM state:', dmId);
+
         } else if (currentPath.includes('/home/friends')) {
-            console.log('🎯 [DM-NAV] Initial friends state');
+
         }
     }
 
     switchToFriends() {
-        console.log('🔄 [DM-NAV] switchToFriends() called - delegating to SimpleDMSwitcher');
+
         if (this.dmSwitcher) {
             this.dmSwitcher.switchToFriends();
         } else {
@@ -51,32 +51,32 @@ class DirectMessageNavigation {
     }
 
     switchToChat(dmId, chatName, roomType) {
-        console.log('🔄 [DM-NAV] switchToChat() called - using enhanced SPA navigation');
+
         if (this.dmSwitcher) {
             this.dmSwitcher.switchToDM(dmId, roomType, chatName);
         } else if (window.switchToDMGlobal) {
-            console.log('🔄 [DM-NAV] Using global DM switch function');
+
             window.switchToDMGlobal(dmId, roomType).then(success => {
                 if (!success) {
-                    console.log('🔄 [DM-NAV] Global switch failed, falling back to URL navigation');
+
                     window.location.href = `/home/channels/dm/${dmId}`;
                 }
             });
         } else {
-            console.log('🔄 [DM-NAV] No SPA options available, using URL navigation');
+
             window.location.href = `/home/channels/dm/${dmId}`;
         }
     }
 
     updateActiveDmDisplay() {
-        console.log('🔄 [DM-NAV] updateActiveDmDisplay() called - SimpleDMSwitcher handles this');
+
         if (this.dmSwitcher && this.activeDmId) {
             this.dmSwitcher.highlightActiveDM(this.activeDmId);
         }
     }
 
     clearActiveDm() {
-        console.log('🔄 [DM-NAV] clearActiveDm() called - delegating to SimpleDMSwitcher');
+
         this.activeDmId = null;
         if (this.dmSwitcher) {
             this.dmSwitcher.clearActiveDM();
@@ -91,14 +91,14 @@ function initDirectMessageNavigation() {
         directMessageNavigation = new DirectMessageNavigation();
         directMessageNavigation.init();
         window.directMessageNavigation = directMessageNavigation;
-        console.log('✅ [DM-NAV] DirectMessageNavigation initialized');
+
     }
 }
 
 window.initDirectMessageNavigation = initDirectMessageNavigation;
 
 window.addEventListener('popstate', (event) => {
-    console.log('🔄 [DM-NAV] Popstate event - reloading page for proper state');
+
     window.location.reload();
 });
 

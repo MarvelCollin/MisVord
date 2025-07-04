@@ -8,15 +8,15 @@ class BotComponent {
     init() {
         if (this.initialized) return;
         
-        console.log('🤖 Initializing bot component...');
+
         this.setupSocketListeners();
         this.initialized = true;
-        console.log('✅ Bot component initialized');
+
     }
 
     setupSocketListeners() {
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.log('⏳ Socket not ready, retrying in 1s...');
+
             setTimeout(() => this.setupSocketListeners(), 1000);
             return;
         }
@@ -24,7 +24,7 @@ class BotComponent {
         const io = window.globalSocketManager.io;
 
         io.on('bot-init-success', (data) => {
-            console.log('🎉 Bot initialized successfully:', data);
+
             this.activeBots.set(data.bot_id, {
                 id: data.bot_id,
                 username: data.username,
@@ -38,7 +38,7 @@ class BotComponent {
         });
 
         io.on('bot-join-success', (data) => {
-            console.log('🚪 Bot joined channel successfully:', data);
+
             const bot = this.activeBots.get(data.bot_id);
             if (bot) {
                 if (!bot.channels) bot.channels = new Set();
@@ -51,7 +51,7 @@ class BotComponent {
         });
 
         io.on('bot-voice-participant-joined', (data) => {
-            console.log('🤖🎵 Bot joined voice channel:', data);
+
             const { participant } = data;
             
             if (participant && participant.user_id && participant.username) {
@@ -62,20 +62,20 @@ class BotComponent {
                     joinedAt: Date.now()
                 });
 
-                console.log('🤖 [BOT] Dispatching bot-voice-participant-joined event');
+
                 window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', {
                     detail: { participant }
                 }));
 
-                console.log('🤖 [BOT] Checking for voiceCallSection...');
+
                 if (window.voiceCallSection) {
-                    console.log('✅ [BOT] Found voiceCallSection, adding bot participant');
+
                     window.voiceCallSection.addBotParticipant(participant);
                 } else {
                     console.warn('⚠️ [BOT] voiceCallSection not found, retrying in 1 second...');
                     setTimeout(() => {
                         if (window.voiceCallSection) {
-                            console.log('✅ [BOT] Found voiceCallSection on retry, adding bot participant');
+
                             window.voiceCallSection.addBotParticipant(participant);
                         } else {
                             console.error('❌ [BOT] voiceCallSection still not found after retry');
@@ -86,7 +86,7 @@ class BotComponent {
         });
 
         io.on('bot-voice-participant-left', (data) => {
-            console.log('🤖👋 Bot left voice channel:', data);
+
             const { participant } = data;
             
             if (participant && participant.user_id) {
@@ -102,7 +102,7 @@ class BotComponent {
             }
         });
 
-        console.log('🔌 Socket listeners set up successfully');
+
     }
 
     getBotStatus(botId) {
@@ -126,7 +126,7 @@ class BotComponent {
     }
 
     debugVoiceContext() {
-        console.log('🔧 [BOT-DEBUG] === VOICE CONTEXT DEBUG ===');
+
         
         console.log('1. VideoSDK Manager:', {
             exists: !!window.videoSDKManager,
@@ -157,7 +157,7 @@ class BotComponent {
             activeVoiceChannel: document.querySelector('[data-channel-type="voice"].active')?.getAttribute('data-channel-id')
         });
         
-        console.log('=================================');
+
     }
 }
 
@@ -173,10 +173,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-console.log('🤖 Bot component loaded');
+
 
 window.debugTitiBotVoiceContext = function() {
-    console.log('🎤 [TITIBOT-DEBUG] === VOICE CONTEXT DEBUG ===');
+
     
     if (window.BotComponent) {
         window.BotComponent.debugVoiceContext();
@@ -193,12 +193,12 @@ window.debugTitiBotVoiceContext = function() {
     // Check meta tags
     const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
     const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
-    console.log('🏷️ [DEBUG] Meta Tags:', { metaChannelId, metaChannelType });
+
     
     // Check unified voice state manager
     if (window.unifiedVoiceStateManager) {
         const voiceState = window.unifiedVoiceStateManager.getState();
-        console.log('🎤 [DEBUG] Unified Voice State:', voiceState);
+
     }
     
     // Check channel switch manager
@@ -209,7 +209,7 @@ window.debugTitiBotVoiceContext = function() {
         });
     }
     
-    console.log('6. Testing Voice Detection Methods:');
+
     
     let voiceChannelId = null;
     let userInVoice = false;
@@ -300,7 +300,7 @@ window.debugTitiBotVoiceContext = function() {
 };
 
 window.debugBotMusicIntegration = function() {
-    console.log('🎵 [BOT-MUSIC-DEBUG] === INTEGRATION DEBUG ===');
+
     
     console.log('1. Components Check:', {
         musicPlayer: !!window.musicPlayer,
@@ -333,7 +333,7 @@ window.debugBotMusicIntegration = function() {
 };
 
 window.testBotMusicCommand = async function(songName = 'never gonna give you up') {
-    console.log('🎵 [BOT-MUSIC-TEST] Testing bot music command:', songName);
+
     
     if (!window.musicPlayer) {
         console.error('❌ Music player not available');
@@ -347,14 +347,14 @@ window.testBotMusicCommand = async function(songName = 'never gonna give you up'
             track: null
         };
         
-        console.log('🎵 [BOT-MUSIC-TEST] Simulating music command:', mockMusicData);
+
         
         const searchResult = await window.musicPlayer.searchMusic(songName);
         if (searchResult && searchResult.previewUrl) {
-            console.log('✅ [BOT-MUSIC-TEST] Found track:', searchResult.title);
+
             const result = await window.musicPlayer.playTrack(searchResult);
             window.musicPlayer.showNowPlaying(searchResult);
-            console.log('✅ [BOT-MUSIC-TEST] Successfully playing:', searchResult.title);
+
         } else {
             console.warn('⚠️ [BOT-MUSIC-TEST] No playable track found');
         }
@@ -364,7 +364,7 @@ window.testBotMusicCommand = async function(songName = 'never gonna give you up'
 };
 
 window.testBotVoiceJoin = function() {
-    console.log('🤖 [BOT-VOICE-TEST] Testing bot voice join...');
+
     
     const mockBotData = {
         user_id: '4',
@@ -376,17 +376,17 @@ window.testBotVoiceJoin = function() {
         joinedAt: Date.now()
     };
     
-    console.log('🤖 [BOT-VOICE-TEST] Mock bot data:', mockBotData);
+
     
     if (window.voiceCallSection) {
         window.voiceCallSection.addBotParticipant(mockBotData);
-        console.log('✅ [BOT-VOICE-TEST] Bot added to voice call section');
+
     } else {
         console.error('❌ [BOT-VOICE-TEST] Voice call section not found');
     }
 };
 
-console.log('🎵 [BOT-DEBUG] Debug functions loaded:');
-console.log('  - debugBotMusicIntegration() - Check integration status');
-console.log('  - testBotMusicCommand(songName) - Test music playback');
-console.log('  - testBotVoiceJoin() - Test bot appearing in voice');
+
+
+
+

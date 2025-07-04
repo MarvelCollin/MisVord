@@ -22,11 +22,11 @@ class UserDataHelper {
         // Convert to string for processing
         const idStr = String(participantId);
         
-        console.log('[UserDataHelper] Extracting user ID from:', { participantId: idStr, participantName });
+
 
         // Method 1: Direct numeric ID
         if (/^\d+$/.test(idStr)) {
-            console.log('[UserDataHelper] Found direct numeric ID:', idStr);
+
             return idStr;
         }
 
@@ -35,7 +35,7 @@ class UserDataHelper {
             const parts = idStr.split('_');
             const lastPart = parts[parts.length - 1];
             if (/^\d+$/.test(lastPart)) {
-                console.log('[UserDataHelper] Extracted ID from participantId format:', lastPart);
+
                 return lastPart;
             }
         }
@@ -45,18 +45,18 @@ class UserDataHelper {
             const nameParts = participantName.split('_');
             const lastPart = nameParts[nameParts.length - 1];
             if (/^\d+$/.test(lastPart)) {
-                console.log('[UserDataHelper] Extracted ID from participantName format:', lastPart);
+
                 return lastPart;
             }
         }
 
         // Method 4: Check if it's already a valid user ID format
         if (idStr.length > 0 && /^\d+$/.test(idStr)) {
-            console.log('[UserDataHelper] Confirmed as valid user ID:', idStr);
+
             return idStr;
         }
 
-        console.log('[UserDataHelper] Could not extract user ID from:', { participantId, participantName });
+
         return null;
     }
 
@@ -94,12 +94,12 @@ class UserDataHelper {
      * Fetch user profile data with caching
      */
     async getUserData(participantId, participantName = null) {
-        console.log('[UserDataHelper] getUserData called with:', { participantId, participantName });
+
         
         const userId = this.extractUserId(participantId, participantName);
         
         if (!userId) {
-            console.log('[UserDataHelper] No valid user ID found, trying username search for VideoSDK participant');
+
             
             const searchName = participantName || participantId;
             if (searchName && typeof searchName === 'string' && searchName !== 'Unknown') {
@@ -107,29 +107,29 @@ class UserDataHelper {
                 
                 // Check cache for username search
                 if (this.cache.has(cacheKey)) {
-                    console.log('[UserDataHelper] Returning cached username search for:', searchName);
+
                     return this.cache.get(cacheKey);
                 }
                 
                 // Check if username search is already pending
                 if (this.pendingRequests.has(cacheKey)) {
-                    console.log('[UserDataHelper] Username search already pending for:', searchName);
+
                     return this.pendingRequests.get(cacheKey);
                 }
                 
                 try {
-                    console.log('[UserDataHelper] Starting username search for:', searchName);
+
                     const searchPromise = this.searchUserByUsername(searchName);
                     this.pendingRequests.set(cacheKey, searchPromise);
                     
                     const userData = await searchPromise;
-                    console.log('[UserDataHelper] Found user by username search:', userData);
+
                     
                     this.cache.set(cacheKey, userData);
                     this.pendingRequests.delete(cacheKey);
                     return userData;
                 } catch (error) {
-                    console.log('[UserDataHelper] Username search failed, using fallback:', error);
+
                     this.pendingRequests.delete(cacheKey);
                 }
             }
@@ -141,33 +141,33 @@ class UserDataHelper {
             };
         }
 
-        console.log('[UserDataHelper] Using user ID:', userId);
+
 
         // Check cache first
         if (this.cache.has(userId)) {
-            console.log('[UserDataHelper] Returning cached data for user:', userId);
+
             return this.cache.get(userId);
         }
 
         // Check if request is already pending
         if (this.pendingRequests.has(userId)) {
-            console.log('[UserDataHelper] Request already pending for user:', userId);
+
             return this.pendingRequests.get(userId);
         }
 
         // Create new request
-        console.log('[UserDataHelper] Fetching new data for user:', userId);
+
         const requestPromise = this.fetchUserProfile(userId, participantName);
         this.pendingRequests.set(userId, requestPromise);
 
         try {
             const userData = await requestPromise;
-            console.log('[UserDataHelper] Successfully fetched user data:', userData);
+
             this.cache.set(userId, userData);
             this.pendingRequests.delete(userId);
             return userData;
         } catch (error) {
-            console.log('[UserDataHelper] Failed to fetch user data, using fallback:', error);
+
             this.pendingRequests.delete(userId);
             // Return fallback data
             const fallbackData = {
@@ -274,9 +274,9 @@ class UserDataHelper {
         const avatarUrl = userData.avatar_url;
         const displayName = userData.display_name || userData.username || 'Unknown';
 
-        console.log('[UserDataHelper] updateAvatarElement called with:', { avatarUrl, displayName, userData });
-        console.log('[UserDataHelper] Current image src:', imgElement.src);
-        console.log('[UserDataHelper] Current image classes:', imgElement.className);
+
+
+
 
         // Check if the image already has a valid non-default avatar
         const currentSrc = imgElement.src;
@@ -286,17 +286,17 @@ class UserDataHelper {
                               currentSrc !== '';
 
         if (isCurrentValid && (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png')) {
-            console.log('[UserDataHelper] Current image is valid, keeping it instead of default avatar');
+
             imgElement.classList.remove('hidden');
             if (initialsElement) initialsElement.classList.add('hidden');
             return;
         }
 
         if (avatarUrl && avatarUrl !== '/public/assets/common/default-profile-picture.png') {
-            console.log('[UserDataHelper] Setting new avatar image:', avatarUrl);
+
             imgElement.src = avatarUrl;
             imgElement.onload = () => {
-                console.log('[UserDataHelper] Avatar image loaded successfully, showing image');
+
                 imgElement.classList.remove('hidden');
                 if (initialsElement) initialsElement.classList.add('hidden');
             };
@@ -311,14 +311,14 @@ class UserDataHelper {
         } else {
             // Use initials only if no valid image is already present
             if (!isCurrentValid) {
-                console.log('[UserDataHelper] Using initials instead of avatar (default or no URL)');
+
                 imgElement.classList.add('hidden');
                 if (initialsElement) {
                     initialsElement.classList.remove('hidden');
                     initialsElement.textContent = this.getInitials(displayName);
                 }
             } else {
-                console.log('[UserDataHelper] Keeping existing valid image');
+
                 imgElement.classList.remove('hidden');
                 if (initialsElement) initialsElement.classList.add('hidden');
             }
@@ -359,7 +359,7 @@ class UserDataHelper {
 window.UserDataHelper = UserDataHelper;
 window.userDataHelper = UserDataHelper.getInstance();
 
-console.log('✅ UserDataHelper loaded successfully');
+
 
 // Add test function for VideoSDK participant data
 window.testVideoSDKParticipant = function(participantId, participantName) {
@@ -368,21 +368,21 @@ window.testVideoSDKParticipant = function(participantId, participantName) {
         return;
     }
     
-    console.log('🧪 Testing VideoSDK participant data extraction...');
-    console.log('Input:', { participantId, participantName });
+
+
     
     // Test user ID extraction
     const userId = window.userDataHelper.extractUserId(participantId, participantName);
-    console.log('Extracted user ID:', userId);
+
     
     // Test display name cleaning
     const cleanName = window.userDataHelper.getCleanDisplayName(participantName);
-    console.log('Clean display name:', cleanName);
+
     
     // Test full user data fetch
     window.userDataHelper.getUserData(participantId, participantName)
         .then(userData => {
-            console.log('✅ Full user data:', userData);
+
         })
         .catch(error => {
             console.error('❌ Failed to get user data:', error);

@@ -1,5 +1,5 @@
 window.testMentionClick = function() {
-    console.log('🧪 [MENTION-TEST] Testing mention click functionality...');
+
     
     const testMentions = [
         {
@@ -40,11 +40,10 @@ window.testMentionClick = function() {
         testContainer.remove();
     });
     
-    console.log('✅ [MENTION-TEST] Test UI created. Click the mentions to verify functionality.');
+
     
     setTimeout(() => {
         testContainer.remove();
     }, 30000);
 };
 
-console.log('🧪 [MENTION-TEST] Test function loaded. Run window.testMentionClick() to test mentions.'); 

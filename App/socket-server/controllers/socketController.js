@@ -20,15 +20,15 @@ function setup(io) {
     
     setupStaleConnectionChecker(io);
     io.on('connection', (client) => {
-        console.log(`🔌 [CONNECTION] Client connected: ${client.id}`);
+
         
         client.on('authenticate', (data) => {
-            console.log(`🔐 [AUTH] Authentication request from ${client.id}:`, data);
+
             AuthHandler.handle(io, client, data);
         });
         
         client.on('debug-test', (username) => {
-            console.log(`🧪 [DEBUG-TEST] Debug ping received from ${username || 'unknown'} (${client.id})`);
+
             console.log(`👤 [DEBUG-TEST] User details: ${JSON.stringify({
                 socketId: client.id,
                 username: username,
@@ -44,7 +44,7 @@ function setup(io) {
         });
         
         client.on('join-room', (data) => {
-            console.log(`🚪 [ROOM] Client ${client.id} joining room:`, data);
+
             if (!data || !data.room_type || !data.room_id) {
                 console.warn(`⚠️ [ROOM] Invalid join room data:`, data);
                 return;
@@ -54,20 +54,20 @@ function setup(io) {
                 const roomName = `channel-${data.room_id}`;
                 roomManager.joinRoom(client, roomName);
                 client.emit('room-joined', { room_id: data.room_id, room_type: 'channel', room_name: roomName });
-                console.log(`✅ [ROOM] Client ${client.id} joined channel room: ${roomName}`);
+
                 
                 // Log all clients in this room
                 const roomClients = io.sockets.adapter.rooms.get(roomName);
                 if (roomClients) {
-                    console.log(`👥 [ROOM] Clients in room ${roomName}: ${roomClients.size}`);
+
                     roomClients.forEach(clientId => {
-                        console.log(`  - Client: ${clientId}`);
+
                     });
                 }
                 
                 // Debug: Send a test message to the room to verify connectivity
                 setTimeout(() => {
-                    console.log(`🔍 [ROOM] Sending test message to room ${roomName}`);
+
                     io.to(roomName).emit('room-debug', { 
                         message: 'Room join test message',
                         room: roomName,
@@ -78,19 +78,19 @@ function setup(io) {
                 const roomName = data.room_id.startsWith('dm-room-') ? data.room_id : `dm-room-${data.room_id}`;
                 roomManager.joinRoom(client, roomName);
                 client.emit('room-joined', { room_id: data.room_id, room_type: 'dm', room_name: roomName });
-                console.log(`✅ [ROOM] Client ${client.id} joined DM room: ${roomName}`);
+
                 
                 // Log all clients in this room
                 const roomClients = io.sockets.adapter.rooms.get(roomName);
                 if (roomClients) {
-                    console.log(`👥 [ROOM] Clients in room ${roomName}: ${roomClients.size}`);
+
                     roomClients.forEach(clientId => {
-                        console.log(`  - Client: ${clientId}`);
+
                     });
                 }
                 
                 setTimeout(() => {
-                    console.log(`🔍 [ROOM] Sending test message to room ${roomName}`);
+
                     io.to(roomName).emit('room-debug', { 
                         message: 'Room join test message',
                         room: roomName,
@@ -103,17 +103,17 @@ function setup(io) {
         });
         
         client.on('join-channel', (data) => {
-            console.log(`📺 [CHANNEL] Join channel request from ${client.id}:`, data);
+
             RoomHandler.joinChannel(io, client, data);
         });
         
         client.on('leave-channel', (data) => {
-            console.log(`🚪 [CHANNEL] Leave channel request from ${client.id}:`, data);
+
             RoomHandler.leaveChannel(io, client, data);
         });
         
         client.on('join-dm-room', (data) => {
-            console.log(`💬 [DM] Join DM room request from ${client.id}:`, data);
+
             RoomHandler.joinDMRoom(io, client, data);
         });
         
@@ -129,7 +129,7 @@ function setup(io) {
             });
             
             // Log the complete message data
-            console.log(`📦 [MESSAGE-CHANNEL] Complete message data:`, JSON.stringify(data, null, 2));
+
             
             const messageId = data.id || data.message_id;
             const signature = messageService.generateSignature('new-channel-message', client.data?.user_id, messageId, data.content, data.timestamp);
@@ -157,7 +157,7 @@ function setup(io) {
                 });
                 MessageHandler.forwardMessage(io, client, 'new-channel-message', data);
             } else {
-                console.log(`🔄 [MESSAGE-CHANNEL] Duplicate message detected, skipping: ${messageId}`);
+
             }
         });
         
@@ -173,7 +173,7 @@ function setup(io) {
             });
             
             // Log the complete message data
-            console.log(`📦 [MESSAGE-DM] Complete message data:`, JSON.stringify(data, null, 2));
+
             
             const messageId = data.id || data.message_id;
             const signature = messageService.generateSignature('user-message-dm', client.data?.user_id, messageId, data.content, data.timestamp);
@@ -201,7 +201,7 @@ function setup(io) {
                 });
                 MessageHandler.forwardMessage(io, client, 'user-message-dm', data);
             } else {
-                console.log(`🔄 [MESSAGE-DM] Duplicate message detected, skipping: ${messageId}`);
+
             }
         });
         
@@ -245,7 +245,7 @@ function setup(io) {
             }
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
-            console.log(`✅ [MESSAGE-EDIT] Processing message update for message ${data.message_id}`);
+
             MessageHandler.forwardMessage(io, client, 'message-updated', data);
         });
         
@@ -268,7 +268,7 @@ function setup(io) {
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
             
-            console.log(`✅ [MESSAGE-EDIT-TEMP] Processing temp edit for message ${data.message_id}`);
+
             MessageHandler.handleTempEdit(io, client, data);
         });
         
@@ -309,7 +309,7 @@ function setup(io) {
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
-            console.log(`✅ [REACTION-ADD] Processing reaction add: ${data.emoji} on message ${data.message_id}`);
+
             MessageHandler.handleReaction(io, client, 'reaction-added', data);
         });
         
@@ -325,7 +325,7 @@ function setup(io) {
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
-            console.log(`✅ [REACTION-REMOVE] Processing reaction removal: ${data.emoji} from message ${data.message_id}`);
+
             MessageHandler.handleReaction(io, client, 'reaction-removed', data);
         });
         
@@ -340,7 +340,7 @@ function setup(io) {
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
-            console.log(`✅ [MESSAGE-PIN] Processing message pin for message ${data.message_id}`);
+
             MessageHandler.handlePin(io, client, 'message-pinned', data);
         });
         
@@ -355,7 +355,7 @@ function setup(io) {
             
             data.user_id = data.user_id || client.data.user_id;
             data.username = data.username || client.data.username;
-            console.log(`✅ [MESSAGE-UNPIN] Processing message unpin for message ${data.message_id}`);
+
             MessageHandler.handlePin(io, client, 'message-unpinned', data);
         });
         
@@ -366,7 +366,7 @@ function setup(io) {
             });
             
             data.user_id = data.user_id || client.data.user_id;
-            console.log(`✅ [JUMP-TO-MESSAGE] Processing jump to message ${data.message_id}`);
+
             MessageHandler.handleJumpToMessage(io, client, data);
         });
         
@@ -437,7 +437,7 @@ function setup(io) {
                 
                 // Add voice meeting to room manager for proper tracking
                 roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
-                console.log(`📋 [VOICE-PARTICIPANT] Added voice meeting to room manager: channel ${channel_id}, meeting ${meeting_id}, socket ${client.id}`);
+
                 
                 const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
                 const participantCount = participants.length;
@@ -462,18 +462,18 @@ function setup(io) {
                 
                 // Broadcast to voice channel room
                 io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
-                console.log(`📡 [VOICE-PARTICIPANT] Sent voice-meeting-update to voice channel room: ${voiceChannelRoom}`);
+
                 
                 // Broadcast globally for cross-channel visibility
                 io.emit('voice-meeting-update', updateData);
-                console.log(`🌐 [VOICE-PARTICIPANT] Sent global voice-meeting-update to all connected clients`);
+
                 
                 client.emit('voice-meeting-update', {
                     ...updateData,
                     action: 'registered',
                     message: 'Successfully registered to voice meeting'
                 });
-                console.log(`✅ [VOICE-PARTICIPANT] Sent registration confirmation to client ${client.id}`);
+
                 
             } catch (error) {
                 console.error(`❌ [VOICE-PARTICIPANT] Error registering voice meeting:`, error);
@@ -506,17 +506,17 @@ function setup(io) {
         });
         
         client.on('get-online-users', () => {
-            console.log(`👥 [USERS] Online users request from ${client.id}`);
+
             handleGetOnlineUsers(io, client);
         });
         
         client.on('debug-rooms', () => {
-            console.log(`🔍 [DEBUG] Debug rooms request from ${client.id}`);
+
             handleDebugRooms(io, client);
         });
         
         client.on('heartbeat', () => {
-            console.log(`💓 [HEARTBEAT] Heartbeat from ${client.id}`);
+
             client.emit('heartbeat-response', { time: Date.now() });
             
             if (client.data?.user_id) {
@@ -525,15 +525,15 @@ function setup(io) {
         });
         
         client.on('diagnostic-ping', (data) => {
-            console.log(`🏓 [DIAGNOSTIC] Diagnostic ping from ${client.id}:`, data);
+
             client.emit('diagnostic-pong', { clientTime: data.startTime, serverTime: Date.now() });
         });
 
         client.on('debug-broadcast-test', (data) => {
-            console.log(`🧪 [DEBUG-BROADCAST] Broadcast test from ${client.id}:`, data);
+
             const room = roomManager.getChannelRoom(data.room);
             if (room) {
-                console.log(`📡 [DEBUG-BROADCAST] Broadcasting test message to room: ${room}`);
+
                 io.to(room).emit('debug-broadcast-received', { 
                     message: 'This is a broadcast test message.',
                     room: room,
@@ -545,47 +545,47 @@ function setup(io) {
         });
 
         client.on('bot-init', (data) => {
-            console.log(`🤖 [BOT-INIT] Bot initialization request from ${client.id}:`, data);
+
             handleBotInit(io, client, data);
         });
 
         client.on('bot-join-channel', (data) => {
-            console.log(`🤖 [BOT-JOIN] Bot join channel request from ${client.id}:`, data);
+
             handleBotJoinChannel(io, client, data);
         });
 
         client.on('join-tic-tac-toe', (data) => {
-            console.log(`🎯 [TIC-TAC-TOE] Join game request from ${client.id}:`, data);
+
             ActivityHandler.handleTicTacToeJoin(io, client, data);
         });
 
         client.on('tic-tac-toe-ready', (data) => {
-            console.log(`🎯 [TIC-TAC-TOE] Ready state change from ${client.id}:`, data);
+
             ActivityHandler.handleTicTacToeReady(io, client, data);
         });
 
         client.on('tic-tac-toe-move', (data) => {
-            console.log(`🎯 [TIC-TAC-TOE] Move from ${client.id}:`, data);
+
             ActivityHandler.handleTicTacToeMove(io, client, data);
         });
 
         client.on('leave-tic-tac-toe', (data) => {
-            console.log(`🎯 [TIC-TAC-TOE] Leave game from ${client.id}:`, data);
+
             ActivityHandler.handleTicTacToeLeave(io, client, data);
         });
 
         client.on('tic-tac-toe-play-again-request', (data) => {
-            console.log(`🎯 [TIC-TAC-TOE] Play again request from ${client.id}:`, data);
+
             ActivityHandler.handleTicTacToePlayAgainRequest(io, client, data);
         });
 
         client.on('tic-tac-toe-play-again-response', (data) => {
-            console.log(`🎯 [TIC-TAC-TOE] Play again response from ${client.id}:`, data);
+
             ActivityHandler.handleTicTacToePlayAgainResponse(io, client, data);
         });
         
         client.on('disconnect', () => {
-            console.log(`❌ [DISCONNECT] Client disconnected: ${client.id}`);
+
             if (client.data?.ticTacToeServerId) {
                 ActivityHandler.handleTicTacToeLeave(io, client, { 
                     server_id: client.data.ticTacToeServerId 
@@ -614,7 +614,7 @@ function handlePresence(io, client, data) {
     };
     
     if (!previousPresence || previousPresence.status !== status) {
-        console.log(`📡 [PRESENCE] Broadcasting presence change for ${username}: ${previousPresence?.status || 'none'} -> ${status}`);
+
         
         if (status === 'online' && (!previousPresence || previousPresence.status === 'offline')) {
             io.emit('user-online', broadcastData);
@@ -658,7 +658,7 @@ function handleCheckVoiceMeeting(io, client, data) {
         return;
     }
 
-    console.log(`🔍 [VOICE-PARTICIPANT] Checking voice meeting for channel: ${channel_id}`);
+
     
     // Check both VoiceConnectionTracker and roomManager for comprehensive status
     const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
@@ -739,12 +739,12 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
     if (roomManagerMeeting) {
         if (!roomManagerMeeting.participants.has(client.id)) {
-            console.log(`⚠️ [VOICE-PARTICIPANT] Client ${client.id} not found in voice meeting for channel ${channel_id}`);
+
             return;
         }
         
         const result = roomManager.removeVoiceMeeting(channel_id, client.id);
-        console.log(`👤 [VOICE-PARTICIPANT] Removed participant ${client.id} from voice meeting in channel ${channel_id}`);
+
         
         if (user_id) {
             const currentPresence = userService.getPresence(user_id);
@@ -759,19 +759,19 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             }
             
             VoiceConnectionTracker.removeUserFromVoice(user_id);
-            console.log(`🔇 [VOICE-PARTICIPANT] Removed user ${user_id} from voice connection tracker`);
+
             
             client.leave(`voice-channel-${channel_id}`);
-            console.log(`🚪 [VOICE-PARTICIPANT] User ${user_id} left voice channel room: voice-channel-${channel_id}`);
+
             
             const titiBotId = BotHandler.getTitiBotId();
             if (titiBotId && result.participant_count === 0) {
                 BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
-                console.log(`🤖 [VOICE-PARTICIPANT] Removed bot from voice channel ${channel_id}`);
+
             }
         }
         
-        console.log(`📡 [VOICE-PARTICIPANT] Broadcasting voice meeting update for channel ${channel_id}, participants: ${result.participant_count}`);
+
         
         // Broadcast to ALL users for cross-channel visibility
         io.emit('voice-meeting-update', {
@@ -788,7 +788,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
 }
 
 function handleDebugRooms(io, client) {
-    console.log(`🔍 [DEBUG-ROOMS-HANDLER] Processing debug rooms request from ${client.id}`);
+
     
     const allVoiceMeetings = roomManager.getAllVoiceMeetings();
     const voiceMeetingKeys = allVoiceMeetings.map(meeting => meeting.channel_id);
@@ -803,7 +803,7 @@ function handleDebugRooms(io, client) {
         voiceMeetings: voiceMeetingKeys
     };
     
-    console.log(`📊 [DEBUG-ROOMS-HANDLER] Room info for client ${client.id}:`, roomInfo);
+
     client.emit('debug-rooms-info', roomInfo);
 }
 
@@ -812,7 +812,7 @@ function handleDisconnect(io, client) {
         const user_id = client.data.user_id;
         const username = client.data.username;
         
-        console.log(`🔌 [DISCONNECT] User ${username} (${user_id}) disconnected, socket: ${client.id}`);
+
         
         userSockets.delete(client.id);
         
@@ -822,10 +822,10 @@ function handleDisconnect(io, client) {
         const userOffline = roomManager.removeUserSocket(user_id, client.id);
         
         if (userOffline) {
-            console.log(`⏳ [DISCONNECT] User ${username} has no more active sockets, starting grace period`);
+
             userService.markUserDisconnecting(user_id, username);
         } else {
-            console.log(`🔌 [DISCONNECT] User ${username} still has other active sockets, keeping online`);
+
         }
         
         const allVoiceMeetings = roomManager.getAllVoiceMeetings();
@@ -833,7 +833,7 @@ function handleDisconnect(io, client) {
         
         for (const meeting of allVoiceMeetings) {
             if (meeting.participants.has(client.id)) {
-                console.log(`🎤 [VOICE-PARTICIPANT] Removing user ${username} from voice meeting in channel ${meeting.channel_id}`);
+
                 
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
                 
@@ -849,16 +849,16 @@ function handleDisconnect(io, client) {
                             status: 'online',
                             activity_details: { type: 'idle' }
                         });
-                        console.log(`👤 [VOICE-PARTICIPANT] Updated presence for ${username} from 'In Voice - ${currentPresence.activity_details.channel_name || 'Voice'}' to 'idle'`);
+
                     }
                     
                     client.leave(`voice-channel-${meeting.channel_id}`);
-                    console.log(`🚪 [VOICE-PARTICIPANT] User ${username} left voice channel room: voice-channel-${meeting.channel_id}`);
+
                     
                     const titiBotId = BotHandler.getTitiBotId();
                     if (titiBotId && result.participant_count === 0) {
                         BotHandler.removeBotFromVoiceChannel(io, titiBotId, meeting.channel_id);
-                        console.log(`🤖 [VOICE-PARTICIPANT] Removed bot from empty voice channel ${meeting.channel_id}`);
+
                     }
                     
                     voiceMeetingsUpdated.push({
@@ -869,13 +869,13 @@ function handleDisconnect(io, client) {
                         username: username
                     });
                     
-                    console.log(`✅ [VOICE-PARTICIPANT] Successfully removed ${username} from voice meeting in channel ${meeting.channel_id}`);
+
                 }
             }
         }
         
         voiceMeetingsUpdated.forEach(update => {
-            console.log(`📡 [VOICE-PARTICIPANT] Broadcasting individual voice participant leave for ${update.username} in channel ${update.channel_id}`);
+
             
             // Broadcast the leave event for this specific user only
             io.emit('voice-meeting-update', {
@@ -890,10 +890,10 @@ function handleDisconnect(io, client) {
         });
         
         if (voiceMeetingsUpdated.length > 0) {
-            console.log(`🎤 [VOICE-PARTICIPANT] Completed voice cleanup for user ${username} - removed from ${voiceMeetingsUpdated.length} meeting(s)`);
+
         }
     } else {
-        console.log(`🔌 [DISCONNECT] Anonymous client disconnected: ${client.id}`);
+
     }
 }
 
@@ -918,7 +918,7 @@ function handleBotInit(io, client, data) {
     
     try {
         BotHandler.connectBot(io, bot_id, username);
-        console.log(`✅ [BOT-INIT-HANDLER] Bot ${username} initialized successfully`);
+
         client.emit('bot-init-success', { 
             bot_id, 
             username,
@@ -952,7 +952,7 @@ function handleBotJoinChannel(io, client, data) {
     try {
         const success = BotHandler.joinBotToRoom(bot_id, 'channel', channel_id);
         if (success) {
-            console.log(`✅ [BOT-JOIN-HANDLER] Bot ${bot_id} joined channel ${channel_id}`);
+
             client.emit('bot-join-success', { 
                 bot_id, 
                 channel_id,
@@ -977,7 +977,7 @@ function setupStaleConnectionChecker(io) {
         const staleTimeout = 60000;
         const now = Date.now();
         
-        console.log(`🔍 [STALE-CHECK] Checking for stale voice connections...`);
+
         
         const allVoiceMeetings = roomManager.getAllVoiceMeetings();
         let cleanedConnections = 0;
@@ -989,19 +989,19 @@ function setupStaleConnectionChecker(io) {
                 const socket = io.sockets.sockets.get(socketId);
                 
                 if (!socket) {
-                    console.log(`🧹 [STALE-CHECK] Socket ${socketId} no longer exists, marking for cleanup`);
+
                     staleParticipants.push(socketId);
                 } else if (socket.data?.lastHeartbeat && (now - socket.data.lastHeartbeat) > staleTimeout) {
-                    console.log(`🧹 [STALE-CHECK] Socket ${socketId} has stale heartbeat, marking for cleanup`);
+
                     staleParticipants.push(socketId);
                 } else if (!socket.data?.lastHeartbeat && socket.data?.user_id) {
-                    console.log(`🧹 [STALE-CHECK] Socket ${socketId} missing heartbeat data, marking for cleanup`);
+
                     staleParticipants.push(socketId);
                 }
             });
             
             staleParticipants.forEach(socketId => {
-                console.log(`🧹 [VOICE-PARTICIPANT] Removing stale participant ${socketId} from voice meeting in channel ${meeting.channel_id}`);
+
                 
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, socketId);
                 
@@ -1039,7 +1039,7 @@ function setupStaleConnectionChecker(io) {
         }
         
         if (cleanedConnections > 0) {
-            console.log(`🧹 [VOICE-PARTICIPANT] Cleaned up ${cleanedConnections} stale voice connections`);
+
         }
     }, 30000);
 }

@@ -47,7 +47,7 @@ class NotificationIntegration {
             this.showModernNotification(data, isAllMention, isRoleMention);
         };
         
-        console.log("✅ Notification integration complete - using modern toast notifications");
+
     }
 
     showModernNotification(data, isAllMention, isRoleMention) {

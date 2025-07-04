@@ -150,7 +150,7 @@ test.describe('Voice Channel Tests', () => {
 
   test.afterEach(async ({ page }) => {
     if (consoleErrors.length > 0) {
-      console.log('Console errors captured:', consoleErrors);
+
     }
   });
 }); 

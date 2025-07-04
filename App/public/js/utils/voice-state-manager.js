@@ -23,12 +23,12 @@ class UnifiedVoiceStateManager {
                 return;
             }
 
-            console.log('🔍 [UNIFIED-VOICE] Validating stored connection:', storedState);
+
             
             const isReallyConnected = await this.verifyActiveConnection();
             
             if (!isReallyConnected) {
-                console.log('❌ [UNIFIED-VOICE] Stored connection is stale, clearing...');
+
                 this.clearStaleConnection();
                 
                 if (window.globalVoiceIndicator) {
@@ -39,7 +39,7 @@ class UnifiedVoiceStateManager {
                     window.showToast('Previous voice connection expired', 'info');
                 }
             } else {
-                console.log('✅ [UNIFIED-VOICE] Stored connection is valid');
+
             }
         }, 1000);
     }
@@ -49,7 +49,7 @@ class UnifiedVoiceStateManager {
         const voiceManagerConnected = window.voiceManager?.isConnected;
         
         if (videoSDKConnected && window.videoSDKManager?.meeting?.id) {
-            console.log('✅ [UNIFIED-VOICE] VideoSDK connection verified');
+
             
             // Also sync participants when verifying connection
             if (window.ChannelVoiceParticipants) {
@@ -61,19 +61,19 @@ class UnifiedVoiceStateManager {
         }
         
         if (voiceManagerConnected && window.voiceManager?.currentMeetingId) {
-            console.log('✅ [UNIFIED-VOICE] VoiceManager connection verified');
+
             return true;
         }
         
         if (window.globalSocketManager?.isReady()) {
             const socketVerified = await this.verifySocketConnection();
             if (socketVerified) {
-                console.log('✅ [UNIFIED-VOICE] Socket connection verified');
+
                 return true;
             }
         }
         
-        console.log('❌ [UNIFIED-VOICE] No active connection found');
+
         return false;
     }
 
@@ -125,7 +125,7 @@ class UnifiedVoiceStateManager {
             connectionTime: null
         });
         
-        console.log('🧹 [UNIFIED-VOICE] Cleared stale connection state');
+
     }
 
     cleanupConflictingStorage() {
@@ -166,15 +166,15 @@ class UnifiedVoiceStateManager {
         window.addEventListener('beforeunload', () => {
             const state = this.getState();
             if (state.isConnected) {
-                console.log('🔄 [UNIFIED-VOICE] Page unloading, voice state preserved');
+
             }
         });
 
         window.addEventListener('popstate', (event) => {
-            console.log('🔄 [UNIFIED-VOICE] Navigation detected:', event.state);
+
             
             if (event.state?.preserveVoice) {
-                console.log('🔄 [UNIFIED-VOICE] Voice preservation requested during navigation');
+
                 
                 setTimeout(() => {
                     this.validateStoredConnection();
@@ -236,7 +236,7 @@ class UnifiedVoiceStateManager {
         };
 
         this.storageManager.setUnifiedVoiceState(updatedState);
-        console.log('✅ [UNIFIED-VOICE] Connected:', updatedState);
+
     }
 
     async handleDisconnect() {
@@ -252,7 +252,7 @@ class UnifiedVoiceStateManager {
         };
 
         this.storageManager.setUnifiedVoiceState(updatedState);
-        console.log('✅ [UNIFIED-VOICE] Disconnected');
+
     }
 
     async handleStateChange(detail) {
@@ -379,9 +379,9 @@ if (!window.unifiedVoiceStateManager) {
     const unifiedVoiceStateManager = new UnifiedVoiceStateManager();
     window.voiceStateManager = unifiedVoiceStateManager;
     window.unifiedVoiceStateManager = unifiedVoiceStateManager;
-    console.log('✅ [VOICE-STATE] Unified voice state manager initialized');
+
 } else {
-    console.log('✅ [VOICE-STATE] Unified voice state manager already exists');
+
 }
 
 export { UnifiedVoiceStateManager };

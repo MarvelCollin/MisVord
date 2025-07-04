@@ -12,7 +12,7 @@ window.testMentionOverlay = function() {
         return false;
     }
     
-    console.log('Testing mention overlay system...');
+
     
     const testMentions = [
         '@testuser hello world',
@@ -25,14 +25,14 @@ window.testMentionOverlay = function() {
     
     function runNextTest() {
         if (testIndex >= testMentions.length) {
-            console.log('All tests completed!');
+
             messageInput.value = '';
             mentionHandler.updateOverlayContent();
             return;
         }
         
         const testText = testMentions[testIndex];
-        console.log(`Test ${testIndex + 1}: "${testText}"`);
+
         
         messageInput.value = testText;
         messageInput.focus();
@@ -42,15 +42,15 @@ window.testMentionOverlay = function() {
         
         const overlay = document.querySelector('.mention-overlay');
         if (overlay) {
-            console.log('Overlay content:', overlay.innerHTML);
-            console.log('Overlay visible:', overlay.style.display !== 'none');
+
+
         }
         
         testIndex++;
         setTimeout(runNextTest, 2000);
     }
     
-    console.log('Starting overlay tests in 1 second...');
+
     setTimeout(runNextTest, 1000);
     
     return true;
@@ -61,10 +61,10 @@ window.inspectMentionOverlay = function() {
     const overlay = document.querySelector('.mention-overlay');
     const container = document.querySelector('.input-container-wrapper');
     
-    console.log('Mention Overlay Inspection:');
-    console.log('Message Input:', messageInput);
-    console.log('Overlay Element:', overlay);
-    console.log('Container:', container);
+
+
+
+
     
     if (overlay) {
         console.log('Overlay styles:', {
@@ -73,7 +73,7 @@ window.inspectMentionOverlay = function() {
             visibility: getComputedStyle(overlay).visibility,
             pointerEvents: overlay.style.pointerEvents
         });
-        console.log('Overlay content:', overlay.innerHTML);
+
     }
     
     if (messageInput && container) {
@@ -87,4 +87,3 @@ window.inspectMentionOverlay = function() {
     return { messageInput, overlay, container };
 };
 
-console.log('Mention overlay test functions loaded: testMentionOverlay(), inspectMentionOverlay()'); 

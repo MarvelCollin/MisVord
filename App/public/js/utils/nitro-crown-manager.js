@@ -10,7 +10,7 @@ class NitroCrownManager {
     init() {
         if (this.initialized) return;
         this.initialized = true;
-        console.log('🎯 [NITRO-CROWN] Manager initialized');
+
     }
 
     createCrownElement() {
@@ -187,7 +187,7 @@ class NitroCrownManager {
                 results[userId] = hasNitro;
             }
             
-            console.log(`🎯 [NITRO-CROWN] Fetched nitro status for ${uncachedUserIds.length} users`);
+
             return results;
             
         } catch (error) {
@@ -277,7 +277,7 @@ class NitroCrownManager {
             subtree: true
         });
         
-        console.log('🎯 [NITRO-CROWN] Started observing user elements');
+
         return observer;
     }
 
@@ -309,18 +309,18 @@ class NitroCrownManager {
         });
         
         if (elementsToUpdate.length > 0) {
-            console.log(`🎯 [NITRO-CROWN] Found ${elementsToUpdate.length} existing user elements to update`);
+
             this.updateBulkUserElements(elementsToUpdate);
         }
     }
 
     clearCache() {
         this.nitroCache.clear();
-        console.log('🎯 [NITRO-CROWN] Cache cleared');
+
     }
 
     removeExistingCrownsFromDirectMessages() {
-        console.log('🎯 [NITRO-CROWN] removeExistingCrownsFromDirectMessages method is deprecated');
+
     }
 
     getCacheStats() {

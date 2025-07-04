@@ -381,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     window.testVoiceParticipants = function() {
-        console.log('[VOICE-PARTICIPANT] Testing voice participants display...');
+
         
         if (!window.ChannelVoiceParticipants) {
             console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
@@ -395,24 +395,24 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
-        console.log('[VOICE-PARTICIPANT] Found voice channels:', voiceChannels.length);
+
         
         voiceChannels.forEach((channel, index) => {
             const channelId = channel.getAttribute('data-channel-id');
             const channelName = channel.getAttribute('data-channel-name');
-            console.log(`[VOICE-PARTICIPANT] Channel ${index + 1}: ${channelName} (ID: ${channelId})`);
+
             
             const participantContainer = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-            console.log(`[VOICE-PARTICIPANT] Participant container exists: ${!!participantContainer}`);
+
             
             if (participantContainer) {
-                console.log(`[VOICE-PARTICIPANT] Container classes:`, participantContainer.className);
-                console.log(`[VOICE-PARTICIPANT] Container hidden:`, participantContainer.classList.contains('hidden'));
+
+
             }
         });
         
         if (window.globalSocketManager?.isReady()) {
-            console.log('[VOICE-PARTICIPANT] Socket is ready, requesting voice meeting status...');
+
             voiceChannels.forEach(channel => {
                 const channelId = channel.getAttribute('data-channel-id');
                 window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
@@ -421,11 +421,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('[VOICE-PARTICIPANT] Socket not ready');
         }
         
-        console.log('[VOICE-PARTICIPANT] Test complete. Check console for voice meeting updates.');
+
     };
     
     window.addTestVoiceParticipant = function(channelId, userId, username) {
-        console.log('[VOICE-PARTICIPANT] Adding test participant...');
+
         
         if (!window.ChannelVoiceParticipants) {
             console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
@@ -441,14 +441,14 @@ document.addEventListener('DOMContentLoaded', function() {
         manager.addParticipant(channelId, userId, username);
         manager.updateParticipantContainer(channelId);
         
-        console.log('[VOICE-PARTICIPANT] Test participant added. Check channel list.');
+
     };
     
     window.listVoiceParticipantContainers = function() {
-        console.log('[VOICE-PARTICIPANT] Listing all voice participant containers...');
+
         
         const containers = document.querySelectorAll('.voice-participants');
-        console.log('[VOICE-PARTICIPANT] Found containers:', containers.length);
+
         
         containers.forEach((container, index) => {
             const channelId = container.getAttribute('data-channel-id');
@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     window.testVoiceParticipantCount = function(channelId, count) {
-        console.log('[VOICE-PARTICIPANT] Testing voice participant count update...');
+
         
         if (!window.ChannelVoiceParticipants) {
             console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
@@ -491,17 +491,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        console.log('[VOICE-PARTICIPANT] Before update:', countElement.textContent);
+
         manager.updateChannelCount(channelId, count);
-        console.log('[VOICE-PARTICIPANT] After update:', countElement.textContent);
-        console.log('[VOICE-PARTICIPANT] Test completed successfully');
+
+
     };
     
     window.verifyVoiceParticipantSystem = function() {
-        console.log('[VOICE-PARTICIPANT] Verifying voice participant system...');
+
         
         const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
-        console.log('[VOICE-PARTICIPANT] Found voice channels:', voiceChannels.length);
+
         
         let allGood = true;
         
@@ -511,25 +511,25 @@ document.addEventListener('DOMContentLoaded', function() {
             const countElement = channel.querySelector('.voice-user-count');
             const participantContainer = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
             
-            console.log(`[VOICE-PARTICIPANT] Channel ${index + 1}: ${channelName} (ID: ${channelId})`);
+
             
             if (!countElement) {
                 console.error('[VOICE-PARTICIPANT] Missing voice-user-count element for channel:', channelId);
                 allGood = false;
             } else {
-                console.log('[VOICE-PARTICIPANT] Count element found, current value:', countElement.textContent);
+
             }
             
             if (!participantContainer) {
                 console.error('[VOICE-PARTICIPANT] Missing voice-participants container for channel:', channelId);
                 allGood = false;
             } else {
-                console.log('[VOICE-PARTICIPANT] Participant container found');
+
             }
         });
         
         if (allGood) {
-            console.log('[VOICE-PARTICIPANT] System verification completed successfully');
+
         } else {
             console.error('[VOICE-PARTICIPANT] System verification found issues');
         }
@@ -537,12 +537,12 @@ document.addEventListener('DOMContentLoaded', function() {
         return allGood;
     };
     
-    console.log('[CHANNEL-SECTION] Test functions available:');
-    console.log('- testVoiceParticipants()');
-    console.log('- testVoiceParticipantCount(channelId, count)');
-    console.log('- verifyVoiceParticipantSystem()');
-    console.log('- debugVoiceParticipants()');
-    console.log('- testVoiceParticipantProfiles(channelId)');
+
+
+
+
+
+
     
     window.testVoiceParticipantProfiles = function(channelId) {
         if (!window.ChannelVoiceParticipants) {
@@ -577,7 +577,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Test functions for VideoSDK-based voice participants
 function testVideoSDKVoiceParticipants() {
-    console.log('🧪 [TEST] Testing VideoSDK-based voice participant system...');
+
     
     const voiceManager = window.voiceManager;
     const videoSDK = window.videoSDKManager;
@@ -595,13 +595,13 @@ function testVideoSDKVoiceParticipants() {
     });
     
     if (videoSDK?.meeting?.participants) {
-        console.log('👥 [TEST] Current VideoSDK participants:');
+
         videoSDK.meeting.participants.forEach((participant, id) => {
-            console.log(`  - ${id}: ${participant.displayName || participant.name || 'Unknown'}`);
+
         });
         
         if (videoSDK.meeting.localParticipant) {
-            console.log(`  - ${videoSDK.meeting.localParticipant.id}: ${videoSDK.meeting.localParticipant.displayName || videoSDK.meeting.localParticipant.name || 'You'} (local)`);
+
         }
     }
     
@@ -614,25 +614,25 @@ function testVideoSDKVoiceParticipants() {
 }
 
 function syncVideoSDKToChannelDisplay() {
-    console.log('🔄 [TEST] Manually syncing VideoSDK participants to channel display...');
+
     
     const participantSystem = window.ChannelVoiceParticipants?.getInstance();
     if (participantSystem && participantSystem.syncVideoSDKParticipants) {
         participantSystem.syncVideoSDKParticipants();
-        console.log('✅ [TEST] VideoSDK sync completed');
+
     } else {
         console.error('❌ [TEST] Participant system not available or missing sync method');
     }
 }
 
 function testVideoSDKParticipantEvents() {
-    console.log('🧪 [TEST] Testing VideoSDK participant event dispatch...');
+
     
     const testParticipantId = 'test-participant-' + Date.now();
     const testParticipantName = 'Test User';
     
     // Simulate VideoSDK participant joined
-    console.log('📤 [TEST] Dispatching videosdkParticipantJoined event...');
+
     window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
         detail: {
             participant: testParticipantId,
@@ -646,7 +646,7 @@ function testVideoSDKParticipantEvents() {
     
     setTimeout(() => {
         // Simulate VideoSDK participant left
-        console.log('📤 [TEST] Dispatching videosdkParticipantLeft event...');
+
         window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
             detail: {
                 participant: testParticipantId
@@ -654,11 +654,11 @@ function testVideoSDKParticipantEvents() {
         }));
     }, 2000);
     
-    console.log('✅ [TEST] Test events dispatched - check console for participant updates');
+
 }
 
 function getVideoSDKConnectionHealth() {
-    console.log('🏥 [TEST] VideoSDK Connection Health Check...');
+
     
     const videoSDK = window.videoSDKManager;
     const voiceManager = window.voiceManager;
@@ -724,7 +724,7 @@ function getVideoSDKConnectionHealth() {
 }
 
 function testGlobalParticipantBroadcast() {
-    console.log('📡 [TEST] Testing global participant broadcast system...');
+
     
     const voiceCallManager = window.voiceCallManager;
     const globalSocket = window.globalSocketManager;
@@ -745,7 +745,7 @@ function testGlobalParticipantBroadcast() {
         return false;
     }
     
-    console.log('✅ [TEST] Broadcasting test participant join...');
+
     
     const testParticipantId = 'test-global-' + Date.now();
     const testParticipantName = 'Test Global User';
@@ -754,16 +754,16 @@ function testGlobalParticipantBroadcast() {
     voiceCallManager.broadcastParticipantUpdate('join', testParticipantId, testParticipantName);
     
     setTimeout(() => {
-        console.log('✅ [TEST] Broadcasting test participant leave...');
+
         voiceCallManager.broadcastParticipantUpdate('leave', testParticipantId, testParticipantName);
     }, 2000);
     
-    console.log('📤 [TEST] Global broadcast test completed - check other users\' screens for updates');
+
     return true;
 }
 
 function verifyGlobalParticipantSystem() {
-    console.log('🔍 [TEST] Verifying complete global participant system...');
+
     
     const results = {
         videoSDKExists: !!window.videoSDKManager,
@@ -774,21 +774,21 @@ function verifyGlobalParticipantSystem() {
         voiceConnected: window.voiceManager?.isConnected || false
     };
     
-    console.log('📊 [TEST] System Components:', results);
+
     
     // Test VideoSDK participant detection
     if (results.videoSDKExists && results.voiceConnected) {
         const videoSDK = window.videoSDKManager;
-        console.log('👥 [TEST] VideoSDK Participants:');
+
         
         if (videoSDK.meeting?.participants) {
             videoSDK.meeting.participants.forEach((participant, id) => {
-                console.log(`  - ${id}: ${participant.displayName || participant.name || 'Unknown'} (remote)`);
+
             });
         }
         
         if (videoSDK.meeting?.localParticipant) {
-            console.log(`  - ${videoSDK.meeting.localParticipant.id}: ${videoSDK.meeting.localParticipant.displayName || videoSDK.meeting.localParticipant.name || 'You'} (local)`);
+
         }
     }
     
@@ -799,28 +799,28 @@ function verifyGlobalParticipantSystem() {
         
         if (currentChannelId) {
             const channelParticipants = participantSystem.getChannelParticipants(currentChannelId);
-            console.log('📋 [TEST] Channel Display Participants:');
+
             channelParticipants.forEach((participant, id) => {
-                console.log(`  - ${id}: ${participant.display_name || participant.username || 'Unknown'}`);
+
             });
         }
     }
     
     // Test global broadcasting capability
     if (results.voiceCallManagerExists && results.globalSocketReady) {
-        console.log('📡 [TEST] Global broadcast system operational');
+
     } else {
         console.warn('⚠️ [TEST] Global broadcast system not ready');
     }
     
     const allSystemsGo = Object.values(results).every(v => v === true);
-    console.log(allSystemsGo ? '✅ [TEST] All systems operational!' : '⚠️ [TEST] Some systems need attention');
+
     
     return results;
 }
 
 function testChannelSwitchCompatibility() {
-    console.log('🔄 [TEST] Testing channel switch compatibility...');
+
     
     const participantSystem = window.ChannelVoiceParticipants?.getInstance();
     if (!participantSystem) {
@@ -840,17 +840,17 @@ function testChannelSwitchCompatibility() {
     const methodResults = {};
     methods.forEach(method => {
         methodResults[method] = typeof participantSystem[method] === 'function';
-        console.log(`${methodResults[method] ? '✅' : '❌'} [TEST] ${method}() ${methodResults[method] ? 'exists' : 'missing'}`);
+
     });
     
     const allMethodsExist = Object.values(methodResults).every(exists => exists);
-    console.log(allMethodsExist ? '✅ [TEST] All required methods exist' : '⚠️ [TEST] Some methods are missing');
+
     
     if (allMethodsExist) {
-        console.log('🔧 [TEST] Testing refreshAllChannelCounts...');
+
         try {
             participantSystem.refreshAllChannelCounts();
-            console.log('✅ [TEST] refreshAllChannelCounts executed successfully');
+
         } catch (error) {
             console.error('❌ [TEST] refreshAllChannelCounts failed:', error);
         }
@@ -860,7 +860,7 @@ function testChannelSwitchCompatibility() {
 }
 
 function forceRefreshAllVoiceChannels() {
-    console.log('🔄 [TEST] Force refreshing all voice channels...');
+
     
     const participantSystem = window.ChannelVoiceParticipants?.getInstance();
     if (participantSystem) {
@@ -874,13 +874,12 @@ function forceRefreshAllVoiceChannels() {
                 participantSystem.updateAllParticipantContainers();
             }
         }
-        console.log('✅ [TEST] Voice channel refresh completed');
+
     } else {
         console.error('❌ [TEST] Participant system not available');
     }
 }
 
-// Global test functions for easy console access
 window.testVideoSDKVoiceParticipants = testVideoSDKVoiceParticipants;
 window.syncVideoSDKToChannelDisplay = syncVideoSDKToChannelDisplay;
 window.testVideoSDKParticipantEvents = testVideoSDKParticipantEvents;
@@ -890,14 +889,14 @@ window.verifyGlobalParticipantSystem = verifyGlobalParticipantSystem;
 window.testChannelSwitchCompatibility = testChannelSwitchCompatibility;
 window.forceRefreshAllVoiceChannels = forceRefreshAllVoiceChannels;
 
-console.log('🧪 [TEST-FUNCTIONS] Complete VideoSDK + Global test functions loaded:');
-console.log('  - testVideoSDKVoiceParticipants() - Local VideoSDK system');
-console.log('  - syncVideoSDKToChannelDisplay() - Sync VideoSDK to display');
-console.log('  - testVideoSDKParticipantEvents() - Test event system');
-console.log('  - getVideoSDKConnectionHealth() - Health check');
-console.log('  - testGlobalParticipantBroadcast() - Test global broadcasting');
-console.log('  - verifyGlobalParticipantSystem() - Complete system verification');
-console.log('  - testChannelSwitchCompatibility() - Test channel switch compatibility');
-console.log('  - forceRefreshAllVoiceChannels() - Force refresh all channels');
+
+
+
+
+
+
+
+
+
 </script>
 

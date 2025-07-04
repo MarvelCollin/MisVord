@@ -53,7 +53,7 @@ class GlobalNotificationHandler {
         const notificationId = `${data.message_id || data.timestamp || Date.now()}-${data.user_id}-${data.type}`;
         
         if (this.processedNotifications.has(notificationId)) {
-            console.log('🔄 [NOTIFICATION] Duplicate notification detected, skipping:', notificationId);
+
             return;
         }
         
@@ -68,14 +68,14 @@ class GlobalNotificationHandler {
         const isRoleMention = data.type === 'role' && data.mentioned_user_id?.toString() === this.currentUserId.toString();
 
         if (isUserMention || isAllMention || isRoleMention) {
-            console.log('🔔 [NOTIFICATION] Showing notification for:', { type: data.type, notificationId });
+
             this.showNotification(data, isAllMention, isRoleMention);
             this.playNotificationSound();
         }
     }
 
     showNotification(data, isAllMention, isRoleMention) {
-        console.log('🔔 [NOTIFICATION] Received notification data:', JSON.stringify(data, null, 2));
+
         console.log('🔍 [NOTIFICATION] Server ID analysis:', {
             'data.server_id': data.server_id,
             'data.context.server_id': data.context?.server_id,
@@ -259,7 +259,7 @@ class GlobalNotificationHandler {
 
     async navigateToMention(data) {
         try {
-            console.log('🔗 [NOTIFICATION] Navigating to mention with data:', JSON.stringify(data, null, 2));
+
             console.log('🔍 [NOTIFICATION] Server ID detection analysis:', {
                 'data.server_id': data.server_id,
                 'data.context.server_id': data.context?.server_id,
@@ -272,28 +272,28 @@ class GlobalNotificationHandler {
                 
                 if (data.server_id) {
                     serverId = data.server_id;
-                    console.log('✅ [NOTIFICATION] Using server_id from notification data:', serverId);
+
                 } else if (data.context && data.context.server_id) {
                     serverId = data.context.server_id;
-                    console.log('✅ [NOTIFICATION] Using server_id from context:', serverId);
+
                 } else {
                     console.warn('⚠️ [NOTIFICATION] No server_id in notification data or context!');
-                    console.log('🔍 [NOTIFICATION] Available data keys:', Object.keys(data));
-                    console.log('🔍 [NOTIFICATION] Available context keys:', data.context ? Object.keys(data.context) : 'no context');
+
+
                     
                     const currentPath = window.location.pathname;
                     const serverMatch = currentPath.match(/\/server\/(\d+)/);
                     if (serverMatch) {
                         serverId = serverMatch[1];
-                        console.log('⚠️ [NOTIFICATION] Fallback: Using current page server_id:', serverId);
+
                     } else {
                         console.error('❌ [NOTIFICATION] Cannot determine server_id for navigation');
                         return;
                     }
                 }
                 
-                console.log('🎯 [NOTIFICATION] Final server_id for navigation:', serverId);
-                console.log('🎯 [NOTIFICATION] Target channel_id:', data.target_id);
+
+
                 
                 const currentPath = window.location.pathname;
                 const currentServerMatch = currentPath.match(/\/server\/(\d+)/);
@@ -306,17 +306,17 @@ class GlobalNotificationHandler {
                 });
                 
                 if (currentServerId === serverId.toString()) {
-                    console.log('📍 [NOTIFICATION] Same server navigation - using SimpleChannelSwitcher');
+
                     
                     if (window.simpleChannelSwitcher && typeof window.simpleChannelSwitcher.switchToChannel === 'function') {
-                        console.log('🔄 [NOTIFICATION] Calling switchToChannel for channel:', data.target_id);
+
                         await window.simpleChannelSwitcher.switchToChannel(data.target_id, 'text', true, data.message_id);
-                        console.log('✅ [NOTIFICATION] SimpleChannelSwitcher completed');
+
                         
                         if (data.message_id) {
                             setTimeout(() => {
                                 if (window.MessageHighlighter && typeof window.MessageHighlighter.highlightMessage === 'function') {
-                                    console.log('🎯 [NOTIFICATION] Attempting to highlight message:', data.message_id);
+
                                     window.MessageHighlighter.highlightMessage(data.message_id);
                                 }
                             }, 1500);
@@ -324,19 +324,19 @@ class GlobalNotificationHandler {
                         return;
                     } else {
                         console.warn('⚠️ [NOTIFICATION] SimpleChannelSwitcher not available, falling back to URL navigation');
-                        console.log('🔍 [NOTIFICATION] Available switcher methods:', window.simpleChannelSwitcher ? Object.getOwnPropertyNames(window.simpleChannelSwitcher) : 'switcher not found');
+
                     }
                 }
                 
                 const targetUrl = `/server/${serverId}?channel=${data.target_id}&type=text${data.message_id ? '#message-' + data.message_id : ''}`;
-                console.log('🔗 [NOTIFICATION] Navigating to URL:', targetUrl);
+
                 
                 window.location.href = targetUrl;
                 
             } else if (data.target_type === 'dm' && data.target_id) {
-                console.log('💬 [NOTIFICATION] Navigating to DM:', data.target_id);
+
                 const targetUrl = `/home/channels/dm/${data.target_id}${data.message_id ? '#message-' + data.message_id : ''}`;
-                console.log('🔗 [NOTIFICATION] DM URL:', targetUrl);
+
                 window.location.href = targetUrl;
             } else {
                 console.warn('⚠️ [NOTIFICATION] Invalid navigation data:', data);
@@ -348,7 +348,7 @@ class GlobalNotificationHandler {
 }
 
 window.testNotificationNavigation = function(testServerId = 13, testChannelId = 13, testMessageId = 'test-123') {
-    console.log('🧪 [NOTIFICATION-TEST] Testing notification navigation with correct server ID');
+
     
     const testData = {
         target_type: 'channel',
@@ -364,7 +364,7 @@ window.testNotificationNavigation = function(testServerId = 13, testChannelId = 
         content: 'This is a test mention'
     };
     
-    console.log('🧪 [NOTIFICATION-TEST] Test data:', testData);
+
     
     if (window.globalNotificationHandler) {
         window.globalNotificationHandler.navigateToMention(testData).catch(error => {
@@ -389,22 +389,22 @@ window.debugCurrentLocation = function() {
 };
 
 window.testCorrectServerNavigation = function() {
-    console.log('🧪 [NAV-TEST] Testing correct server navigation');
+
     
     if (window.location.pathname.includes('/server/14')) {
-        console.log('🧪 [NAV-TEST] Currently on server 14, testing navigation to server 13 channel 13');
+
         window.testNotificationNavigation(13, 13, 'test-server-13');
     } else if (window.location.pathname.includes('/server/13')) {
-        console.log('🧪 [NAV-TEST] Currently on server 13, testing navigation to server 14 channel 13');
+
         window.testNotificationNavigation(14, 13, 'test-server-14');
     } else {
-        console.log('🧪 [NAV-TEST] Not on a server page, testing navigation to server 13');
+
         window.testNotificationNavigation(13, 13, 'test-general');
     }
 };
 
 window.testAllMentionNotification = function() {
-    console.log('🧪 [ALL-MENTION-TEST] Testing @all mention notification (should show only ONE notification)');
+
     
     const testAllMentionData = {
         type: 'all',
@@ -426,11 +426,11 @@ window.testAllMentionNotification = function() {
         }
     };
     
-    console.log('🧪 [ALL-MENTION-TEST] Simulating @all mention with data:', testAllMentionData);
+
     
     if (window.globalNotificationHandler) {
         window.globalNotificationHandler.handleMentionNotification(testAllMentionData);
-        console.log('✅ [ALL-MENTION-TEST] @all mention test completed - check for single notification');
+
     } else {
         console.error('❌ [ALL-MENTION-TEST] globalNotificationHandler not found');
     }

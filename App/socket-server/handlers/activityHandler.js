@@ -300,7 +300,7 @@ class ActivityHandler {
             return;
         }
         
-        console.log(`🎯 [PLAY-AGAIN] User ${client.data.user_id} requesting play again`);
+
         
         client.data.ticTacToePlayAgainRequest = true;
         
@@ -319,15 +319,15 @@ class ActivityHandler {
                 
                 const hasRequest = socket.data.ticTacToePlayAgainRequest || false;
                 playAgainRequests.push(hasRequest);
-                console.log(`🎯 [PLAY-AGAIN] User ${socket.data.user_id} has request: ${hasRequest}`);
+
             }
         });
         
         const bothWantPlayAgain = playAgainRequests.every(request => request === true);
-        console.log(`🎯 [PLAY-AGAIN] Both want play again: ${bothWantPlayAgain}`);
+
         
         if (bothWantPlayAgain) {
-            console.log(`🎯 [PLAY-AGAIN] Starting new game for ${players.length} players`);
+
             
             const gameData = {
                 players: players,
@@ -346,10 +346,10 @@ class ActivityHandler {
                 }
             });
             
-            console.log(`🎯 [PLAY-AGAIN] Emitting game-start to room: ${roomName}`);
+
             io.to(roomName).emit('tic-tac-toe-game-start', gameData);
         } else {
-            console.log(`🎯 [PLAY-AGAIN] Sending request to other player`);
+
             client.to(roomName).emit('tic-tac-toe-play-again-request', {
                 player: {
                     user_id: client.data.user_id,

@@ -8,7 +8,7 @@ import { loadCSS, unloadCSS } from './utils/css-loader.js';
 import NitroCrownManager from './utils/nitro-crown-manager.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Main application loaded');
+
     
     if (typeof window !== 'undefined') {
         window.showToast = showToast;
@@ -329,31 +329,31 @@ export {
 };
 
 async function initializeNavigation() {
-    console.log('[Main] Navigation system no longer uses AJAX - using normal page redirects');
+
     return true;
 }
 
 async function initializeApplication() {
-    console.log('[Main] Starting application initialization');
+
     
     await initializeNavigation();
     
     if (document.readyState === 'complete') {
-        console.log('[Main] Document ready, initializing components');
+
         initializeComponents();
     } else {
-        console.log('[Main] Waiting for document ready');
+
         document.addEventListener('DOMContentLoaded', initializeComponents);
     }
 }
 
 function initializeComponents() {
-    console.log('[Main] Initializing core components');
+
     
     const isAuthenticated = document.querySelector('meta[name="user-authenticated"]')?.content === 'true';
     
     if (isAuthenticated) {
-        console.log('[Main] User authenticated, setting up navigation');
+
         
         setTimeout(() => {
             if (typeof window.initServerSidebar === 'function') {

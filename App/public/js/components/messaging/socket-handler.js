@@ -8,7 +8,7 @@ class SocketHandler {
     setupIoListeners() {
         // If socket is not ready, wait for it
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
-            console.log('⏳ Socket not ready, setting up event listener');
+
             window.addEventListener('globalSocketReady', this.handleSocketReady.bind(this));
             return;
         }
@@ -17,7 +17,7 @@ class SocketHandler {
     }
     
     handleSocketReady() {
-        console.log('🔌 Socket ready event received, setting up handlers');
+
         if (window.globalSocketManager && window.globalSocketManager.io) {
             this.setupSocketHandlers(window.globalSocketManager.io);
         }
@@ -30,11 +30,11 @@ class SocketHandler {
         }
         
         if (this.socketListenersSetup) {
-            console.log('⚠️ Socket listeners already setup, skipping');
+
             return;
         }
         
-        console.log('🔌 Setting up socket handlers');
+
         
         io.off('new-channel-message');
         io.off('user-message-dm');
@@ -75,7 +75,7 @@ class SocketHandler {
         io.on('user-stop-typing-dm', this.handleStopTypingDM.bind(this));
         
         this.socketListenersSetup = true;
-        console.log('✅ Socket handlers setup complete');
+
     }
     
     handleChannelMessage(data) {
@@ -102,7 +102,7 @@ class SocketHandler {
             const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
             
             if (alreadyProcessed) {
-                console.log('🔄 Skipping duplicate channel message (already processed):', data.id);
+
                 return;
             }
             
@@ -172,7 +172,7 @@ class SocketHandler {
             const alreadyProcessed = this.chatSection.messageHandler.processedMessageIds.has(data.id);
             
             if (alreadyProcessed) {
-                console.log('🔄 Skipping duplicate DM message (already processed):', data.id);
+
                 return;
             }
             
@@ -225,7 +225,7 @@ class SocketHandler {
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (!messageElement) return;
             
-            console.log('🔄 Updating message:', data.message_id);
+
             
             const messageTextElement = messageElement.querySelector('.bubble-message-text');
             if (messageTextElement && data.content) {
@@ -274,17 +274,17 @@ class SocketHandler {
             }
             
             if (isSender) {
-                console.log('🔄 [SOCKET-HANDLER] Skipping own deletion event:', data.message_id);
+
                 return;
             }
             
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (!messageElement) {
-                console.log('⚠️ [SOCKET-HANDLER] Message element not found for deletion:', data.message_id);
+
                 return;
             }
             
-            console.log('🗑️ [SOCKET-HANDLER] Removing message from UI for other user deletion:', data.message_id);
+
             
             messageElement.style.transition = 'opacity 0.3s ease';
             messageElement.style.opacity = '0';
@@ -292,10 +292,10 @@ class SocketHandler {
             setTimeout(() => {
                 const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
                 if (messageGroup && messageGroup.querySelectorAll('.bubble-message-content, .message-content').length === 1) {
-                    console.log('🗑️ [SOCKET-HANDLER] Removing entire message group');
+
                     messageGroup.remove();
                 } else {
-                    console.log('🗑️ [SOCKET-HANDLER] Removing individual message');
+
                     messageElement.remove();
                 }
                 
@@ -308,7 +308,7 @@ class SocketHandler {
                     this.chatSection.showEmptyState();
                 }
                 
-                console.log('✅ [SOCKET-HANDLER] Message successfully removed from UI');
+
             }, 300);
             
         } catch (error) {
@@ -319,7 +319,7 @@ class SocketHandler {
     handleMessagePinned(data) {
         try {
             if (!data || !data.message_id) return;
-            console.log('📌 Message pinned:', data.message_id);
+
             
             // Add pin icon to message
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
@@ -341,7 +341,7 @@ class SocketHandler {
     handleMessageUnpinned(data) {
         try {
             if (!data || !data.message_id) return;
-            console.log('📌 Message unpinned:', data.message_id);
+
             
             // Remove pin icon from message
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
@@ -371,7 +371,7 @@ class SocketHandler {
             // Find the temporary message element
             const tempElement = document.querySelector(`[data-message-id="${data.temp_message_id}"]`);
             if (tempElement) {
-                console.log(`✅ Updating message ID from ${data.temp_message_id} to ${data.real_message_id}`);
+
                 
                 // Update the message ID to the real server ID
                 tempElement.dataset.messageId = data.real_message_id;
@@ -401,7 +401,7 @@ class SocketHandler {
                     
                     // Update message with complete data from database (including reply_data)
                     if (data.message_data && data.message_data.reply_data) {
-                        console.log('🔄 [SOCKET-HANDLER] Updating message with reply data from database:', data.message_data.reply_data);
+
                         
                         // Check if reply container already exists
                         let replyContainer = tempElement.querySelector('.bubble-reply-container');
@@ -420,7 +420,7 @@ class SocketHandler {
                                     messageContent.appendChild(replyContainer);
                                 }
                                 
-                                console.log('✅ [SOCKET-HANDLER] Added reply container to permanent message');
+
                             }
                         }
                     }
@@ -431,7 +431,7 @@ class SocketHandler {
                 
                 // Notify emoji reactions system of the ID change
                 if (window.emojiReactions) {
-                    console.log('🔄 Notifying emoji reactions system of ID change');
+
                     window.emojiReactions.handleMessageIdUpdated(data.temp_message_id, data.real_message_id);
                 }
                 
@@ -445,9 +445,9 @@ class SocketHandler {
                     }
                 }));
                 
-                console.log(`✅ Successfully updated message ID from ${data.temp_message_id} to ${data.real_message_id}`);
+
             } else {
-                console.log(`⚠️ Temporary message element not found for ID: ${data.temp_message_id}`);
+
             }
 
             // Update any bot reply messages that reference this temp ID
@@ -470,11 +470,11 @@ class SocketHandler {
                     reactionButton.dataset.messageId = permanentId;
                 }
                 
-                console.log('🔄 Re-enabled reaction button for permanent message ID:', permanentId);
+
             }
             
             if (window.emojiReactions && typeof window.emojiReactions.updateReactionButtonState === 'function') {
-                console.log('🔄 Updating reaction button state for permanent message ID via emoji system');
+
                 window.emojiReactions.updateReactionButtonState(messageElement, permanentId);
             }
             
@@ -601,7 +601,7 @@ class SocketHandler {
             
             const isSender = data.user_id === window.globalSocketManager?.userId;
             if (isSender) {
-                console.log('🔄 [SOCKET-HANDLER] Ignoring own edit');
+
                 return;
             }
             
@@ -621,7 +621,7 @@ class SocketHandler {
                         messageTextElement.appendChild(editedBadge);
                     }
                     
-                    console.log('✅ [SOCKET-HANDLER] Message updated from edit');
+
                 }
             }
         } catch (error) {
@@ -633,7 +633,7 @@ class SocketHandler {
         try {
             if (!data || !data.message_id) return;
             
-            console.log('✅ [SOCKET-HANDLER] Edit confirmed:', data.message_id);
+
             
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
@@ -648,7 +648,7 @@ class SocketHandler {
         try {
             if (!data || !data.message_id) return;
             
-            console.log('❌ [SOCKET-HANDLER] Edit failed:', data.message_id, data.error);
+
             
             const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
             if (messageElement) {
@@ -665,7 +665,7 @@ class SocketHandler {
     
     handleTyping(data) {
         try {
-            console.log('⌨️ [SOCKET-HANDLER] Channel typing event received:', data);
+
             const userId = data.user_id;
             const username = data.username;
             
@@ -685,7 +685,7 @@ class SocketHandler {
     
     handleStopTyping(data) {
         try {
-            console.log('⌨️ [SOCKET-HANDLER] Channel stop typing event received:', data);
+
             const userId = data.user_id;
             if (!userId || userId === this.chatSection.userId) return;
             
@@ -703,7 +703,7 @@ class SocketHandler {
     
     handleTypingDM(data) {
         try {
-            console.log('⌨️ [SOCKET-HANDLER] DM typing event received:', data);
+
             const userId = data.user_id;
             const username = data.username;
             
@@ -723,7 +723,7 @@ class SocketHandler {
     
     handleStopTypingDM(data) {
         try {
-            console.log('⌨️ [SOCKET-HANDLER] DM stop typing event received:', data);
+
             const userId = data.user_id;
             if (!userId || userId === this.chatSection.userId) return;
             
@@ -804,7 +804,7 @@ class SocketHandler {
             `;
             typingIndicator.classList.remove('hidden');
             
-            console.log('⌨️ [SOCKET-HANDLER] Updated typing indicator:', typingMessage);
+
         } catch (error) {
             console.error('❌ [SOCKET-HANDLER] Error updating typing indicator:', error);
         }
@@ -822,7 +822,7 @@ class SocketHandler {
                 return false;
             }
             
-            console.log('🔌 Joining channel:', this.chatSection.targetId);
+
             
             if (this.chatSection.chatType === 'channel') {
                 window.globalSocketManager.joinChannel(this.chatSection.targetId);
@@ -845,12 +845,12 @@ class SocketHandler {
     //         const currentUserId = window.globalSocketManager?.userId;
     //         if (!currentUserId) return;
     //         
-    //         console.log('💬 [SOCKET-HANDLER] Local mention notification received:', data);
+
     //         
     //         const isCurrentChat = this.isCurrentChat(data);
     //         
     //         if (data.type === 'all') {
-    //             console.log('📢 [SOCKET-HANDLER] @all mention detected locally');
+
     //             if (isCurrentChat && this.chatSection.mentionHandler) {
     //                 this.chatSection.mentionHandler.handleMentionNotification({
     //                     ...data,
@@ -858,7 +858,7 @@ class SocketHandler {
     //                 });
     //             }
     //         } else if (data.type === 'role' && data.mentioned_user_id === currentUserId) {
-    //             console.log(`👥 [SOCKET-HANDLER] Role mention detected locally: @${data.role} for current user`);
+
     //             if (isCurrentChat && this.chatSection.mentionHandler) {
     //                 this.chatSection.mentionHandler.handleMentionNotification({
     //                     ...data,
@@ -866,7 +866,7 @@ class SocketHandler {
     //                 });
     //             }
     //         } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
-    //             console.log('👤 [SOCKET-HANDLER] User mention detected locally for current user');
+
     //             if (isCurrentChat && this.chatSection.mentionHandler) {
     //                 this.chatSection.mentionHandler.handleMentionNotification({
     //                     ...data,
@@ -921,12 +921,12 @@ class SocketHandler {
         }
         
         if (!this.socketListenersSetup && window.globalSocketManager?.isReady()) {
-            console.log('🔄 [SOCKET-HANDLER] Re-setting up socket listeners after channel switch');
+
             this.setupSocketHandlers(window.globalSocketManager.io);
         }
         
         if (this.socketListenersSetup && window.globalSocketManager?.isReady()) {
-            console.log('🔄 [SOCKET-HANDLER] Socket listeners already set up, ensuring reactions handlers are active');
+
             const io = window.globalSocketManager.io;
             
             io.off('reaction-added');
@@ -947,10 +947,10 @@ class SocketHandler {
                 }
             });
             
-            console.log('✅ [SOCKET-HANDLER] Reaction handlers refreshed for new channel');
+
         }
         
-        console.log('✅ [SOCKET-HANDLER] Socket handler refreshed for new channel');
+
     }
 
     updateBotReplyReferences(tempId, permanentId) {
@@ -959,7 +959,7 @@ class SocketHandler {
             const botReplyElements = document.querySelectorAll(`[data-reply-message-id="${tempId}"]`);
             
             botReplyElements.forEach(replyContainer => {
-                console.log(`🤖 [SOCKET-HANDLER] Updating bot reply reference from ${tempId} to ${permanentId}`);
+
                 
                 // Update the data attribute
                 replyContainer.dataset.replyMessageId = permanentId;
@@ -971,7 +971,7 @@ class SocketHandler {
                     replyContainer.setAttribute('onclick', updatedOnclick);
                 }
                 
-                console.log(`✅ [SOCKET-HANDLER] Updated bot reply reference to permanent ID: ${permanentId}`);
+
             });
             
             // Also update any reply containers that might have the temp ID in their data

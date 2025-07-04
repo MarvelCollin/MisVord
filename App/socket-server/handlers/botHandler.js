@@ -24,7 +24,7 @@ class BotHandler extends EventEmitter {
             lastActivity: Date.now()
         });
         
-        console.log(`✅ [BOT-DEBUG] Bot registered successfully. Total bots: ${this.bots.size}`);
+
     }
 
     static connectBot(io, botId, username) {
@@ -36,7 +36,7 @@ class BotHandler extends EventEmitter {
         
         const bot = this.bots.get(botId);
         if (!bot) {
-            console.log(`🤖 [BOT-DEBUG] Bot not found, registering new bot`);
+
             this.registerBot(botId, username);
         }
 
@@ -50,7 +50,7 @@ class BotHandler extends EventEmitter {
                 avatar_url: '/public/assets/common/default-profile-picture.png'
             },
             emit: (event, data) => {
-                console.log(`🤖 [BOT-DEBUG] Bot ${username} emitting ${event}`);
+
             },
             to: (room) => ({
                 emit: (event, data) => {
@@ -61,7 +61,7 @@ class BotHandler extends EventEmitter {
 
         this.activeConnections.set(botId, botClient);
         
-        console.log(`🤖 [BOT-DEBUG] Setting up bot listeners for ${username}`);
+
         this.setupBotListeners(io, botId, username);
         
         console.log(`✅ [BOT-DEBUG] Bot connected successfully:`, {
@@ -81,7 +81,7 @@ class BotHandler extends EventEmitter {
         });
         
         this.botEventEmitter.removeAllListeners('bot-message-intercept');
-        console.log(`🧹 [BOT-DEBUG] Cleared existing listeners`);
+
 
         const messageHandler = async (data) => {
             console.log(`🎯 [BOT-DEBUG] Message intercepted by listener:`, {
@@ -99,7 +99,7 @@ class BotHandler extends EventEmitter {
             
             const messageType = channelId ? 'channel' : 'dm';
             
-            console.log(`🎯 [BOT-DEBUG] Message type determined: ${messageType}`);
+
             
             const titiBotId = this.getTitiBotId();
             if (!titiBotId) {
@@ -123,7 +123,7 @@ class BotHandler extends EventEmitter {
 
         this.botEventEmitter.on('bot-message-intercept', messageHandler);
         
-        console.log(`✅ [BOT-DEBUG] Message listener attached. Total listeners: ${this.botEventEmitter.listenerCount('bot-message-intercept')}`);
+
     }
 
     static emitBotMessageIntercept(data) {
@@ -137,7 +137,7 @@ class BotHandler extends EventEmitter {
         
         this.botEventEmitter.emit('bot-message-intercept', data);
         
-        console.log(`📤 [BOT-DEBUG] Bot message intercept emitted`);
+
     }
 
     static async handleMessage(io, data, messageType, botId, username) {
@@ -154,7 +154,7 @@ class BotHandler extends EventEmitter {
         const messageId = data.id || `${data.user_id}-${data.channel_id || data.room_id}-${data.content}`;
         
         if (this.processedMessages.has(messageId)) {
-            console.log(`🤖 [BOT-DEBUG] Message already processed, skipping: ${messageId}`);
+
             return;
         }
         
@@ -173,7 +173,7 @@ class BotHandler extends EventEmitter {
         }
         
         if (data.user_id == botId) {
-            console.log(`🤖 [BOT-DEBUG] Ignoring message from bot itself`);
+
             return;
         }
 
@@ -183,12 +183,12 @@ class BotHandler extends EventEmitter {
         let voiceChannelToJoin = null;
 
         if (!content) {
-            console.log(`🤖 [BOT-DEBUG] No content in message, skipping`);
+
             return;
         }
 
         const isTitiBotCommand = content.startsWith('/titibot');
-        console.log(`🤖 [BOT-DEBUG] Command check: "${content}" -> isTitiBotCommand: ${isTitiBotCommand}`);
+
         
         const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue', 'join'];
         const commandKeyword = content.split(' ')[1] || '';
@@ -196,29 +196,29 @@ class BotHandler extends EventEmitter {
 
         if (data.voice_context && data.voice_context.voice_channel_id) {
             voiceChannelToJoin = data.voice_context.voice_channel_id;
-            console.log(`🎤 [BOT-DEBUG] Voice context provided from frontend: channel ${voiceChannelToJoin}`);
+
         } else {
-            console.log(`🎤 [BOT-DEBUG] No voice context provided from frontend.`);
+
         }
 
         if (requiresVoice && !voiceChannelToJoin) {
-            console.log('🎤 [BOT-DEBUG] Music command issued but user has no voice channel context. Sending warning.');
+
             await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
             return;
         }
 
         /* -------- Command Routing -------- */
         if (content.toLowerCase() === '/titibot ping') {
-            console.log(`🏓 [BOT-DEBUG] Processing PING command`);
+
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
         } else if (content.toLowerCase().startsWith('/titibot play ')) {
             const songName = content.substring('/titibot play '.length).trim();
-            console.log(`🎵 [BOT-DEBUG] Processing PLAY command with song: "${songName}"`);
-            console.log(`🎤 [BOT-DEBUG] Voice channel to join: ${voiceChannelToJoin}`);
+
+
             
             // Join voice channel ONLY for play command
             if (voiceChannelToJoin) {
-                console.log(`🎤 [BOT-DEBUG] Ensuring bot in voice channel ${voiceChannelToJoin} (PLAY)`);
+
                 await this.ensureBotInVoiceChannel(io, botId, username, voiceChannelToJoin);
             } else {
                 console.warn(`⚠️ [BOT-DEBUG] No voice channel context for PLAY command - music will play without bot joining`);
@@ -226,7 +226,7 @@ class BotHandler extends EventEmitter {
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content.toLowerCase() === '/titibot stop') {
-            console.log(`⏹️ [BOT-DEBUG] Processing STOP command`);
+
             
             // Leave voice channel on stop command
             let channelIdForLeave = voiceChannelToJoin;
@@ -240,28 +240,28 @@ class BotHandler extends EventEmitter {
                 }
             }
             if (channelIdForLeave) {
-                console.log(`🎤 [BOT-DEBUG] Removing bot from voice channel ${channelIdForLeave} (STOP)`);
+
                 this.removeBotFromVoiceChannel(io, botId, channelIdForLeave);
             }
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content.toLowerCase() === '/titibot next') {
-            console.log(`⏭️ [BOT-DEBUG] Processing NEXT command`);
+
             await this.sendBotResponse(io, data, messageType, botId, username, 'next');
         } else if (content.toLowerCase() === '/titibot prev') {
-            console.log(`⏮️ [BOT-DEBUG] Processing PREV command`);
+
             await this.sendBotResponse(io, data, messageType, botId, username, 'prev');
         } else if (content.toLowerCase().startsWith('/titibot queue ')) {
             const songName = content.substring('/titibot queue '.length).trim();
-            console.log(`➕ [BOT-DEBUG] Processing QUEUE command with song: "${songName}"`);
+
             await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
         } else if (content.toLowerCase().startsWith('/titibot help')) {
-            console.log(`❓ [BOT-DEBUG] Processing HELP command`);
+
             await this.sendBotResponse(io, data, messageType, botId, username, 'help');
         } else if (isTitiBotCommand) {
-            console.log(`❌ [BOT-DEBUG] Unknown TitiBot command: "${content}"`);
+
         } else {
-            console.log(`🤖 [BOT-DEBUG] Message does not match any bot commands, ignoring`);
+
         }
     }
 
@@ -298,14 +298,14 @@ class BotHandler extends EventEmitter {
         const botParticipantKey = `${botId}-${channelId}`;
         
         if (!this.botVoiceParticipants.has(botParticipantKey)) {
-            console.log(`🤖 [BOT-VOICE] Bot not found in voice channel ${channelId}`);
+
             return;
         }
 
         const botParticipant = this.botVoiceParticipants.get(botParticipantKey);
         this.botVoiceParticipants.delete(botParticipantKey);
 
-        console.log(`🤖 [BOT-VOICE] Removing bot from voice channel ${channelId}`);
+
         
         // Emit to both voice channel room and regular channel room
         const voiceChannelRoom = `voice-channel-${channelId}`;
@@ -317,7 +317,7 @@ class BotHandler extends EventEmitter {
         io.to(voiceChannelRoom).emit('bot-voice-participant-left', eventData);
         io.to(`channel-${channelId}`).emit('bot-voice-participant-left', eventData);
         
-        console.log(`✅ [BOT-VOICE] Bot successfully removed from voice channel ${channelId}`);
+
     }
 
     static async sendBotResponse(io, originalMessage, messageType, botId, username, command, parameter = null) {
@@ -336,7 +336,7 @@ class BotHandler extends EventEmitter {
         switch (command) {
             case 'ping':
                 responseContent = '🏓 Pong! TitiBot is alive and ready to rock! 🎵';
-                console.log(`🏓 [BOT-DEBUG] Generated PING response`);
+
                 break;
 
             case 'help':
@@ -347,13 +347,13 @@ class BotHandler extends EventEmitter {
 ⏭️ **/titibot next** - Play next song
 ⏮️ **/titibot prev** - Play previous song
 ➕ **/titibot queue [song]** - Add song to queue`;
-                console.log(`❓ [BOT-DEBUG] Generated HELP response`);
+
                 break;
 
             case 'play':
                 if (!parameter) {
                     responseContent = '❌ Udah di bilang formatnya play {namaLagu} masih ngemeng';
-                    console.log(`❌ [BOT-DEBUG] PLAY command missing parameter`);
+
                 } else {
                     responseContent = `🎵 MUSIGGGGGGG: "${parameter}" - Searching and playing...`;
                     musicData = {
@@ -365,32 +365,32 @@ class BotHandler extends EventEmitter {
                             previewUrl: null
                         }
                     };
-                    console.log(`🎵 [BOT-DEBUG] Generated PLAY response for: "${parameter}"`);
+
                 }
                 break;
 
             case 'stop':
                 responseContent = '⏹️ Yah dimatiin';
                 musicData = { action: 'stop' };
-                console.log(`⏹️ [BOT-DEBUG] Generated STOP response`);
+
                 break;
 
             case 'next':
                 responseContent = '⏭️ Mainin musig selanjutnya';
                 musicData = { action: 'next' };
-                console.log(`⏭️ [BOT-DEBUG] Generated NEXT response`);
+
                 break;
 
             case 'prev':
                 responseContent = '⏮️ Mainin musig sebelumnya';
                 musicData = { action: 'prev' };
-                console.log(`⏮️ [BOT-DEBUG] Generated PREV response`);
+
                 break;
 
             case 'queue':
                 if (!parameter) {
                     responseContent = '❌ Udah di bilang formatnya queue {namaLagu} masih ngemeng';
-                    console.log(`❌ [BOT-DEBUG] QUEUE command missing parameter`);
+
                 } else {
                     responseContent = `➕ Berhasil di tambahin di queue king: "${parameter}" - Searching...`;
                     musicData = {
@@ -401,25 +401,25 @@ class BotHandler extends EventEmitter {
                             artist: 'Searching...'
                         }
                     };
-                    console.log(`➕ [BOT-DEBUG] Generated QUEUE response for: "${parameter}"`);
+
                 }
                 break;
 
             case 'not_in_voice':
                 responseContent = '❌ You need to be in a voice channel to use music commands. Please join a voice channel first or navigate to a voice channel page.';
-                console.log(`🎤 [BOT-DEBUG] Sending warning for not_in_voice command`);
+
                 break;
 
             default:
-                console.log(`❌ [BOT-DEBUG] Unknown command: ${command}`);
+
                 return;
         }
 
-        console.log(`⏳ [BOT-DEBUG] Waiting 1 second before sending response...`);
+
         await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Send immediate response without waiting for database save
-        console.log(`🚀 [BOT-DEBUG] Sending immediate bot response: "${responseContent?.substring(0, 50)}..."`);
+
         await this.sendImmediateBotResponse(io, originalMessage, messageType, botId, username, responseContent, musicData);
         
         // Also try to save to database in background
@@ -429,7 +429,7 @@ class BotHandler extends EventEmitter {
     }
 
     static async sendImmediateBotResponse(io, originalMessage, messageType, botId, username, responseContent, musicData) {
-        console.log(`⚡ [BOT-DEBUG] Sending immediate bot response`);
+
         
         const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
         const roomId = originalMessage.room_id || (originalMessage.target_type === 'dm' ? originalMessage.target_id : null);
@@ -470,7 +470,7 @@ class BotHandler extends EventEmitter {
         const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
         const targetRoom = messageType === 'channel' ? `channel-${channelId}` : `dm-room-${roomId}`;
         
-        console.log(`📡 [BOT-DEBUG] Emitting immediate response to room: ${targetRoom}`);
+
         io.to(targetRoom).emit(eventName, immediateData);
         
         // Send music command immediately
@@ -483,7 +483,7 @@ class BotHandler extends EventEmitter {
                 timestamp: Date.now()
             };
             
-            console.log(`🎵 [BOT-DEBUG] Emitting immediate music command:`, musicData.action);
+
             
             // Emit to multiple rooms
             io.to(targetRoom).emit('bot-music-command', musicCommandData);
@@ -496,10 +496,10 @@ class BotHandler extends EventEmitter {
             // Global emit as fallback
             io.emit('bot-music-command', musicCommandData);
             
-            console.log(`🎵 [BOT-DEBUG] Music command sent immediately`);
+
         }
         
-        console.log(`✅ [BOT-DEBUG] Immediate bot response sent successfully`);
+
     }
 
     static async sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData) {
@@ -680,7 +680,7 @@ class BotHandler extends EventEmitter {
                 // Add music data if present
                 if (musicData) {
                     broadcastData.music_data = musicData;
-                    console.log(`🎵 [BOT-DEBUG] Added music data to broadcast`);
+
                 }
                 
                 const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
@@ -712,7 +712,7 @@ class BotHandler extends EventEmitter {
                     })
                 };
                 
-                console.log(`🔄 [BOT-DEBUG] Using MessageHandler.forwardMessage for consistency`);
+
                 
                 // Forward the message using the standard message handler
                 MessageHandler.forwardMessage(io, mockBotClient, eventName, broadcastData);
@@ -742,16 +742,16 @@ class BotHandler extends EventEmitter {
                     if (channelId) {
                         const voiceChannelRoom = `voice-channel-${channelId}`;
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
-                        console.log(`🎵 [BOT-DEBUG] Music command also sent to voice room: ${voiceChannelRoom}`);
+
                     }
                     
                     // Emit globally to all sockets (fallback)
                     io.emit('bot-music-command', musicCommandData);
                     
-                    console.log(`🎵 [BOT-DEBUG] Music command sent for bot message`);
+
                 }
                 
-                console.log(`✅ [BOT-DEBUG] Bot message fully processed and broadcasted`);
+
             } else {
                 console.error(`❌ [BOT-DEBUG] Save failed:`, saveResult);
                 throw new Error(`Failed to save bot message: ${saveResult.message || 'Unknown error'}`);
@@ -787,10 +787,10 @@ class BotHandler extends EventEmitter {
             const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
             const targetRoom = messageType === 'channel' ? `channel-${channelId}` : `dm-room-${roomId}`;
             
-            console.log(`⚠️ [BOT-DEBUG] Sending fallback message to room: ${targetRoom}`);
+
             
             io.to(targetRoom).emit(eventName, fallbackData);
-            console.log(`⚠️ [BOT-DEBUG] Sent fallback temporary bot message`);
+
         }
     }
 
@@ -836,11 +836,11 @@ class BotHandler extends EventEmitter {
         const botParticipantKey = `${botId}-${channelId}`;
         
         if (this.botVoiceParticipants.has(botParticipantKey)) {
-            console.log(`🤖 [BOT-VOICE] Bot ${username} already in voice channel ${channelId}`);
+
             return;
         }
 
-        console.log(`🤖 [BOT-VOICE] Adding bot ${username} to voice channel ${channelId}`);
+
         
         // Create a proper bot client and join the voice room
         const botClient = this.activeConnections.get(botId);
@@ -855,15 +855,15 @@ class BotHandler extends EventEmitter {
                     id: `bot-${botId}`,
                     rooms: new Set(),
                     join: (room) => {
-                        console.log(`🤖 [BOT-VOICE] Bot joining room: ${room}`);
+
                         // Don't actually join - just track the intent
                     },
                     leave: (room) => {
-                        console.log(`🤖 [BOT-VOICE] Bot leaving room: ${room}`);
+
                     }
                 };
                 
-                console.log(`🤖 [BOT-VOICE] Bot ${username} joining voice room: ${voiceChannelRoom}`);
+
             } catch (error) {
                 console.error(`❌ [BOT-VOICE] Error joining voice room:`, error);
             }
@@ -883,7 +883,7 @@ class BotHandler extends EventEmitter {
         this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
 
         // Emit to both the voice channel room and channel room for maximum compatibility
-        console.log(`📡 [BOT-VOICE] Emitting bot join to rooms: ${voiceChannelRoom} and channel-${channelId}`);
+
         
         io.to(voiceChannelRoom).emit('bot-voice-participant-joined', {
             participant: botParticipantData,
@@ -898,7 +898,7 @@ class BotHandler extends EventEmitter {
             meetingId: `voice_channel_${channelId}`
         });
         
-        console.log(`✅ [BOT-VOICE] Bot ${username} successfully joined voice channel ${channelId}`);
+
     }
 }
 

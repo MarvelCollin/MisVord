@@ -21,7 +21,7 @@ class SendReceiveHandler {
         }
         
         content = content.trim();
-        console.log('📤 Sending message via WebSocket:', content.substring(0, 50) + (content.length > 50 ? '...' : ''));
+
         
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
             console.error('❌ WebSocket not ready for sending message');
@@ -42,7 +42,7 @@ class SendReceiveHandler {
             
             if (attachmentUrls.length > 0) {
                 options.attachments = attachmentUrls;
-                console.log('📎 Including attachments:', attachmentUrls.length, 'files');
+
             }
             
             let mentions = [];
@@ -50,7 +50,7 @@ class SendReceiveHandler {
                 mentions = this.chatSection.mentionHandler.parseMentions(content);
             if (mentions.length > 0) {
                 options.mentions = mentions;
-                console.log('💬 Including mentions:', mentions.length, 'mentions');
+
                 }
             } else {
                 console.warn('⚠️ [SEND-RECEIVE] MentionHandler not ready, skipping mention parsing');
@@ -62,7 +62,7 @@ class SendReceiveHandler {
                         user_id: null
                     }));
                     options.mentions = mentions;
-                    console.log('💬 Including basic mentions:', mentions.length, 'mentions (fallback)');
+
                 }
             }
             
@@ -88,7 +88,7 @@ class SendReceiveHandler {
                 this.chatSection.clearReply();
             }
             
-            console.log('✅ Message sent successfully');
+
         } catch (error) {
             console.error('❌ Error sending message:', error);
             this.chatSection.showNotification('Failed to send message: ' + error.message, 'error');
@@ -169,7 +169,7 @@ class SendReceiveHandler {
             let userInVoice = false;
             let detectionMethod = 'none';
 
-            console.log('🤖 [SEND-RECEIVE] TitiBot command detected, checking voice context...');
+
 
             // ENHANCED VOICE DETECTION LOGIC
             const voiceState = window.unifiedVoiceStateManager?.getState();
@@ -179,14 +179,14 @@ class SendReceiveHandler {
                 voiceChannelId = voiceState.channelId;
                 userInVoice = true;
                 detectionMethod = 'unifiedVoiceStateManager';
-                console.log(`🎤 [SEND-RECEIVE] Voice context from UnifiedVoiceState: channel ${voiceChannelId}`);
+
             } 
             // Secondary detection: Check voice manager for active connection
             else if (window.voiceManager && window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
                 voiceChannelId = window.voiceManager.currentChannelId;
                 userInVoice = true;
                 detectionMethod = 'voiceManagerConnected';
-                console.log(`🎤 [SEND-RECEIVE] Voice context from VoiceManager: channel ${voiceChannelId}`);
+
             }
             // Tertiary detection: Check session storage for voice call state
             else if (sessionStorage.getItem('isInVoiceCall') === 'true') {
@@ -196,7 +196,7 @@ class SendReceiveHandler {
                     voiceChannelId = sessionVoiceChannelId;
                     userInVoice = true;
                     detectionMethod = 'sessionStorageVoiceCall';
-                    console.log(`🎤 [SEND-RECEIVE] Voice context from SessionStorage: channel ${voiceChannelId}`);
+
                 }
             }
             // Quaternary detection: Check if currently viewing voice channel page
@@ -218,20 +218,20 @@ class SendReceiveHandler {
                         userInVoice = hasVoiceIndicator || false;
                         detectionMethod = hasVoiceIndicator ? 'currentVoiceChannelPage+connected' : 'currentVoiceChannelPage+notConnected';
                         
-                        console.log(`🎤 [SEND-RECEIVE] Voice context from current page view: channel ${voiceChannelId}, connected: ${userInVoice}`);
+
                     }
                 }
             }
             
             // FINAL VERIFICATION: Cross-check multiple sources for consistency
             if (voiceChannelId && !userInVoice) {
-                console.log('🔍 [SEND-RECEIVE] Voice channel detected but user not in voice - performing additional checks...');
+
                 
                 // Check if VideoSDK is connected
                 if (window.videoSDKManager && window.videoSDKManager.isMeetingJoined) {
                     userInVoice = true;
                     detectionMethod += '+videoSDKVerified';
-                    console.log('🎤 [SEND-RECEIVE] VideoSDK connection verified - user IS in voice');
+
                 }
                 
                 // Check for voice UI indicators
@@ -243,7 +243,7 @@ class SendReceiveHandler {
                     if (voiceUIVisible) {
                         userInVoice = true;
                         detectionMethod += '+voiceUIVerified';
-                        console.log('🎤 [SEND-RECEIVE] Voice UI indicators verified - user IS in voice');
+
                     }
                 }
                 
@@ -253,7 +253,7 @@ class SendReceiveHandler {
                     if (freshState && freshState.isConnected) {
                         userInVoice = true;
                         detectionMethod += '+freshStateVerified';
-                        console.log('🎤 [SEND-RECEIVE] Fresh unified state verified - user IS in voice');
+
                     }
                 }
             }
@@ -293,7 +293,7 @@ class SendReceiveHandler {
 
         window.globalSocketManager.io.emit('save-and-send-message', messageData);
         
-        console.log('✅ Message sent with temp ID:', tempId);
+
     }
 
     async fetchMessageHistory(options = {}) {
@@ -319,7 +319,7 @@ class SendReceiveHandler {
             );
             
             if (response && response.success) {
-                console.log('📬 Message history retrieved:', response.data?.messages?.length || 0, 'messages');
+
                 
                 return {
                     success: true,

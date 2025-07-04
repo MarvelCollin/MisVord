@@ -8,7 +8,7 @@ class TextToSpeech {
     }
 
     speakMessageText(messageId) {
-        console.log('[TTS] Speaking message text:', messageId);
+
         
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
@@ -16,7 +16,7 @@ class TextToSpeech {
             return;
         }
         
-        console.log('[TTS] Found message element:', messageElement);
+
         
         const textElement = messageElement.querySelector('.bubble-message-text, .message-main-text');
         if (!textElement) {
@@ -30,7 +30,7 @@ class TextToSpeech {
             return;
         }
         
-        console.log('[TTS] Found text element:', textElement);
+
         console.log('[TTS] Text element content:', {
             textContent: textElement.textContent,
             innerText: textElement.innerText,
@@ -45,12 +45,12 @@ class TextToSpeech {
             const bubbleContent = messageElement.querySelector('.bubble-message-content');
             if (bubbleContent) {
                 messageText = bubbleContent.textContent || bubbleContent.innerText || '';
-                console.log('[TTS] Alternative extraction from bubble-content:', messageText);
+
             }
             
             if (!messageText || messageText.trim() === '') {
                 messageText = messageElement.textContent || messageElement.innerText || '';
-                console.log('[TTS] Alternative extraction from message element:', messageText);
+
             }
         }
         
@@ -60,7 +60,7 @@ class TextToSpeech {
         
         messageText = messageText.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]/gu, '').trim();
         
-        console.log('[TTS] Final processed text:', messageText);
+
         
         if (!messageText || messageText.length < 1) {
             console.warn('[TTS] No meaningful text content to speak');
@@ -78,12 +78,12 @@ class TextToSpeech {
         }
         
         if (window.speechSynthesis.speaking || this.isSpeaking || this.voiceLoading) {
-            console.log('[TTS] Already speaking or loading, stopping current speech');
+
             this.stopAllSpeech();
             
             setTimeout(() => {
                 if (!window.speechSynthesis.speaking && !this.isSpeaking && !this.voiceLoading) {
-                    console.log('[TTS] Previous speech stopped, retrying...');
+
                     this.speakMessageText(messageId);
                 }
             }, 500);
@@ -91,7 +91,7 @@ class TextToSpeech {
         }
         
         if (this.currentSpeakingMessageId === messageId) {
-            console.log('[TTS] Same message already being processed, ignoring');
+
             return;
         }
         
@@ -120,18 +120,18 @@ class TextToSpeech {
     
     loadVoicesAndSpeak(utterance, messageId) {
         if (!this.voiceLoading || !this.isSpeaking) {
-            console.log('[TTS] Voice loading cancelled');
+
             return;
         }
         
         let voices = window.speechSynthesis.getVoices();
         
         if (voices.length === 0) {
-            console.log('[TTS] Voices not loaded yet, waiting for voiceschanged event...');
+
             
             const handleVoicesChanged = () => {
                 window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-                console.log('[TTS] Voices changed event received, retrying...');
+
                 
                 if (this.voiceLoading && this.isSpeaking) {
                     setTimeout(() => {
@@ -144,7 +144,7 @@ class TextToSpeech {
             
             setTimeout(() => {
                 window.speechSynthesis.removeEventListener('voiceschanged', handleVoicesChanged);
-                console.log('[TTS] Voice loading timeout, trying with default voice...');
+
                 
                 if (this.voiceLoading && this.isSpeaking) {
                     this.voiceLoading = false;
@@ -156,7 +156,7 @@ class TextToSpeech {
             return;
         }
         
-        console.log('[TTS] Voices available:', voices.length);
+
         
         const preferredVoices = [
             voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')),
@@ -168,9 +168,9 @@ class TextToSpeech {
         
         if (preferredVoices.length > 0) {
             utterance.voice = preferredVoices[0];
-            console.log('[TTS] Selected voice:', utterance.voice.name, utterance.voice.lang);
+
         } else {
-            console.log('[TTS] No suitable voice found, using default');
+
         }
         
         this.voiceLoading = false;
@@ -180,18 +180,18 @@ class TextToSpeech {
     
     setupSpeechEvents(utterance, messageId) {
         utterance.onstart = () => {
-            console.log('[TTS] Speech started');
+
             this.showSpeechIndicator(messageId);
         };
         
         utterance.onend = () => {
-            console.log('[TTS] Speech completed');
+
             this.cleanupSpeech();
         };
         
         utterance.onerror = (error) => {
             if (error.error === 'interrupted') {
-                console.log('[TTS] Speech was interrupted (normal when stopping)');
+
             } else {
                 console.error('[TTS] Speech error:', error);
             }
@@ -199,18 +199,18 @@ class TextToSpeech {
         };
         
         utterance.onpause = () => {
-            console.log('[TTS] Speech paused');
+
         };
         
         utterance.onresume = () => {
-            console.log('[TTS] Speech resumed');
+
         };
     }
     
     startSpeech(utterance, messageId) {
         try {
             window.speechSynthesis.speak(utterance);
-            console.log('[TTS] Text-to-speech initiated successfully');
+
         } catch (error) {
             console.error('[TTS] Failed to start speech:', error);
             this.cleanupSpeech();
@@ -218,7 +218,7 @@ class TextToSpeech {
     }
     
     cleanupSpeech() {
-        console.log('[TTS] Cleaning up speech state');
+
         this.isSpeaking = false;
         this.voiceLoading = false;
         this.currentSpeakingMessageId = null;
@@ -274,7 +274,7 @@ class TextToSpeech {
     stopAllSpeech() {
         if (window.speechSynthesis.speaking || this.isSpeaking) {
             window.speechSynthesis.cancel();
-            console.log('[TTS] All speech stopped');
+
         }
         this.cleanupSpeech();
     }
@@ -298,13 +298,13 @@ class TextToSpeech {
 window.TextToSpeech = TextToSpeech;
 
 window.debugMessageStructure = function(messageId) {
-    console.log('[DEBUG-TTS] Analyzing message structure for ID:', messageId);
+
     
     if (!messageId) {
         const messageElements = document.querySelectorAll('[data-message-id]');
         if (messageElements.length > 0) {
             messageId = messageElements[0].dataset.messageId;
-            console.log('[DEBUG-TTS] Using first available message ID:', messageId);
+
         } else {
             console.error('[DEBUG-TTS] No messages found on page');
             return;
@@ -317,41 +317,41 @@ window.debugMessageStructure = function(messageId) {
         return;
     }
     
-    console.log('[DEBUG-TTS] Message element structure:');
-    console.log('  - Element:', messageElement);
-    console.log('  - Classes:', Array.from(messageElement.classList));
-    console.log('  - Data attributes:', messageElement.dataset);
+
+
+
+
     
     const bubbleText = messageElement.querySelector('.bubble-message-text');
     const mainText = messageElement.querySelector('.message-main-text');
     
-    console.log('[DEBUG-TTS] Text elements found:');
-    console.log('  - Bubble text element:', bubbleText);
-    console.log('  - Main text element:', mainText);
+
+
+
     
     if (bubbleText) {
-        console.log('[DEBUG-TTS] Bubble text content:');
-        console.log('  - innerHTML:', bubbleText.innerHTML);
-        console.log('  - textContent:', bubbleText.textContent);
-        console.log('  - innerText:', bubbleText.innerText);
+
+
+
+
     }
     
     if (mainText) {
-        console.log('[DEBUG-TTS] Main text content:');
-        console.log('  - innerHTML:', mainText.innerHTML);
-        console.log('  - textContent:', mainText.textContent);
-        console.log('  - innerText:', mainText.innerText);
+
+
+
+
     }
     
-    console.log('[DEBUG-TTS] Overall message content:');
-    console.log('  - Message element textContent:', messageElement.textContent);
-    console.log('  - Message element innerText:', messageElement.innerText);
+
+
+
     
     const allTextElements = messageElement.querySelectorAll('div, span, p');
-    console.log('[DEBUG-TTS] All text-containing elements:');
+
     allTextElements.forEach((el, index) => {
         if (el.textContent && el.textContent.trim()) {
-            console.log(`  ${index}: ${el.tagName}.${el.className} - "${el.textContent.substring(0, 50)}"`);
+
         }
     });
     
@@ -364,7 +364,7 @@ window.debugMessageStructure = function(messageId) {
 };
 
 window.testTTSDirectly = function() {
-    console.log('[TTS-TEST] Testing TTS directly...');
+
     
     if (!window.chatSection || !window.chatSection.tts) {
         console.error('[TTS-TEST] Chat section or TTS not available');
@@ -380,15 +380,15 @@ window.testTTSDirectly = function() {
     const firstMessage = messageElements[0];
     const messageId = firstMessage.dataset.messageId;
     
-    console.log('[TTS-TEST] Testing with message ID:', messageId);
+
     
     try {
         window.chatSection.tts.speakMessageText(messageId);
-        console.log('[TTS-TEST] TTS call successful');
+
         
         setTimeout(() => {
             const status = window.chatSection.tts.getStatus();
-            console.log('[TTS-TEST] TTS status after 1 second:', status);
+
         }, 1000);
         
         return true;
@@ -405,10 +405,10 @@ window.getTTSStatus = function() {
     return null;
 };
 
-console.log('🔊 [TTS] Enhanced Text-to-Speech functions loaded:');
-console.log('  - testTextToSpeech() - Test TTS with first message');
-console.log('  - stopAllSpeech() - Stop any current speech');  
-console.log('  - getSpeechInfo() - Get speech synthesis info');
-console.log('  - debugMessageStructure(messageId) - Debug message DOM structure');
+
+
+
+
+
 
 export default TextToSpeech;

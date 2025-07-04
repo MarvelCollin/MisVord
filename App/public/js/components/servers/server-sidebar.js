@@ -13,7 +13,7 @@ const CLICKS_NEEDED = 16;
 
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Server Sidebar] DOMContentLoaded: Initializing server sidebar');
+
     initServerSidebar();
     initializeHomeIconEasterEgg();
     
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     window.addEventListener('popstate', function(event) {
-        console.log('[Server Sidebar] Popstate event triggered:', event.state);
+
         const serverId = event.state?.serverId;
         const pageType = event.state?.pageType;
         
@@ -113,24 +113,24 @@ function initializeHomeIconEasterEgg() {
 
 function initServerSidebar() {
     if (window.__SIDEBAR_INITIALIZED__) {
-        console.log('[Server Sidebar] Already initialized globally, skipping');
+
         return;
     }
     window.__SIDEBAR_INITIALIZED__ = true;
-    console.log('[Server Sidebar] Initializing server sidebar');
+
     
     LocalStorageManager.initializeServerOrder();
     performCompleteRender();
 }
 
 function performCompleteRender() {
-    console.log('[Server Sidebar] Performing complete render');
+
     clearAllPreviousState();
     renderFolders();
 }
 
 function clearAllPreviousState() {
-    console.log('[Server Sidebar] Clearing previous state');
+
     
     resetServersToMainList();
     
@@ -159,7 +159,7 @@ function clearAllPreviousState() {
 }
 
 function setupServerIcons() {           
-    console.log('[Server Sidebar] Setting up server icons drag and drop');
+
     document.querySelectorAll('.server-sidebar-icon[data-server-id]:not([data-setup])').forEach(icon => {
         icon.setAttribute('data-setup', 'true');
         icon.draggable = true;
@@ -320,7 +320,7 @@ async function renderFolders() {
         
         serversToMove.forEach(server => {
             if (serversContainer) {
-                console.log(`[Server Groups] Moving server ${server.id} to group ${group.id}`);
+
                 server.element.style.display = '';
                 server.element.classList.add('in-group');
                 if (server.element.parentNode) {
@@ -442,7 +442,7 @@ function setupTooltipForElement(element) {
 }
 
 function setupAllTooltips() {
-    console.log('[Server Sidebar] Setting up all tooltips');
+
     
     // Setup tooltips for all server icons (individual and in groups)
     document.querySelectorAll('.server-sidebar-icon').forEach(icon => {
@@ -770,7 +770,7 @@ function setupDropZones() {
                 LocalStorageManager.removeServerFromAllGroups(serverId);
                 
                 if (wasInGroup) {
-                    console.log(`[Server Groups] Server ${serverId} removed from group, maintaining position`);
+
                 }
                 
                 performCompleteRender();
@@ -917,7 +917,7 @@ async function getServerData() {
 }
 
 export function updateActiveServer(pageType = null, serverId = null) {
-    console.log('[Update Active Server] Called with:', { pageType, serverId });
+
     
     document.querySelectorAll('.server-sidebar-icon.active').forEach(icon => {
         icon.classList.remove('active');
@@ -940,27 +940,27 @@ export function updateActiveServer(pageType = null, serverId = null) {
         }
     }
     
-    console.log('[Update Active Server] Final state:', { pageType, serverId });
+
     
     switch (pageType) {
         case 'server':
             if (serverId) {
                 const serverIdStr = String(serverId);
-                console.log('[Update Active Server] Looking for server ID:', serverIdStr);
+
                 
                 const serverLink = document.querySelector(`a[data-server-id="${serverIdStr}"]`);
                 const activeIcon = serverLink ? serverLink.closest('.server-icon') : null;
                 if (activeIcon) {
                     activeIcon.classList.add('active');
-                    console.log('[Update Active Server] Activated server icon for ID:', serverIdStr);
+
                 } else {
                     console.warn('[Update Active Server] Server icon not found for ID:', serverIdStr);
                     const allServerLinks = document.querySelectorAll('a[data-server-id]');
                     const availableIds = Array.from(allServerLinks).map(link => link.getAttribute('data-server-id'));
-                    console.log('[Update Active Server] Available server IDs:', availableIds);
+
                     
                     if (availableIds.length === 0) {
-                        console.log('[Update Active Server] No server icons found in sidebar - user may not be a member');
+
                     }
                 }
             }
@@ -970,7 +970,7 @@ export function updateActiveServer(pageType = null, serverId = null) {
                             const homeIcon = document.querySelector('.server-sidebar-icon:first-child');
                 if (homeIcon) {
                     homeIcon.classList.add('active');
-                    console.log('[Update Active Server] Activated home icon');
+
                 } else {
                     console.warn('[Update Active Server] Home icon not found');
                 }
@@ -980,19 +980,19 @@ export function updateActiveServer(pageType = null, serverId = null) {
             const exploreButton = document.querySelector('.discord-explore-server-button');
             if (exploreButton) {
                 exploreButton.classList.add('active');
-                console.log('[Update Active Server] Activated explore button');
+
             } else {
                 console.warn('[Update Active Server] Explore button not found');
             }
             break;
             
         default:
-            console.log('[Update Active Server] No active state applied for pageType:', pageType);
+
     }
 }
 
 export async function handleHomeClick(event) {
-    console.log('[Home Navigation] Home Click Flow Started');
+
     
     if (event) {
         event.preventDefault();
@@ -1000,7 +1000,7 @@ export async function handleHomeClick(event) {
     }
     
     if (window.location.pathname === '/home' || window.location.pathname === '/home/' || window.location.pathname === '/') {
-        console.log('[Home Navigation] Already on home page, skipping navigation');
+
         return;
     }
 
@@ -1015,12 +1015,12 @@ export async function handleHomeClick(event) {
                                currentPath.includes('/server/') || currentPath.includes('/explore');
         
         if (isVoiceConnected && isOnAllowedPage) {
-            console.log('[Home Navigation] Voice connected on protected page, preserving connection during navigation');
+
             
             // Store voice state before navigation
             if (window.unifiedVoiceStateManager) {
                 const voiceState = window.unifiedVoiceStateManager.getState();
-                console.log('[Home Navigation] Preserving voice state:', voiceState);
+
             }
             
             // Use history API for smooth navigation
@@ -1030,7 +1030,7 @@ export async function handleHomeClick(event) {
             }, 'Home', '/home');
         }
         
-        console.log('[Home Navigation] Redirecting to home page');
+
         window.location.href = '/home';
 
     } catch (error) {
@@ -1057,7 +1057,7 @@ async function getDefaultChannelForServer(serverId) {
 }
 
 export async function handleServerClick(serverId, event) {
-    console.log('[Server Navigation] Server Click Flow Started');
+
     
     if (!serverId) {
         console.error('[Server Navigation] No server ID provided');
@@ -1075,31 +1075,31 @@ export async function handleServerClick(serverId, event) {
                                currentPath.includes('/server/') || currentPath.includes('/explore');
         
         if (isVoiceConnected && isOnAllowedPage) {
-            console.log('[Server Navigation] Voice connected on protected page, preserving connection during navigation');
+
             
             // Store voice state before navigation
             if (window.unifiedVoiceStateManager) {
                 const voiceState = window.unifiedVoiceStateManager.getState();
-                console.log('[Server Navigation] Preserving voice state:', voiceState);
+
             }
         }
         
         let defaultChannelId = null;
         
-        console.log('[Server Navigation] Getting default channel for server:', serverId);
+
         defaultChannelId = await getDefaultChannelForServer(serverId);
-        console.log('[Server Navigation] Default channel ID:', defaultChannelId);
+
         
         let redirectUrl = `/server/${serverId}`;
         if (defaultChannelId) {
             redirectUrl += `?channel=${defaultChannelId}`;
         }
         
-        console.log('[Server Navigation] Redirecting to:', redirectUrl);
+
         
         // Use history API for allowed pages to preserve voice connection
         if (isVoiceConnected && isOnAllowedPage) {
-            console.log('[Server Navigation] Using smooth navigation to preserve voice connection');
+
             history.pushState({ 
                 serverId: serverId, 
                 channelId: defaultChannelId,
@@ -1115,7 +1115,7 @@ export async function handleServerClick(serverId, event) {
 }
 
 export async function handleExploreClick(event) {
-    console.log('[Explore Navigation] Explore Click Flow Started');
+
     
     if (event) {
         event.preventDefault();
@@ -1123,12 +1123,12 @@ export async function handleExploreClick(event) {
     }
     
     if (window.location.pathname === '/explore-servers' || window.location.pathname === '/explore') {
-        console.log('[Explore Navigation] Already on explore page, skipping navigation');
+
         return;
     }
     
     try {
-        console.log('[Explore Navigation] Redirecting to explore page');
+
         window.location.href = '/explore-servers';
 
     } catch (error) {
@@ -1168,19 +1168,19 @@ function showServerChannelSection() {
     serverChannelSelectors.forEach(selector => {
         const element = document.querySelector(selector);
         if (element) {
-            console.log('[Server Sidebar] Showing server channel section with selector:', selector);
+
             element.style.display = 'flex';
             found = true;
         }
     });
     
     if (!found) {
-        console.log('[Server Sidebar] No server channel section found to show');
+
     }
 }
 
 export function refreshServerGroups() {
-    console.log('[Server Sidebar] Refreshing server groups');
+
     
     const currentServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
     const currentServerIds = Array.from(currentServerElements).map(el => el.getAttribute('data-server-id'));
@@ -1190,7 +1190,7 @@ export function refreshServerGroups() {
     const removedServers = savedOrder.filter(id => !currentServerIds.includes(id));
     
     if (newServers.length > 0 || removedServers.length > 0) {
-        console.log(`[Server Sidebar] Server changes detected: +${newServers.length}, -${removedServers.length}`);
+
         
         const cleanedOrder = savedOrder.filter(id => currentServerIds.includes(id));
         const updatedOrder = [...cleanedOrder, ...newServers];
@@ -1204,8 +1204,8 @@ function testServerPositioning() {
     const serverOrder = LocalStorageManager.getServerOrder();
     const currentElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
     
-    console.log('Current server order:', serverOrder);
-    console.log('Current DOM elements:', Array.from(currentElements).map(el => el.getAttribute('data-server-id')));
+
+
     
     return {
         orderLength: serverOrder.length,

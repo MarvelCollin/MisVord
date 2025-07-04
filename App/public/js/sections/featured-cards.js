@@ -263,4 +263,4 @@ window.featuredCardsAPI = {
   initCursorParticles
 };
 
-console.log("Blank Featured Cards Section loaded at " + new Date().toISOString());
+

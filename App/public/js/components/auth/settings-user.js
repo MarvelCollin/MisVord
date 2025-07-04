@@ -777,7 +777,7 @@ function initPasswordChangeForms() {
     modal.classList.add('hidden');
     
     function openModal() {
-        console.log('PASSWORD MODAL OPENING - Starting debug process...');
+
         modal.classList.add('show');
         modal.classList.remove('hidden');
         showStep('security-question');
@@ -852,7 +852,7 @@ function initPasswordChangeForms() {
     
     async function loadSecurityQuestion() {
         try {
-            console.log('🔐 Loading security question...');
+
             
             if (!window.userAPI) {
                 console.error('❌ User API not loaded');
@@ -866,14 +866,14 @@ function initPasswordChangeForms() {
                 return;
             }
             
-            console.log('Making API request to get security question...');
+
             const response = await window.userAPI.getUserSecurityQuestion();
             
-            console.log('📥 API Response:', response);
+
             
             if (response && response.success && response.data && response.data.security_question) {
                 userSecurityQuestion = response.data.security_question;
-                console.log('Security question loaded:', userSecurityQuestion);
+
                 securityQuestionText.textContent = userSecurityQuestion;
                 needsSecurityQuestion = false;
             } else if (response && !response.success) {
@@ -1000,9 +1000,9 @@ function initPasswordChangeForms() {
             verifyBtn.classList.add('loading');
             verifyBtn.textContent = 'Verifying...';
             
-            console.log('🔐 Verifying security answer...');
+
             const response = await window.userAPI.verifySecurityAnswerForPasswordChange(answer);
-            console.log('🔐 Security verification response:', response);
+
             
             if (response && (response.success === true || (response.data !== undefined && response.message))) {
                 showSecuritySuccess('✓ Security answer verified successfully');
@@ -1076,13 +1076,13 @@ function initPasswordChangeForms() {
             confirmBtn.classList.add('loading');
             confirmBtn.textContent = 'Changing...';
             
-            console.log('🔑 Changing password...');
+
             const response = await window.userAPI.changePasswordWithSecurity(
                 securityAnswerInput.value,
                 newPassword,
                 confirmPassword
             );
-            console.log('🔑 Password change response:', response);
+
             
             if (response && (response.success === true || (response.data !== undefined && response.message))) {
                 showToast('Password changed successfully', 'success');

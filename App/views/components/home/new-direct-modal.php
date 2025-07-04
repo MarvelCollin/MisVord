@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!usersList) return;
         
-        console.log('🔍 loadFriends called (for new message modal)');
+
         usersList.innerHTML = generateSkeletonItems(5);
         
         if (!window.userAPI) {
@@ -296,10 +296,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        console.log('🔗 Calling userAPI.getFriends()');
+
         window.userAPI.getFriends()
             .then(response => {
-                console.log('📥 getFriends response:', response);
+
                 usersList.innerHTML = '';
                 
                 if (response && response.success) {
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     if (users && users.length > 0) {
-                        console.log(`✅ Found ${users.length} friends`);
+
                         allUsers = users;
                         filteredUsers = [...allUsers];
                         renderUsers(filteredUsers);
@@ -534,14 +534,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const userIdsArray = Array.from(selectedUserIds);
         
-        console.log('🔄 Creating chat with users:', userIdsArray);
-        console.log('🔄 User IDs types:', userIdsArray.map(id => typeof id));
+
+
         
         let requestData;
         
         if (userIdsArray.length === 1) {
             const userId = parseInt(userIdsArray[0]);
-            console.log('🔄 Creating DM with user ID:', userId, '(type:', typeof userId, ')');
+
             requestData = { user_id: userId };
         } else {
             const groupName = groupNameInput.value.trim();
@@ -553,7 +553,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const parsedUserIds = userIdsArray.map(id => parseInt(id));
-            console.log('🔄 Creating group chat with user IDs:', parsedUserIds);
+
             
             requestData = {
                 user_ids: parsedUserIds,
@@ -562,7 +562,7 @@ document.addEventListener('DOMContentLoaded', function() {
             };
         }
         
-        console.log('📤 Sending chat creation request:', requestData);
+
         
         fetch('/api/chat/create', {
             method: 'POST',
@@ -572,11 +572,11 @@ document.addEventListener('DOMContentLoaded', function() {
             body: JSON.stringify(requestData)
         })
         .then(response => {
-            console.log('📥 Chat creation response status:', response.status);
+
             return response.json();
         })
         .then(data => {
-            console.log('📥 Chat creation response data:', data);
+
             
             if (modal) {
                 modal.classList.add('hidden');
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const roomId = data.data.room_id || data.data.channel_id;
                 
                 if (roomId) {
-                    console.log('✅ Chat created successfully, redirecting to:', `/home/channels/dm/${roomId}`);
+
                     window.location.href = `/home/channels/dm/${roomId}`;
                 } else {
                     console.error('❌ No room ID found in response:', data);
@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return performBasicSearch(searchTerm);
         }
 
-        console.log('🔍 Performing advanced search with JaroWinkler for:', searchTerm);
+
         
         try {
             const searchResults = jaroWinkler.searchUsers(allUsers, searchTerm, {
@@ -628,7 +628,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 weights: { username: 1.0, display_name: 0.8 }
             });
             
-            console.log(`✅ JaroWinkler found ${searchResults.length} friends`);
+
             filteredUsers = searchResults;
             renderUsers(filteredUsers);
         } catch (error) {
@@ -638,7 +638,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function performBasicSearch(searchTerm) {
-        console.log('🔍 Performing basic search for:', searchTerm);
+
         
         const searchTermLower = searchTerm.toLowerCase();
         filteredUsers = allUsers.filter(friend => {
@@ -651,7 +651,7 @@ document.addEventListener('DOMContentLoaded', function() {
                    displayName.startsWith(searchTermLower);
         });
         
-        console.log(`✅ Basic search found ${filteredUsers.length} friends`);
+
         renderUsers(filteredUsers);
     }
 

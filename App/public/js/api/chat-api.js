@@ -16,7 +16,7 @@ class ChatAPI {
                 ...options
             };
 
-            console.log(`Making request to: ${url}`);
+
             const response = await fetch(url, config);
 
             if (!response.ok) {
@@ -26,7 +26,7 @@ class ChatAPI {
             }
 
             const data = await response.json();
-            console.log(`Response from ${url}:`, data);
+
             return data;
         } catch (error) {
             console.error(`Request failed for ${url}:`, error);
@@ -56,7 +56,7 @@ class ChatAPI {
             url += `&before=${before}`;
         }
         
-        console.log(`[BOT-DEBUG] Frontend API call: getMessages for ${chatType} ${targetId} (limit: ${limit}, offset: ${offset})`);
+
         
         const response = await this.makeRequest(url);
         
@@ -73,13 +73,13 @@ class ChatAPI {
                 }
             });
             
-            console.log(`[BOT-DEBUG] Frontend API response: ${messages.length} total messages (${botCount} bot, ${userCount} user) for ${chatType} ${targetId}`);
+
             
             if (botCount === 0 && messages.length > 0) {
-                console.log(`[BOT-DEBUG] WARNING: No bot messages in API response for ${chatType} ${targetId}`);
+
             }
         } else {
-            console.log(`[BOT-DEBUG] Frontend API response: No messages data for ${chatType} ${targetId}`);
+
         }
         
         return response;

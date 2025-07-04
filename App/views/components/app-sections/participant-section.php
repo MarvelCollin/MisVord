@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeParticipantSystem() {
-    console.log('🚀 [PARTICIPANT] Initializing participant system with online filtering');
+
     
     setupFriendsManagerIntegration();
     setupVoiceEventListeners();
@@ -229,28 +229,28 @@ function initializeParticipantSystem() {
 
 function setupVoiceEventListeners() {
     window.addEventListener('voiceConnect', (event) => {
-        console.log('🎤 [PARTICIPANT] Voice connect detected, updating display');
+
         setTimeout(() => {
             scheduleUpdate();
         }, 500);
     });
     
     window.addEventListener('voiceDisconnect', (event) => {
-        console.log('🎤 [PARTICIPANT] Voice disconnect detected, updating display');
+
         setTimeout(() => {
             scheduleUpdate();
         }, 500);
     });
     
     window.addEventListener('presenceForceReset', (event) => {
-        console.log('🔧 [PARTICIPANT] Presence force reset detected, updating display');
+
         setTimeout(() => {
             scheduleUpdate();
         }, 200);
     });
     
     window.addEventListener('ownPresenceUpdate', () => {
-        console.log('👤 [PARTICIPANT] Own presence update detected');
+
         scheduleUpdate();
     });
     
@@ -268,14 +268,14 @@ function validateOwnPresence() {
     const isPresenceInVoice = currentActivity.startsWith('In Voice');
     
     if (!isVideoSDKConnected && isPresenceInVoice) {
-        console.log('⚠️ [PARTICIPANT] Own presence shows in voice but VideoSDK not connected - triggering update');
+
         scheduleUpdate();
     }
 }
 
 function setupFriendsManagerIntegration() {
     if (window.globalPresenceManager) {
-        console.log('🌐 [PARTICIPANT] Using global presence manager');
+
         return;
     }
     
@@ -283,7 +283,7 @@ function setupFriendsManagerIntegration() {
         const friendsManager = window.FriendsManager.getInstance();
         
         friendsManager.subscribe((type, data) => {
-            console.log(`🔄 [PARTICIPANT] FriendsManager event: ${type}`, data);
+
             
             switch (type) {
                 case 'user-online':
@@ -291,22 +291,22 @@ function setupFriendsManagerIntegration() {
                 case 'user-presence-update':
                 case 'online-users-updated':
                     onlineUsers = friendsManager.cache.onlineUsers || {};
-                    console.log('📊 [PARTICIPANT] Updated onlineUsers:', Object.keys(onlineUsers).length);
+
                     scheduleUpdate();
                     break;
             }
         });
         
         onlineUsers = friendsManager.cache.onlineUsers || {};
-        console.log('📊 [PARTICIPANT] Initial onlineUsers from FriendsManager:', Object.keys(onlineUsers).length);
+
         
         if (Object.keys(onlineUsers).length === 0) {
-            console.log('⚠️ [PARTICIPANT] No online users found, requesting fresh data');
+
             friendsManager.getOnlineUsers(true);
             
             setTimeout(() => {
                 onlineUsers = friendsManager.cache.onlineUsers || {};
-                console.log('📊 [PARTICIPANT] Delayed online users check:', Object.keys(onlineUsers).length);
+
                 scheduleUpdate();
             }, 2000);
         }
@@ -317,7 +317,7 @@ function setupFriendsManagerIntegration() {
     
     if (window.globalSocketManager && window.globalSocketManager.io) {
         window.globalSocketManager.io.on('user-presence-update', (data) => {
-            console.log('📡 [PARTICIPANT] Direct socket presence update:', data);
+
             scheduleUpdate();
         });
     }
@@ -385,7 +385,7 @@ function getActivityText(activityDetails, status) {
 }
 
 function updateParticipantDisplay() {
-    console.log('🔄 [PARTICIPANT] Updating participant display with online filtering and voice priority rules');
+
     
     const roleGroups = {
         'owner': [],
@@ -412,7 +412,7 @@ function updateParticipantDisplay() {
             let correctedActivityDetails = currentActivityDetails;
             
             if (!isVideoSDKConnected && currentActivityDetails?.type?.startsWith('In Voice')) {
-                console.log('🔧 [PARTICIPANT] Correcting own presence - VideoSDK not connected but marked as in voice');
+
                 correctedActivityDetails = { type: 'active' };
                 
                 if (window.globalSocketManager) {
@@ -508,7 +508,7 @@ function updateParticipantDisplay() {
             const activityText = getActivityText(activityDetails, status);
             
             if (String(member.id) === String(currentUserId)) {
-                console.log('🎤 [PARTICIPANT] Creating current user element with activity:', activityText);
+
             }
             
             const textColorClass = role === 'owner' ? (isOffline ? 'text-yellow-700' : 'text-yellow-400') :
@@ -570,9 +570,9 @@ function updateParticipantDisplay() {
         });
     }
     
-    console.log('✅ [PARTICIPANT] Participant display updated with voice priority rules:');
-    console.log('   - Users "In Voice" always have green bubble indicator');
-    console.log('   - Users with grey bubble indicator (not online/afk/dnd) go to offline section unless in voice');
+
+
+
 }
 
 function initializeServerSearch() {
@@ -864,12 +864,12 @@ function highlightMessage(messageId) {
 
 window.highlightMessage = highlightMessage;
 window.initializeParticipantSection = function() {
-    console.log('Initializing participant section with online filtering');
+
     initializeParticipantSystem();
 };
 
 window.toggleParticipantLoading = function(loading = true) {
-    console.log('Participant loading toggle called but using simple DOM - no skeleton');
+
 };
 
 </script>

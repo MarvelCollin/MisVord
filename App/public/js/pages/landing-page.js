@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Landing page initializing...');
+
     
     initParallax();
     initScrollTransition();
@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initHeroAssets();
     initTaglineAnimation();
     
-    console.log('Landing page initialized successfully');
+
 });
 
 function initParallax() {
@@ -221,7 +221,7 @@ function initSectionCoordination() {
     }
     
     document.addEventListener('featuredCardsVisible', function() {
-        console.log('Featured cards section is now visible');
+
     });
     
     let coordinationTicking = false;

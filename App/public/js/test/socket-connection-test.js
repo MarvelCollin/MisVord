@@ -42,7 +42,7 @@ class SocketConnectionTest {
         const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
         const color = type === 'success' ? 'text-green-400' : type === 'error' ? 'text-red-400' : type === 'warning' ? 'text-yellow-400' : 'text-blue-400';
         
-        console.log(`[SOCKET-TEST] ${message}`);
+
         
         if (this.testContainer) {
             const resultsDiv = this.testContainer.querySelector('#test-results');
@@ -247,4 +247,3 @@ window.showSocketTest = function() {
     window.socketTest.runTests();
 };
 
-console.log('✅ Socket Connection Test loaded. Use window.showSocketTest() to run tests.'); 

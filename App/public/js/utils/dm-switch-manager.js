@@ -66,7 +66,7 @@ class SimpleDMSwitcher {
         
         if (dmMatch) {
             const dmId = dmMatch[1];
-            console.log('🎯 [DM-SWITCH] Highlighting initial active DM:', dmId);
+
             this.highlightActiveDM(dmId);
         }
     }
@@ -76,7 +76,7 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-        console.log('🔄 [DM-SWITCH] Switching to DM:', dmId, roomType, username);
+
         
         this.currentDMId = dmId;
         this.currentDMType = roomType;
@@ -87,22 +87,22 @@ class SimpleDMSwitcher {
         this.updatePageTitle(username, roomType);
         
         if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-            console.log('🔄 [DM-SWITCH] Using SPA navigation via ChatSection');
+
             try {
                 await window.chatSection.switchToDM(dmId, roomType, true);
-                console.log('✅ [DM-SWITCH] SPA navigation completed');
+
                 this.isLoading = false;
                 return;
             } catch (error) {
                 console.error('❌ [DM-SWITCH] SPA navigation failed, falling back to page reload:', error);
             }
         } else if (typeof window.initializeChatSection === 'function') {
-            console.log('🔄 [DM-SWITCH] ChatSection not ready, trying to initialize...');
+
             try {
                 await window.initializeChatSection();
                 if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
                     await window.chatSection.switchToDM(dmId, roomType, true);
-                    console.log('✅ [DM-SWITCH] SPA navigation completed after initialization');
+
                     this.isLoading = false;
                     return;
                 } else {
@@ -113,7 +113,7 @@ class SimpleDMSwitcher {
             }
         }
         
-        console.log('🔄 [DM-SWITCH] Falling back to page navigation');
+
         window.location.href = `/home/channels/dm/${dmId}`;
         this.isLoading = false;
     }
@@ -123,14 +123,14 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-        console.log('🔄 [DM-SWITCH] Switching to friends');
+
         
         this.clearActiveDM();
         this.updateFriendsURL();
         this.updateMetaTags(null, 'friends');
         this.updatePageTitle('Friends', 'friends');
         
-        console.log('🔄 [DM-SWITCH] Navigating to friends URL...');
+
         
         window.location.href = '/home/friends?tab=online';
         
@@ -138,7 +138,7 @@ class SimpleDMSwitcher {
     }
     
     highlightActiveDM(dmId) {
-        console.log('🎯 [DM-SWITCH] Highlighting active DM:', dmId);
+
         
         document.querySelectorAll('.dm-friend-item').forEach(item => {
             item.classList.remove('bg-discord-light');
@@ -150,14 +150,14 @@ class SimpleDMSwitcher {
             targetDM.classList.add('bg-discord-light');
             targetDM.classList.remove('hover:bg-discord-light');
             
-            console.log('✅ [DM-SWITCH] Active DM highlighted:', dmId, targetDM);
+
         } else {
             console.warn('⚠️ [DM-SWITCH] Target DM not found for ID:', dmId);
         }
     }
     
     clearActiveDM() {
-        console.log('🧹 [DM-SWITCH] Clearing active DM');
+
         
         this.currentDMId = null;
         
@@ -169,7 +169,7 @@ class SimpleDMSwitcher {
     
     updateURL(dmId) {
         const url = `/home/channels/dm/${dmId}`;
-        console.log('🔗 [DM-SWITCH] Updating URL to:', url);
+
         if (window.history && window.history.pushState) {
             window.history.pushState({ dmId: dmId, type: 'dm' }, '', url);
         }
@@ -177,7 +177,7 @@ class SimpleDMSwitcher {
     
     updateFriendsURL() {
         const url = '/home/friends?tab=online';
-        console.log('🔗 [DM-SWITCH] Updating URL to:', url);
+
         if (window.history && window.history.pushState) {
             window.history.pushState({ type: 'friends' }, '', url);
         }
@@ -226,7 +226,7 @@ class SimpleDMSwitcher {
     updatePageTitle(name, type) {
         const title = type === 'friends' ? 'misvord - Friends' : `misvord - ${name}`;
         document.title = title;
-        console.log('✅ [DM-SWITCH] Page title updated:', title);
+
     }
     
     getCurrentDMId() {

@@ -634,7 +634,7 @@ class VoiceVideoSettings {
             this.debugLog.shift();
         }
 
-        console.log(`Audio Debug: ${entry}`);
+
     }
 
     destroy() {

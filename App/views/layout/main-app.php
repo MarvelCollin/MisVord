@@ -82,7 +82,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                               window.location.pathname.includes('/authentication');
             
             if (!isLandingPage && !isAuthPage) {
-                console.log('🌐 [GLOBAL-PRESENCE] Initializing global presence system...');
+
                 
                 const waitForDependencies = async () => {
                     let attempts = 0;
@@ -101,7 +101,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                 const dependenciesLoaded = await waitForDependencies();
                 
                 if (dependenciesLoaded) {
-                    console.log('✅ [GLOBAL-PRESENCE] Dependencies loaded, starting presence system');
+
                     
                     const friendsManager = window.FriendsManager.getInstance();
                     
@@ -113,7 +113,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
                         });
                     }
                     
-                    console.log('✅ [GLOBAL-PRESENCE] Global presence system initialized');
+
                 } else {
                     console.warn('⚠️ [GLOBAL-PRESENCE] Failed to load dependencies');
                 }

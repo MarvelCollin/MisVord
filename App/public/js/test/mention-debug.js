@@ -1,5 +1,5 @@
 window.debugMentionSystem = async function() {
-    console.log('🧪 [MENTION-DEBUG] Starting mention system debug...');
+
     
     const chatSection = window.chatSection;
     
@@ -31,7 +31,7 @@ window.debugMentionSystem = async function() {
     });
     
     if (chatSection.targetId) {
-        console.log('🔍 [MENTION-DEBUG] Testing API endpoint directly...');
+
         
         try {
             const response = await fetch(`/api/channels/${chatSection.targetId}/members`, {
@@ -41,14 +41,14 @@ window.debugMentionSystem = async function() {
                 }
             });
             
-            console.log('📡 [MENTION-DEBUG] API Response Status:', response.status, response.statusText);
+
             
             if (response.ok) {
                 const result = await response.json();
-                console.log('📋 [MENTION-DEBUG] API Response Data:', result);
+
                 
                 if (result.success && result.data && Array.isArray(result.data)) {
-                    console.log(`✅ [MENTION-DEBUG] API returned ${result.data.length} members`);
+
                     result.data.forEach((member, index) => {
                         console.log(`👤 [MENTION-DEBUG] Member ${index + 1}:`, {
                             user_id: member.user_id,
@@ -69,7 +69,7 @@ window.debugMentionSystem = async function() {
             console.error('❌ [MENTION-DEBUG] Exception testing API:', error);
         }
         
-        console.log('🔄 [MENTION-DEBUG] Force loading users...');
+
         await mentionHandler.loadAvailableUsers(true);
         
         console.log('📊 [MENTION-DEBUG] After forced reload:', {
@@ -78,25 +78,25 @@ window.debugMentionSystem = async function() {
         });
         
         if (mentionHandler.availableUsers.size > 0) {
-            console.log('👥 [MENTION-DEBUG] Available users:');
+
             for (const [username, user] of mentionHandler.availableUsers) {
-                console.log(`  - ${username}: ${user.id} (${user.username})`);
+
             }
         }
         
-        console.log('🔍 [MENTION-DEBUG] Testing autocomplete with empty search...');
+
         const matches = mentionHandler.findMatchingUsers('');
-        console.log('📋 [MENTION-DEBUG] Matches for empty search:', matches);
+
         
     } else {
         console.error('❌ [MENTION-DEBUG] No target ID available');
     }
     
-    console.log('✅ [MENTION-DEBUG] Debug complete');
+
 };
 
 window.testMentionAutocomplete = function() {
-    console.log('🧪 [MENTION-TEST] Testing mention autocomplete...');
+
     
     const chatSection = window.chatSection;
     if (!chatSection || !chatSection.mentionHandler) {
@@ -110,7 +110,7 @@ window.testMentionAutocomplete = function() {
         return;
     }
     
-    console.log('🎯 [MENTION-TEST] Simulating @ input...');
+
     
     messageInput.value = '@';
     messageInput.focus();
@@ -126,6 +126,5 @@ window.testMentionAutocomplete = function() {
     }, 1000);
 };
 
-console.log('🧪 [MENTION-DEBUG] Debug functions loaded:');
-console.log('  - window.debugMentionSystem() - Full debug analysis');
-console.log('  - window.testMentionAutocomplete() - Test @ input autocomplete'); 
+
+

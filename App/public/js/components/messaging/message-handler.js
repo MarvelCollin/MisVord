@@ -20,21 +20,21 @@ class MessageHandler {
         const isTemporary = messageData.is_temporary || messageData.id.toString().startsWith('temp-');
         
         if (this.processedMessageIds.has(messageData.id)) {
-            console.log(`🔄 [MESSAGE-HANDLER] Message ${messageData.id} already processed, skipping`);
+
             return;
         }
         
         const existingElement = document.querySelector(`[data-message-id="${messageData.id}"]`);
         if (existingElement) {
-            console.log(`🔄 [MESSAGE-HANDLER] Message ${messageData.id} already exists in DOM, skipping`);
+
             this.processedMessageIds.add(messageData.id);
             return;
         }
         
         if (isTemporary) {
-            console.log(`📥 [MESSAGE-HANDLER] Adding temporary message ${messageData.id} to UI`);
+
         } else {
-            console.log(`📥 [MESSAGE-HANDLER] Adding permanent message ${messageData.id} to UI`);
+
         }
         
         const messagesContainer = this.chatSection.getMessagesContainer();
@@ -69,7 +69,7 @@ class MessageHandler {
         
         // Process reactions for non-temporary messages (database-loaded messages)
         if (!isTemporary && messageData.reactions && messageData.reactions.length > 0) {
-            console.log('🎯 [MESSAGE-HANDLER] Processing reactions for database-loaded message:', messageData.id);
+
             setTimeout(() => {
                 if (window.emojiReactions && typeof window.emojiReactions.processMessageReactions === 'function') {
                     window.emojiReactions.processMessageReactions(messageData);
@@ -82,12 +82,12 @@ class MessageHandler {
         const isOwnMessage = (messageData.user_id || messageData.userId) == this.chatSection.userId;
         this.chatSection.handleNewMessageScroll(isOwnMessage);
         
-        console.log(`✅ [MESSAGE-HANDLER] Successfully added ${isTemporary ? 'temporary' : 'permanent'} message ${messageData.id}`);
+
     }
     
     async renderBubbleMessage(messageData) {
         try {
-            console.log('🔄 [MESSAGE-HANDLER] Requesting bubble render for message:', messageData.id);
+
             
             const response = await fetch('/api/messages/render-bubble', {
                 method: 'POST',
@@ -99,7 +99,7 @@ class MessageHandler {
                 })
             });
             
-            console.log('📡 [MESSAGE-HANDLER] Bubble render HTTP status:', response.status, response.statusText);
+
             
             if (!response.ok) {
                 const errorText = await response.text();
@@ -131,7 +131,7 @@ class MessageHandler {
                 throw new Error('No valid HTML returned from bubble render API');
             }
             
-            console.log('✅ [MESSAGE-HANDLER] Successfully received bubble HTML:', html.substring(0, 100) + '...');
+
             return html;
             
         } catch (error) {
@@ -147,7 +147,7 @@ class MessageHandler {
             let existingBubbleStyles = document.querySelector('style[data-bubble-styles="websocket"]');
             
             if (!existingBubbleStyles) {
-                console.log('💄 [MESSAGE-HANDLER] Injecting bubble chat styles from WebSocket message');
+
                 
                 styleElements.forEach(style => {
                     const bubbleStyleElement = document.createElement('style');
@@ -156,9 +156,9 @@ class MessageHandler {
                     document.head.appendChild(bubbleStyleElement);
                 });
                 
-                console.log('✅ [MESSAGE-HANDLER] Bubble chat styles injected successfully');
+
             } else {
-                console.log('🎨 [MESSAGE-HANDLER] Bubble chat styles already loaded');
+
             }
         } else {
             console.warn('⚠️ [MESSAGE-HANDLER] No style elements found in bubble HTML');
@@ -166,7 +166,7 @@ class MessageHandler {
     }
 
     fallbackAddMessage(formattedMessage, messagesContainer, isTemporary) {
-        console.log('🔧 [MESSAGE-HANDLER] Using fallback message rendering');
+
         
         this.ensureFallbackStyles();
         
@@ -189,12 +189,12 @@ class MessageHandler {
         const isOwnMessage = (formattedMessage.user_id || formattedMessage.userId) == this.chatSection.userId;
         this.chatSection.handleNewMessageScroll(isOwnMessage);
         
-        console.log(`✅ [MESSAGE-HANDLER] Message ${formattedMessage.id} successfully added to UI using fallback`);
+
     }
     
     ensureFallbackStyles() {
         if (!document.querySelector('style[data-bubble-styles="fallback"]')) {
-            console.log('💄 [MESSAGE-HANDLER] Injecting fallback bubble chat styles');
+
             
             const fallbackStyles = `
 .bubble-message-group {
@@ -401,7 +401,7 @@ class MessageHandler {
             styleElement.textContent = fallbackStyles;
             document.head.appendChild(styleElement);
             
-            console.log('✅ [MESSAGE-HANDLER] Fallback bubble chat styles injected');
+
         }
     }
     
@@ -736,7 +736,7 @@ class MessageHandler {
     }
 
     handleMessageConfirmed(data) {
-        console.log('✅ [MESSAGE-HANDLER] Message confirmed:', data);
+
         
         const { temp_message_id, permanent_message_id } = data;
         
@@ -765,7 +765,7 @@ class MessageHandler {
         // Remove from temporary messages map
         this.temporaryMessages.delete(temp_message_id);
         
-        console.log(`✅ [MESSAGE-HANDLER] Message ${temp_message_id} confirmed as ${permanent_message_id}`);
+
     }
 
     handleMessageFailed(data) {
@@ -791,24 +791,24 @@ class MessageHandler {
         // Remove from temporary messages map
         this.temporaryMessages.delete(temp_message_id);
         
-        console.log(`❌ [MESSAGE-HANDLER] Message ${temp_message_id} marked as failed`);
+
     }
 
     clearProcessedMessages() {
         this.processedMessageIds.clear();
         this.temporaryMessages.clear();
         this.lastMessageGroup = null;
-        console.log('🧹 [MESSAGE-HANDLER] Processed messages cleared');
+
     }
     
     removeMessage(messageId) {
-        console.log(`🗑️ [MESSAGE-HANDLER] Removing message ${messageId} from tracking`);
+
         this.processedMessageIds.delete(messageId);
         this.temporaryMessages.delete(messageId);
     }
     
     jumpToMessage(messageId) {
-        console.log('🎯 [REPLY-JUMP] Jumping to message:', messageId);
+
         
         const targetMessage = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!targetMessage) {
@@ -834,11 +834,11 @@ class MessageHandler {
             targetMessage.classList.remove('highlight-message');
         }, 3000);
         
-        console.log('✅ [REPLY-JUMP] Successfully jumped to message:', messageId);
+
     }
     
     async displayMessages(messages) {
-        console.log(`📨 [MESSAGE-HANDLER] Displaying ${messages.length} messages`);
+
         
         if (!Array.isArray(messages)) {
             console.error('❌ [MESSAGE-HANDLER] displayMessages called with non-array:', messages);
@@ -846,7 +846,7 @@ class MessageHandler {
         }
         
         if (messages.length === 0) {
-            console.log('📭 [MESSAGE-HANDLER] No messages to display');
+
             return;
         }
         
@@ -859,7 +859,7 @@ class MessageHandler {
         this.chatSection.hideEmptyState();
         this.ensureFallbackStyles();
         
-        console.log('🎨 [MESSAGE-HANDLER] Building all messages in background while skeleton is visible');
+
         
         const tempContainer = document.createElement('div');
         tempContainer.style.visibility = 'hidden';
@@ -890,9 +890,9 @@ class MessageHandler {
             }
         }
         
-        console.log(`🎯 [MESSAGE-HANDLER] All ${messageElements.length} messages built, replacing skeleton`);
+
         
-        console.log('🧹 [MESSAGE-HANDLER] Clearing messages container before displaying new messages');
+
         
         messagesContainer.innerHTML = '';
         
@@ -905,15 +905,15 @@ class MessageHandler {
         if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
             setTimeout(() => {
                 this.chatSection.updateLoadMoreButton();
-                console.log('🔄 [MESSAGE-HANDLER] Load more button state updated after skeleton clear');
+
             }, 100);
         }
         
-        console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messages.length} messages in batch`);
+
     }
     
     async prependMessagesProgressively(messages) {
-        console.log(`📨 [MESSAGE-HANDLER] Progressively prepending ${messages.length} messages`);
+
         
         if (!Array.isArray(messages)) {
             console.error('❌ [MESSAGE-HANDLER] prependMessagesProgressively called with non-array:', messages);
@@ -921,7 +921,7 @@ class MessageHandler {
         }
         
         if (messages.length === 0) {
-            console.log('📭 [MESSAGE-HANDLER] No messages to prepend');
+
             return;
         }
         
@@ -1000,7 +1000,7 @@ class MessageHandler {
         const newScrollHeight = messagesContainer.scrollHeight;
         messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
         
-        console.log(`✅ [MESSAGE-HANDLER] Successfully prepended ${messages.length} messages progressively`);
+
     }
     
     createMessageBatches(messages, batchSize) {
@@ -1024,7 +1024,7 @@ class MessageHandler {
     }
     
     async prependMessages(messages) {
-        console.log(`📨 [MESSAGE-HANDLER] Prepending ${messages.length} messages`);
+
         
         if (!Array.isArray(messages)) {
             console.error('❌ [MESSAGE-HANDLER] prependMessages called with non-array:', messages);
@@ -1032,7 +1032,7 @@ class MessageHandler {
         }
         
         if (messages.length === 0) {
-            console.log('📭 [MESSAGE-HANDLER] No messages to prepend');
+
             return;
         }
         
@@ -1079,11 +1079,11 @@ class MessageHandler {
         const newScrollHeight = messagesContainer.scrollHeight;
         messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
         
-        console.log(`✅ [MESSAGE-HANDLER] Successfully prepended ${messages.length} messages`);
+
     }
     
     fallbackPrependMessage(formattedMessage, messagesContainer, firstChild) {
-        console.log('🔧 [MESSAGE-HANDLER] Using fallback prepend for message:', formattedMessage.id);
+
         
         this.ensureFallbackStyles();
         
@@ -1117,12 +1117,12 @@ class MessageHandler {
                     this.markAsTemporary(messageElement);
                 }
                 
-                console.log(`✅ [MESSAGE-HANDLER] Message element created successfully using bubble component`);
+
                 return messageGroup;
             } else {
                 const htmlPreview = bubbleHtml ? bubbleHtml.substring(0, 200) : 'undefined';
                 console.error('❌ [MESSAGE-HANDLER] Failed to find bubble-message-group in HTML:', htmlPreview);
-                console.log('🔧 [MESSAGE-HANDLER] Falling back to manual creation');
+
                 return this.fallbackCreateMessage(formattedMessage, isTemporary);
             }
             
@@ -1141,11 +1141,11 @@ class MessageHandler {
         messagesContainer.appendChild(messageElement);
         this.lastMessageGroup = messageElement;
         
-        console.log(`✅ [MESSAGE-HANDLER] Message ${formattedMessage.id} inserted into DOM`);
+
     }
 
     fallbackCreateMessage(formattedMessage, isTemporary) {
-        console.log('🔧 [MESSAGE-HANDLER] Using fallback message creation');
+
         
         const messageGroup = document.createElement('div');
         messageGroup.className = 'bubble-message-group';

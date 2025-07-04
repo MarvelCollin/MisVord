@@ -14,7 +14,7 @@ class ActivityManager {
         this.isInitialized = true;
         
         window.activityManager = this;
-        console.log('✅ [ACTIVITY] Activity Manager initialized');
+
     }
 
     loadUserData() {

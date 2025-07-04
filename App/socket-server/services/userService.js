@@ -12,7 +12,7 @@ class UserService {
 
     setIO(io) {
         this.io = io;
-        console.log('📡 [USER-SERVICE] IO instance set for broadcasting events');
+
     }
 
     updatePresence(userId, status, activityDetails = null, username = null) {
@@ -21,7 +21,7 @@ class UserService {
         }
         
         if (this.disconnectingUsers.has(userId)) {
-            console.log(`🔄 [USER-SERVICE] User ${userId} reconnected during grace period, restoring presence`);
+
             clearTimeout(this.disconnectingUsers.get(userId).timeout);
             this.disconnectingUsers.delete(userId);
         }
@@ -32,7 +32,7 @@ class UserService {
             activity_details: activityDetails,
             last_seen: Date.now()
         });
-        console.log(`💓 [USER-SERVICE] Presence updated for user ${userId}: ${status}`);
+
     }
 
     markUserDisconnecting(userId, username = null) {
@@ -47,10 +47,10 @@ class UserService {
             clearTimeout(this.disconnectingUsers.get(userId).timeout);
         }
         
-        console.log(`⏳ [USER-SERVICE] User ${userId} marked as disconnecting, starting ${this.disconnectGracePeriod/1000}s grace period`);
+
         
         const timeout = setTimeout(() => {
-            console.log(`⏰ [USER-SERVICE] Grace period expired for user ${userId}, marking as offline`);
+
             this.forceUserOffline(userId);
         }, this.disconnectGracePeriod);
         
@@ -74,7 +74,7 @@ class UserService {
                 activity_details: null,
                 timestamp: Date.now()
             });
-            console.log(`📡 [USER-SERVICE] Broadcasted offline event for user ${username} (${userId}) after grace period`);
+
         }
     }
 
@@ -85,7 +85,7 @@ class UserService {
         const timeSinceUpdate = Date.now() - presence.last_seen;
         
         if (timeSinceUpdate > this.afkTimeout && presence.status === 'online') {
-            console.log(`⏰ [USER-SERVICE] User ${userId} marked afk after ${Math.round(timeSinceUpdate / 1000)}s of inactivity`);
+
             const oldStatus = presence.status;
             presence.status = 'afk';
             if (!presence.activity_details || presence.activity_details.type === 'idle') {
@@ -101,7 +101,7 @@ class UserService {
                     status: 'afk',
                     activity_details: presence.activity_details
                 });
-                console.log(`📡 [USER-SERVICE] Broadcasted afk event for user ${username} (${userId})`);
+
             }
         }
         
@@ -111,7 +111,7 @@ class UserService {
     removePresence(userId) {
         const presence = this.userPresence.get(userId);
         if (presence) {
-            console.log(`❌ [USER-SERVICE] Removing presence for user ${userId}`);
+
             this.userPresence.delete(userId);
             this.usernames.delete(userId);
             
@@ -154,7 +154,7 @@ class UserService {
         }
         
         toRemove.forEach(userId => {
-            console.log(`🧹 [USER-SERVICE] Cleaning old offline presence for user ${userId}`);
+
             this.userPresence.delete(userId);
             this.usernames.delete(userId);
         });
@@ -167,7 +167,7 @@ class UserService {
         }
         
         expiredDisconnecting.forEach(userId => {
-            console.log(`🧹 [USER-SERVICE] Cleaning expired disconnecting user ${userId}`);
+
             const disconnectData = this.disconnectingUsers.get(userId);
             if (disconnectData?.timeout) {
                 clearTimeout(disconnectData.timeout);
@@ -176,7 +176,7 @@ class UserService {
         });
         
         if (toRemove.length > 0 || expiredDisconnecting.length > 0) {
-            console.log(`🧹 [USER-SERVICE] Cleaned ${toRemove.length} old offline presence entries and ${expiredDisconnecting.length} expired disconnecting users`);
+
         }
     }
 
@@ -202,7 +202,7 @@ class UserService {
                 }
                 this.userPresence.set(userId, data);
                 statusChanges++;
-                console.log(`⏰ [USER-SERVICE] User ${userId} changed from ${oldStatus} to afk after ${Math.round(timeSinceUpdate / 1000)}s`);
+
                 
                 if (this.io) {
                     const username = this.usernames.get(userId) || 'Unknown';
@@ -212,13 +212,13 @@ class UserService {
                         status: 'afk',
                         activity_details: data.activity_details
                     });
-                    console.log(`📡 [USER-SERVICE] Broadcasted afk event for user ${username} (${userId})`);
+
                 }
             }
         }
         
         if (statusChanges > 0) {
-            console.log(`📊 [USER-SERVICE] Updated ${statusChanges} user statuses`);
+
         }
     }
 

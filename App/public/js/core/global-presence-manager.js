@@ -6,7 +6,7 @@ class GlobalPresenceManager {
         this.currentPage = this.detectCurrentPage();
         this.lastRenderedState = null;
         
-        console.log('🌐 [GLOBAL-PRESENCE] Initializing for page:', this.currentPage);
+
     }
 
     detectCurrentPage() {
@@ -30,7 +30,7 @@ class GlobalPresenceManager {
     async initialize() {
         if (this.isInitialized) return;
         
-        console.log('🚀 [GLOBAL-PRESENCE] Starting global presence initialization...');
+
         
         await this.waitForDependencies();
         await this.initializeFriendsManager();
@@ -38,24 +38,24 @@ class GlobalPresenceManager {
         this.setupVideoSDKPresenceSync();
         
         this.isInitialized = true;
-        console.log('✅ [GLOBAL-PRESENCE] Global presence system initialized');
+
     }
 
     setupVideoSDKPresenceSync() {
-        console.log('🎤 [GLOBAL-PRESENCE] Setting up VideoSDK presence sync...');
+
         
         window.addEventListener('voiceConnect', (event) => {
-            console.log('🎤 [GLOBAL-PRESENCE] Voice connect detected');
+
             this.updateActiveNow();
         });
         
         window.addEventListener('voiceDisconnect', (event) => {
-            console.log('🎤 [GLOBAL-PRESENCE] Voice disconnect detected');
+
             this.handleVoiceDisconnect();
         });
         
         window.addEventListener('presenceForceReset', (event) => {
-            console.log('🔧 [GLOBAL-PRESENCE] Presence force reset detected:', event.detail);
+
             this.handlePresenceForceReset(event.detail);
         });
         
@@ -75,19 +75,19 @@ class GlobalPresenceManager {
         const isPresenceInVoice = currentActivity.startsWith('In Voice');
         
         if (!isVideoSDKConnected && isPresenceInVoice) {
-            console.log('⚠️ [GLOBAL-PRESENCE] VideoSDK not connected but presence shows in voice - correcting');
+
             this.forcePresenceToActive();
         }
     }
 
     handleVoiceDisconnect() {
-        console.log('🔧 [GLOBAL-PRESENCE] Handling voice disconnect');
+
         this.forcePresenceToActive();
         this.updateActiveNow();
     }
 
     handlePresenceForceReset(detail) {
-        console.log('🔧 [GLOBAL-PRESENCE] Handling presence force reset:', detail);
+
         this.forcePresenceToActive();
         this.updateActiveNow();
     }
@@ -95,19 +95,19 @@ class GlobalPresenceManager {
     forcePresenceToActive() {
         if (window.globalSocketManager) {
             window.globalSocketManager.updatePresence('online', { type: 'active' }, 'global-presence-force-reset');
-            console.log('🔧 [GLOBAL-PRESENCE] Forced presence to active');
+
         }
     }
 
     async waitForDependencies() {
-        console.log('⏳ [GLOBAL-PRESENCE] Waiting for dependencies...');
+
         
         const maxWait = 10000;
         const startTime = Date.now();
         
         while (Date.now() - startTime < maxWait) {
             if (window.FriendsManager && window.globalSocketManager) {
-                console.log('✅ [GLOBAL-PRESENCE] All dependencies loaded');
+
                 return;
             }
             
@@ -123,18 +123,18 @@ class GlobalPresenceManager {
             return;
         }
         
-        console.log('🤝 [GLOBAL-PRESENCE] Initializing FriendsManager...');
+
         
         this.friendsManager = window.FriendsManager.getInstance();
         
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log('🔌 [GLOBAL-PRESENCE] Socket ready, loading initial data...');
+
             await this.friendsManager.getOnlineUsers(true);
         } else {
-            console.log('⏳ [GLOBAL-PRESENCE] Socket not ready, will load data when connected');
+
             
             window.addEventListener('globalSocketReady', async () => {
-                console.log('🔌 [GLOBAL-PRESENCE] Socket connected, loading data...');
+
                 await this.friendsManager.getOnlineUsers(true);
             });
         }
@@ -142,11 +142,11 @@ class GlobalPresenceManager {
 
     async setupActiveNowSection() {
         if (!this.shouldShowActiveNow()) {
-            console.log('ℹ️ [GLOBAL-PRESENCE] Active Now section not needed for this page');
+
             return;
         }
         
-        console.log('📋 [GLOBAL-PRESENCE] Setting up Active Now section...');
+
         
         await this.createActiveNowSection();
         this.setupActiveNowLogic();
@@ -167,7 +167,7 @@ class GlobalPresenceManager {
         const activeNowHTML = await this.generateActiveNowHTML();
         targetContainer.innerHTML = activeNowHTML;
         
-        console.log('✅ [GLOBAL-PRESENCE] Active Now section created');
+
     }
 
     findActiveNowContainer() {
@@ -217,10 +217,10 @@ class GlobalPresenceManager {
     setupActiveNowLogic() {
         if (!this.friendsManager) return;
         
-        console.log('⚙️ [GLOBAL-PRESENCE] Setting up Active Now logic...');
+
         
         this.friendsManager.subscribe((type, data) => {
-            console.log(`🔄 [GLOBAL-PRESENCE] Event: ${type}`, data);
+
             
             switch (type) {
                 case 'user-online':
@@ -626,11 +626,11 @@ class GlobalPresenceManager {
             return 'Online';
         }
         
-        console.log('🎤 [GLOBAL-PRESENCE] Getting activity text for:', activityDetails);
+
         
         switch (activityDetails.type) {
             case 'In Voice Call': 
-                console.log('🎤 [GLOBAL-PRESENCE] Returning "In Voice" for activity type "In Voice Call"');
+
                 return 'In Voice';
             case 'afk': return 'Away';
             case 'idle':
@@ -705,7 +705,7 @@ class GlobalPresenceManager {
         // Special case: AFK can only be overridden by user activity or higher priority activities
         if (currentStatus === 'afk' && newStatus === 'online') {
             if (!newActivity || newActivity.type === 'active') {
-                console.log('✅ [PRESENCE-HIERARCHY] AFK -> Online (user activity) - ALLOWED');
+
                 return true;
             }
         }
@@ -714,9 +714,9 @@ class GlobalPresenceManager {
         const canOverride = this.canOverridePresence(currentActivity, newActivity);
         
         if (canOverride) {
-            console.log('✅ [PRESENCE-HIERARCHY] Presence change ALLOWED');
+
         } else {
-            console.log('❌ [PRESENCE-HIERARCHY] Presence change BLOCKED - lower priority activity cannot override higher priority');
+
         }
         
         return canOverride;
@@ -735,7 +735,7 @@ class GlobalPresenceManager {
     }
 
     handlePresenceUpdate(data) {
-        console.log('🔄 [GLOBAL-PRESENCE] Handling presence update:', data);
+
         
         if (data.user_id === window.globalSocketManager?.userId) {
             const currentActivity = window.globalSocketManager?.currentActivityDetails;
@@ -749,7 +749,7 @@ class GlobalPresenceManager {
             );
             
             if (!isValidChange) {
-                console.log('🚫 [GLOBAL-PRESENCE] Ignoring presence update due to hierarchy protection');
+
                 return;
             }
         }
@@ -763,7 +763,7 @@ class GlobalPresenceManager {
 
     static enableDebugMode() {
         window.globalPresenceDebug = true;
-        console.log('🔧 [GLOBAL-PRESENCE] Debug mode enabled');
+
         
         const originalUpdate = GlobalPresenceManager.prototype.updateUserPresence;
         GlobalPresenceManager.prototype.updateUserPresence = function(userId, presenceData) {
@@ -793,11 +793,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                       window.location.pathname === '/';
     
     if (!isAuthPage) {
-        console.log('🌐 [GLOBAL-PRESENCE] Starting global presence system...');
+
         const presenceManager = GlobalPresenceManager.getInstance();
         await presenceManager.initialize();
     } else {
-        console.log('🚫 [GLOBAL-PRESENCE] Skipping presence system on auth page');
+
     }
 });
 

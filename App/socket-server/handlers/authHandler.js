@@ -2,7 +2,7 @@ const roomManager = require('../services/roomManager');
 
 class AuthHandler {
     static handle(io, client, data) {
-        console.log(`🔐 [AUTH-HANDLER] Processing authentication request from client ${client.id}`);
+
         console.log(`📋 [AUTH-HANDLER] Auth data received:`, {
             userId: data.user_id,
             username: data.username,
@@ -44,10 +44,10 @@ class AuthHandler {
         
         // Join user room and track socket
         const userRoom = roomManager.getUserRoom(user_id);
-        console.log(`🏠 [AUTH-HANDLER] Joining user room: ${userRoom}`);
+
         roomManager.joinRoom(client, userRoom);
         
-        console.log(`📝 [AUTH-HANDLER] Adding user socket to tracking`);
+
         roomManager.addUserSocket(user_id, client.id);
         
         // Prepare authentication response with underscores
@@ -60,15 +60,15 @@ class AuthHandler {
             message: 'Authentication successful'
         };
         
-        console.log(`📤 [AUTH-HANDLER] Sending auth success response:`, response);
+
         client.emit('auth-success', response);
         
-        console.log(`👤 [AUTH-HANDLER] Setting user online status after authentication`);
+
         const userService = require('../services/userService');
         userService.updatePresence(user_id, 'online', { type: 'idle' }, client.data.username);
         
         if (io && typeof io.emit === 'function') {
-            console.log(`📡 [AUTH-HANDLER] Broadcasting user online status to all clients`);
+
             io.emit('user-online', {
                 user_id: user_id,
                 username: client.data.username,
@@ -76,17 +76,17 @@ class AuthHandler {
                 activity_details: { type: 'idle' },
                 timestamp: Date.now()
             });
-            console.log(`✅ [AUTH-HANDLER] User online broadcast sent successfully`);
+
         } else {
             console.error(`❌ [AUTH-HANDLER] IO object not available or invalid for broadcasting user online status`);
         }
         
-        console.log(`✅ [AUTH-HANDLER] User ${user_id} (${client.data.username}) authenticated successfully on client ${client.id}`);
+
     }
     
     static requireAuth(client) {
         const isAuthenticated = client.data?.authenticated === true;
-        console.log(`🔐 [AUTH-HANDLER] Auth check for client ${client.id}: ${isAuthenticated ? 'PASSED' : 'FAILED'}`);
+
         
         if (!isAuthenticated) {
             console.warn(`⚠️ [AUTH-HANDLER] Unauthenticated client ${client.id} attempted protected action`);

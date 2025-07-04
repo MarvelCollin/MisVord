@@ -43,11 +43,11 @@ class GlobalVoiceIndicator {
                     this.meetingId = voiceState?.meetingId || window.voiceManager?.currentMeetingId || '';
                     this.connectionTime = voiceState?.connectionTime || Date.now();
                     
-                    console.log('✅ [GLOBAL-VOICE-INDICATOR] Valid connection found, showing indicator');
+
                     this.createIndicator();
                     this.updateVisibility();
                 } else {
-                    console.log('❌ [GLOBAL-VOICE-INDICATOR] Invalid connection, clearing state');
+
                     this.handleDisconnect();
                     
                     if (window.unifiedVoiceStateManager) {
@@ -55,7 +55,7 @@ class GlobalVoiceIndicator {
                     }
                 }
             } else {
-                console.log('🔍 [GLOBAL-VOICE-INDICATOR] No connection found');
+
             }
         }, 1000);
     }
@@ -94,7 +94,7 @@ class GlobalVoiceIndicator {
             return socketValid;
         }
         
-        console.log('❌ [GLOBAL-VOICE-INDICATOR] No active connection managers found');
+
         return false;
     }
     
@@ -104,7 +104,7 @@ class GlobalVoiceIndicator {
                 if (window.globalSocketManager?.io) {
                     window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
                 }
-                console.log('⏰ [GLOBAL-VOICE-INDICATOR] Socket verification timeout');
+
                 resolve(false);
             }, 2000);
             
@@ -162,10 +162,10 @@ class GlobalVoiceIndicator {
         });
 
         window.addEventListener('popstate', (event) => {
-            console.log('[GlobalVoiceIndicator] Navigation detected:', event.state);
+
             
             if (event.state?.preserveVoice) {
-                console.log('[GlobalVoiceIndicator] Voice preservation requested, maintaining connection');
+
                 setTimeout(() => this.updateVisibility(), 100);
                 return;
             }

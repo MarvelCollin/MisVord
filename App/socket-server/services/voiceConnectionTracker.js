@@ -4,7 +4,7 @@ class VoiceConnectionTracker {
 
     static addUserToVoice(userId, channelId, meetingId, username = null) {
         const userKey = userId.toString();
-        console.log(`🎤 [VOICE-TRACKER] User ${userKey} joined voice channel ${channelId} (meeting: ${meetingId})`);
+
         
         this.connections.set(userKey, {
             userId: userKey,
@@ -16,23 +16,23 @@ class VoiceConnectionTracker {
         });
         
         this.userVoiceStatus.set(userKey, true);
-        console.log(`✅ [VOICE-TRACKER] User ${userKey} voice status: CONNECTED`);
+
     }
 
     static removeUserFromVoice(userId) {
         const userKey = userId.toString();
-        console.log(`🔇 [VOICE-TRACKER] User ${userKey} left voice channel`);
+
         
         this.connections.delete(userKey);
         this.userVoiceStatus.set(userKey, false);
-        console.log(`✅ [VOICE-TRACKER] User ${userKey} voice status: DISCONNECTED`);
+
     }
 
     static getUserVoiceStatus(userId) {
         const userKey = userId.toString();
         const isConnected = this.connections.has(userKey) && this.connections.get(userKey).isConnected;
         
-        console.log(`🔍 [VOICE-TRACKER] Checking voice status for user ${userKey}: ${isConnected ? 'CONNECTED' : 'NOT CONNECTED'}`);
+
         if (isConnected) {
             console.log(`🔍 [VOICE-TRACKER] Connection details:`, {
                 channelId: this.connections.get(userKey)?.channelId,
@@ -49,7 +49,7 @@ class VoiceConnectionTracker {
         const connection = this.connections.get(userKey);
         const isConnected = connection && connection.isConnected;
         
-        console.log(`🔍 [VOICE-TRACKER] Checking voice status for user ${userKey}: ${isConnected ? 'CONNECTED' : 'NOT CONNECTED'}`);
+
         if (connection) {
             console.log(`🔍 [VOICE-TRACKER] Connection details:`, {
                 channelId: connection.channelId,
@@ -66,11 +66,11 @@ class VoiceConnectionTracker {
         const connection = this.connections.get(userKey);
         
         if (connection && connection.isConnected) {
-            console.log(`📋 [VOICE-TRACKER] User ${userKey} voice connection:`, connection);
+
             return connection;
         }
         
-        console.log(`📋 [VOICE-TRACKER] User ${userKey} has no active voice connection`);
+
         return null;
     }
 
@@ -89,7 +89,7 @@ class VoiceConnectionTracker {
                 username: conn.username || 'Unknown'
             }));
         
-        console.log(`👥 [VOICE-TRACKER] Channel ${channelId} has ${participants.length} participants`);
+
         return participants;
     }
 
@@ -99,7 +99,7 @@ class VoiceConnectionTracker {
         
         for (const [userId, connection] of this.connections.entries()) {
             if (now - connection.joinedAt > timeout) {
-                console.log(`🧹 [VOICE-TRACKER] Cleaning up stale connection for user ${userId}`);
+
                 this.removeUserFromVoice(userId);
             }
         }

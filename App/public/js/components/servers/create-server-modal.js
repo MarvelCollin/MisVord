@@ -12,7 +12,7 @@ let modalInitialized = false;
 let formListenerAttached = false;
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("create-server-modal.js DOMContentLoaded, modalInitialized:", modalInitialized);
+
     
     if (modalInitialized) {
         console.warn("Modal already initialized, skipping");
@@ -167,7 +167,7 @@ function initServerIconUpload() {
                 iconPreview.src = result.dataUrl;
                 iconPreview.classList.remove('hidden');
                 iconPlaceholder.classList.add('hidden');
-                console.log('Icon crop completed');
+
 
                 iconContainer.dataset.croppedImage = result.dataUrl;
             }
@@ -241,7 +241,7 @@ function initServerBannerUpload() {
                 bannerPreview.src = result.dataUrl;
                 bannerPreview.classList.remove('hidden');
                 bannerPlaceholder.classList.add('hidden');
-                console.log('Banner crop completed');
+
 
                 bannerContainer.dataset.croppedImage = result.dataUrl;
             }
@@ -298,30 +298,30 @@ function initServerFormSubmission() {
     }
     
     if (formListenerAttached) {
-        console.log('Form listener already attached, skipping');
+
         return;
     }
     
     formListenerAttached = true;
-    console.log('Attaching form submission listener');
+
     
     serverForm.addEventListener('submit', function (e) {
         e.preventDefault();
         e.stopPropagation();
 
-        console.log('Form submission triggered, isFormSubmitting:', isFormSubmitting);
+
 
         if (isFormSubmitting) {
-            console.log('Form submission already in progress, ignoring duplicate');
+
             return false;
         }
 
         if (!validateServerForm(this)) {
-            console.log('Form validation failed');
+
             return false;
         }
         
-        console.log('Starting form submission process');
+
         isFormSubmitting = true;
         const submitBtn = this.querySelector('button[type="submit"]');
         showLoading(submitBtn);
@@ -396,11 +396,11 @@ function handleServerCreation(form, formData = null) {
         const modal = document.getElementById('create-server-modal');
         const submitBtn = form.querySelector('button[type="submit"]');
         
-        console.log('Calling server API to create server');
+
         
         serverAPI.createServer(formData)
             .then(data => {
-                console.log('Server creation response:', data);
+
                 hideLoading(submitBtn);
                 isFormSubmitting = false;
                 
@@ -570,7 +570,7 @@ async function navigateToNewServer(serverId) {
     
     try {
         const defaultChannelId = await getDefaultChannelForServer(serverId);
-        console.log('[Create Server] Default channel ID:', defaultChannelId);
+
         
         const newPath = defaultChannelId ? `/server/${serverId}?channel=${defaultChannelId}` : `/server/${serverId}`;
 
@@ -666,10 +666,10 @@ window.navigateToServer = function (serverId) {
 };
 
 export function openCreateServerModal() {
-    console.log('openCreateServerModal called');
+
     const modal = document.getElementById('create-server-modal');
     if (modal) {
-        console.log('Modal found, opening...');
+
         const form = document.getElementById('create-server-form');
         if (form) {
             FormValidator.clearErrors(form);
@@ -775,7 +775,7 @@ function initCategorySelection() {
 
 function initCreateServerButton() {
     const createServerButtons = document.querySelectorAll('[data-action="create-server"]');
-    console.log('Initializing create server buttons:', createServerButtons.length);
+
     
     createServerButtons.forEach(button => {
         if (button.hasAttribute('data-listener-attached')) {
@@ -785,7 +785,7 @@ function initCreateServerButton() {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Create server button clicked!');
+
             openCreateServerModal();
         });
     });

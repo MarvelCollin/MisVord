@@ -18,11 +18,11 @@ class VoiceManager {
             if (window.unifiedVoiceStateManager) {
                 const storedState = window.unifiedVoiceStateManager.getState();
                 if (storedState.isConnected && !this.isConnected) {
-                    console.log('🔍 [VOICE-MANAGER] Found stored connection state but not connected locally');
+
                     
                     const hasVideoSDK = window.videoSDKManager?.isConnected;
                     if (!hasVideoSDK) {
-                        console.log('❌ [VOICE-MANAGER] No active VideoSDK connection, clearing stored state');
+
                         window.unifiedVoiceStateManager.clearStaleConnection();
                     }
                 }
@@ -39,7 +39,7 @@ class VoiceManager {
             this.attachEventListeners();
             this.setupErrorHandling();
             this.initialized = true;
-            console.log('✅ Voice manager initialized');
+
         } catch (error) {
             console.error('❌ Failed to initialize voice manager:', error);
             throw error;
@@ -63,18 +63,18 @@ class VoiceManager {
     async loadVideoSDKScript() {
         return new Promise((resolve, reject) => {
             if (typeof VideoSDK !== 'undefined') {
-                console.log('VideoSDK already loaded');
+
                 resolve();
                 return;
             }
 
-            console.log('Loading VideoSDK script...');
+
             const script = document.createElement('script');
             script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
             script.async = true;
             
             script.onload = () => {
-                console.log('✅ VideoSDK script loaded successfully');
+
                 resolve();
             };
             
@@ -104,7 +104,7 @@ class VoiceManager {
             this.videoSDKManager = window.videoSDKManager;
             const config = this.videoSDKManager.getMetaConfig();
             await this.videoSDKManager.init(config.authToken);
-            console.log('✅ VideoSDK initialized');
+
             return true;
         } catch (error) {
             console.error('❌ Failed to initialize VideoSDK:', error);
@@ -132,36 +132,36 @@ class VoiceManager {
         
         window.addEventListener('beforeunload', () => {
             if (this.isConnected) {
-                console.log('🚨 [VOICE-MANAGER] Page unloading, cleaning up voice connection');
+
                 this.cleanup();
             }
         });
         
         window.addEventListener('unload', () => {
             if (this.isConnected) {
-                console.log('🚨 [VOICE-MANAGER] Page unloaded, cleaning up voice connection');
+
                 this.cleanup();
             }
         });
         
         window.addEventListener('pagehide', () => {
             if (this.isConnected) {
-                console.log('🚨 [VOICE-MANAGER] Page hidden, cleaning up voice connection');
+
                 this.cleanup();
             }
         });
         
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && this.isConnected) {
-                console.log('📱 [VOICE-MANAGER] Page became hidden, voice connection maintained');
+
             } else if (document.visibilityState === 'visible' && this.isConnected) {
-                console.log('📱 [VOICE-MANAGER] Page became visible, voice connection active');
+
             }
         });
     }
     
     setupErrorHandling() {
-        console.log('[VoiceManager] Stream handling managed by VideoSDKManager');
+
     }
     
     setupVoice(channelId) {
@@ -215,10 +215,10 @@ class VoiceManager {
         // If already connected, check whether it is the same channel
         if (this.isConnected) {
             if (this.currentChannelId === targetChannelId) {
-                console.log('🎉 [VOICE-MANAGER] Already connected to the desired channel, skipping join');
+
                 return Promise.resolve();
             }
-            console.log(`🔄 [VOICE-MANAGER] Switching voice from channel ${this.currentChannelId} to ${targetChannelId}`);
+
             this.leaveVoice();
         }
         
@@ -228,7 +228,7 @@ class VoiceManager {
         }
         
         if (window.videoSDKJoiningInProgress) {
-            console.log('[VOICE-MANAGER] VideoSDK join in progress, waiting before switching');
+
             await new Promise(resolve => setTimeout(resolve, 500));
         }
         
@@ -263,37 +263,37 @@ class VoiceManager {
             window.videoSDKJoiningInProgress = true;
 
             // 🎯 STEP 1: Check if meeting already exists for this channel
-            console.log(`🔍 [VOICE-MANAGER] Checking for existing meeting in channel ${targetChannelId}...`);
+
             const existingMeeting = await this.checkExistingMeeting(targetChannelId);
             
             let meetingId;
             if (existingMeeting && existingMeeting.meeting_id) {
-                console.log(`✅ [VOICE-MANAGER] Found existing meeting: ${existingMeeting.meeting_id}`);
+
                 meetingId = existingMeeting.meeting_id;
             } else {
-                console.log(`🆕 [VOICE-MANAGER] No existing meeting, creating new one...`);
+
                 const customMeetingId = `voice_channel_${targetChannelId}`;
                 meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
                 if (!meetingId) {
                     throw new Error('Failed to create meeting room');
                 }
-                console.log(`🆕 [VOICE-MANAGER] Created new meeting with ID: ${meetingId}`);
+
             }
-            console.log(`🎯 [VOICE-MANAGER] Final meeting ID for joining: ${meetingId}`);
+
             
             // 🎯 STEP 3b: Meeting initialization and joining now handled by voice-not-join.php
-            console.log(`🚪 [VOICE-MANAGER] Meeting ID: ${meetingId} - Join will be handled by voice-not-join.php`);
+
             
             // Get proper username from multiple sources
             const userName = this.getUsernameFromMultipleSources();
-            console.log(`🏷️ [VOICE-MANAGER] Using username: ${userName}`);
+
             
             // Store meeting details for potential external use
             this.currentMeetingId = meetingId;
             this.currentChannelId = targetChannelId;
             
             // 🎯 STEP 4: Register with socket for meeting tracking
-            console.log(`📝 [VOICE-MANAGER] Registering with socket for meeting: ${meetingId}...`);
+
             await this.registerMeetingWithSocket(targetChannelId, meetingId);
             
             // VideoSDK joining is now handled externally by voice-not-join.php
@@ -305,7 +305,7 @@ class VoiceManager {
                 action: existingMeeting ? 'PREPARED_EXISTING' : 'PREPARED_NEW'
             });
 
-            console.log(`🎉 [VOICE-MANAGER] Voice manager preparation completed!`);
+
             return Promise.resolve();
         } catch (error) {
             console.error('❌ [VOICE-MANAGER] Failed to join voice:', error);
@@ -321,7 +321,7 @@ class VoiceManager {
     async checkExistingMeeting(channelId) {
         return new Promise((resolve) => {
             if (!window.globalSocketManager?.io) {
-                console.log(`⚠️ [VOICE-MANAGER] Socket not available for channel ${channelId}`);
+
                 resolve(null);
                 return;
             }
@@ -337,25 +337,25 @@ class VoiceManager {
                     });
                     
                     if (data.has_meeting && data.meeting_id) {
-                        console.log(`✅ [VOICE-MANAGER] Found existing meeting with ID: ${data.meeting_id}`);
+
                         resolve({
                         meeting_id: data.meeting_id,
                         participant_count: data.participant_count
                         });
                     } else {
-                        console.log(`📭 [VOICE-MANAGER] No existing meeting found for channel ${channelId}`);
+
                         resolve(null);
                     }
                 }
             };
             
             window.globalSocketManager.io.on('voice-meeting-status', handleResponse);
-            console.log(`🔍 [VOICE-MANAGER] Checking for existing meeting in channel ${channelId}...`);
+
             window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
             
             setTimeout(() => {
                 window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
-                console.log(`⏰ [VOICE-MANAGER] Timeout waiting for meeting status for channel ${channelId}`);
+
                 resolve(null);
             }, 3000);
         });
@@ -371,7 +371,7 @@ class VoiceManager {
             const handleUpdate = (data) => {
                 if (data.channel_id === channelId && (data.action === 'join' || data.action === 'already_registered')) {
                     window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                    console.log(`[VOICE-MANAGER] Socket registration response:`, data);
+
                     resolve(data);
                 }
             };
@@ -391,12 +391,12 @@ class VoiceManager {
 
     leaveVoice() {
         if (!this.isConnected) {
-            console.log('🚪 [VOICE-MANAGER] Not connected, ignoring leave request');
+
             return;
         }
         
         if (window.videoSDKJoiningInProgress) {
-            console.log('🚪 [VOICE-MANAGER] Join in progress, deferring leave');
+
             return;
         }
         
@@ -451,14 +451,14 @@ class VoiceManager {
     }
     
     cleanup() {
-        console.log('🧹 [VOICE-MANAGER] Emergency cleanup initiated');
+
         
         if (this.currentChannelId && window.globalSocketManager?.io && window.globalSocketManager.isReady()) {
             try {
                 window.globalSocketManager.io.emit('unregister-voice-meeting', {
                     channel_id: this.currentChannelId
                 });
-                console.log('🧹 [VOICE-MANAGER] Sent unregister to socket server');
+
             } catch (error) {
                 console.warn('🧹 [VOICE-MANAGER] Failed to send unregister to socket:', error);
             }
@@ -467,7 +467,7 @@ class VoiceManager {
         if (this.videoSDKManager) {
             try {
                 this.videoSDKManager.leaveMeeting();
-                console.log('🧹 [VOICE-MANAGER] Left VideoSDK meeting');
+
             } catch (error) {
                 console.warn('🧹 [VOICE-MANAGER] Failed to leave VideoSDK meeting:', error);
             }
@@ -482,17 +482,17 @@ class VoiceManager {
         if (window.unifiedVoiceStateManager) {
             try {
                 window.unifiedVoiceStateManager.handleDisconnect();
-                console.log('🧹 [VOICE-MANAGER] Reset unified voice state');
+
             } catch (error) {
                 console.warn('🧹 [VOICE-MANAGER] Failed to reset unified voice state:', error);
             }
         }
         
-        console.log('🧹 [VOICE-MANAGER] Emergency cleanup completed');
+
     }
     
     refreshParticipantsUI() {
-        console.log('🔄 [VOICE-MANAGER] Refreshing participants UI');
+
         
         if (this.videoSDKManager && typeof this.videoSDKManager.refreshExistingParticipants === 'function') {
             this.videoSDKManager.refreshExistingParticipants();
@@ -517,7 +517,7 @@ class VoiceManager {
         // 1. Check window.currentUsername (set on home page)
         if (window.currentUsername && window.currentUsername !== 'Anonymous') {
             username = window.currentUsername;
-            console.log(`🏷️ [USERNAME] Got from window.currentUsername: ${username}`);
+
         }
         
         // 2. Check meta tag (available on most pages)
@@ -525,7 +525,7 @@ class VoiceManager {
             const metaUsername = document.querySelector('meta[name="username"]')?.content;
             if (metaUsername && metaUsername !== 'Anonymous' && metaUsername.trim() !== '') {
                 username = metaUsername;
-                console.log(`🏷️ [USERNAME] Got from meta tag: ${username}`);
+
             }
         }
         
@@ -535,7 +535,7 @@ class VoiceManager {
             const dataUsername = appContainer?.getAttribute('data-username');
             if (dataUsername && dataUsername !== 'Anonymous' && dataUsername.trim() !== '') {
                 username = dataUsername;
-                console.log(`🏷️ [USERNAME] Got from app-container data: ${username}`);
+
             }
         }
         
@@ -545,7 +545,7 @@ class VoiceManager {
             const socketUsername = socketData?.getAttribute('data-username');
             if (socketUsername && socketUsername !== 'Anonymous' && socketUsername.trim() !== '') {
                 username = socketUsername;
-                console.log(`🏷️ [USERNAME] Got from socket-data: ${username}`);
+
             }
         }
         
@@ -553,14 +553,14 @@ class VoiceManager {
         if (!username) {
             const timestamp = Date.now().toString().slice(-4);
             username = `User${timestamp}`;
-            console.log(`🏷️ [USERNAME] Using fallback: ${username}`);
+
         }
         
         return username;
     }
 
     resetState() {
-        console.log('🔄 [VOICE-MANAGER] Resetting state');
+
         
         this.isConnected = false;
         this.currentChannelId = null;
@@ -593,7 +593,7 @@ window.addEventListener('DOMContentLoaded', async function() {
     window.voiceManager = new VoiceManager();
     setTimeout(async () => {
         try {
-            console.log('Voice manager instance created');
+
         } catch (error) {
             console.error('Failed to initialize voice manager:', error);
         }
@@ -608,6 +608,6 @@ window.addEventListener(window.VOICE_EVENTS?.VOICE_UI_READY || 'voiceUIReady', f
 
 window.addEventListener(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect', function() {
     // Removed circular call to leaveVoice() to prevent auto-rejoin bugs
-    console.log('🔔 [VOICE-MANAGER] Voice disconnect event received');
+
 });
 

@@ -118,7 +118,7 @@ class FriendsTabManager {
     }
 
     loadTabData(tabName) {
-        console.log(`📊 [FRIENDS-TABS] Loading data for ${tabName} tab`);
+
         
         switch (tabName) {
             case 'online':

@@ -1,7 +1,7 @@
 class WiFiStrength {
   constructor(enabled = false) {
     if (!enabled) {
-      console.log('WiFi strength monitoring disabled');
+
       return;
     }
     
@@ -40,7 +40,7 @@ class WiFiStrength {
             this.networkName = network.ssid;
           }
         } catch (e) {
-          console.log('WiFi name access not available');
+
         }
       }
       
@@ -58,7 +58,7 @@ class WiFiStrength {
             this.getIPDetails(data.ip);
           }
         } catch (error) {
-          console.log('Could not fetch public IP info');
+
         }
       }
     } catch (error) {
@@ -88,7 +88,7 @@ class WiFiStrength {
         isp: 'Local ISP'
       };
     } catch (error) {
-      console.log('Could not fetch IP details');
+
     }
   }
 

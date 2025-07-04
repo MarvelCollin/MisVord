@@ -4,7 +4,7 @@ const eventValidator = require('../services/eventValidator');
 
 class MessageHandler {
     static forwardMessage(io, client, eventName, data) {
-        console.log(`📤 [MESSAGE-FORWARD] Starting message forward for ${eventName} from client ${client.id}`);
+
         
         const validation = eventValidator.validateAndLog(eventName, data, 'in forwardMessage');
         if (!validation.valid) {
@@ -23,22 +23,22 @@ class MessageHandler {
             content: data.content
         });
         
-        console.log(`📦 [MESSAGE-FORWARD] Complete incoming message data:`, JSON.stringify(data, null, 2));
+
         
         let targetRoom;
         if (eventName === 'new-channel-message' && data.channel_id) {
             targetRoom = roomManager.getChannelRoom(data.channel_id);
-            console.log(`🏠 [MESSAGE-FORWARD] Using channel room: ${targetRoom} for channel ${data.channel_id}`);
+
         } else if (eventName === 'user-message-dm' && data.room_id) {
             targetRoom = roomManager.getDMRoom(data.room_id);
-            console.log(`🏠 [MESSAGE-FORWARD] Using DM room: ${targetRoom} for room ${data.room_id}`);
+
         } else if (data.target_type && data.target_id) {
             if (data.target_type === 'channel') {
                 targetRoom = roomManager.getChannelRoom(data.target_id);
-                console.log(`🏠 [MESSAGE-FORWARD] Using channel room: ${targetRoom} for ${eventName} in channel ${data.target_id}`);
+
             } else if (data.target_type === 'dm') {
                 targetRoom = roomManager.getDMRoom(data.target_id);
-                console.log(`🏠 [MESSAGE-FORWARD] Using DM room: ${targetRoom} for ${eventName} in DM ${data.target_id}`);
+
             }
         }
         
@@ -71,24 +71,24 @@ class MessageHandler {
             source: broadcastData.source
         });
         
-        console.log(`📦 [MESSAGE-FORWARD] Complete broadcast data:`, JSON.stringify(broadcastData, null, 2));
+
         
         let broadcastSuccess = false;
         
         if (targetRoom) {
-            console.log(`📡 [MESSAGE-FORWARD] Broadcasting ${eventName} to room: ${targetRoom}`);
+
             
             if (!client.rooms.has(targetRoom)) {
-                console.log(`🔄 [MESSAGE-FORWARD] Client not in room, joining: ${targetRoom}`);
+
                 client.join(targetRoom);
             }
         
             io.to(targetRoom).emit(eventName, broadcastData);
-            console.log(`✅ [MESSAGE-FORWARD] Successfully broadcasted ${eventName} to room ${targetRoom}`);
+
         
             const roomClients = io.sockets.adapter.rooms.get(targetRoom);
             if (roomClients) {
-                console.log(`👥 [MESSAGE-FORWARD] Message delivered to ${roomClients.size} clients in room ${targetRoom}`);
+
                 broadcastSuccess = roomClients.size > 0;
             } else {
                 console.warn(`⚠️ [MESSAGE-FORWARD] No clients found in room ${targetRoom}`);
@@ -105,11 +105,11 @@ class MessageHandler {
         }
         
         if (!broadcastSuccess) {
-            console.log(`🔄 [MESSAGE-FORWARD] Room broadcast failed, using global fallback for ${eventName}`);
+
             const authenticatedClients = Array.from(io.sockets.sockets.values())
                 .filter(socket => socket.data?.authenticated && socket.data?.user_id);
             
-            console.log(`📡 [MESSAGE-FORWARD] Broadcasting ${eventName} to ${authenticatedClients.length} authenticated clients globally`);
+
             
             authenticatedClients.forEach(socket => {
                 if (socket.id !== client.id) {
@@ -117,12 +117,12 @@ class MessageHandler {
                 }
             });
             
-            console.log(`✅ [MESSAGE-FORWARD] Global fallback broadcast completed for ${eventName}`);
+
         }
     }
 
     static handleReaction(io, client, eventName, data) {
-        console.log(`😊 [REACTION-HANDLER] Starting reaction handling for ${eventName} from client ${client.id}`);
+
         
         const validation = eventValidator.validateAndLog(eventName, data, 'in handleReaction');
         if (!validation.valid) {
@@ -143,14 +143,14 @@ class MessageHandler {
         let targetRoom;
         if (data.target_type === 'channel' && data.target_id) {
             targetRoom = roomManager.getChannelRoom(data.target_id);
-            console.log(`🏠 [REACTION-HANDLER] Using channel room: ${targetRoom} for channel ${data.target_id}`);
+
         } else if (data.target_type === 'dm' && data.target_id) {
             targetRoom = roomManager.getDMRoom(data.target_id);
-            console.log(`🏠 [REACTION-HANDLER] Using DM room: ${targetRoom} for DM ${data.target_id}`);
+
         }
         
         if (targetRoom) {
-            console.log(`📡 [REACTION-HANDLER] Broadcasting ${eventName} to room: ${targetRoom}`);
+
             
             const reactionData = {
                 message_id: data.message_id,
@@ -175,7 +175,7 @@ class MessageHandler {
             });
             
             client.to(targetRoom).emit(eventName, reactionData);
-            console.log(`✅ [REACTION-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
+
             
             this.saveReactionToDatabase(io, client, targetRoom, data, eventName);
         } else {
@@ -222,7 +222,7 @@ class MessageHandler {
             const result = await response.json();
             
             if (result.success) {
-                console.log(`✅ [REACTION-SAVE] Reaction ${data.action} saved successfully, broadcasting confirmation`);
+
                 
                 const confirmationData = {
                     message_id: data.message_id,
@@ -241,10 +241,10 @@ class MessageHandler {
                 
                 if (targetRoom) {
                     io.to(targetRoom).emit('reaction-confirmed', confirmationData);
-                    console.log(`📡 [REACTION-SAVE] Broadcasted reaction-confirmed to room: ${targetRoom}`);
+
                 } else {
                     io.emit('reaction-confirmed', confirmationData);
-                    console.log(`📡 [REACTION-SAVE] Broadcasted reaction-confirmed to all clients`);
+
                 }
             } else {
                 throw new Error(result.message || 'Database operation failed');
@@ -274,16 +274,16 @@ class MessageHandler {
             
             if (targetRoom) {
                 io.to(targetRoom).emit('reaction-failed', failureData);
-                console.log(`📡 [REACTION-SAVE] Broadcasted reaction-failed to room: ${targetRoom}`);
+
             } else {
                 io.emit('reaction-failed', failureData);
-                console.log(`📡 [REACTION-SAVE] Broadcasted reaction-failed to all clients`);
+
             }
         }
     }
 
     static handlePin(io, client, eventName, data) {
-        console.log(`📌 [PIN-HANDLER] Starting pin handling for ${eventName} from client ${client.id}`);
+
         
         const validation = eventValidator.validateAndLog(eventName, data, 'in handlePin');
         if (!validation.valid) {
@@ -303,14 +303,14 @@ class MessageHandler {
         let targetRoom;
         if (data.target_type === 'channel' && data.target_id) {
             targetRoom = roomManager.getChannelRoom(data.target_id);
-            console.log(`🏠 [PIN-HANDLER] Using channel room: ${targetRoom} for channel ${data.target_id}`);
+
         } else if (data.target_type === 'dm' && data.target_id) {
             targetRoom = roomManager.getDMRoom(data.target_id);
-            console.log(`🏠 [PIN-HANDLER] Using DM room: ${targetRoom} for DM ${data.target_id}`);
+
         }
         
         if (targetRoom) {
-            console.log(`📡 [PIN-HANDLER] Broadcasting ${eventName} to room: ${targetRoom}`);
+
             
             const pinData = {
                 message_id: data.message_id,
@@ -333,7 +333,7 @@ class MessageHandler {
             });
             
             client.to(targetRoom).emit(eventName, pinData);
-            console.log(`✅ [PIN-HANDLER] Successfully broadcasted ${eventName} to ${targetRoom} (excluding sender)`);
+
         } else {
             console.warn(`⚠️ [PIN-HANDLER] No target room found for ${eventName}:`, {
                 targetType: data.target_type,
@@ -343,7 +343,7 @@ class MessageHandler {
     }
 
     static handleTyping(io, client, data, isTyping = true) {
-        console.log(`⌨️ [TYPING-HANDLER] ${isTyping ? 'Start' : 'Stop'} typing from client ${client.id}`);
+
         
         const channelId = data.channel_id || data.channelId;
         const roomId = data.room_id || data.roomId;
@@ -363,27 +363,27 @@ class MessageHandler {
         
         if (channelId) {
             const room = roomManager.getChannelRoom(channelId);
-            console.log(`📡 [TYPING-HANDLER] Broadcasting ${eventName} to channel room: ${room}`);
+
             client.to(room).emit(eventName, { user_id, username, channel_id: channelId });
-            console.log(`✅ [TYPING-HANDLER] Typing event sent to channel ${channelId}`);
+
         } else if (roomId) {
             const room = roomManager.getDMRoom(roomId);
-            console.log(`📡 [TYPING-HANDLER] Broadcasting ${dmEventName} to DM room: ${room}`);
+
             client.to(room).emit(dmEventName, { user_id, username, room_id: roomId });
-            console.log(`✅ [TYPING-HANDLER] Typing event sent to DM room ${roomId}`);
+
         } else {
             console.warn(`⚠️ [TYPING-HANDLER] No channel_id or room_id provided in typing data`);
         }
     }
 
     static async saveAndSendMessage(io, client, data) {
-        console.log(`🚀 [SAVE-AND-SEND] === STARTING MESSAGE PROCESSING ===`);
-        console.log(`📥 [SAVE-AND-SEND] Input data:`, JSON.stringify(data, null, 2));
-        console.log(`👤 [SAVE-AND-SEND] Client data:`, JSON.stringify(client.data, null, 2));
+
+
+
         
         // Check if this might be a bot command
         const isLikelyBotCommand = data.content && data.content.toLowerCase().includes('/titibot');
-        console.log(`🤖 [SAVE-AND-SEND] Likely bot command: ${isLikelyBotCommand}`);
+
         
         if (!client.data?.user_id) {
             console.error(`❌ [SAVE-AND-SEND] No authenticated user found`);
@@ -400,7 +400,7 @@ class MessageHandler {
             return;
         }
         
-        console.log(`✅ [SAVE-AND-SEND] Data validation passed, proceeding with message processing`);
+
         console.log(`📋 [SAVE-AND-SEND] Validated data:`, {
             target_type: data.target_type,
             target_id: data.target_id,
@@ -454,7 +454,7 @@ class MessageHandler {
 
             // Step 2: Fetch reply data if needed (for temporary broadcast)
             if (data.reply_message_id) {
-                console.log(`📝 [SAVE-AND-SEND] Fetching reply data for temporary broadcast: ${data.reply_message_id}`);
+
                 try {
                     const replyResponse = await fetch(`http://app:1001/api/messages/${data.reply_message_id}`, {
                         method: 'GET',
@@ -517,7 +517,7 @@ class MessageHandler {
                 if (isTitiBotCommand) {
                     if (data.voice_context) {
                         voiceChannelData = data.voice_context;
-                        console.log(`🎤 [SAVE-AND-SEND] Using voice context from client:`, voiceChannelData);
+
                         
                         if (voiceChannelData.user_in_voice && voiceChannelData.voice_channel_id) {
                             VoiceConnectionTracker.addUserToVoice(
@@ -526,7 +526,7 @@ class MessageHandler {
                                 `voice_channel_${voiceChannelData.voice_channel_id}`,
                                 broadcastData.username
                             );
-                            console.log(`🎤 [SAVE-AND-SEND] Updated VoiceConnectionTracker with user ${broadcastData.user_id} in channel ${voiceChannelData.voice_channel_id}`);
+
                         }
                     } else {
                         const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(broadcastData.user_id);
@@ -536,9 +536,9 @@ class MessageHandler {
                                 meeting_id: userVoiceConnection.meetingId,
                                 user_in_voice: true
                             };
-                            console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command from voice channel ${userVoiceConnection.channelId} (from tracker)`);
+
                         } else {
-                            console.log(`🎤 [SAVE-AND-SEND] User ${broadcastData.user_id} sending titibot command but not in voice channel`);
+
                             voiceChannelData = {
                                 voice_channel_id: null,
                                 meeting_id: null,
@@ -565,13 +565,13 @@ class MessageHandler {
                 this.handleMentionNotifications(io, client, broadcastData, targetRoom);
                 
                 client.to(targetRoom).emit(eventName, broadcastData);
-                console.log(`✅ [SAVE-AND-SEND] Temporary message broadcasted to room ${targetRoom} (excluding sender)`, {
+
                     messageId: broadcastData.id,
                     hasReplyData: !!broadcastData.reply_data,
                     replyMessageId: broadcastData.reply_message_id
                 });
             } else {
-                console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing (no room):`, {
+
                     messageId: broadcastData.id,
                     content: broadcastData.content?.substring(0, 50) + '...',
                     userId: broadcastData.user_id,
@@ -591,11 +591,11 @@ class MessageHandler {
             }
             
             // Now save to database via direct HTTP call to PHP
-            console.log(`💾 [SAVE-AND-SEND] Saving message to database via HTTP call...`);
+
             
             try {
                 // First test the debug endpoint
-                console.log(`🧪 [SAVE-AND-SEND] Testing debug endpoint first...`);
+
                 const debugResponse = await fetch('http://app:1001/api/debug/test-socket-save', {
                     method: 'POST',
                     headers: {
@@ -615,7 +615,7 @@ class MessageHandler {
                 
                 if (debugResponse.ok) {
                     const debugResult = await debugResponse.json();
-                    console.log(`✅ [SAVE-AND-SEND] Debug endpoint working:`, debugResult);
+
                 } else {
                     console.error(`❌ [SAVE-AND-SEND] Debug endpoint failed: ${debugResponse.status} ${debugResponse.statusText}`);
                 }
@@ -648,7 +648,7 @@ class MessageHandler {
                 }
                 
                 const saveResult = await response.json();
-                console.log(`✅ [SAVE-AND-SEND] Raw response received:`, JSON.stringify(saveResult, null, 2));
+
                 console.log(`✅ [SAVE-AND-SEND] Response structure analysis:`, {
                     hasSuccess: !!saveResult.success,
                     successValue: saveResult.success,
@@ -716,7 +716,7 @@ class MessageHandler {
                         io.emit('message_id_updated', updateData);
                     }
                     
-                    console.log(`✅ [SAVE-AND-SEND] Message ID update broadcasted: ${temp_message_id} → ${realMessageId}`);
+
                     
                     client.emit('message_sent', {
                         success: true,
@@ -761,7 +761,7 @@ class MessageHandler {
     }
 
     static handleJumpToMessage(io, client, data) {
-        console.log(`🎯 [JUMP-MESSAGE] Jump to message request from client ${client.id}`);
+
         
         if (!data.message_id) {
             console.error(`❌ [JUMP-MESSAGE] Missing message_id in jump request`);
@@ -783,18 +783,18 @@ class MessageHandler {
             source: 'server-response'
         });
         
-        console.log(`✅ [JUMP-MESSAGE] Jump response sent to client for message ${data.message_id}`);
+
     }
     
     static handleMessageDatabaseSaved(io, client, data) {
-        console.log(`💾 [DATABASE-SAVED] Message database save confirmation from client ${client.id}`);
+
         
         if (!data.temp_message_id || !data.real_message_id) {
             console.error(`❌ [DATABASE-SAVED] Missing required fields:`, data);
             return;
         }
         
-        console.log(`🔄 [DATABASE-SAVED] Updating message ID from ${data.temp_message_id} to ${data.real_message_id}`);
+
         
         // Determine target room based on message data
         let targetRoom;
@@ -814,13 +814,13 @@ class MessageHandler {
                 timestamp: Date.now()
             };
             
-            console.log(`📡 [DATABASE-SAVED] Broadcasting message ID update to ALL users in room: ${targetRoom}`);
+
             // Broadcast to ALL users in the room (including sender) so everyone can react
             io.to(targetRoom).emit('message_id_updated', updateData);
             // Also send directly to sender to ensure they get it
             client.emit('message_id_updated', updateData);
             
-            console.log(`✅ [DATABASE-SAVED] Message ID update broadcasted successfully to ALL users`);
+
         } else {
             console.warn(`⚠️ [DATABASE-SAVED] No target room found, broadcasting to all clients`);
             io.emit('message_id_updated', {
@@ -833,7 +833,7 @@ class MessageHandler {
     }
     
     static async handleTempEdit(io, client, data) {
-        console.log(`✏️ [TEMP-EDIT] Processing edit from client ${client.id}`);
+
         
         if (!client.data?.authenticated || !client.data?.user_id) {
             console.error(`❌ [TEMP-EDIT] Unauthenticated client attempted to edit message`);
@@ -878,14 +878,14 @@ class MessageHandler {
             };
             
             if (targetRoom) {
-                console.log(`📡 [TEMP-EDIT] Broadcasting edit to room: ${targetRoom}`);
+
                 client.to(targetRoom).emit('message-edit-temp', broadcastData);
             } else {
-                console.log(`📡 [TEMP-EDIT] Broadcasting edit to all clients`);
+
                 client.broadcast.emit('message-edit-temp', broadcastData);
             }
             
-            console.log(`✅ [TEMP-EDIT] Edit broadcast completed for message ${data.message_id}`);
+
             
         } catch (error) {
             console.error(`❌ [TEMP-EDIT] Error broadcasting edit:`, error);
@@ -945,7 +945,7 @@ class MessageHandler {
         for (const mention of messageData.mentions) {
             if (mention.type === 'all') {
                 const allMentionPayload = { ...notificationPayload, type: 'all' };
-                console.log('📧 [MENTION-NOTIFICATIONS] Sending @all notification');
+
     
                 if (targetRoom) {
                     client.to(targetRoom).emit('mention_notification', allMentionPayload);
@@ -978,7 +978,7 @@ class MessageHandler {
 
     static async handleRoleMention(io, client, notificationPayload, mention, targetRoom) {
         const role = mention.username;
-        console.log(`👥 [ROLE-MENTION] Processing role mention: @${role}`);
+
 
         try {
             if (notificationPayload.target_type === 'channel' && notificationPayload.target_id) {
@@ -997,7 +997,7 @@ class MessageHandler {
                     const result = await response.json();
                     if (result.success && result.data.users_by_role) {
                         const users = result.data.users_by_role[role] || [];
-                        console.log(`👥 [ROLE-MENTION] Found ${users.length} users with role: ${role}`);
+
 
                         users.forEach(user => {
                             const roleMentionPayload = {
@@ -1011,7 +1011,7 @@ class MessageHandler {
                             for (const socket of io.sockets.sockets.values()) {
                                 if (socket.data?.user_id?.toString() === user.id.toString()) {
                                     socket.emit('mention_notification', roleMentionPayload);
-                                    console.log(`📧 [ROLE-MENTION] Sent @${role} notification to user ${user.username}`);
+
                                 }
                             }
                         });
@@ -1026,7 +1026,7 @@ class MessageHandler {
     }
 
     static handleDeletion(io, client, eventName, data) {
-        console.log(`🗑️ [DELETION-HANDLER] Starting deletion handling for ${eventName} from client ${client.id}`);
+
         
         if (!client.data?.authenticated || !client.data?.user_id) {
             console.error(`❌ [DELETION-HANDLER] Unauthenticated deletion attempt`);
@@ -1063,13 +1063,13 @@ class MessageHandler {
             };
             
             if (targetRoom) {
-                console.log(`📡 [DELETION-HANDLER] Broadcasting deletion to room: ${targetRoom}`);
+
                 client.to(targetRoom).emit('message-deleted', deletionData);
-                console.log(`✅ [DELETION-HANDLER] Successfully broadcasted message-deleted to ${targetRoom} (excluding sender)`);
+
             } else {
-                console.log(`📡 [DELETION-HANDLER] Broadcasting deletion to all clients`);
+
                 client.broadcast.emit('message-deleted', deletionData);
-                console.log(`✅ [DELETION-HANDLER] Successfully broadcasted message-deleted to all clients`);
+
             }
             
         } catch (error) {
@@ -1107,45 +1107,45 @@ class MessageHandler {
                     headers['X-Socket-Username'] = client.data.username;
                 }
                 
-                console.log(`🔍 [MENTION-CONTEXT] Fetching channel ${channelId} details...`);
-                console.log(`🔍 [MENTION-CONTEXT] Headers:`, headers);
+
+
                 
                 const channelResponse = await fetch(`http://app:1001/api/socket/channels/${channelId}`, {
                     method: 'GET',
                     headers: headers
                 });
 
-                console.log(`📡 [MENTION-CONTEXT] Channel API response: ${channelResponse.status} ${channelResponse.statusText}`);
+
 
                 if (channelResponse.ok) {
                     const channelResult = await channelResponse.json();
-                    console.log(`📄 [MENTION-CONTEXT] Raw API response:`, JSON.stringify(channelResult, null, 2));
+
                     
                     if (channelResult.success && channelResult.data) {
                         const data = channelResult.data;
                         const channel = data.channel;
                         const server = data.server;
                         
-                        console.log(`🔍 [MENTION-CONTEXT] Extracted channel:`, channel);
-                        console.log(`🔍 [MENTION-CONTEXT] Extracted server:`, server);
+
+
                         
                         if (channel && channel.name) {
                             context.channel_name = channel.name;
-                            console.log(`📍 [MENTION-CONTEXT] Channel name: ${channel.name}`);
+
                             
                             if (server && server.name && server.id) {
                                 context.server_name = server.name;
                                 context.server_id = server.id;
                                 context.server_icon = server.image_url || '/public/assets/common/main-logo.png';
-                                console.log(`✅ [MENTION-CONTEXT] Server info: ${server.name} (ID: ${server.id}), Icon: ${context.server_icon}`);
+
                             } else {
-                                console.log(`📍 [MENTION-CONTEXT] No server info - server object:`, server);
+
                                 if (!server) {
-                                    console.log(`⚠️ [MENTION-CONTEXT] Server is null/undefined`);
+
                                 } else if (!server.name) {
-                                    console.log(`⚠️ [MENTION-CONTEXT] Server missing name`);
+
                                 } else if (!server.id) {
-                                    console.log(`⚠️ [MENTION-CONTEXT] Server missing ID`);
+
                                 }
                             }
                         } else {
@@ -1160,14 +1160,14 @@ class MessageHandler {
                 }
             } else if (messageData.target_type === 'dm') {
                 context.channel_name = 'Direct Message';
-                console.log(`📍 [MENTION-CONTEXT] Set DM context`);
+
             }
         } catch (error) {
             console.error('❌ [MENTION-CONTEXT] Error fetching notification context:', error);
             context.channel_name = messageData.target_type === 'dm' ? 'Direct Message' : 'Channel';
         }
 
-        console.log('📍 [MENTION-CONTEXT] Final context before return:', context);
+
         return context;
     }
 }

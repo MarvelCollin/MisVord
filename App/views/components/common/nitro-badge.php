@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     })
     .catch(error => {
-        console.log('Nitro status check failed:', error);
+
     });
 });
 </script> 

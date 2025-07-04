@@ -84,20 +84,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     label: 'Accept',
                     primary: true,
                     onClick: () => {
-                        console.log('Friend request accepted');
+
                         window.notificationToast.success('Friend request accepted!');
                     }
                 },
                 {
                     label: 'Decline',
                     onClick: () => {
-                        console.log('Friend request declined');
+
                         window.notificationToast.info('Friend request declined');
                     }
                 }
             ],
             onClick: () => {
-                console.log('Toast clicked');
+
             }
         });
     });

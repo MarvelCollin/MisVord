@@ -32,19 +32,19 @@ class FriendsManager {
     loadInitialServerData() {
         if (this.initialDataLoaded) return;
         
-        console.log('📊 [FRIENDS-MANAGER] Loading initial server-side data');
+
         
         if (typeof window.initialFriendsData !== 'undefined') {
             this.cache.friends = window.initialFriendsData || [];
             this.lastUpdated.friends = Date.now();
             this.initialDataLoaded = true;
-            console.log('✅ [FRIENDS-MANAGER] Loaded friends from window.initialFriendsData:', this.cache.friends.length);
+
         }
         else if (typeof friends !== 'undefined' && Array.isArray(friends)) {
             this.cache.friends = friends;
             this.lastUpdated.friends = Date.now();
             this.initialDataLoaded = true;
-            console.log('✅ [FRIENDS-MANAGER] Loaded friends from global friends variable:', this.cache.friends.length);
+
         }
         else {
             const friendsScript = document.querySelector('script');
@@ -55,7 +55,7 @@ class FriendsManager {
                         this.cache.friends = JSON.parse(match[1]);
                         this.lastUpdated.friends = Date.now();
                         this.initialDataLoaded = true;
-                        console.log('✅ [FRIENDS-MANAGER] Extracted friends from script:', this.cache.friends.length);
+
                     }
                 } catch (e) {
                     console.warn('⚠️ [FRIENDS-MANAGER] Failed to extract friends from script:', e);
@@ -67,7 +67,7 @@ class FriendsManager {
             this.cache.friends = [];
             this.lastUpdated.friends = Date.now();
             this.initialDataLoaded = true;
-            console.log('ℹ️ [FRIENDS-MANAGER] No initial friends data found, starting with empty array');
+
         }
     }
 
@@ -79,12 +79,12 @@ class FriendsManager {
                 const socket = window.globalSocketManager.io;
                 
                 socket.on('user-online', (data) => {
-                    console.log('👥 [FRIENDS-MANAGER] User came online:', data);
+
                     this.handleUserOnline(data);
                 });
                 
                 socket.on('user-offline', (data) => {
-                    console.log('👥 [FRIENDS-MANAGER] User went offline:', data);
+
                     this.handleUserOffline(data);
                 });
                 
@@ -93,33 +93,33 @@ class FriendsManager {
                 });
                 
                 socket.on('friend-request-received', (data) => {
-                    console.log('📬 [FRIENDS-MANAGER] Friend request received:', data);
+
                     this.notify('friend-request-received', data);
                 });
                 
                 socket.on('friend-request-accepted', (data) => {
-                    console.log('✅ [FRIENDS-MANAGER] Friend request accepted:', data);
+
                     this.notify('friend-request-accepted', data);
                     this.refreshFriendsFromSocket(data);
                 });
                 
                 socket.on('friend-request-declined', (data) => {
-                    console.log('❌ [FRIENDS-MANAGER] Friend request declined:', data);
+
                     this.notify('friend-request-declined', data);
                 });
                 
                 socket.on('online-users-list', (data) => {
-                    console.log('👥 [FRIENDS-MANAGER] Received online users list:', data);
+
                     this.handleOnlineUsersList(data);
                 });
                 
                 socket.on('online-users-response', (data) => {
-                    console.log('👥 [FRIENDS-MANAGER] Received online users response:', data);
+
                     this.handleOnlineUsersList(data.users || data);
                 });
                 
                 this.socketListenersSetup = true;
-                console.log('🔌 [FRIENDS-MANAGER] Socket listeners setup complete');
+
             }
         };
         
@@ -141,7 +141,7 @@ class FriendsManager {
                     avatar_url: data.friend.avatar_url || null
                 });
                 this.notify('friends-updated', this.cache.friends);
-                console.log('👥 [FRIENDS-MANAGER] Added new friend to cache:', data.friend.username);
+
             }
         }
     }
@@ -184,7 +184,7 @@ class FriendsManager {
             });
             this.cache.onlineUsers = standardizedUsers;
             this.lastUpdated.online = Date.now();
-            console.log('📊 [FRIENDS-MANAGER] Updated online users cache:', Object.keys(standardizedUsers).length, Object.keys(standardizedUsers));
+
             this.notify('online-users-updated', standardizedUsers);
         }
     }
@@ -216,7 +216,7 @@ class FriendsManager {
 
     async getFriends(forceRefresh = false) {
         if (!forceRefresh && this.cache.friends && this.cache.friends.length > 0) {
-            console.log('📊 [FRIENDS-MANAGER] Returning cached friends:', this.cache.friends.length);
+
             return this.cache.friends;
         }
 
@@ -224,7 +224,7 @@ class FriendsManager {
             this.loadInitialServerData();
         }
         
-        console.log('📊 [FRIENDS-MANAGER] Returning friends from cache/server data:', this.cache.friends?.length || 0);
+
         return this.cache.friends || [];
     }
 

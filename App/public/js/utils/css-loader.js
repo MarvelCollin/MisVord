@@ -1,14 +1,14 @@
 export function loadCSS(cssFiles) {
     if (!cssFiles || !Array.isArray(cssFiles)) return Promise.resolve();
     
-    console.log('[CSS Loader] Loading CSS files:', cssFiles);
+
     
     const promises = cssFiles.map(cssFile => {
         return new Promise((resolve, reject) => {
             const href = `/public/css/${cssFile}.css`;
             
             if (document.querySelector(`link[href="${href}"]`)) {
-                console.log('[CSS Loader] CSS already loaded:', href);
+
                 resolve();
                 return;
             }
@@ -19,7 +19,7 @@ export function loadCSS(cssFiles) {
             link.href = href;
             
             link.onload = () => {
-                console.log('[CSS Loader] CSS loaded successfully:', href);
+
                 resolve();
             };
             
@@ -38,14 +38,14 @@ export function loadCSS(cssFiles) {
 export function unloadCSS(cssFiles) {
     if (!cssFiles || !Array.isArray(cssFiles)) return;
     
-    console.log('[CSS Loader] Unloading CSS files:', cssFiles);
+
     
     cssFiles.forEach(cssFile => {
         const href = `/public/css/${cssFile}.css`;
         const link = document.querySelector(`link[href="${href}"]`);
         if (link) {
             link.remove();
-            console.log('[CSS Loader] CSS unloaded:', href);
+
         }
     });
 }

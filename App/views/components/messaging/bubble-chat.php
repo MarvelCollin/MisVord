@@ -587,7 +587,7 @@ function downloadAttachment(url, filename) {
 }
 
 function jumpToMessage(messageId) {
-    console.log('🎯 [REPLY-JUMP] Jumping to message:', messageId);
+
     
     const targetMessage = document.querySelector(`[data-message-id="${messageId}"]`);
     if (!targetMessage) {
@@ -613,7 +613,7 @@ function jumpToMessage(messageId) {
         targetMessage.classList.remove('highlight-message');
     }, 3000);
     
-    console.log('✅ [REPLY-JUMP] Successfully jumped to message:', messageId);
+
 }
 
 document.addEventListener('click', function(e) {
@@ -628,20 +628,20 @@ document.addEventListener('click', function(e) {
     
     if (!username) return;
     
-    console.log('🔍 [MENTION-CLICK] Processing mention click:', { userId, username });
+
     
     if (userId && userId !== 'null' && userId !== '') {
-        console.log('✅ [MENTION-CLICK] Using existing user ID:', userId);
+
         showUserDetailFromMention(userId, mention);
         return;
     }
     
-    console.log('🔍 [MENTION-CLICK] Looking up user by username:', username);
+
     
     if (window.chatSection?.mentionHandler?.availableUsers) {
         const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
         if (user && user.id) {
-            console.log('✅ [MENTION-CLICK] Found user in cache:', user);
+
             showUserDetailFromMention(user.id, mention);
             return;
         }
@@ -649,7 +649,7 @@ document.addEventListener('click', function(e) {
     
     lookupUserByUsername(username).then(foundUserId => {
         if (foundUserId) {
-            console.log('✅ [MENTION-CLICK] Found user via API:', foundUserId);
+
             showUserDetailFromMention(foundUserId, mention);
         } else {
             console.warn('❌ [MENTION-CLICK] User not found:', username);
@@ -714,7 +714,7 @@ function showUserDetailFromMention(userId, triggerElement) {
                      document.querySelector('meta[name="server-id"]')?.getAttribute('content') ||
                      null;
     
-    console.log('🎯 [MENTION-CLICK] Showing user detail:', { userId, serverId });
+
     
     window.userDetailModal.show({
         userId: userId,

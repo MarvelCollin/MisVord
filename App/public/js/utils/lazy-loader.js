@@ -4,7 +4,7 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
             if (typeof window.logger !== 'undefined') {
                 window.logger.debug(module, ...args);
             } else {
-                console.log(`[${module.toUpperCase()}]`, ...args);
+
             }
         }
     };
@@ -49,7 +49,7 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
         },
 
         showLoadingState() {
-            console.log('LazyLoader method executed from global object');
+
         },
         
         triggerDataLoaded(type, isEmpty = false) {
@@ -80,7 +80,7 @@ const LazyLoader = {
             if (typeof window.logger !== 'undefined') {
                 window.logger.debug(module, ...args);
             } else {
-                console.log(`[${module.toUpperCase()}]`, ...args);
+
             }
         }
     },
@@ -259,7 +259,7 @@ const LazyLoader = {
     },
 
     triggerLoad(element, type) {
-                    console.log(`Triggering lazy load for type: ${type}`);
+
         
         const event = new CustomEvent('LazyLoad', {
             detail: { 
@@ -272,14 +272,14 @@ const LazyLoader = {
         element.dispatchEvent(event);
         
         if (type === 'channel-list') {
-            console.log('📂 Channel list loading dispatched');
+
         }
         
         this.updateGlobalLoadingProgress(25);
     },
 
     triggerDataLoaded(type, isEmpty = false) {
-                    console.log(`Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
+
         
         const event = new CustomEvent('LazyLoadComplete', {
             detail: { 

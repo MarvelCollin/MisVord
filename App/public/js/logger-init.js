@@ -1,7 +1,7 @@
 if (typeof window !== 'undefined' && !window.logger) {
     window.logger = {
-        info: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
-        debug: (module, ...args) => console.log(`[${module.toUpperCase()}]`, ...args),
+
+
         warn: (module, ...args) => console.warn(`[${module.toUpperCase()}]`, ...args),
         error: (module, ...args) => console.error(`[${module.toUpperCase()}]`, ...args),
         group: (module, title, collapsed = false) => {

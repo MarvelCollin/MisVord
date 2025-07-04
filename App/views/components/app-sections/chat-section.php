@@ -726,7 +726,7 @@ if (!function_exists('renderMessage')) {
     </div>
 
     <?php if ($chatType): ?>
-    <div class="px-4 py-[10px] bg-[#313338] border-t border-[#3f4147]">
+    <div class="px-2 py-[10px] bg-[#313338] border-t border-[#3f4147]">
         <div id="reply-container" class="hidden"></div>
 
         <div id="typing-indicator" class="hidden px-4 py-2 text-xs text-[#a3a6aa] bg-[#2b2d31] rounded-lg mb-2 border-l-4 border-[#5865f2] transition-all duration-200 ease-in-out">
@@ -852,10 +852,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 if (document.readyState === 'complete') {
-    console.log('[Chat Section] Document already loaded, running initialization immediately');
+
     setTimeout(() => {
         if (typeof window.initializeChatSection === 'function') {
-            console.log('[Chat Section] Calling immediate chat section initializer');
+
             window.initializeChatSection();
         }
     }, 50);

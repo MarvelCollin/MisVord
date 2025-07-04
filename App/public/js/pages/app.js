@@ -14,11 +14,11 @@ function handleUrlParameters() {
     const dmParam = urlParams.get('dm');
     
     if (dmParam) {
-        console.log('Direct message parameter detected on page load:', dmParam);
+
         
         const initDirectMessage = () => {
             if (window.unifiedChatManager && window.unifiedChatManager.initialized) {
-                console.log('Switching to direct message:', dmParam);
+
                 window.unifiedChatManager.switchToChat(dmParam, 'direct');
             } else {
                 setTimeout(initDirectMessage, 200);

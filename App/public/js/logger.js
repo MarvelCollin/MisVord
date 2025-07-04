@@ -36,6 +36,17 @@ class MisVordLogger {
 
     init() {
         if (typeof window !== 'undefined') {
+            // Create fallback logger if none exists
+            if (!window.logger) {
+                window.logger = {
+                    debug: () => {},
+                    info: () => {},
+                    warn: () => {},
+                    error: (...args) => console.error(...args),
+                    _isFallback: true
+                };
+            }
+            
             window.MisVordLogger = this;
             window.Logger = this;
             
@@ -130,20 +141,40 @@ class MisVordLogger {
         }
     }
 
-    debug(module, message, ...data) {
-        this.log('debug', module, message, ...data);
+    debug(module = 'general', message, ...data) {
+        // If only one argument is passed, treat it as message with default module
+        if (arguments.length === 1 && typeof module === 'string') {
+            this.log('debug', 'general', module);
+        } else {
+            this.log('debug', module, message, ...data);
+        }
     }
 
-    info(module, message, ...data) {
-        this.log('info', module, message, ...data);
+    info(module = 'general', message, ...data) {
+        // If only one argument is passed, treat it as message with default module
+        if (arguments.length === 1 && typeof module === 'string') {
+            this.log('info', 'general', module);
+        } else {
+            this.log('info', module, message, ...data);
+        }
     }
 
-    warn(module, message, ...data) {
-        this.log('warn', module, message, ...data);
+    warn(module = 'general', message, ...data) {
+        // If only one argument is passed, treat it as message with default module
+        if (arguments.length === 1 && typeof module === 'string') {
+            this.log('warn', 'general', module);
+        } else {
+            this.log('warn', module, message, ...data);
+        }
     }
 
-    error(module, message, ...data) {
-        this.log('error', module, message, ...data);
+    error(module = 'general', message, ...data) {
+        // If only one argument is passed, treat it as message with default module
+        if (arguments.length === 1 && typeof module === 'string') {
+            this.log('error', 'general', module);
+        } else {
+            this.log('error', module, message, ...data);
+        }
     }
 
     group(module, title, collapsed = false) {

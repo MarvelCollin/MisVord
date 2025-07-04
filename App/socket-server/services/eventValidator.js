@@ -83,7 +83,7 @@ class EventValidator {
     }
 
     validateAndLog(eventName, data, context = '') {
-        console.log(`🔍 [EVENT-VALIDATOR] Starting validation for ${eventName} ${context}`);
+
         console.log(`📊 [EVENT-VALIDATOR] Event data overview:`, {
             event: eventName,
             hasId: !!(data.id || data.message_id),
@@ -106,7 +106,7 @@ class EventValidator {
                 requiredFields: this.schemas[eventName]?.required || []
             });
         } else {
-            console.log(`✅ [EVENT-VALIDATOR] Event validation passed for ${eventName} ${context}`);
+
         }
 
         if (result.warnings.length > 0) {

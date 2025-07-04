@@ -921,22 +921,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     window.debugModalFunctions = function() {
-        console.log('🔍 Modal Functions Debug:');
-        console.log('✅ openCreateChannelModal:', typeof window.openCreateChannelModal);
-        console.log('✅ openCreateCategoryModal:', typeof window.openCreateCategoryModal);
-        console.log('✅ showCreateChannelModal:', typeof window.showCreateChannelModal);
-        console.log('✅ showCreateCategoryModal:', typeof window.showCreateCategoryModal);
-        console.log('✅ openEditChannelModal:', typeof window.openEditChannelModal);
-        console.log('✅ openDeleteChannelModal:', typeof window.openDeleteChannelModal);
-        console.log('✅ create-channel-modal element:', !!document.getElementById('create-channel-modal'));
-        console.log('✅ create-category-modal element:', !!document.getElementById('create-category-modal'));
-        console.log('✅ edit-channel-modal element:', !!document.getElementById('edit-channel-modal'));
-        console.log('✅ delete-channel-confirm-modal element:', !!document.getElementById('delete-channel-confirm-modal'));
+
+
+
+
+
+
+
+
+
+
+
         
-        console.log('🧪 Testing channel modal...');
+
         try {
             window.showCreateChannelModal();
-            console.log('✅ Channel modal opened successfully!');
+
         } catch (error) {
             console.error('❌ Channel modal error:', error);
         }
@@ -944,7 +944,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.testModalDirectly = function() {
         console.clear();
-        console.log('🧪 TESTING MODAL DIRECTLY...');
+
         
         const modal = document.getElementById('create-channel-modal');
         if (!modal) {
@@ -952,8 +952,8 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        console.log('📦 Modal found:', modal);
-        console.log('📍 Modal parent:', modal.parentElement);
+
+
         console.log('🎨 Modal initial styles:', {
             display: getComputedStyle(modal).display,
             visibility: getComputedStyle(modal).visibility,
@@ -983,16 +983,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modalContent) {
             modalContent.classList.remove('scale-95');
             modalContent.style.transform = 'scale(1)';
-            console.log('✅ Modal content found and styled');
+
         } else {
             console.warn('⚠️ Modal content not found');
-            console.log('Available children:', Array.from(modal.children).map(el => el.className));
+
         }
         
-        console.log('✅ Modal should now be visible!');
+
     };
     
-    console.log('✅ Modal functions initialized - run debugModalFunctions() or testModalDirectly() to test');
+
     
     const channelNameInput = document.getElementById('channel-name');
     if (channelNameInput) {
@@ -1006,12 +1006,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.submitChannelForm = function(event) {
         event.preventDefault();
-        console.log("Channel form submission started");
+
         
         const form = document.getElementById('create-channel-form');
         
         if (form.hasAttribute('data-submitting')) {
-            console.log("Form already submitting, ignoring duplicate submission");
+
             return false;
         }
         
@@ -1028,9 +1028,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (categoryField && (categoryField.value === '' || categoryField.value === null)) {
             formData.delete('category_id');
-            console.log("Removed category_id field from form data");
+
         } else {
-            console.log("Using category_id:", categoryField ? categoryField.value : 'categoryField not found');
+
         }
         
         const submitBtn = form.querySelector('[type="submit"]');
@@ -1054,10 +1054,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
-                console.log("Channel API response received", response.status, response.statusText);
+
                 
                 return response.text().then(rawText => {
-                    console.log("Raw response:", rawText.substring(0, 300) + (rawText.length > 300 ? '...' : ''));
+
                     
                     if (!response.ok) {
                         console.warn("Server returned error status:", response.status);
@@ -1117,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     return;
                 }
-                  console.log("Channel form processing response data", data);
+
                 if (data && data.success) {
                     closeCreateChannelModal();
                     form.reset();
@@ -1130,12 +1130,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     try {
                         if (typeof refreshChannelList === 'function') {
                             refreshChannelList();
-                            console.log("Channel list refreshed via AJAX");
+
                         } else if (typeof window.channelManager !== 'undefined' && window.channelManager.refreshChannelList) {
                             window.channelManager.refreshChannelList();
-                            console.log("Channel list refreshed via channel manager");
+
                         } else {
-                            console.log("Channel list refresh method not available");
+
                         }
                     } catch (navError) {
                         console.error("Navigation error:", navError);
@@ -1178,12 +1178,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.submitCategoryForm = function(event) {
         event.preventDefault();
-        console.log("Category form submission started");
+
         
         const form = document.getElementById('create-category-form');
         
         if (form.hasAttribute('data-submitting')) {
-            console.log("Category form already submitting, ignoring duplicate submission");
+
             return false;
         }
         
@@ -1212,11 +1212,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
-                console.log("Category API response received", response.status, response.statusText);
+
                 
                 
                 return response.text().then(rawText => {
-                    console.log("Raw response:", rawText.substring(0, 300) + (rawText.length > 300 ? '...' : ''));
+
                     
                     
                     if (!response.ok) {
@@ -1288,7 +1288,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                console.log("Category form processing response data", data);
+
                 if (data && data.success) {
                     closeCreateCategoryModal();
                     form.reset();
@@ -1300,17 +1300,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     try {
                         if (data.redirect) {
-                            console.log("Redirecting to:", data.redirect);
+
                             setTimeout(function() {
                                 window.location.href = data.redirect;
                             }, 500);
                         } else if (data.data && data.data.redirect) {
-                            console.log("Redirecting to:", data.data.redirect);
+
                             setTimeout(function() {
                                 window.location.href = data.data.redirect;
                             }, 500);
                         } else {
-                            console.log("No redirect URL found, reloading page");
+
                             setTimeout(function() {
                                 window.location.reload();
                             }, 500);
@@ -1359,6 +1359,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     
-    console.log("Modal scripts initialized");
+
 });
 </script>

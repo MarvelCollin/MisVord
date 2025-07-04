@@ -1,5 +1,5 @@
 window.testBubbleRender = async function() {
-    console.log('🧪 [BUBBLE-RENDER-TEST] Testing bubble render API...');
+
     
     const testMessageData = {
         id: 'test-123',
@@ -23,7 +23,7 @@ window.testBubbleRender = async function() {
         source: 'test'
     };
     
-    console.log('📤 [BUBBLE-RENDER-TEST] Sending test data to API:', testMessageData);
+
     
     try {
         const response = await fetch('/api/messages/render-bubble', {
@@ -36,7 +36,7 @@ window.testBubbleRender = async function() {
             })
         });
         
-        console.log('📡 [BUBBLE-RENDER-TEST] API Response Status:', response.status, response.statusText);
+
         
         if (!response.ok) {
             const errorText = await response.text();
@@ -45,11 +45,11 @@ window.testBubbleRender = async function() {
         }
         
         const result = await response.json();
-        console.log('📥 [BUBBLE-RENDER-TEST] API Response:', result);
+
         
         if (result.success && result.html) {
-            console.log('✅ [BUBBLE-RENDER-TEST] API working correctly!');
-            console.log('📄 [BUBBLE-RENDER-TEST] HTML Preview:', result.html.substring(0, 300) + '...');
+
+
             
             const previewDiv = document.createElement('div');
             previewDiv.innerHTML = result.html;
@@ -73,7 +73,7 @@ window.testBubbleRender = async function() {
 };
 
 window.testMessageHandler = function() {
-    console.log('🧪 [MESSAGE-HANDLER-TEST] Testing message handler...');
+
     
     if (!window.chatSection || !window.chatSection.messageHandler) {
         console.error('❌ [MESSAGE-HANDLER-TEST] Chat section or message handler not available');
@@ -103,9 +103,9 @@ window.testMessageHandler = function() {
         source: 'handler-test'
     };
     
-    console.log('📤 [MESSAGE-HANDLER-TEST] Adding test message via handler:', testMessage);
+
     
     window.chatSection.messageHandler.addMessage(testMessage);
     
-    console.log('✅ [MESSAGE-HANDLER-TEST] Test message sent to handler');
+
 }; 

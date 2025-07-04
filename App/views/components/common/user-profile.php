@@ -123,22 +123,22 @@ class UserProfileVoiceControls {
     
     async init() {
         try {
-            console.log('[UserProfileVoiceControls] Starting initialization...');
+
             
             await this.waitForDependencies();
-            console.log('[UserProfileVoiceControls] Dependencies loaded successfully');
+
             
             await this.setupElements();
-            console.log('[UserProfileVoiceControls] Elements found and setup');
+
             
             this.setupEventListeners();
-            console.log('[UserProfileVoiceControls] Event listeners attached');
+
             
             this.updateControls();
-            console.log('[UserProfileVoiceControls] Initial state sync complete');
+
             
             this.initialized = true;
-            console.log('[UserProfileVoiceControls] ✅ Initialization complete');
+
             
         } catch (error) {
             console.error('[UserProfileVoiceControls] ❌ Failed to initialize:', error);
@@ -494,7 +494,7 @@ class UserProfileVoiceControls {
     
     forceSync() {
         // Public method to force synchronization
-        console.log('[UserProfileVoiceControls] Force syncing voice controls...');
+
         this.updateControls();
         
         // Also try to sync with other components
@@ -509,8 +509,8 @@ class UserProfileVoiceControls {
     
     debugState() {
         // Debug method to check current state
-        console.log('[UserProfileVoiceControls] Debug State Report:');
-        console.log('==============================================');
+
+
         
         console.log('🔧 Initialization:', {
             initialized: this.initialized,
@@ -531,11 +531,11 @@ class UserProfileVoiceControls {
         });
         
         if (window.unifiedVoiceStateManager) {
-            console.log('🔄 Unified State:', window.unifiedVoiceStateManager.getState());
+
         }
         
         if (window.localStorageManager) {
-            console.log('💾 Local Storage State:', window.localStorageManager.getVoiceState());
+
         }
         
         if (window.videoSDKManager?.isReady()) {
@@ -546,8 +546,8 @@ class UserProfileVoiceControls {
             });
         }
         
-        console.log('🎯 In Voice Call:', this.isInVoiceCall());
-        console.log('==============================================');
+
+
     }
     
     reinitialize() {
@@ -560,12 +560,12 @@ class UserProfileVoiceControls {
 
 function initializeUserProfileVoiceControls() {
     if (window.userProfileVoiceControls && window.userProfileVoiceControls.initialized) {
-        console.log('[UserProfileVoiceControls] Already initialized, returning existing instance');
+
         return window.userProfileVoiceControls;
     }
     
     try {
-        console.log('[UserProfileVoiceControls] Creating new instance...');
+
         window.userProfileVoiceControls = new UserProfileVoiceControls();
         
         // Expose debugging methods globally
@@ -573,7 +573,7 @@ function initializeUserProfileVoiceControls() {
             if (window.userProfileVoiceControls) {
                 window.userProfileVoiceControls.debugState();
             } else {
-                console.log('❌ User profile voice controls not initialized');
+
             }
         };
         
@@ -581,14 +581,14 @@ function initializeUserProfileVoiceControls() {
             if (window.userProfileVoiceControls) {
                 window.userProfileVoiceControls.forceSync();
             } else {
-                console.log('❌ User profile voice controls not initialized');
+
             }
         };
         
-        console.log('[UserProfileVoiceControls] ✅ Instance created successfully');
-        console.log('[UserProfileVoiceControls] 🧪 Debug methods available:');
-        console.log('  - window.debugUserProfileVoiceControls() - Show debug state');
-        console.log('  - window.syncUserProfileVoiceControls() - Force sync');
+
+
+
+
         
         return window.userProfileVoiceControls;
     } catch (error) {

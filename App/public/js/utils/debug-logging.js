@@ -3,14 +3,14 @@ const safeLog = {
         if (typeof window.logger !== 'undefined') {
             window.logger.info(module, ...args);
         } else {
-            console.log(`[${module.toUpperCase()}]`, ...args);
+
         }
     },
     debug: (module, ...args) => {
         if (typeof window.logger !== 'undefined') {
             window.logger.debug(module, ...args);
         } else {
-            console.log(`[${module.toUpperCase()}]`, ...args);
+
         }
     },
     error: (module, ...args) => {

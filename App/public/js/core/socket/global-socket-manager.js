@@ -264,10 +264,10 @@ class GlobalSocketManager {
                 reconnectAttempts: this.reconnectAttempts
             });
             
-            console.log('🔌 [SOCKET] Socket connected successfully, setting up activity tracking...');
+
             this.setupActivityTracking();
             
-            console.log('🔌 [SOCKET] Sending authentication...');
+
             this.sendAuthentication();
         });
         
@@ -308,11 +308,11 @@ class GlobalSocketManager {
             const isInVoiceCall = this.isUserInVoiceCall();
             
             if (isInVoiceCall) {
-                console.log('🎤 [SOCKET] Auth success - preserving existing voice call presence');
+
                 // Keep existing presence status and activity
                 this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails, 'authentication');
             } else {
-                console.log('🎯 [SOCKET] Auth success - setting default online presence');
+
                 this.currentPresenceStatus = 'online';
                 this.updatePresence('online', { type: 'active' }, 'authentication');
             }
@@ -324,15 +324,15 @@ class GlobalSocketManager {
                 const stillInVoiceCall = this.isUserInVoiceCall();
                 
                 if (stillInVoiceCall) {
-                    console.log('🎤 [SOCKET] Secondary auth update - preserving voice call presence');
+
                     this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails, 'authentication');
                 } else {
                     this.updatePresence('online', { type: 'active' }, 'authentication');
-                    console.log('✅ [SOCKET] Secondary presence update sent for reliability:', { type: 'active' });
+
                 }
             }, 500);
             
-            console.log('🔔 [SOCKET] Dispatching globalSocketReady event');
+
             const event = new CustomEvent('globalSocketReady', {
                 detail: {
                     manager: this,
@@ -342,7 +342,7 @@ class GlobalSocketManager {
             
             window.dispatchEvent(event);
             
-            console.log('🔔 [SOCKET] Dispatching socketAuthenticated event');
+
             const authEvent = new CustomEvent('socketAuthenticated', {
                 detail: {
                     manager: this,
@@ -353,7 +353,7 @@ class GlobalSocketManager {
             
             window.dispatchEvent(authEvent);
             
-            console.log('✅ [SOCKET] All authentication events dispatched successfully');
+
         });
         
         this.io.on('auth-error', (data) => {
@@ -367,7 +367,7 @@ class GlobalSocketManager {
             });
             
             setTimeout(() => {
-                console.log('🔄 [SOCKET] Retrying authentication after error...');
+
                 this.sendAuthentication();
             }, 2000);
         });
@@ -449,10 +449,10 @@ class GlobalSocketManager {
         });
         
         this.io.on('user-presence-update', (data) => {
-            console.log('📡 [SOCKET] User presence update received:', data);
+
             
             if (data.user_id === this.userId) {
-                console.log('👤 [SOCKET] Own presence updated:', data);
+
                 this.currentPresenceStatus = data.status;
                 this.currentActivityDetails = data.activity_details;
                 
@@ -486,14 +486,14 @@ class GlobalSocketManager {
         });
         
         this.io.on('voice-meeting-status', (data) => {
-            console.log('📡 [SOCKET] Voice meeting status received:', data);
+
             
             // Always process voice meeting status for cross-channel visibility
             this.handleVoiceMeetingStatus(data);
         });
         
         this.io.on('voice-meeting-update', (data) => {
-            console.log('📡 [SOCKET] Voice meeting update received:', data);
+
             
             // Always process voice meeting updates for cross-channel visibility
             this.handleVoiceMeetingUpdate(data);
@@ -501,7 +501,7 @@ class GlobalSocketManager {
             // If this is about our own connection and VideoSDK is managing, let VideoSDK handle
             const isOwnConnection = data.user_id === this.userId;
             if (isOwnConnection && window.videoSDKManager?.isReady()) {
-                console.log('📡 [SOCKET] VideoSDK managing own connection, letting VideoSDK handle');
+
                 return;
             }
         });
@@ -510,7 +510,7 @@ class GlobalSocketManager {
         this.io.on('mention_notification', this.handleMentionNotification.bind(this));
         
         this.socketListenersSetup = true;
-        console.log('✅ Socket handlers setup complete');
+
     }
     
     sendAuthentication() {
@@ -567,7 +567,7 @@ class GlobalSocketManager {
         setTimeout(() => {
             if (this.isConnected && this.isAuthenticated) {
                 this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails);
-                console.log('✅ [SOCKET] Initial presence sent immediately after authentication');
+
             }
         }, 100);
     }
@@ -628,7 +628,7 @@ class GlobalSocketManager {
     }
     
     joinRoom(roomType, roomId) {
-        console.log(`📺 [SOCKET] Joining ${roomType} room ${roomId}`);
+
         
         if (!this.isReady()) {
             console.warn('⚠️ [SOCKET] Cannot join room - socket not ready');
@@ -658,7 +658,7 @@ class GlobalSocketManager {
             this.joinedRooms.add(roomName);
         }
         
-        console.log(`✅ [SOCKET] Joined ${roomType} room ${roomId} (${roomName})`);
+
         
         // For debugging purposes, log all rooms we're in
         console.log(`🏠 [SOCKET] Currently joined rooms:`, {
@@ -680,7 +680,7 @@ class GlobalSocketManager {
     }
     
     leaveRoom(roomType, roomId) {
-        console.log(`🚪 [SOCKET] Leaving ${roomType} room ${roomId}`);
+
         
         if (!this.isReady()) {
             console.warn('⚠️ [SOCKET] Cannot leave room - socket not ready');
@@ -701,7 +701,7 @@ class GlobalSocketManager {
         // Remove from tracked rooms
         this.joinedRooms.delete(roomName);
         
-        console.log(`✅ [SOCKET] Left ${roomType} room: ${roomName}`);
+
         return true;
     }
     
@@ -715,7 +715,7 @@ class GlobalSocketManager {
         let normalizedRoomId = roomId;
         if (roomType === 'dm' && typeof roomId === 'string' && roomId.startsWith('dm-room-')) {
             normalizedRoomId = roomId.replace('dm-room-', '');
-            console.log(`🔄 [SOCKET] Normalized DM room ID from ${roomId} to ${normalizedRoomId}`);
+
         }
         
         // Use consistent room name format
@@ -723,12 +723,12 @@ class GlobalSocketManager {
         
         // First join the room if not already joined
         if (!this.joinedRooms.has(roomName)) {
-            console.log(`🔄 [SOCKET] Not in room ${roomName}, joining now...`);
+
             this.joinRoom(roomType, normalizedRoomId);
             
             // Wait a moment to ensure room join completes
             setTimeout(() => {
-                console.log(`🔄 [SOCKET] Delayed emit to ${roomName} after joining`);
+
                 this.emitToRoomDirect(eventName, data, roomType, normalizedRoomId);
             }, 500);
             
@@ -750,7 +750,7 @@ class GlobalSocketManager {
                 source: 'client-originated'
         };
         
-        console.log(`📤 [SOCKET] Emitting ${eventName} to ${roomType} room ${roomName}:`, roomData);
+
         
         // Emit the event to the room
         this.io.emit(eventName, roomData);
@@ -824,7 +824,7 @@ class GlobalSocketManager {
             const isValidChange = window.globalPresenceManager.canUpdatePresence(status, activityDetails);
             
             if (!isValidChange) {
-                console.log(`🚫 [SOCKET] Presence update from "${source}" blocked by hierarchy protection.`);
+
                 
                 // Fire a debug event for the panel
                 window.dispatchEvent(new CustomEvent('presenceUpdateBlocked', {
@@ -841,7 +841,7 @@ class GlobalSocketManager {
             }
         }
         
-        console.log(`%c[PRESENCE] Updating presence from source: "${source}"`, 'color: #7289DA; font-weight: bold;', { status, activityDetails });
+
 
         this.currentPresenceStatus = status;
         this.currentActivityDetails = activityDetails;
@@ -881,18 +881,18 @@ class GlobalSocketManager {
                     status: this.currentPresenceStatus,
                     activity_details: this.currentActivityDetails
                 });
-                console.log('💓 [SOCKET] Presence heartbeat sent');
+
             }
         }, 5000);
         
-        console.log('⏰ [SOCKET] Presence heartbeat started (5 second intervals)');
+
     }
     
     stopPresenceHeartbeat() {
         if (this.presenceInterval) {
             clearInterval(this.presenceInterval);
             this.presenceInterval = null;
-            console.log('⏰ [SOCKET] Presence heartbeat stopped');
+
         }
     }
     
@@ -995,7 +995,7 @@ class GlobalSocketManager {
         if (typeof window !== 'undefined' && window.logger) {
             window.logger.info('socket', ...args);
         } else {
-            console.log(`%c[SOCKET ${timestamp}]`, 'color: #4CAF50; font-weight: bold;', ...args);
+
         }
     }
     
@@ -1039,7 +1039,7 @@ class GlobalSocketManager {
                 return;
             }
             
-            console.log('💬 [GLOBAL-SOCKET] Global mention notification received:', data);
+
             
             let shouldNotify = false;
             let mentionType = '';
@@ -1047,11 +1047,11 @@ class GlobalSocketManager {
             if (data.type === 'all') {
                 shouldNotify = true;
                 mentionType = '@all';
-                console.log('📢 [GLOBAL-SOCKET] @all mention detected globally');
+
             } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
                 shouldNotify = true;
                 mentionType = `@${this.username}`;
-                console.log('👤 [GLOBAL-SOCKET] User mention detected globally for current user');
+
             }
             
             if (shouldNotify) {
@@ -1076,14 +1076,14 @@ class GlobalSocketManager {
             const isCurrentChat = this.isCurrentlyViewingChat(data);
             
             if (isCurrentChat) {
-                console.log('🔄 [GLOBAL-SOCKET] User is viewing the mentioned chat, skipping global notification');
+
                 return;
             }
             
             const channelName = data.channel_name || `Channel ${data.channel_id || data.room_id}`;
             const notificationText = `${data.username} mentioned you with ${mentionType} in ${channelName}`;
             
-            console.log('🔔 [GLOBAL-SOCKET] Showing global mention notification:', notificationText);
+
             
             if (window.showToast) {
                 window.showToast(notificationText, 'mention', 8000);
@@ -1142,7 +1142,7 @@ class GlobalSocketManager {
     
     navigateToMention(data) {
         try {
-            console.log('🔗 [GLOBAL-SOCKET] Navigating to mention:', data);
+
             
             let targetUrl = '';
             
@@ -1157,7 +1157,7 @@ class GlobalSocketManager {
                     targetUrl += `#message-${data.message_id}`;
                 }
                 
-                console.log('🔗 [GLOBAL-SOCKET] Navigating to:', targetUrl);
+
                 window.location.href = targetUrl;
             } else {
                 console.warn('⚠️ [GLOBAL-SOCKET] Could not determine navigation URL for mention');
@@ -1172,10 +1172,10 @@ class GlobalSocketManager {
             const audio = new Audio('/public/assets/sound/discordo_sound.mp3');
             audio.volume = 0.7;
             audio.play().catch(e => {
-                console.log('🔊 [GLOBAL-SOCKET] Could not play mention sound:', e);
+
             });
         } catch (error) {
-            console.log('🔊 [GLOBAL-SOCKET] Could not play mention sound:', error);
+
         }
     }
     
@@ -1184,7 +1184,7 @@ class GlobalSocketManager {
     }
     
     handleStopTyping(data) {
-        console.log('⌨️ [GLOBAL-SOCKET] Stop typing event received:', data);
+
     }
 
     setupActivityTracking() {
@@ -1202,13 +1202,13 @@ class GlobalSocketManager {
                 const isInVoiceCall = this.isUserInVoiceCall();
                 
                 if (isInVoiceCall) {
-                    console.log('🎤 [SOCKET] User activity detected but preserving voice call presence');
+
                     // Don't change presence - stay in voice call
                     return;
                 }
                 
                 // Only update to online if not in higher priority activity
-                console.log('🎯 [SOCKET] User activity detected, setting status to online');
+
                 this.currentPresenceStatus = 'online';
                 this.updatePresence('online', { type: 'active' }, 'activity');
             }
@@ -1219,16 +1219,16 @@ class GlobalSocketManager {
         });
         
         window.addEventListener('focus', () => {
-            console.log('🎯 [SOCKET] Window focused, user is active');
+
             updateActivity();
         });
         
         window.addEventListener('blur', () => {
-            console.log('🎯 [SOCKET] Window blurred, starting afk detection');
+
         });
         
         this.startActivityCheck();
-        console.log('✅ [SOCKET] Activity tracking initialized with presence hierarchy protection');
+
     }
     
     // 🎯 NEW METHOD: Check if user is in voice call
@@ -1269,24 +1269,24 @@ class GlobalSocketManager {
                 const isInVoiceCall = this.isUserInVoiceCall();
                 
                 if (isInVoiceCall) {
-                    console.log('🎤 [SOCKET] User inactive but preserving voice call presence (no AFK)');
+
                     return;
                 }
                 
-                console.log('😴 [SOCKET] User inactive for 20 seconds, setting status to afk');
+
                 this.currentPresenceStatus = 'afk';
                 this.updatePresence('afk', { type: 'afk' }, 'afk');
             }
         }, 10000);
         
-        console.log('⏰ [SOCKET] Activity check started (10 second intervals) with voice protection');
+
     }
     
     stopActivityCheck() {
         if (this.activityCheckInterval) {
             clearInterval(this.activityCheckInterval);
             this.activityCheckInterval = null;
-            console.log('⏰ [SOCKET] Activity check stopped');
+
         }
     }
     
@@ -1320,7 +1320,7 @@ const globalSocketManager = new GlobalSocketManager();
 document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
         if (globalSocketManager.isConnected || window.__SOCKET_INITIALISED__) {
-            console.log('🔌 Socket already initialized, skipping DOMContentLoaded init');
+
             return;
         }
 
@@ -1334,9 +1334,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const userData = hasAuthData ? { user_id: userId, username: username } : null;
 
         if (hasAuthData) {
-            console.log('🔌 [SOCKET-MANAGER] DOMContentLoaded init with user data:', userData);
+
         } else {
-            console.log('🔌 [SOCKET-MANAGER] DOMContentLoaded init in guest mode');
+
         }
 
         globalSocketManager.init(userData);

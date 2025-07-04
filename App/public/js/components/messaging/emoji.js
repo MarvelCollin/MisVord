@@ -1,4 +1,4 @@
-console.log('📣 Emoji reactions script loading...'); 
+
 
 class EmojiReactions {
     constructor() {
@@ -154,16 +154,16 @@ class EmojiReactions {
         styleElement.textContent = tooltipStyles;
         document.head.appendChild(styleElement);
         
-        console.log('✅ [EMOJI-REACTIONS] Tooltip styles initialized');
+
     }
 
     init() {
         if (this.initialized) {
-            console.log('🔄 [EMOJI-REACTIONS] System already initialized, skipping...');
+
             return;
         }
         
-        console.log('🚀 [EMOJI-REACTIONS] Initializing emoji reactions system...');
+
         
         this.setupStyles();
         this.setupMessageHandling(); 
@@ -171,7 +171,7 @@ class EmojiReactions {
         this.setupTooltipEventListeners();
         
         this.initialized = true;
-        console.log('✅ [EMOJI-REACTIONS] Emoji reactions system initialized successfully');
+
     }
 
     setupStyles() {
@@ -396,7 +396,7 @@ class EmojiReactions {
                         try {
                             const reactionsData = JSON.parse(messageGroup.dataset.messageReactions);
                             if (reactionsData && reactionsData.length > 0) {
-                                console.log('📥 [EMOJI-REACTIONS] Processing embedded reactions for message:', messageId, reactionsData);
+
                                 this.updateReactionsDisplay(messageId, reactionsData);
                                 this.loadedMessageIds.add(messageId);
                                 return;
@@ -431,7 +431,7 @@ class EmojiReactions {
                     try {
                         const reactionsData = JSON.parse(messageGroup.dataset.messageReactions);
                         if (reactionsData && reactionsData.length > 0) {
-                            console.log('📥 [EMOJI-REACTIONS] Processing embedded reactions for existing message:', messageId, reactionsData);
+
                             this.updateReactionsDisplay(messageId, reactionsData);
                             this.loadedMessageIds.add(messageId);
                             return;
@@ -473,7 +473,7 @@ class EmojiReactions {
                 triggerElement = e.target;
                 messageId = e.target.dataset.messageId;
                 if (messageId) {
-                    console.log('🎯 [EMOJI-REACTIONS] Bubble action button clicked for message:', messageId);
+
                     this.showEmojiPicker(messageId, triggerElement);
                 }
             }
@@ -483,7 +483,7 @@ class EmojiReactions {
                 triggerElement = e.target.closest('.bubble-action-button[data-action="react"]');
                 messageId = triggerElement.dataset.messageId;
                 if (messageId) {
-                    console.log('🎯 [EMOJI-REACTIONS] Bubble action button (child) clicked for message:', messageId);
+
                     this.showEmojiPicker(messageId, triggerElement);
                 }
             }
@@ -495,7 +495,7 @@ class EmojiReactions {
                 const emoji = reactionElement.dataset.emoji;
                 
                 if (messageId && emoji) {
-                    console.log('🎯 [EMOJI-REACTIONS] Database bubble reaction clicked:', { messageId, emoji });
+
                     this.toggleReaction(messageId, emoji);
                 }
             }
@@ -507,7 +507,7 @@ class EmojiReactions {
                 const emoji = reactionElement.dataset.emoji;
                 
                 if (messageId && emoji) {
-                    console.log('🎯 [EMOJI-REACTIONS] Database message reaction clicked:', { messageId, emoji });
+
                     this.toggleReaction(messageId, emoji);
                 }
             }
@@ -591,10 +591,10 @@ class EmojiReactions {
             });
             
             if (hasUserReacted) {
-                console.log('➖ [EMOJI-REACTIONS] User already reacted, removing reaction');
+
                 await this.removeReaction(messageId, emoji);
             } else {
-                console.log('➕ [EMOJI-REACTIONS] User hasn\'t reacted, adding reaction');
+
                 await this.addReaction(messageId, emoji);
             }
         } catch (error) {
@@ -769,7 +769,7 @@ class EmojiReactions {
             
             const { targetType, targetId } = this.getCurrentChannelContext();
             
-            console.log('🎯 [EMOJI-REACTIONS] Target info:', { targetType, targetId });
+
             
             if (!targetId) {
                 console.error('❌ [EMOJI-REACTIONS] No target ID found');
@@ -778,7 +778,7 @@ class EmojiReactions {
             
             const tempReactionId = `temp-reaction-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             
-            console.log('📡 [EMOJI-REACTIONS] Step 1: Temporary reaction broadcast');
+
             this.handleReactionAdded({
                 message_id: messageId,
                 emoji: emoji,
@@ -803,7 +803,7 @@ class EmojiReactions {
                 source: 'websocket-temp'
             };
             
-            console.log('📡 [EMOJI-REACTIONS] Broadcasting temporary reaction (server will handle DB):', tempSocketData);
+
             
             if (window.globalSocketManager.emitToRoom) {
                 const success = window.globalSocketManager.emitToRoom('reaction-added', tempSocketData, targetType, targetId);
@@ -845,7 +845,7 @@ class EmojiReactions {
             
             const { targetType, targetId } = this.getCurrentChannelContext();
             
-            console.log('🎯 [EMOJI-REACTIONS] Target info:', { targetType, targetId });
+
             
             if (!targetId) {
                 console.error('❌ [EMOJI-REACTIONS] No target ID found');
@@ -854,7 +854,7 @@ class EmojiReactions {
             
             const tempReactionId = `temp-reaction-remove-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             
-            console.log('📡 [EMOJI-REACTIONS] Step 1: Temporary reaction removal broadcast');
+
             this.handleReactionRemoved({
                 message_id: messageId,
                 emoji: emoji,
@@ -877,7 +877,7 @@ class EmojiReactions {
                 source: 'websocket-temp'
             };
             
-            console.log('📡 [EMOJI-REACTIONS] Broadcasting temporary reaction removal (server will handle DB):', tempSocketData);
+
             
             if (window.globalSocketManager.emitToRoom) {
                 const success = window.globalSocketManager.emitToRoom('reaction-removed', tempSocketData, targetType, targetId);
@@ -957,7 +957,7 @@ class EmojiReactions {
                     existingReactions.remove();
                 }
                 messageElement.appendChild(reactionsContainer);
-                console.log('📍 [EMOJI-REACTIONS] Created bubble reactions container for message:', messageId);
+
             } else {
                 const messageContent = messageElement.querySelector('.message-main-text') || 
                                      messageElement.querySelector('.message-content') ||
@@ -1069,7 +1069,7 @@ class EmojiReactions {
         });
 
         this.currentReactions[messageId] = reactions;
-        console.log(`✅ [EMOJI-REACTIONS] Updated reactions display for message ${messageId} (${isBubbleMessage ? 'bubble' : 'regular'} style)`);
+
     }
 
     setupSocketListeners() {
@@ -1081,46 +1081,46 @@ class EmojiReactions {
             window.globalSocketManager.io.off('reaction-removed');
             window.globalSocketManager.io.off('reaction-confirmed');
             window.globalSocketManager.io.off('reaction-failed');
-            console.log('🧹 Cleared existing reaction socket listeners');
+
         }
         
         const setupListeners = () => {
             if (window.globalSocketManager?.io) {
-                console.log('🔌 Setting up emoji reaction socket listeners...');
+
                 
                 window.globalSocketManager.io.on('reaction-added', function(data) {
-                    console.log('📥 Received reaction-added:', data);
+
                     
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
-                        console.log('📍 Found message element for reaction, updating UI');
+
                         self.handleReactionAdded(data);
                     } else {
-                        console.log('⚠️ Message element not found for reaction-added');
+
                     }
                 });
                 
                 window.globalSocketManager.io.on('reaction-removed', function(data) {
-                    console.log('📥 Received reaction-removed:', data);
+
                     
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
-                        console.log('📍 Found message element for reaction, updating UI');
+
                         self.handleReactionRemoved(data);
                     } else {
-                        console.log('⚠️ Message element not found for reaction-removed');
+
                     }
                 });
                 
                 window.globalSocketManager.io.on('reaction-confirmed', function(data) {
-                    console.log('✅ Received reaction-confirmed:', data);
+
                     
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
-                        console.log('📍 Confirming permanent reaction for message:', data.message_id);
+
                         self.handleReactionConfirmed(data);
                     } else {
-                        console.log('⚠️ Message element not found for reaction-confirmed');
+
                     }
                 });
                 
@@ -1131,20 +1131,20 @@ class EmojiReactions {
                         return;
                     }
                     
-                    console.log('❌ Received reaction-failed:', data);
+
                     
                     const messageElement = document.querySelector(`[data-message-id="${data.message_id}"]`);
                     if (messageElement) {
-                        console.log('📍 Handling failed reaction for message:', data.message_id);
+
                         self.handleReactionFailed(data);
                     } else {
-                        console.log('⚠️ Message element not found for reaction-failed');
+
                     }
                 });
                 
-                console.log('✅ Emoji reaction socket listeners set up successfully');
+
             } else {
-                console.log('⏳ Socket not ready yet, retrying in 200ms...');
+
                 setTimeout(setupListeners, 200);
             }
         };
@@ -1191,7 +1191,7 @@ class EmojiReactions {
                 is_temporary
             });
             
-            console.log('👆 Added reaction to memory with avatar URL, updating display for message:', message_id);
+
             this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
             
             setTimeout(() => {
@@ -1201,12 +1201,12 @@ class EmojiReactions {
                 const reactionElement = messageElement?.querySelector(`${reactionSelector}[data-emoji="${emoji}"]`);
                 
                 if (reactionElement) {
-                    console.log('✨ Adding animation to reaction element');
+
                     reactionElement.classList.add('reaction-pop');
                     
                     if (is_temporary) {
                         reactionElement.classList.add('reaction-temporary');
-                        console.log('⏳ Marked reaction as temporary:', temp_reaction_id);
+
                     }
                     
                     setTimeout(() => {
@@ -1238,7 +1238,7 @@ class EmojiReactions {
         this.updateReactionsDisplay(message_id, this.currentReactions[message_id]);
         
         if (temp_reaction_id) {
-            console.log('🗑️ [EMOJI-REACTIONS] Removed temporary reaction:', temp_reaction_id);
+
         }
     }
 
@@ -1352,7 +1352,7 @@ class EmojiReactions {
             if (this.currentReactions[tempId]) {
                 this.currentReactions[permanentId] = this.currentReactions[tempId];
                 delete this.currentReactions[tempId];
-                console.log('📝 [EMOJI-REACTIONS] Moved reactions from temp ID to permanent ID');
+
                 
                 // Only mark as loaded if we actually have reactions to transfer
                 if (this.currentReactions[permanentId] && this.currentReactions[permanentId].length > 0) {
@@ -1360,14 +1360,14 @@ class EmojiReactions {
                         this.loadedMessageIds.delete(tempId);
                     }
                     this.loadedMessageIds.add(permanentId);
-                    console.log('✅ [EMOJI-REACTIONS] Marked permanent ID as loaded due to transferred reactions');
+
                 }
             } else {
                 // No reactions to transfer - allow loading from database later
                 if (this.loadedMessageIds.has(tempId)) {
                     this.loadedMessageIds.delete(tempId);
                 }
-                console.log('📭 [EMOJI-REACTIONS] No reactions to transfer, permanent ID will load from database if needed');
+
             }
             
             // Clear any loading states for temp ID
@@ -1397,11 +1397,11 @@ class EmojiReactions {
                     this.updateReactionsDisplay(permanentId, this.currentReactions[permanentId]);
                 } else {
                     // No reactions transferred, try to load from database
-                    console.log('🔍 [EMOJI-REACTIONS] No transferred reactions, attempting to load from database for permanent ID:', permanentId);
+
                     this.loadMessageReactions(permanentId);
                 }
                 
-                console.log('✅ [EMOJI-REACTIONS] Message ID update completed successfully');
+
             }
             
         } catch (error) {
@@ -1416,12 +1416,12 @@ class EmojiReactions {
                 reactionButton.style.pointerEvents = 'none';
                 reactionButton.style.opacity = '0.4';
                 reactionButton.disabled = true;
-                console.log('🚫 [EMOJI-REACTIONS] Disabled reaction button for temp ID:', messageId);
+
             } else {
                 reactionButton.style.pointerEvents = '';
                 reactionButton.style.opacity = '';
                 reactionButton.disabled = false;
-                console.log('✅ [EMOJI-REACTIONS] Enabled reaction button for permanent ID:', messageId);
+
             }
         }
     }
@@ -1446,7 +1446,7 @@ class EmojiReactions {
             this.hideReactionTooltip();
         });
 
-        console.log('✅ [EMOJI-REACTIONS] Tooltip event listeners set up');
+
     }
 
     // Process reactions from message data (for database-loaded messages)
@@ -1476,9 +1476,9 @@ class EmojiReactions {
             // Mark as loaded to prevent duplicate API calls
             this.loadedMessageIds.add(messageId);
             
-            console.log('✅ [EMOJI-REACTIONS] Processed reactions from message data for:', messageId);
+
         } else {
-            console.log('📭 [EMOJI-REACTIONS] No reactions in message data for:', messageId);
+
         }
     }
     
@@ -1494,12 +1494,12 @@ class EmojiReactions {
         
         this.clearReactionCache();
         
-        console.log('✅ [EMOJI-REACTIONS] Channel context updated successfully');
+
     }
     
     clearReactionCache() {
         this.loadedMessageIds.clear();
-        console.log('🧹 [EMOJI-REACTIONS] Reaction cache cleared for new channel');
+
     }
     
     getCurrentChannelContext() {
@@ -1557,21 +1557,21 @@ function initEmojiReactions() {
     if (emojiReactions.initialized) return;
     
     try {
-        console.log('🚀 Initializing emoji reactions system...');
+
         emojiReactions.init();
-        console.log('✅ Emoji reactions system initialized successfully');
+
         
         // Attach to window object for global access
         window.emojiReactions = emojiReactions;
         
         // Check if socket is connected
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log('📡 Socket is already connected, setting up reaction listeners');
+
             emojiReactions.setupSocketListeners();
         } else {
-            console.log('🔌 Socket not ready, will set up listeners when authenticated');
+
             window.addEventListener('socketAuthenticated', function() {
-                console.log('📡 Socket authenticated, setting up reaction listeners');
+
                 emojiReactions.setupSocketListeners();
             });
         }
@@ -1595,26 +1595,26 @@ window.initializeEmojiReactions = initEmojiReactions;
 
 // Debug utilities
 window.debugEmojis = function() {
-    console.log('🔬 EmojiReactions Debug Info:');
-    console.log('✅ Initialized:', emojiReactions.initialized);
-    console.log('📊 Current reactions by message ID:', emojiReactions.currentReactions);
-    console.log('🧠 Loaded message IDs:', Array.from(emojiReactions.loadedMessageIds));
-    console.log('⏳ Loading reactions for:', Array.from(emojiReactions.loadingReactions));
+
+
+
+
+
                 
     const messages = document.querySelectorAll('.message-content[data-message-id]');
-    console.log(`📝 Found ${messages.length} messages on page`);
+
     
     messages.forEach(msg => {
         const messageId = msg.dataset.messageId;
         const hasReactionsContainer = !!msg.querySelector('.message-reactions-container');
         const reactionsInMemory = emojiReactions.currentReactions[messageId] || [];
         
-        console.log(`📌 Message ID: ${messageId}`);
-        console.log(`   - Has reactions container: ${hasReactionsContainer}`);
-        console.log(`   - Reactions in memory: ${reactionsInMemory.length}`);
+
+
+
         
         if (reactionsInMemory.length > 0) {
-            console.log(`   - Reaction details:`, reactionsInMemory);
+
         }
         
         if (!hasReactionsContainer && reactionsInMemory.length > 0) {
@@ -1632,12 +1632,12 @@ window.debugEmojis = function() {
 
 // Force-load all reactions
 window.forceLoadAllReactions = function() {
-    console.log('🔄 Force loading reactions for all visible messages...');
+
     const messages = document.querySelectorAll('.message-content[data-message-id]');
     
     messages.forEach(msg => {
         const messageId = msg.dataset.messageId;
-        console.log(`📥 Force loading reactions for message ID: ${messageId}`);
+
         
         // Clear cached state
         emojiReactions.loadedMessageIds.delete(messageId);
@@ -1651,10 +1651,10 @@ window.forceLoadAllReactions = function() {
 
 // Debug function to test reaction system after reload
 window.debugReactionSystem = function() {
-    console.log('🔍 [DEBUG] Debugging reaction system state...');
+
     
     const messages = document.querySelectorAll('[data-message-id]');
-    console.log(`📊 [DEBUG] Found ${messages.length} messages in DOM`);
+
     
     messages.forEach(msg => {
         const messageId = msg.dataset.messageId;
@@ -1672,7 +1672,7 @@ window.debugReactionSystem = function() {
         
         // If message has no reactions but should, try to load them
         if (!hasReactions && !/^temp-/.test(messageId) && /^\d+$/.test(messageId)) {
-            console.log(`🔄 [DEBUG] Attempting to load reactions for message ${messageId}`);
+
             emojiReactions.loadedMessageIds.delete(messageId);
             emojiReactions.loadMessageReactions(messageId);
         }
@@ -1688,7 +1688,7 @@ window.debugReactionSystem = function() {
 // Helper to reinitialize if needed
 window.reinitializeEmojiSystem = function() {
     try {
-        console.log('🔄 Reinitializing emoji reactions system...');
+
         
         // Reset state
         emojiReactions.initialized = false;
@@ -1717,13 +1717,13 @@ window.reinitializeEmojiSystem = function() {
 
 // Add global debug function for testing
 window.debugReactionsSystem = function() {
-    console.log('🧪 [DEBUG] === REACTIONS SYSTEM DEBUG ===');
+
     
     if (window.emojiReactions) {
-        console.log('✅ [DEBUG] Emoji reactions system available');
+
         window.emojiReactions.debugChannelContext();
     } else {
-        console.log('❌ [DEBUG] Emoji reactions system not available');
+
     }
     
     console.log('🧪 [DEBUG] Chat section info:', {
@@ -1743,7 +1743,7 @@ window.debugReactionsSystem = function() {
         joinedRooms: Array.from(window.globalSocketManager?.joinedRooms || [])
     });
     
-    console.log('🧪 [DEBUG] === END DEBUG ===');
+
 };
 
 export default EmojiReactions;

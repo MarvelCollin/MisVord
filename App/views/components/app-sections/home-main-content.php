@@ -248,7 +248,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
 <script>
 const friends = <?php echo json_encode($friends); ?>;
 window.initialFriendsData = friends;
-console.log('🔍 [HOME-FRIENDS] PHP friends data loaded:', friends.length, friends);
+
 
 function getStatusClass(status) {
     switch (status) {
@@ -409,7 +409,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Try to load toast module dynamically
         try {
             const scriptPath = '/public/js/core/ui/toast.js';
-            console.log('🍞 [HOME-FRIENDS] Loading toast module from:', scriptPath);
+
             
             // Create a script element and append it to the document
             const script = document.createElement('script');
@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.head.appendChild(script);
             
             script.onload = () => {
-                console.log('🍞 [HOME-FRIENDS] Toast module loaded successfully');
+
             };
             
             script.onerror = (err) => {
@@ -635,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initGlobalSearchShortcut();
     
     function updateAllTabStatus(userId, status) {
-        console.log(`🎯 [HOME-FRIENDS] Updating status for user ${userId} to ${status}`);
+
         const statusIndicator = document.querySelector(`.friend-status-indicator[data-user-id="${userId}"]`);
         const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
         
@@ -650,13 +650,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function detectOnlineFriendsFromDOM() {
-        console.log('🔍 [HOME-FRIENDS] Detecting online friends from DOM status indicators');
+
         const onlineFromDOM = [];
         
         friends.forEach(friend => {
             const statusIndicator = document.querySelector(`.friend-status-indicator[data-user-id="${friend.id}"]`);
             if (statusIndicator && statusIndicator.classList.contains('bg-discord-green')) {
-                console.log(`✅ [HOME-FRIENDS] Found ${friend.username} online via DOM`);
+
                 onlineFromDOM.push(friend);
                 
                 if (!onlineUsers[friend.id]) {
@@ -670,12 +670,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        console.log('🔍 [HOME-FRIENDS] Online friends detected from DOM:', onlineFromDOM.length);
+
         return onlineFromDOM;
     }
     
     function renderOnlineTab() {
-        console.log('🎨 [HOME-FRIENDS] Rendering online tab');
+
         
         const onlineFriendsFromCache = friends.filter(friend => {
             const userData = onlineUsers[friend.id];
@@ -699,18 +699,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const lastFriendIds = lastRenderedOnlineFriends.map(f => f.id).sort().join(',');
         
         if (currentFriendIds === lastFriendIds) {
-            console.log('⏭️ [HOME-FRIENDS] Same online friends, skipping render to prevent blinking');
+
             return;
         }
         
-        console.log('✅ [HOME-FRIENDS] Online friends changed - Cache:', onlineFriendsFromCache.length, 'DOM:', onlineFriendsFromDOM.length, 'Using:', onlineFriends.length);
+
         
         if (onlineCount) {
             onlineCount.textContent = onlineFriends.length;
         }
         
         if (onlineFriends.length > 0) {
-            console.log('✅ [HOME-FRIENDS] Showing online friends:', onlineFriends.map(f => f.username));
+
             
             onlineFriendsContainer.innerHTML = '';
             
@@ -760,7 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         } else {
-            console.log('❌ [HOME-FRIENDS] No online friends found');
+
             onlineFriendsContainer.innerHTML = `
                 <div class="p-4 bg-discord-dark rounded text-center">
                     <div class="mb-2 text-gray-400">
@@ -776,12 +776,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function checkAndUpdateOnlineTab() {
-        console.log('🔄 [HOME-FRIENDS] Quick check and update online tab');
+
         renderOnlineTab();
     }
     
     function initializeHomeFriends() {
-        console.log('🚀 [HOME-FRIENDS] Initializing home friends');
+
         
         setupFriendsManagerIntegration();
         
@@ -798,7 +798,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function clearInitialSkeletons() {
-        console.log('🧹 [HOME-FRIENDS] Clearing initial skeleton loaders');
+
         const containers = ['online-friends-container', 'all-friends-container', 'pending-friends-container'];
         containers.forEach(containerId => {
             const container = document.getElementById(containerId);
@@ -812,7 +812,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updateAllFriendsStatus() {
-        console.log('🔄 [HOME-FRIENDS] Updating all friends status');
+
         friends.forEach(friend => {
             const userData = onlineUsers[friend.id];
             const status = userData?.status || 'offline';
@@ -821,14 +821,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function setupFriendsManagerIntegration() {
-        console.log('🚀 [HOME-FRIENDS] Setting up FriendsManager integration');
+
         
         if (window.globalPresenceManager) {
-            console.log('🌐 [HOME-FRIENDS] Using global presence manager');
+
             if (window.FriendsManager) {
                 const friendsManager = window.FriendsManager.getInstance();
                 onlineUsers = friendsManager.cache.onlineUsers || {};
-                console.log('📊 [HOME-FRIENDS] Initial online users from FriendsManager:', Object.keys(onlineUsers).length, onlineUsers);
+
                 updateAllFriendsStatus();
                 renderOnlineTab();
             }
@@ -836,18 +836,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (window.FriendsManager) {
-            console.log('✅ [HOME-FRIENDS] FriendsManager available');
+
             const friendsManager = window.FriendsManager.getInstance();
             
             friendsManager.subscribe((type, data) => {
-                console.log(`🔄 [HOME-FRIENDS] FriendsManager event: ${type}`, data);
+
                 switch(type) {
                     case 'user-online':
                     case 'user-offline':
                     case 'user-presence-update':
                     case 'online-users-updated':
                         onlineUsers = friendsManager.cache.onlineUsers || {};
-                        console.log('📊 [HOME-FRIENDS] Updated online users:', Object.keys(onlineUsers).length, onlineUsers);
+
                         updateAllFriendsStatus();
                         renderOnlineTab();
                         break;
@@ -855,15 +855,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             onlineUsers = friendsManager.cache.onlineUsers || {};
-            console.log('📊 [HOME-FRIENDS] Initial online users from FriendsManager:', Object.keys(onlineUsers).length, onlineUsers);
+
             
             if (Object.keys(onlineUsers).length === 0) {
-                console.log('⚠️ [HOME-FRIENDS] No online users found, requesting fresh data');
+
                 friendsManager.getOnlineUsers(true);
                 
                 setTimeout(() => {
                     onlineUsers = friendsManager.cache.onlineUsers || {};
-                    console.log('📊 [HOME-FRIENDS] Delayed online users check:', Object.keys(onlineUsers).length, onlineUsers);
+
                     updateAllFriendsStatus();
                     renderOnlineTab();
                 }, 2000);
@@ -886,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.checkAndUpdateOnlineTab = checkAndUpdateOnlineTab;
     window.loadOnlineFriends = function(forceRefresh = false) {
         if (window.FriendsManager) {
-            console.log('📊 [HOME-FRIENDS] Loading online friends data');
+
             const friendsManager = window.FriendsManager.getInstance();
             onlineUsers = friendsManager.cache.onlineUsers || {};
             updateAllFriendsStatus();
@@ -894,11 +894,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
     window.loadAllFriends = function(forceRefresh = false) {
-        console.log('📊 [HOME-FRIENDS] Loading all friends data');
+
         updateAllFriendsStatus();
     };
     window.loadPendingRequests = function(forceRefresh = false) {
-        console.log('📊 [HOME-FRIENDS] Loading pending requests data');
+
         const pendingContainer = document.getElementById('pending-friends-container');
         
         if (!pendingContainer) {
@@ -920,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.FriendAPI) {
             window.FriendAPI.getPendingRequests()
                 .then(data => {
-                    console.log('✅ [HOME-FRIENDS] Pending requests loaded:', data);
+
                     renderPendingRequests(data);
                 })
                 .catch(err => {
@@ -1071,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.FriendAPI) {
             window.FriendAPI.acceptFriendRequest(friendshipId)
                 .then(data => {
-                    console.log('✅ [HOME-FRIENDS] Friend request accepted:', data);
+
                     if (window.showToast) {
                         window.showToast('Friend request accepted!', 'success');
                     }
@@ -1107,7 +1107,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.FriendAPI) {
             window.FriendAPI.declineFriendRequest(friendshipId)
                 .then(data => {
-                    console.log('✅ [HOME-FRIENDS] Friend request declined:', data);
+
                     if (window.showToast) {
                         window.showToast('Friend request declined', 'info');
                     }
@@ -1143,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (window.FriendAPI) {
             window.FriendAPI.declineFriendRequest(friendshipId)
                 .then(data => {
-                    console.log('✅ [HOME-FRIENDS] Friend request canceled:', data);
+
                     if (window.showToast) {
                         window.showToast('Friend request canceled', 'info');
                     }
@@ -1172,13 +1172,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to open user detail modal
     window.openUserDetail = function(userId) {
-        console.log('🔍 [HOME-FRIENDS] Opening user detail for user:', userId);
+
         
         // Try to use the user detail modal if available
         if (window.userDetailModal && typeof window.userDetailModal.show === 'function') {
             window.userDetailModal.show({ userId: userId });
         } else {
-            console.log('📝 [HOME-FRIENDS] UserDetailModal not yet available, waiting...');
+
             
             // Wait a moment for the modal to be initialized and try again
             setTimeout(() => {

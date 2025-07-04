@@ -14,7 +14,7 @@ function extractServerIdFromURL(url) {
 
 async function loadDefaultChannel(serverId) {
     try {
-        console.log('[Channel Redirect] Loading default channel for server:', serverId);
+
         
         const response = await fetch(`/api/servers/${serverId}/channels`);
         const data = await response.json();
@@ -22,7 +22,7 @@ async function loadDefaultChannel(serverId) {
         if (data.success && data.data && data.data.channels && data.data.channels.length > 0) {
             const firstChannel = data.data.channels[0];
             
-            console.log('[Channel Redirect] Found default channel:', firstChannel.id);
+
             
             if (window.simpleChannelSwitcher) {
                 window.simpleChannelSwitcher.switchToChannel(firstChannel.id, 'text');

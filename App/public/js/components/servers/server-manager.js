@@ -24,14 +24,14 @@ function ensureServerDataLoaded() {
                 window.serverAPI.getServer(serverId)
                     .then(response => {
                         if (response.data) {
-                            console.log('Server data loaded successfully');
+
                             
                             return window.serverAPI.getServerChannels(serverId);
                         }
                     })
                     .then(channelResponse => {
                         if (channelResponse && channelResponse.data) {
-                            console.log('Channels loaded successfully');
+
                             if (typeof window.channelManager !== 'undefined' && 
                                 typeof window.channelManager.renderChannelList === 'function') {
                                 window.channelManager.renderChannelList(channelResponse.data);

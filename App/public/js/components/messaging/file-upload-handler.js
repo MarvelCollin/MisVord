@@ -8,7 +8,7 @@ class FileUploadHandler {
     }
 
     async handleFileSelection(file) {
-        console.log('🔥 Handling file selection');
+
         
         if (!this.chatSection.fileUploadInput) {
             console.error('File upload input not found');
@@ -17,7 +17,7 @@ class FileUploadHandler {
 
         const files = this.chatSection.fileUploadInput.files;
         if (!files || files.length === 0) {
-            console.log('No files selected');
+
             return;
         }
 
@@ -48,7 +48,7 @@ class FileUploadHandler {
             return;
         }
 
-        console.log(`📁 Uploading ${validFiles.length} files...`);
+
         this.chatSection.showNotification(`Uploading ${validFiles.length} file${validFiles.length !== 1 ? 's' : ''}...`, 'info');
 
         try {
@@ -66,7 +66,7 @@ class FileUploadHandler {
             }
 
             this.chatSection.updateSendButton();
-            console.log('✅ File selection and upload completed:', this.currentFileUploads.length, 'files');
+
         } catch (error) {
             console.error('❌ File upload failed:', error);
             this.chatSection.showNotification('Failed to upload files: ' + error.message, 'error');
@@ -210,7 +210,7 @@ class FileUploadHandler {
     }
 
     openFilePreviewModal(fileData, fileIndex) {
-        console.log('🎭 Opening file preview modal for:', fileData.name);
+
         
         if (!this.chatSection.filePreviewModal) {
             console.error('File preview modal not found');
@@ -250,7 +250,7 @@ class FileUploadHandler {
         this.loadModalContentFromUrl(fileData, modalContent, modalFooter);
         
         this.currentModalFile = fileData;
-        console.log('✅ Modal opened successfully');
+
     }
 
     loadModalContentFromUrl(fileData, modalContent, modalFooter) {
@@ -339,7 +339,7 @@ class FileUploadHandler {
     }
 
     removeFileUpload() {
-        console.log('🗑️ Removing all uploaded files');
+
         
         const fileUploadArea = document.getElementById('file-upload-area');
         const fileUploadList = document.getElementById('file-upload-list');
@@ -361,7 +361,7 @@ class FileUploadHandler {
         }
         
         this.chatSection.updateSendButton();
-        console.log('✅ All uploaded files removed');
+
     }
 
     hasFiles() {
@@ -424,7 +424,7 @@ class FileUploadHandler {
                 const action = btn.dataset.action;
                 const fileIndex = parseInt(btn.dataset.fileIndex);
                 
-                console.log('File action:', action, 'Index:', fileIndex);
+
                 this.handleFileAction(action, fileIndex);
             });
         });
@@ -437,7 +437,7 @@ class FileUploadHandler {
             return;
         }
 
-        console.log('🎯 Handling file action:', action, 'for file:', fileData.name);
+
 
         switch (action) {
             case 'preview':
@@ -453,11 +453,11 @@ class FileUploadHandler {
     }
 
     editFile(fileData, fileIndex) {
-        console.log('Edit file:', fileData.name);
+
     }
 
     removeFileFromUpload(fileIndex) {
-        console.log('🗑️ Removing file at index:', fileIndex);
+
         
         const fileUploadList = document.getElementById('file-upload-list');
         const fileUploadArea = document.getElementById('file-upload-area');
@@ -467,7 +467,7 @@ class FileUploadHandler {
             const card = fileUploadList.querySelector(`[data-file-index="${fileIndex}"]`);
             if (card) {
                 card.remove();
-                console.log('File card removed from DOM');
+
             }
         }
 
@@ -498,7 +498,7 @@ class FileUploadHandler {
         }
 
         this.chatSection.updateSendButton();
-        console.log('✅ File removed. Remaining files:', this.currentFileUploads.length);
+
     }
 
     loadTextPreview(file, index) {
@@ -516,46 +516,46 @@ class FileUploadHandler {
     }
 
     setupFilePreviewEventListeners() {
-        console.log('🔧 Setting up file preview event listeners');
+
         
         const clearAllBtn = document.getElementById('clear-all-files');
         if (clearAllBtn) {
             clearAllBtn.addEventListener('click', () => {
-                console.log('Clear all files clicked');
+
                 this.removeAllFiles();
             });
         }
 
         if (this.chatSection.filePreviewModal) {
-            console.log('Setting up modal event listeners');
+
             
             const closeBtn = this.chatSection.filePreviewModal.querySelector('#modal-close');
             const downloadBtn = this.chatSection.filePreviewModal.querySelector('#modal-download');
             
             if (closeBtn) {
                 closeBtn.addEventListener('click', () => {
-                    console.log('Close button clicked');
+
                     this.closeFileModal();
                 });
             }
             
             if (downloadBtn) {
                 downloadBtn.addEventListener('click', () => {
-                    console.log('Download button clicked');
+
                     this.downloadCurrentFile();
                 });
             }
 
             this.chatSection.filePreviewModal.addEventListener('click', (e) => {
                 if (e.target === this.chatSection.filePreviewModal) {
-                    console.log('Modal background clicked');
+
                     this.closeFileModal();
                 }
             });
 
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape' && !this.chatSection.filePreviewModal.classList.contains('opacity-0')) {
-                    console.log('Escape key pressed');
+
                     this.closeFileModal();
                 }
             });
@@ -563,11 +563,11 @@ class FileUploadHandler {
             console.error('File preview modal not found');
         }
         
-        console.log('✅ File preview event listeners set up');
+
     }
 
     removeAllFiles() {
-        console.log('🗑️ Removing all files');
+
         
         const fileUploadArea = document.getElementById('file-upload-area');
         const fileUploadList = document.getElementById('file-upload-list');
@@ -587,11 +587,11 @@ class FileUploadHandler {
         }
         
         this.chatSection.updateSendButton();
-        console.log('✅ All files removed');
+
     }
 
     closeFileModal() {
-        console.log('🎭 Closing file modal');
+
         if (this.chatSection.filePreviewModal) {
             const modal = this.chatSection.filePreviewModal;
             const modalContainer = modal.querySelector('#modal-container');
@@ -606,7 +606,7 @@ class FileUploadHandler {
             }, 200);
             
             this.currentModalFile = null;
-            console.log('✅ Modal closed');
+
         } else {
             console.error('File preview modal not found');
         }

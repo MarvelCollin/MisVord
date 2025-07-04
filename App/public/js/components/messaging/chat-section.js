@@ -17,20 +17,20 @@ function isChatPage() {
     const currentPath = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     
-    console.log('🔍 [CHAT-SECTION] Checking if chat page:', { currentPath, params: urlParams.toString() });
+
     
     if (currentPath === '/home' || currentPath.startsWith('/home/')) {
         if (currentPath.includes('/friends')) {
-            console.log('❌ [CHAT-SECTION] Friends page detected, excluding chat');
+
             return false;
         }
         
         if (currentPath.includes('/channels/dm/')) {
-            console.log('✅ [CHAT-SECTION] DM page detected, allowing chat');
+
             return true;
         }
         
-        console.log('✅ [CHAT-SECTION] Home page detected, allowing chat');
+
         return true;
     }
     
@@ -39,10 +39,10 @@ function isChatPage() {
         const channelId = urlParams.get('channel');
         const channelType = urlParams.get('type');
         
-        console.log('🔍 [CHAT-SECTION] Server page detected:', { channelId, channelType });
+
         
         if (channelType === 'voice') {
-            console.log('❌ [CHAT-SECTION] Voice channel detected via URL, disabling chat');
+
             return false;
         }
         
@@ -51,7 +51,7 @@ function isChatPage() {
             if (activeChannelElement) {
                 const channelDataType = activeChannelElement.getAttribute('data-channel-type');
                 if (channelDataType === 'voice') {
-                    console.log('❌ [CHAT-SECTION] Voice channel detected in DOM, disabling chat');
+
                     return false;
                 }
             }
@@ -60,25 +60,25 @@ function isChatPage() {
             const chatSection = document.querySelector('.chat-section:not(.hidden)');
             
             if (voiceSection && !chatSection) {
-                console.log('❌ [CHAT-SECTION] Voice section is visible, disabling chat');
+
                 return false;
             }
         }
         
         if (!channelId && !channelType) {
-            console.log('⚠️ [CHAT-SECTION] No channel info yet, checking if voice section is visible');
+
             const voiceSection = document.querySelector('.voice-section:not(.hidden)');
             if (voiceSection) {
-                console.log('❌ [CHAT-SECTION] Voice section visible, disabling chat');
+
                 return false;
             }
         }
         
-        console.log('✅ [CHAT-SECTION] Text channel or no voice indicators, allowing chat');
+
         return true;
     }
     
-    console.log('❌ [CHAT-SECTION] Not a chat page:', currentPath);
+
     return false;
 }
 
@@ -105,7 +105,7 @@ async function initializeChatSection() {
     window.__CHAT_SECTION_INITIALIZING__ = true;
     
     if (typeof window.ChatAPI === 'undefined') {
-        console.log('⏳ [CHAT-SECTION] ChatAPI not available, waiting...');
+
         let waitAttempts = 0;
         while (typeof window.ChatAPI === 'undefined' && waitAttempts < 20) {
             await new Promise(resolve => setTimeout(resolve, 150));
@@ -130,12 +130,12 @@ async function initializeChatSection() {
                 window.initializeEmojiReactions();
                 
                 if (window.emojiReactions && chatSection.targetId) {
-                    console.log('🔄 [CHAT-SECTION] Updating emoji reactions context after initialization');
+
                     window.emojiReactions.updateChannelContext(chatSection.targetId, chatSection.chatType);
                 }
             }
         } else if (window.emojiReactions && chatSection.targetId) {
-            console.log('🔄 [CHAT-SECTION] Emoji reactions already initialized, updating context');
+
             window.emojiReactions.updateChannelContext(chatSection.targetId, chatSection.chatType);
         }
         
@@ -153,16 +153,16 @@ window.initializeChatSection = initializeChatSection;
 
 // Add a function to manually retry chat initialization
 window.retryChatInitialization = function() {
-    console.log('🔄 [CHAT-SECTION] Manual retry requested');
+
     if (window.chatSection) {
-        console.log('🔄 [CHAT-SECTION] Existing chat section found, re-finding DOM elements');
+
         window.chatSection.findDOMElements();
         window.chatSection.setupEventListeners();
         return true;
     } else {
-        console.log('🔄 [CHAT-SECTION] No existing chat section, initializing fresh');
+
         return initializeChatSection().then(() => {
-            console.log('✅ [CHAT-SECTION] Manual retry completed successfully');
+
             return true;
         }).catch(error => {
             console.error('❌ [CHAT-SECTION] Manual retry failed:', error);
@@ -173,7 +173,7 @@ window.retryChatInitialization = function() {
 
 // Add a diagnostic function
 window.diagnoseChatSection = function() {
-    console.log('🔧 [CHAT-SECTION] Running diagnostics...');
+
     
     const diagnostics = {
         chatSection: !!window.chatSection,
@@ -211,7 +211,7 @@ window.diagnoseChatSection = function() {
 
 document.addEventListener('DOMContentLoaded', function() {
     if (isExcludedPage()) {
-        console.log('🚫 [CHAT-SECTION] Excluded page, skipping initialization');
+
         return;
     }
     
@@ -257,7 +257,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setTimeout(() => {
         if (!window.chatSection && !isExcludedPage()) {
-            console.log('🔄 [CHAT-SECTION] Attempting delayed initialization');
+
             initWhenReady();
         }
     }, 200);
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 class ChatSection {
     constructor(options = {}) {
-        console.log('🔧 [CHAT-SECTION] ChatSection constructor called with options:', options);
+
         
         try {
             this.chatType = options.chatType || this.detectChatType();
@@ -301,7 +301,7 @@ class ChatSection {
             this.filePreviewModal = null;
             this.currentOffset = 0;
             
-            console.log('🔧 [CHAT-SECTION] Creating handlers...');
+
             this.messageHandler = new MessageHandler(this);
             this.socketHandler = new SocketHandler(this);
             this.fileUploadHandler = new FileUploadHandler(this);
@@ -310,14 +310,14 @@ class ChatSection {
             this.mentionHandler = null;
             this.tts = new TextToSpeech();
             
-            console.log('🔧 [CHAT-SECTION] Setting window.chatSection and starting init...');
+
             window.chatSection = this;
             
             this.init().catch(error => {
                 console.error('❌ [CHAT-SECTION] Init failed:', error);
             });
             
-            console.log('✅ [CHAT-SECTION] Constructor completed successfully');
+
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Constructor error:', error);
             throw error;
@@ -408,7 +408,7 @@ class ChatSection {
     }
     
     findDOMElements() {
-        console.log('🔍 [CHAT-SECTION] Finding DOM elements...');
+
         
         // Chat container - try multiple selectors
         this.chatContainer = document.querySelector('.flex-1.flex.flex-col.bg-\\[\\#313338\\].h-screen.overflow-hidden') || 
@@ -511,7 +511,7 @@ class ChatSection {
             const maxAttempts = isExcluded ? 5 : (isDMPage ? 40 : 30); // More time for DM switches
             const interval = isDMPage ? 150 : 200; // Faster polling for DMs
             
-            console.log(`🔍 [CHAT-SECTION] Starting element wait (DM: ${isDMPage}, Channel: ${isChannelPage}, Excluded: ${isExcluded})`);
+
             
             const checkElements = () => {
                 this.findDOMElements();
@@ -519,7 +519,7 @@ class ChatSection {
                 const hasRequiredElements = this.chatMessages && this.messageForm && this.messageInput;
                 
                 if (hasRequiredElements) {
-                    console.log('✅ [CHAT-SECTION] All required DOM elements found');
+
                     resolve();
                     return;
                 }
@@ -556,7 +556,7 @@ class ChatSection {
                 }
                 
                 if (!isExcluded && attempts % 5 === 0) {
-                    console.log(`⏳ [CHAT-SECTION] Still waiting for DOM elements after ${attempts} attempts (DM: ${isDMPage})`);
+
                 }
                 setTimeout(checkElements, interval);
             };
@@ -711,11 +711,11 @@ class ChatSection {
                         };
                         
                         if (userData.user_id && userData.username) {
-                            console.log('🔄 [CHAT-SECTION] Late socket initialization attempt');
+
                             window.globalSocketManager.init(userData);
                         }
                     } else {
-                        console.log('⏳ [CHAT-SECTION] Socket already exists or connecting, waiting...');
+
                     }
                 }
             }, 3000);
@@ -772,14 +772,14 @@ class ChatSection {
                     }
                 }
             });
-            console.log('✅ [CHAT-SECTION] Message input event listeners attached');
+
         } else {
             console.warn('⚠️ [CHAT-SECTION] Message input not found, will retry in 2 seconds');
             // Retry finding and setting up message input after delay
             setTimeout(() => {
                 this.findDOMElements();
                 if (this.messageInput && !this.messageInput.dataset.listenersAttached) {
-                    console.log('🔄 [CHAT-SECTION] Retrying message input setup');
+
                     this.messageInput.addEventListener('input', () => {
                         this.updateSendButton();
                         this.handleTypingEvent();
@@ -804,7 +804,7 @@ class ChatSection {
                         }
                     });
                     this.messageInput.dataset.listenersAttached = 'true';
-                    console.log('✅ [CHAT-SECTION] Message input event listeners attached on retry');
+
                 }
             }, 2000);
         }
@@ -830,7 +830,7 @@ class ChatSection {
         if (fileUploadButton && this.fileUploadInput) {
             fileUploadButton.addEventListener('click', (e) => {
                 e.preventDefault();
-                console.log('📎 File upload button clicked');
+
                 this.fileUploadInput.click();
             });
         } else {
@@ -859,12 +859,12 @@ class ChatSection {
             this.chatMessages.addEventListener('scroll', () => {
                 this.handleChatScroll();
             }, { passive: true });
-            console.log('✅ [CHAT-SECTION] Chat scroll listener added with passive mode');
+
         } else {
             console.warn('⚠️ [CHAT-SECTION] Chat messages container not found for scroll listener');
         }
         
-        console.log('✅ [CHAT-SECTION] Event listeners setup complete');
+
         
         if (this.contextMenu) {
             this.contextMenu.addEventListener('click', (e) => {
@@ -874,7 +874,7 @@ class ChatSection {
                     const messageId = this.contextMenu.dataset.messageId;
                     
                     if (action && messageId) {
-                        console.log('🎯 [CHAT-SECTION] Context menu action:', { action, messageId });
+
                         this.handleMessageActions({
                             target: button,
                             stopPropagation: () => {},
@@ -966,7 +966,7 @@ class ChatSection {
             e.stopPropagation();
             e.preventDefault();
             
-            console.log('🎯 [CHAT-SECTION] Handling message action:', { action, messageId });
+
             
             switch (action) {
                 case 'reply':
@@ -979,20 +979,20 @@ class ChatSection {
                     this.confirmDeleteMessage(messageId);
                     break;
                 case 'more':
-                    console.log('🎯 [CHAT-SECTION] MORE ACTION TRIGGERED!', { messageId, button: actionButton });
+
                     this.showMessageContextMenu(messageId, actionButton);
                     break;
                 case 'copy-text':
-                    console.log('📋 [CHAT-SECTION] COPY-TEXT ACTION TRIGGERED!', { messageId });
+
                     this.copyMessageText(messageId);
                     break;
 
                 case 'text-to-speech':
-                    console.log('[CHAT-SECTION] TEXT-TO-SPEECH ACTION TRIGGERED', { messageId, button: actionButton });
+
                     this.tts.speakMessageText(messageId);
                     break;
                 default:
-                    console.log('🔄 [CHAT-SECTION] Unhandled action:', action);
+
                     break;
             }
         } else {
@@ -1015,7 +1015,7 @@ class ChatSection {
         } = options;
         
         if (this.isLoading && !forceFresh) {
-            console.log('⏳ [CHAT-SECTION] Already loading messages, skipping...');
+
             return;
         }
 
@@ -1043,11 +1043,11 @@ class ChatSection {
         
         try {
             if (!window.ChatAPI) {
-                console.log('⏳ [CHAT-SECTION] Waiting for ChatAPI to be available...');
+
                 await new Promise(resolve => {
                     const checkAPI = () => {
                         if (window.ChatAPI) {
-                            console.log('✅ [CHAT-SECTION] ChatAPI is now available');
+
                             resolve();
                         } else {
                             setTimeout(checkAPI, 100);
@@ -1067,7 +1067,7 @@ class ChatSection {
                 requestOptions.bypass_cache = true;
             }
             
-            console.log('📡 [CHAT-SECTION] Making API call to getMessages with options:', requestOptions);
+
             const response = await window.ChatAPI.getMessages(
                 this.targetId,
                 this.chatType,
@@ -1083,7 +1083,7 @@ class ChatSection {
                 messageCount: response?.data?.messages?.length || 'unknown'
             });
             
-            console.log(`[BOT-DEBUG] Chat section loadMessages API response for ${this.chatType} ${this.targetId}`);
+
             
             if (!response) {
                 throw new Error('No response received from server');
@@ -1096,29 +1096,29 @@ class ChatSection {
                 if (response.data.messages && Array.isArray(response.data.messages)) {
                     messages = response.data.messages;
                     hasMore = response.data.has_more || false;
-                    console.log('✅ [CHAT-SECTION] Using response.data.messages format:', messages.length, 'messages');
+
                     
                     let botCount = 0;
                     let userCount = 0;
                     messages.forEach(msg => {
                         if (msg.user_status === 'bot' || msg.username === 'titibot') {
                             botCount++;
-                            console.log(`[BOT-DEBUG] Found bot message in loadMessages: ${msg.id} from ${msg.username}`);
+
                         } else {
                             userCount++;
                         }
                     });
                     
-                    console.log(`[BOT-DEBUG] Chat section processed ${messages.length} messages: ${botCount} bot, ${userCount} user`);
+
                     
                 } else if (response.data.messages === null || response.data.messages === undefined) {
                     messages = [];
                     hasMore = false;
-                    console.log('📭 [CHAT-SECTION] No messages found (null/undefined)');
+
                 } else if (Array.isArray(response.data)) {
                     messages = response.data;
                     hasMore = messages.length >= limit;
-                    console.log('✅ [CHAT-SECTION] Using response.data as array format:', messages.length, 'messages');
+
                 } else {
                     console.error('❌ [CHAT-SECTION] Unexpected messages format:', {
                         messagesValue: response.data.messages,
@@ -1151,7 +1151,7 @@ class ChatSection {
                 this.hideChatSkeleton();
                 
                 if (isLoadMore) {
-                    console.log('📜 [CHAT-SECTION] Prepending older messages (load more)');
+
                     
                     if (typeof this.messageHandler.prependMessagesProgressively === 'function') {
                         await this.messageHandler.prependMessagesProgressively(messages);
@@ -1163,7 +1163,7 @@ class ChatSection {
                     this.currentOffset += messages.length;
                     this.hideLoadMoreProgress(true, `Loaded ${messages.length} older messages`);
                 } else {
-                    console.log('📝 [CHAT-SECTION] Displaying fresh messages');
+
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
                     this.scrollToBottomIfAppropriate(options.isChannelSwitch);
@@ -1171,17 +1171,17 @@ class ChatSection {
                 
                 this.hideEmptyState();
                 this.isInitialized = true;
-                console.log('✅ [CHAT-SECTION] Messages processed successfully');
+
             } else {
                 this.hideChatSkeleton();
                 
                 if (!isLoadMore) {
-                    console.log('📭 [CHAT-SECTION] No messages found, showing empty state...');
+
                     this.showEmptyState();
                 } else {
-                    console.log('📭 [CHAT-SECTION] No more messages to load');
+
                 }
-                console.log('📭 [CHAT-SECTION] No messages to display');
+
             }
 
             this.updateLoadMoreButton();
@@ -1201,7 +1201,7 @@ class ChatSection {
             }
         } finally {
             this.isLoading = false;
-            console.log('🏁 [CHAT-SECTION] loadMessages completed');
+
         }
     }
     
@@ -1214,7 +1214,7 @@ class ChatSection {
             return;
         }
         
-        console.log('📜 [CHAT-SECTION] Loading more messages, offset:', this.currentOffset);
+
         
         this.showLoadMoreProgress();
         
@@ -1291,7 +1291,7 @@ class ChatSection {
     
     updateLoadMoreButton() {
         if (!this.loadMoreContainer || !this.loadMoreButton) {
-            console.log('⚠️ [CHAT-SECTION] Load more elements not found, searching...');
+
             this.findDOMElements();
         }
         
@@ -1304,7 +1304,7 @@ class ChatSection {
         
         if (this.isLoading) {
             this.loadMoreContainer.classList.add('hidden');
-            console.log('🎨 [CHAT-SECTION] Load more button hidden - currently loading');
+
             return;
         }
         
@@ -1319,23 +1319,23 @@ class ChatSection {
         
         if (this.hasMoreMessages) {
             this.loadMoreContainer.classList.remove('hidden');
-            console.log('✅ [CHAT-SECTION] Load more button shown');
+
         } else {
             this.loadMoreContainer.classList.add('hidden');
-            console.log('📭 [CHAT-SECTION] Load more button hidden - no more messages');
+
         }
     }
     
     showLoadingIndicator() {
-        console.log('📊 [CHAT-SECTION] Loading indicator requested');
+
     }
     
     hideLoadingIndicator() {
-        console.log('📊 [CHAT-SECTION] Loading indicator hidden');
+
     }
     
     showEmptyState(message = null) {
-        console.log('🎯 [CHAT-SECTION] showEmptyState called with message:', message);
+
         
         const messagesContainer = this.getMessagesContainer();
         if (!messagesContainer) {
@@ -1348,7 +1348,7 @@ class ChatSection {
             return;
         }
         
-        console.log('✅ [CHAT-SECTION] Found messages container for empty state:', messagesContainer);
+
         
         if (!this.emptyStateContainer) {
             this.emptyStateContainer = document.createElement('div');
@@ -1358,7 +1358,7 @@ class ChatSection {
             
             try {
                 messagesContainer.appendChild(this.emptyStateContainer);
-                console.log('✅ [CHAT-SECTION] Empty state container created and appended to messages container');
+
             } catch (error) {
                 console.error('❌ [CHAT-SECTION] Failed to append empty state container:', error);
                 return;
@@ -1376,7 +1376,7 @@ class ChatSection {
         this.emptyStateContainer.classList.remove('hidden');
         this.emptyStateContainer.style.display = 'flex';
         
-        console.log('✅ [CHAT-SECTION] Empty state displayed with message:', displayMessage);
+
         console.log('🎨 [CHAT-SECTION] Empty state element:', {
             container: this.emptyStateContainer,
             isVisible: this.emptyStateContainer.offsetWidth > 0 && this.emptyStateContainer.offsetHeight > 0,
@@ -1481,7 +1481,7 @@ class ChatSection {
     }
     
     startReply(messageId) {
-        console.log('📝 [CHAT-SECTION] Starting reply to message:', messageId);
+
         
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
@@ -1512,7 +1512,7 @@ class ChatSection {
             content = contentElement?.textContent?.trim() || 'a message';
         }
         
-        console.log('📝 [CHAT-SECTION] Reply data:', { messageId, username, content: content.substring(0, 50) });
+
         
         this.replyingTo = {
             messageId,
@@ -1534,7 +1534,7 @@ class ChatSection {
             return;
         }
         
-        console.log('🎨 [CHAT-SECTION] Showing reply UI for:', this.replyingTo);
+
         
         // Validate required data
         if (!this.replyingTo.messageId || !this.replyingTo.username) {
@@ -1611,7 +1611,7 @@ class ChatSection {
         
         if (insertionPoint) {
             insertionPoint.parentNode.insertBefore(replyPreview, insertionPoint);
-            console.log('✅ [CHAT-SECTION] Reply UI inserted before message form');
+
         } else {
             // Fallback: try to find the chat input container
             const chatInputContainer = document.querySelector('#chat-input-container') || 
@@ -1621,7 +1621,7 @@ class ChatSection {
             
             if (chatInputContainer) {
                 chatInputContainer.insertBefore(replyPreview, chatInputContainer.firstChild);
-                console.log('✅ [CHAT-SECTION] Reply UI inserted in chat container (fallback)');
+
             } else {
                 console.error('❌ [CHAT-SECTION] Could not find insertion point for reply UI');
                 return;
@@ -1633,7 +1633,7 @@ class ChatSection {
     }
     
     clearExistingReplyUI() {
-        console.log('🧹 [CHAT-SECTION] Clearing existing reply UI elements');
+
         
         // Remove reply preview
         const replyPreview = document.getElementById('reply-preview');
@@ -1649,7 +1649,7 @@ class ChatSection {
     }
     
     cancelReply() {
-        console.log('❌ [CHAT-SECTION] Canceling reply');
+
         
         this.replyingTo = null;
         
@@ -1671,7 +1671,7 @@ class ChatSection {
     }
     
     startEditing(messageId) {
-        console.log('✏️ [CHAT-SECTION] Starting edit for message:', messageId);
+
         
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
@@ -1803,16 +1803,16 @@ class ChatSection {
         
         messageElement.classList.add('message-editing');
         
-        console.log('✅ [CHAT-SECTION] Edit UI created and displayed');
+
     }
     
     cancelEditing() {
         if (!this.currentEditingMessage) {
-            console.log('⚠️ [CHAT-SECTION] No current editing message to cancel');
+
             return;
         }
         
-        console.log('❌ [CHAT-SECTION] Canceling edit for message:', this.currentEditingMessage.messageId);
+
         
         const { messageId, originalContent, originalHTML, element, isBubbleMessage } = this.currentEditingMessage;
         
@@ -1845,7 +1845,7 @@ class ChatSection {
         // Clear editing state
         this.currentEditingMessage = null;
         
-        console.log('✅ [CHAT-SECTION] Edit canceled and original content restored');
+
     }
     
     async saveEdit(messageId, newContent) {
@@ -1853,13 +1853,13 @@ class ChatSection {
         
         const originalContent = this.currentEditingMessage?.originalContent;
         if (newContent.trim() === originalContent?.trim()) {
-            console.log('📝 [CHAT-SECTION] No changes made, canceling edit');
+
             this.cancelEditing();
             return;
         }
         
         try {
-            console.log('📝 [CHAT-SECTION] Starting edit save for message:', messageId);
+
             
             this.cancelEditing();
             
@@ -1894,12 +1894,12 @@ class ChatSection {
                 source: 'edit-update'
             };
             
-            console.log('📡 [CHAT-SECTION] Broadcasting edit to socket:', editData);
+
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                 window.globalSocketManager.io.emit('message-edit-temp', editData);
             }
             
-            console.log('💾 [CHAT-SECTION] Saving edit to database via HTTP...');
+
             const response = await fetch(`/api/messages/${messageId}`, {
                 method: 'PUT',
                 headers: {
@@ -1922,7 +1922,7 @@ class ChatSection {
                         messageElement.classList.remove('message-edit-success');
                     }, 2000);
                 }
-                console.log('✅ [CHAT-SECTION] Edit saved successfully');
+
             } else {
                 throw new Error(result.message || 'Database edit failed');
             }
@@ -1950,7 +1950,7 @@ class ChatSection {
     }
     
     applyTempEdit(messageId, newContent, tempEditId) {
-        console.log('⏳ [CHAT-SECTION] Applying temporary edit to message:', messageId);
+
         
         // Cancel editing UI first
         this.cancelEditing();
@@ -1975,7 +1975,7 @@ class ChatSection {
                     messageTextElement.appendChild(editedBadge);
                 }
                 
-                console.log('✅ [CHAT-SECTION] Temporary edit applied to UI');
+
             }
         }
     }
@@ -1995,7 +1995,7 @@ class ChatSection {
             tempIndicator.remove();
         }
         
-        console.log('✅ [CHAT-SECTION] Edit confirmed and temp styling removed');
+
     }
     
     markEditAsFailed(messageElement, error) {
@@ -2011,7 +2011,7 @@ class ChatSection {
             tempIndicator.title = `Edit failed: ${error}`;
         }
         
-        console.log('❌ [CHAT-SECTION] Edit marked as failed');
+
     }
     
     confirmDeleteMessage(messageId) {
@@ -2040,7 +2040,7 @@ class ChatSection {
         });
         document._deleteModalHandlers = [];
         
-        console.log('🧹 [CHAT-SECTION] Cleaned up any existing delete modals');
+
     }
     
     showDeleteConfirmModal(messageId) {
@@ -2146,7 +2146,7 @@ class ChatSection {
         if (!messageId) return;
         
         try {
-            console.log('🗑️ [CHAT-SECTION] Starting delete for message:', messageId);
+
             
             const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             if (!messageElement) {
@@ -2179,10 +2179,10 @@ class ChatSection {
                 source: 'delete-action'
             };
             
-            console.log('📡 [CHAT-SECTION] Broadcasting delete to socket first:', deleteData);
+
             if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                 window.globalSocketManager.io.emit('message-deleted', deleteData);
-                console.log('✅ [CHAT-SECTION] Delete event emitted successfully');
+
             } else {
                 console.warn('⚠️ [CHAT-SECTION] Socket not ready for deletion broadcast');
             }
@@ -2191,11 +2191,11 @@ class ChatSection {
                 throw new Error('ChatAPI not initialized');
             }
             
-            console.log('💾 [CHAT-SECTION] Deleting message via HTTP...');
+
             const response = await window.ChatAPI.deleteMessage(messageId);
             
             if (response.success) {
-                console.log('✅ [CHAT-SECTION] Message deleted successfully from database');
+
                 
                 if (messageElement) {
                     messageElement.classList.remove('message-deleting-pending');
@@ -2345,11 +2345,11 @@ class ChatSection {
         if (!messageId) return;
         
         if (window.messageHighlighter) {
-            console.log('🎯 [CHAT-SECTION] Using message highlighter for message:', messageId);
+
             return window.messageHighlighter.highlightMessage(messageId, fromNotification);
         }
         
-        console.log('⚠️ [CHAT-SECTION] Message highlighter not available, using fallback');
+
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (messageElement) {
             messageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -2368,7 +2368,7 @@ class ChatSection {
             const soundsEnabled = localStorage.getItem('message_sounds_enabled') !== 'false';
             
             if (!soundsEnabled) {
-                console.log('🔇 [CHAT-SECTION] Message sounds are disabled');
+
                 return;
             }
             
@@ -2377,7 +2377,7 @@ class ChatSection {
             audio.volume = 0.5; // Set to 50% volume
             audio.play().catch(error => {
                 // This often fails due to browser autoplay restrictions
-                console.log('🔇 [CHAT-SECTION] Could not play message sound:', error.message);
+
             });
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error playing message sound:', error);
@@ -2398,7 +2398,7 @@ class ChatSection {
                                         document.querySelector('#chat-messages .flex-1');
                 
                 if (fallbackContainer) {
-                    console.log('✅ [CHAT-SECTION] Found fallback messages container');
+
                     return fallbackContainer;
                 }
                 return null;
@@ -2476,30 +2476,30 @@ class ChatSection {
             }
         };
         
-        console.log('🔍 [CHAT-SECTION] Socket Status:', status);
+
         return status;
     }
     
     initializeExistingMessages() {
-        console.log('🔧 [CHAT-SECTION] Initializing event listeners for existing server-rendered messages');
+
         
         const existingMessages = document.querySelectorAll('.message-content[data-message-id]');
         
-        console.log(`📝 [CHAT-SECTION] Found ${existingMessages.length} existing messages to initialize`);
+
         
         existingMessages.forEach(messageElement => {
             const messageId = messageElement.dataset.messageId;
             if (messageId && this.messageHandler) {
-                console.log(`🔧 [CHAT-SECTION] Setting up event listeners for message ${messageId}`);
+
                 this.messageHandler.addMessageEventListeners(messageId);
             }
         });
         
-        console.log('✅ [CHAT-SECTION] Existing message initialization complete');
+
     }
     
     clearChatMessages() {
-        console.log('🧹 [CHAT-SECTION] Clearing chat messages');
+
         
         const messageContainers = [
             this.chatMessages,
@@ -2542,7 +2542,7 @@ class ChatSection {
         this.lastLoadedMessageId = null;
         this.hasMoreMessages = true;
         
-        console.log('✅ [CHAT-SECTION] All message containers cleared and reset');
+
     }
 
     clearMessage() {
@@ -2562,24 +2562,24 @@ class ChatSection {
     }
 
     setupHandlers() {
-        console.log('🔧 [CHAT-SECTION] Setting up handlers...');
+
         
         if (!this.mentionHandler) {
             this.mentionHandler = new MentionHandler(this);
-            console.log('✅ [CHAT-SECTION] MentionHandler initialized');
+
         }
         
         if (this.socketHandler && !this.socketHandler.socketListenersSetup) {
             if (window.globalSocketManager && window.globalSocketManager.io) {
                 this.socketHandler.setupSocketHandlers(window.globalSocketManager.io);
-                console.log('✅ [CHAT-SECTION] SocketHandler setup completed');
+
             } else {
-                console.log('⏳ [CHAT-SECTION] Socket not ready, will setup handlers when socket connects');
+
                 
                 const setupSocketHandlersWhenReady = () => {
                     if (window.globalSocketManager && window.globalSocketManager.io && !this.socketHandler.socketListenersSetup) {
                         this.socketHandler.setupSocketHandlers(window.globalSocketManager.io);
-                        console.log('✅ [CHAT-SECTION] SocketHandler setup completed after socket ready');
+
                     }
                 };
                 
@@ -2594,11 +2594,11 @@ class ChatSection {
             }
         }
         
-        console.log('✅ [CHAT-SECTION] All handlers setup completed');
+
     }
 
     updateChannelHeader() {
-        console.log('🏷️ [CHAT-SECTION] Updating channel header...');
+
         
         const channelIcon = document.getElementById('channel-icon');
         const channelName = document.getElementById('channel-name');
@@ -2626,7 +2626,7 @@ class ChatSection {
                     channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
                 }
                 
-                console.log('✅ [CHAT-SECTION] Channel header updated from DOM:', nameText);
+
                 return;
             }
             
@@ -2635,7 +2635,7 @@ class ChatSection {
                 let nameText = this.cleanChannelName(chatTitleMeta.content);
                 channelName.textContent = nameText;
                 channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
-                console.log('✅ [CHAT-SECTION] Channel header updated from meta tag:', nameText);
+
                 return;
             }
             
@@ -2644,13 +2644,13 @@ class ChatSection {
                 channelName.textContent = nameText;
                 const iconClass = window.currentChannelData.type === 'voice' ? 'fas fa-volume-high' : 'fas fa-hashtag';
                 channelIcon.className = `${iconClass} text-[#949ba4] mr-2`;
-                console.log('✅ [CHAT-SECTION] Channel header updated from window data:', nameText);
+
                 return;
             }
             
             channelName.textContent = `Channel ${this.targetId}`;
             channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
-            console.log('✅ [CHAT-SECTION] Channel header updated with fallback');
+
             
         } else if (this.chatType === 'direct') {
             const chatTitleMeta = document.querySelector('meta[name="chat-title"]');
@@ -2659,12 +2659,12 @@ class ChatSection {
             
             channelName.textContent = titleText;
             channelIcon.className = 'fas fa-user text-[#949ba4] mr-2';
-            console.log('✅ [CHAT-SECTION] DM header updated:', titleText);
+
             
         } else {
             channelName.textContent = 'Chat';
             channelIcon.className = 'fas fa-comments text-[#949ba4] mr-2';
-            console.log('✅ [CHAT-SECTION] Generic header fallback applied');
+
         }
     }
     
@@ -2689,20 +2689,20 @@ class ChatSection {
 
     async ensureInitialized() {
         if (!this.messageHandler) {
-            console.log('📋 [CHAT-SECTION] Initializing fresh message handler');
+
             this.messageHandler = new MessageHandler(this);
         } else {
-            console.log('📋 [CHAT-SECTION] Message handler exists, ensuring clean state');
+
             this.messageHandler.clearProcessedMessages();
         }
         
         if (!this.sendReceiveHandler) {
-            console.log('📋 [CHAT-SECTION] Initializing send receive handler');
+
             this.sendReceiveHandler = new SendReceiveHandler(this);
         }
         
         if (!this.socketHandler) {
-            console.log('📋 [CHAT-SECTION] Initializing socket handler');
+
             this.socketHandler = new SocketHandler(this);
         }
         
@@ -2711,15 +2711,15 @@ class ChatSection {
         this.setupHandlers();
         
         this.isInitialized = true;
-        console.log('✅ [CHAT-SECTION] Full initialization completed with clean message handler state');
+
     }
 
     async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
-        console.log('🔄 [CHAT-SECTION] Switching to channel:', channelId, channelType, 'forceFresh:', forceFresh);
+
         
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
-            console.log('🧹 [CHAT-SECTION] Load more container hidden at start of channel switch');
+
         }
         
         this.forceStopAllOperations();
@@ -2730,7 +2730,7 @@ class ChatSection {
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer) {
             messagesContainer.innerHTML = '';
-            console.log('🧹 [CHAT-SECTION] Messages container cleared for channel switch');
+
         }
         
         await this.ensureInitialized();
@@ -2738,7 +2738,7 @@ class ChatSection {
         this.fullStateReset();
         
         if (this.socketHandler && typeof this.socketHandler.refreshForChannelSwitch === 'function') {
-            console.log('🔄 [CHAT-SECTION] Refreshing socket handler for channel switch');
+
             this.socketHandler.refreshForChannelSwitch(channelId, 'channel');
         }
         
@@ -2753,19 +2753,19 @@ class ChatSection {
         this.updateChannelHeader();
         
         if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
-            console.log('🔄 [CHAT-SECTION] Updating emoji reactions context for new channel');
+
             window.emojiReactions.updateChannelContext(channelId, 'channel');
         }
         
-        console.log('✅ [CHAT-SECTION] Channel switch completed');
+
     }
 
     async switchToDM(dmId, roomType = 'direct', forceFresh = false) {
-        console.log('🔄 [CHAT-SECTION] Switching to DM:', dmId, roomType, 'forceFresh:', forceFresh);
+
         
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
-            console.log('🧹 [CHAT-SECTION] Load more container hidden at start of DM switch');
+
         }
         
         this.forceStopAllOperations();
@@ -2776,7 +2776,7 @@ class ChatSection {
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer) {
             messagesContainer.innerHTML = '';
-            console.log('🧹 [CHAT-SECTION] Messages container cleared for DM switch');
+
         }
         
         // Wait for DM elements to be available after SPA navigation
@@ -2791,11 +2791,11 @@ class ChatSection {
             const hasRequired = this.chatMessages && this.messageForm && this.messageInput;
             if (hasRequired) {
                 dmElementsReady = true;
-                console.log('✅ [CHAT-SECTION] DM elements ready after', attempts, 'attempts');
+
             } else {
                 attempts++;
                 if (attempts % 5 === 0) {
-                    console.log(`⏳ [CHAT-SECTION] Still waiting for DM elements (${attempts}/${maxAttempts}):`, {
+                    console.warn('⚠️ [CHAT-SECTION] Still waiting for DM elements:', {
                         chatMessages: !!this.chatMessages,
                         messageForm: !!this.messageForm,
                         messageInput: !!this.messageInput,
@@ -2815,7 +2815,7 @@ class ChatSection {
         this.fullStateReset();
         
         if (this.socketHandler && typeof this.socketHandler.refreshForChannelSwitch === 'function') {
-            console.log('🔄 [CHAT-SECTION] Refreshing socket handler for DM switch');
+
             this.socketHandler.refreshForChannelSwitch(dmId, 'direct');
         }
         
@@ -2830,15 +2830,15 @@ class ChatSection {
         this.updateChannelHeader();
         
         if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
-            console.log('🔄 [CHAT-SECTION] Updating emoji reactions context for new DM');
+
             window.emojiReactions.updateChannelContext(dmId, 'direct');
         }
         
-        console.log('✅ [CHAT-SECTION] DM switch completed');
+
     }
 
     resetForNewChannel() {
-        console.log('🔄 [CHAT-SECTION] Resetting for new channel...');
+
         
         this.cleanupDeleteModals();
         
@@ -2857,7 +2857,7 @@ class ChatSection {
             this.messageHandler.temporaryMessages.clear();
         }
         
-        console.log('✅ [CHAT-SECTION] Channel reset completed');
+
     }
     
     forceStopAllOperations() {
@@ -2872,7 +2872,7 @@ class ChatSection {
         
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
-            console.log('🧹 [CHAT-SECTION] Load more container hidden during force stop');
+
         }
         
         if (this.loadMoreButton) {
@@ -2913,15 +2913,15 @@ class ChatSection {
         
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
-            console.log('🧹 [CHAT-SECTION] Load more button hidden during state reset');
+
         }
         
-        console.log('✅ [CHAT-SECTION] Full state reset completed');
+
     }
 
     leaveCurrentSocketRoom() {
         if (this.socketRoomJoined && this.lastJoinedRoom && window.globalSocketManager) {
-            console.log('🔌 [CHAT-SECTION] Leaving current socket room:', this.lastJoinedRoom);
+
             
             try {
                 if (this.chatType === 'channel') {
@@ -2935,7 +2935,7 @@ class ChatSection {
                     if (typeof window.globalSocketManager.leaveDMRoom === 'function') {
                         window.globalSocketManager.leaveDMRoom(this.lastJoinedRoom);
                     } else if (typeof window.globalSocketManager.leaveRoom === 'function') {
-                        console.log('🔄 [CHAT-SECTION] Using generic leaveRoom for DM room');
+
                         window.globalSocketManager.leaveRoom('dm', this.lastJoinedRoom);
                     } else {
                         console.warn('⚠️ [CHAT-SECTION] No available method to leave DM room');
@@ -2944,7 +2944,7 @@ class ChatSection {
                 
                 this.socketRoomJoined = false;
                 this.lastJoinedRoom = null;
-                console.log('✅ [CHAT-SECTION] Successfully left socket room');
+
             } catch (error) {
                 console.error('❌ [CHAT-SECTION] Error leaving socket room:', error);
                 this.socketRoomJoined = false;
@@ -2961,7 +2961,7 @@ class ChatSection {
 
     setChannelSwitchManager(manager) {
         this.channelSwitchManager = manager;
-        console.log('🔗 [CHAT-SECTION] Channel switch manager linked');
+
     }
     
     retrySocketConnection() {
@@ -2973,11 +2973,11 @@ class ChatSection {
         // Check if socket is already working properly
         const status = this.getDetailedSocketStatus();
         if (status.isReady) {
-            console.log('✅ [CHAT-SECTION] Socket already ready, no retry needed');
+
             return true;
         }
 
-        console.log('🔄 [CHAT-SECTION] Attempting socket connection retry...');
+
         
         const userData = {
             user_id: this.userId || document.querySelector('meta[name="user-id"]')?.content,
@@ -2991,7 +2991,7 @@ class ChatSection {
 
         // Only retry if socket is not already connecting or connected
         if (window.globalSocketManager.isConnecting || window.globalSocketManager.isConnected) {
-            console.log('⏳ [CHAT-SECTION] Socket already connecting/connected, waiting for authentication...');
+
             
             // Wait for existing connection to complete
             setTimeout(() => {
@@ -3010,7 +3010,7 @@ class ChatSection {
             const result = window.globalSocketManager.init(userData);
             
             if (result) {
-                console.log('✅ [CHAT-SECTION] Socket reconnection initiated');
+
                 
                 setTimeout(() => {
                     const status = this.getDetailedSocketStatus();
@@ -3026,7 +3026,7 @@ class ChatSection {
             }
         }
 
-        console.log('⚠️ [CHAT-SECTION] Socket instance exists but not ready, waiting...');
+
         return true;
     }
 
@@ -3118,10 +3118,10 @@ class ChatSection {
             if (chatContainer) {
                 chatContainer.style.position = 'relative';
                 chatContainer.appendChild(this.topReloadButton);
-                console.log('✅ [CHAT-SECTION] Top reload button created and positioned relative to chat container');
+
             } else {
                 document.body.appendChild(this.topReloadButton);
-                console.log('✅ [CHAT-SECTION] Top reload button created and positioned fixed to body');
+
             }
         }
         
@@ -3141,7 +3141,7 @@ class ChatSection {
     }
     
     loadOlderMessages() {
-        console.log('📜 [CHAT-SECTION] Load older messages redirected to load more messages');
+
         this.loadMoreMessages();
     }
     
@@ -3174,7 +3174,7 @@ class ChatSection {
         `;
         
         document.head.appendChild(style);
-        console.log('✅ [CHAT-SECTION] Top reload button styles added');
+
     }
 
     handleNewMessageScroll(isOwnMessage = false) {
@@ -3233,7 +3233,7 @@ class ChatSection {
 
     
     showMessageContextMenu(messageId, triggerElement) {
-        console.log('📋 [CHAT-SECTION] Showing context menu for message:', messageId, 'trigger:', triggerElement);
+
         
         const contextMenu = document.getElementById('message-context-menu');
         if (!contextMenu) {
@@ -3263,7 +3263,7 @@ class ChatSection {
         contextMenu.style.zIndex = '9999';
         
         const rect = triggerElement.getBoundingClientRect();
-        console.log('🎯 [CHAT-SECTION] Trigger element rect:', rect);
+
         
         const menuWidth = 200;
         const menuHeight = 350;
@@ -3298,7 +3298,7 @@ class ChatSection {
         
         this.activeContextMenuCloseHandler = (e) => {
             if (!contextMenu.contains(e.target) && !triggerElement.contains(e.target)) {
-                console.log('🔒 [CHAT-SECTION] Closing context menu - clicked outside');
+
                 contextMenu.classList.add('hidden');
                 contextMenu.style.display = 'none';
                 document.removeEventListener('click', this.activeContextMenuCloseHandler);
@@ -3310,11 +3310,11 @@ class ChatSection {
             document.addEventListener('click', this.activeContextMenuCloseHandler);
         }, 50);
         
-        console.log('✅ [CHAT-SECTION] Context menu setup complete');
+
     }
     
     copyMessageText(messageId) {
-        console.log('📋 [CHAT-SECTION] Copying message text:', messageId);
+
         
         const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
         if (!messageElement) {
@@ -3339,7 +3339,7 @@ class ChatSection {
         
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(messageText).then(() => {
-                console.log('✅ [CHAT-SECTION] Text copied to clipboard using Clipboard API');
+
                 this.showNotification('Message text copied to clipboard', 'success');
             }).catch(error => {
                 console.error('❌ [CHAT-SECTION] Failed to copy using Clipboard API:', error);
@@ -3370,7 +3370,7 @@ class ChatSection {
             document.body.removeChild(textArea);
             
             if (successful) {
-                console.log('✅ [CHAT-SECTION] Text copied using fallback method');
+
                 this.showNotification('Message text copied to clipboard', 'success');
             } else {
                 throw new Error('Copy command failed');
@@ -3382,7 +3382,7 @@ class ChatSection {
     }
 
     showTypingIndicator(userId, username) {
-        console.log('⌨️ [CHAT-SECTION] Showing typing indicator:', userId, username);
+
         if (this.socketHandler && typeof this.socketHandler.showTypingIndicator === 'function') {
             this.socketHandler.showTypingIndicator(userId, username);
         } else {
@@ -3391,7 +3391,7 @@ class ChatSection {
     }
 
     removeTypingIndicator(userId) {
-        console.log('⌨️ [CHAT-SECTION] Removing typing indicator:', userId);
+
         if (this.socketHandler && typeof this.socketHandler.removeTypingIndicator === 'function') {
             this.socketHandler.removeTypingIndicator(userId);
         } else {
@@ -3410,7 +3410,7 @@ window.ChatSection = ChatSection;
 
 // Global DM switching helper function
 window.switchToDMGlobal = async function(dmId, roomType = 'direct') {
-    console.log('🔄 [GLOBAL-DM-SWITCH] Global DM switch called:', dmId, roomType);
+
     
     if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
         try {
@@ -3436,74 +3436,74 @@ console.log('✅ [CHAT-SECTION] Global functions exposed:', {
 
 // Add global debug function for testing
 window.debugChatSection = function() {
-    console.log('🧪 [DEBUG] Current URL:', window.location.href);
-    console.log('🧪 [DEBUG] URL pathname:', window.location.pathname);
-    console.log('🧪 [DEBUG] URL search params:', window.location.search);
+
+
+
     
     const urlParams = new URLSearchParams(window.location.search);
-    console.log('🧪 [DEBUG] Channel param from URL:', urlParams.get('channel'));
-    console.log('🧪 [DEBUG] Server param from URL:', urlParams.get('server'));
+
+
     
-    console.log('🧪 [DEBUG] All meta tags:');
+
     document.querySelectorAll('meta').forEach(meta => {
         if (meta.getAttribute('name')) {
-            console.log(`🧪 [DEBUG] Meta: ${meta.getAttribute('name')} = "${meta.getAttribute('content')}"`);
+
         }
     });
     
-    console.log('🧪 [DEBUG] Chat section instance:', window.chatSection);
+
     if (window.chatSection) {
-        console.log('🧪 [DEBUG] Chat section targetId:', window.chatSection.targetId);
-        console.log('🧪 [DEBUG] Chat section chatType:', window.chatSection.chatType);
-        console.log('🧪 [DEBUG] Socket room joined:', window.chatSection.socketRoomJoined);
-        console.log('🧪 [DEBUG] Last joined room:', window.chatSection.lastJoinedRoom);
+
+
+
+
         
         const socketStatus = window.chatSection.getDetailedSocketStatus();
-        console.log('🧪 [DEBUG] Detailed socket status:', socketStatus);
+
     }
     
-    console.log('🧪 [DEBUG] Global socket manager:', window.globalSocketManager);
+
     if (window.globalSocketManager) {
-        console.log('🧪 [DEBUG] Socket connected:', window.globalSocketManager.connected);
-        console.log('🧪 [DEBUG] Socket authenticated:', window.globalSocketManager.authenticated);
-        console.log('🧪 [DEBUG] Socket IO exists:', !!window.globalSocketManager.io);
-        console.log('🧪 [DEBUG] Socket isReady():', window.globalSocketManager.isReady());
+
+
+
+
     }
 };
 
 window.debugDeleteModal = function() {
-    console.log('🧪 [DEBUG-MODAL] Testing delete modal functionality...');
+
     
     const existingModals = document.querySelectorAll('#delete-message-modal');
-    console.log('🧪 [DEBUG-MODAL] Found existing modals:', existingModals.length);
+
     
     const deleteHandlers = document._deleteModalHandlers || [];
-    console.log('🧪 [DEBUG-MODAL] Active delete handlers:', deleteHandlers.length);
+
     
     if (window.chatSection && typeof window.chatSection.cleanupDeleteModals === 'function') {
-        console.log('🧪 [DEBUG-MODAL] Running cleanup...');
+
         window.chatSection.cleanupDeleteModals();
-        console.log('🧪 [DEBUG-MODAL] Cleanup completed');
+
     } else {
-        console.log('❌ [DEBUG-MODAL] Chat section or cleanup method not available');
+
     }
     
     const messageElements = document.querySelectorAll('[data-message-id]');
-    console.log('🧪 [DEBUG-MODAL] Found message elements:', messageElements.length);
+
     
     if (messageElements.length > 0) {
         const testMessageId = messageElements[0].dataset.messageId;
-        console.log('🧪 [DEBUG-MODAL] Test message ID:', testMessageId);
+
         
         if (window.chatSection && typeof window.chatSection.showDeleteConfirmModal === 'function') {
-            console.log('🧪 [DEBUG-MODAL] Testing modal creation for message:', testMessageId);
+
             window.chatSection.showDeleteConfirmModal(testMessageId);
         }
     }
 };
 
 window.debugDeleteFlow = function() {
-    console.log('🗑️ [DEBUG-DELETE] Testing complete delete flow...');
+
     
     if (!window.chatSection) {
         console.error('❌ [DEBUG-DELETE] No chat section available');
@@ -3519,7 +3519,7 @@ window.debugDeleteFlow = function() {
     const testMessage = messages[0];
     const messageId = testMessage.dataset.messageId;
     
-    console.log('🧪 [DEBUG-DELETE] Testing delete flow for message:', messageId);
+
     console.log('🧪 [DEBUG-DELETE] Current chat:', {
         type: window.chatSection.chatType,
         targetId: window.chatSection.targetId,
@@ -3536,18 +3536,18 @@ window.debugDeleteFlow = function() {
         source: 'debug-test'
     };
     
-    console.log('📡 [DEBUG-DELETE] Simulating delete event from another user:', deleteData);
+
     
     if (window.chatSection.socketHandler) {
         window.chatSection.socketHandler.handleMessageDeleted(deleteData);
-        console.log('✅ [DEBUG-DELETE] Delete event processed via socket handler');
+
     } else {
         console.error('❌ [DEBUG-DELETE] Socket handler not available');
     }
 };
 
 window.testDeleteSystemIntegration = function() {
-    console.log('🧪 [TEST-DELETE] Running complete delete system integration test...');
+
     
     const testResults = {
         socketConnection: false,
@@ -3578,7 +3578,7 @@ window.testDeleteSystemIntegration = function() {
             
             window.globalSocketManager.io.emit('message-deleted', testData);
             testResults.deleteEventSending = true;
-            console.log('✅ [TEST-DELETE] Delete event sending works');
+
         } catch (error) {
             console.error('❌ [TEST-DELETE] Delete event sending failed:', error);
         }
@@ -3596,20 +3596,20 @@ window.testDeleteSystemIntegration = function() {
                 
                 window.chatSection.socketHandler.handleMessageDeleted(testReceiveData);
                 testResults.deleteEventReceiving = true;
-                console.log('✅ [TEST-DELETE] Delete event receiving works');
+
             } catch (error) {
                 console.error('❌ [TEST-DELETE] Delete event receiving failed:', error);
             }
         }
     }
     
-    console.log('📊 [TEST-DELETE] Integration test results:', testResults);
+
     
     const allPassed = Object.values(testResults).every(result => result === true);
     if (allPassed) {
-        console.log('🎉 [TEST-DELETE] All integration tests passed! Delete system should work.');
+
     } else {
-        console.log('⚠️ [TEST-DELETE] Some tests failed. Check the failing components above.');
+
     }
     
     return testResults;
@@ -3620,10 +3620,10 @@ window.testDeleteSystemIntegration = function() {
 export { initializeChatSection };
 
 window.debugThreeDotsMenu = function() {
-    console.log('🧪 [DEBUG-MENU] Testing three dots menu functionality...');
+
     
     const threeDotsButtons = document.querySelectorAll('[data-action="more"]');
-    console.log('🔍 [DEBUG-MENU] Found three dots buttons:', threeDotsButtons.length);
+
     
     threeDotsButtons.forEach((button, index) => {
         console.log(`🔍 [DEBUG-MENU] Button ${index + 1}:`, {
@@ -3646,14 +3646,14 @@ window.debugThreeDotsMenu = function() {
     });
     
     if (window.chatSection) {
-        console.log('✅ [DEBUG-MENU] Chat section available for testing');
+
         
         const firstButton = threeDotsButtons[0];
         if (firstButton) {
-            console.log('🧪 [DEBUG-MENU] Testing first three dots button click...');
+
             try {
                 firstButton.click();
-                console.log('✅ [DEBUG-MENU] Three dots button clicked successfully');
+
                 
                 setTimeout(() => {
                     const contextMenuAfterClick = document.getElementById('message-context-menu');
@@ -3672,11 +3672,11 @@ window.debugThreeDotsMenu = function() {
         }
         
         if (firstButton && window.chatSection.showMessageContextMenu) {
-            console.log('🧪 [DEBUG-MENU] Testing direct showMessageContextMenu call...');
+
             try {
                 const messageId = firstButton.dataset.messageId;
                 window.chatSection.showMessageContextMenu(messageId, firstButton);
-                console.log('✅ [DEBUG-MENU] Direct context menu call completed');
+
             } catch (error) {
                 console.error('❌ [DEBUG-MENU] Direct context menu call failed:', error);
             }
@@ -3687,15 +3687,15 @@ window.debugThreeDotsMenu = function() {
 };
 
 window.debugContextMenuActions = function() {
-    console.log('🧪 [DEBUG-MENU] Testing context menu actions...');
+
     
     const testMessageId = 'test-message-123';
     
     if (window.chatSection) {
-        console.log('🧪 [DEBUG-MENU] Testing copy text...');
+
         try {
             if (typeof window.chatSection.copyMessageText === 'function') {
-                console.log('✅ [DEBUG-MENU] Copy text method available');
+
             } else {
                 console.error('❌ [DEBUG-MENU] Copy text method not found');
             }
@@ -3705,11 +3705,11 @@ window.debugContextMenuActions = function() {
         
 
         
-        console.log('🧪 [DEBUG-MENU] Testing text-to-speech...');
+
         try {
             if (window.chatSection.tts && typeof window.chatSection.tts.speakMessageText === 'function') {
-                console.log('[DEBUG-MENU] Text-to-speech method available');
-                console.log('[DEBUG-MENU] Speech synthesis support:', 'speechSynthesis' in window);
+
+
             } else {
                 console.error('[DEBUG-MENU] Text-to-speech method not found');
             }
@@ -3722,7 +3722,7 @@ window.debugContextMenuActions = function() {
 };
 
 window.testThreeDotsMenuNow = function() {
-    console.log('🧪 [TEST-MENU] Running comprehensive three dots menu test...');
+
     
     const threeDotsButtons = document.querySelectorAll('[data-action="more"]');
     if (threeDotsButtons.length === 0) {
@@ -3750,7 +3750,7 @@ window.testThreeDotsMenuNow = function() {
         return false;
     }
     
-    console.log('🧪 [TEST-MENU] Testing direct context menu call...');
+
     try {
         window.chatSection.showMessageContextMenu(messageId, firstButton);
         
@@ -3770,14 +3770,12 @@ window.testThreeDotsMenuNow = function() {
             });
             
             if (isMenuVisible && menuDisplay !== 'none') {
-                console.log('🎉 [TEST-MENU] SUCCESS! Context menu is now visible.');
-                console.log('💡 [TEST-MENU] Try clicking on a menu item to test functionality.');
-                
-                console.log('🧪 [TEST-MENU] Testing context menu actions...');
+                console.log('📋 [CHAT-SECTION] Context menu is visible, checking buttons');
+
                 const copyButton = contextMenu.querySelector('[data-action="copy-text"]');
                 const ttsButton = contextMenu.querySelector('[data-action="text-to-speech"]');
                 
-                console.log('✅ [TEST-MENU] Available actions (simplified menu):', {
+                console.log('📋 [CHAT-SECTION] Context menu buttons:', {
                     copyText: !!copyButton,
                     textToSpeech: !!ttsButton,
                     totalButtons: contextMenu.querySelectorAll('button').length
@@ -3785,7 +3783,7 @@ window.testThreeDotsMenuNow = function() {
                 
                 setTimeout(() => {
                     contextMenu.classList.add('hidden');
-                    console.log('🔒 [TEST-MENU] Context menu auto-hidden after test.');
+
                 }, 3000);
                 
                 return true;
@@ -3801,28 +3799,28 @@ window.testThreeDotsMenuNow = function() {
     }
 };
 
-console.log('✅ [TEST-MENU] Test function loaded. Run testThreeDotsMenuNow() in console to test the three dots menu.');
+
 
 window.testTextToSpeech = function() {
-    console.log('🔊 [TEST-TTS] Testing enhanced Text-to-Speech functionality...');
+
     
     if (!('speechSynthesis' in window)) {
         console.error('❌ [TEST-TTS] SpeechSynthesis not supported in this browser');
         return false;
     }
     
-    console.log('✅ [TEST-TTS] SpeechSynthesis API available');
+
     
     const voices = window.speechSynthesis.getVoices();
-    console.log('🎤 [TEST-TTS] Available voices:', voices.length);
+
     
     if (voices.length > 0) {
-        console.log('🎤 [TEST-TTS] Voice samples:');
+
         voices.slice(0, 5).forEach((voice, index) => {
-            console.log(`  ${index + 1}. ${voice.name} (${voice.lang}) - ${voice.localService ? 'Local' : 'Network'}`);
+
         });
     } else {
-        console.log('⏳ [TEST-TTS] Voices not loaded yet, waiting...');
+
         window.speechSynthesis.addEventListener('voiceschanged', () => {
             window.testTextToSpeech();
         }, { once: true });
@@ -3845,19 +3843,19 @@ window.testTextToSpeech = function() {
     }
     
     const messageText = textElement.textContent.trim();
-    console.log('📝 [TEST-TTS] Found message text:', messageText.substring(0, 50) + '...');
+
     
     if (!window.chatSection) {
         console.error('❌ [TEST-TTS] Chat section not available');
         return false;
     }
     
-    console.log('[TEST-TTS] Testing TTS with first message...');
+
     try {
         window.chatSection.tts.speakMessageText(messageId);
-        console.log('[TEST-TTS] TTS initiated successfully');
-        console.log('[TEST-TTS] You should hear the message being read aloud');
-        console.log('[TEST-TTS] Click TTS again to stop, or try another message');
+
+
+
         
         setTimeout(() => {
             const isCurrentlySpeaking = window.speechSynthesis.speaking;
@@ -3880,44 +3878,44 @@ window.testTextToSpeech = function() {
 window.stopAllSpeech = function() {
     if (window.chatSection && window.chatSection.tts && typeof window.chatSection.tts.stopAllSpeech === 'function') {
         window.chatSection.tts.stopAllSpeech();
-        console.log('[TTS-CONTROL] All speech stopped via TTS instance');
+
     } else if (window.speechSynthesis) {
         window.speechSynthesis.cancel();
-        console.log('[TTS-CONTROL] All speech stopped via direct API');
+
     }
 };
 
 window.getSpeechInfo = function() {
-    console.log('📊 [TTS-INFO] Current speech synthesis status:');
-    console.log('  API Available:', 'speechSynthesis' in window);
-    console.log('  Currently Speaking:', window.speechSynthesis?.speaking || false);
-    console.log('  Speech Pending:', window.speechSynthesis?.pending || false);
-    console.log('  Speech Paused:', window.speechSynthesis?.paused || false);
+
+
+
+
+
     
     const voices = window.speechSynthesis?.getVoices() || [];
-    console.log('  Available Voices:', voices.length);
+
     
     if (voices.length > 0) {
         const englishVoices = voices.filter(v => v.lang.startsWith('en'));
-        console.log('  English Voices:', englishVoices.length);
+
         
         const preferredVoice = englishVoices.find(v => v.name.includes('Google')) || 
                                englishVoices.find(v => v.name.includes('Microsoft')) || 
                                englishVoices[0];
         
         if (preferredVoice) {
-            console.log('  Preferred Voice:', preferredVoice.name, '(' + preferredVoice.lang + ')');
+
         }
     }
 };
 
-console.log('🔊 [TTS] Enhanced Text-to-Speech functions loaded:');
-console.log('  - testTextToSpeech() - Test TTS with first message');
-console.log('  - stopAllSpeech() - Stop any current speech');  
-console.log('  - getSpeechInfo() - Get speech synthesis info');
+
+
+
+
 
 window.debugTTSMenuFlow = function() {
-    console.log('🔍 [DEBUG-TTS-MENU] Testing complete TTS menu flow...');
+
     
     const contextMenu = document.getElementById('message-context-menu');
     if (!contextMenu) {
@@ -3928,14 +3926,14 @@ window.debugTTSMenuFlow = function() {
     const ttsButton = contextMenu.querySelector('[data-action="text-to-speech"]');
     if (!ttsButton) {
         console.error('❌ [DEBUG-TTS-MENU] TTS button not found in context menu');
-        console.log('🔍 [DEBUG-TTS-MENU] Available buttons in menu:');
+
         contextMenu.querySelectorAll('button').forEach((btn, index) => {
-            console.log(`  ${index + 1}. ${btn.dataset.action} - "${btn.textContent.trim()}"`);
+
         });
         return false;
     }
     
-    console.log('✅ [DEBUG-TTS-MENU] TTS button found:', ttsButton);
+
     
     const messageElements = document.querySelectorAll('[data-message-id]');
     if (messageElements.length === 0) {
@@ -3951,9 +3949,9 @@ window.debugTTSMenuFlow = function() {
         return false;
     }
     
-    console.log('🧪 [DEBUG-TTS-MENU] Testing complete flow...');
+
     
-    console.log('1️⃣ [DEBUG-TTS-MENU] Step 1: Show context menu');
+
     const threeDotsButton = firstMessage.querySelector('[data-action="more"]');
     if (!threeDotsButton) {
         console.error('❌ [DEBUG-TTS-MENU] Three dots button not found on first message');
@@ -3962,13 +3960,13 @@ window.debugTTSMenuFlow = function() {
     
     try {
         window.chatSection.showMessageContextMenu(messageId, threeDotsButton);
-        console.log('✅ [DEBUG-TTS-MENU] Context menu shown');
+
         
         setTimeout(() => {
-            console.log('2️⃣ [DEBUG-TTS-MENU] Step 2: Set message ID on context menu');
+
             contextMenu.dataset.messageId = messageId;
             
-            console.log('3️⃣ [DEBUG-TTS-MENU] Step 3: Click TTS button');
+
             
             const mockEvent = {
                 target: ttsButton,
@@ -3985,7 +3983,7 @@ window.debugTTSMenuFlow = function() {
             window.chatSection.handleMessageActions(mockEvent);
             
             setTimeout(() => {
-                console.log('4️⃣ [DEBUG-TTS-MENU] Checking if TTS started...');
+
                 const isSpeaking = window.speechSynthesis.speaking;
                 const speechIndicator = document.querySelector('.speech-indicator');
                 
@@ -3996,7 +3994,7 @@ window.debugTTSMenuFlow = function() {
                 });
                 
                 if (isSpeaking || speechIndicator) {
-                    console.log('🎉 [DEBUG-TTS-MENU] SUCCESS! TTS is working through menu flow');
+
                 } else {
                     console.error('❌ [DEBUG-TTS-MENU] TTS did not start through menu flow');
                 }
@@ -4012,10 +4010,10 @@ window.debugTTSMenuFlow = function() {
     }
 };
 
-console.log('  - debugTTSMenuFlow() - Debug complete three dots to TTS flow');
+
 
 window.testTypingIndicator = function() {
-    console.log('⌨️ [TEST-TYPING] Testing typing indicator functionality...');
+
     
     if (!window.chatSection) {
         console.error('❌ [TEST-TYPING] Chat section not available');
@@ -4033,7 +4031,7 @@ window.testTypingIndicator = function() {
         return false;
     }
     
-    console.log('✅ [TEST-TYPING] All required components found');
+
     console.log('📊 [TEST-TYPING] Current chat context:', {
         chatType: window.chatSection.chatType,
         targetId: window.chatSection.targetId,
@@ -4041,36 +4039,36 @@ window.testTypingIndicator = function() {
         username: window.chatSection.username
     });
     
-    console.log('🧪 [TEST-TYPING] Testing typing indicator display...');
+
     
     window.chatSection.socketHandler.showTypingIndicator('test-user-1', 'TestUser1');
     
     setTimeout(() => {
         const isVisible = !typingIndicator.classList.contains('hidden');
-        console.log('📊 [TEST-TYPING] Typing indicator visibility after adding user:', isVisible);
-        console.log('📊 [TEST-TYPING] Typing indicator content:', typingIndicator.innerHTML);
+
+
         
-        console.log('🧪 [TEST-TYPING] Adding second user...');
+
         window.chatSection.socketHandler.showTypingIndicator('test-user-2', 'TestUser2');
         
         setTimeout(() => {
-            console.log('📊 [TEST-TYPING] Multiple users typing content:', typingIndicator.innerHTML);
+
             
-            console.log('🧪 [TEST-TYPING] Removing first user...');
+
             window.chatSection.socketHandler.removeTypingIndicator('test-user-1');
             
             setTimeout(() => {
-                console.log('📊 [TEST-TYPING] After removing first user:', typingIndicator.innerHTML);
+
                 
-                console.log('🧪 [TEST-TYPING] Removing second user...');
+
                 window.chatSection.socketHandler.removeTypingIndicator('test-user-2');
                 
                 setTimeout(() => {
                     const isHidden = typingIndicator.classList.contains('hidden');
-                    console.log('📊 [TEST-TYPING] Typing indicator hidden after removing all users:', isHidden);
+
                     
                     if (isHidden) {
-                        console.log('🎉 [TEST-TYPING] SUCCESS! Typing indicator functionality working correctly');
+
                         return true;
                     } else {
                         console.error('❌ [TEST-TYPING] Typing indicator not hidden when no users typing');
@@ -4083,7 +4081,7 @@ window.testTypingIndicator = function() {
 };
 
 window.testTypingSocket = function() {
-    console.log('🔌 [TEST-TYPING-SOCKET] Testing typing socket events...');
+
     
     if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
         console.error('❌ [TEST-TYPING-SOCKET] Socket manager not ready');
@@ -4095,7 +4093,7 @@ window.testTypingSocket = function() {
         return false;
     }
     
-    console.log('✅ [TEST-TYPING-SOCKET] Socket and chat section ready');
+
     console.log('📊 [TEST-TYPING-SOCKET] Current chat:', {
         type: window.chatSection.chatType,
         targetId: window.chatSection.targetId,
@@ -4103,24 +4101,24 @@ window.testTypingSocket = function() {
         username: window.chatSection.username
     });
     
-    console.log('🧪 [TEST-TYPING-SOCKET] Sending test typing event...');
+
     window.chatSection.handleTypingEvent();
     
     setTimeout(() => {
-        console.log('🧪 [TEST-TYPING-SOCKET] Sending test stop typing event...');
+
         window.chatSection.handleStopTypingEvent();
-        console.log('✅ [TEST-TYPING-SOCKET] Typing socket test completed');
+
     }, 2000);
 };
 
-console.log('🔊 [TYPING] Typing test functions loaded:');
-console.log('  - testTypingIndicator() - Test typing indicator UI');
-console.log('  - testTypingSocket() - Test typing socket events');
+
+
+
 
 window.debugTypingFlow = function() {
-    console.log('🔍 [DEBUG-TYPING] Running comprehensive typing indicator flow test...');
+
     
-    console.log('1️⃣ [DEBUG-TYPING] Checking basic requirements...');
+
     
     if (!window.chatSection) {
         console.error('❌ [DEBUG-TYPING] Chat section not available');
@@ -4143,7 +4141,7 @@ window.debugTypingFlow = function() {
         return false;
     }
     
-    console.log('✅ [DEBUG-TYPING] All basic requirements met');
+
     console.log('📊 [DEBUG-TYPING] Current context:', {
         chatType: window.chatSection.chatType,
         targetId: window.chatSection.targetId,
@@ -4153,27 +4151,27 @@ window.debugTypingFlow = function() {
         typingUsersCount: window.chatSection.socketHandler.typingUsers?.size || 0
     });
     
-    console.log('2️⃣ [DEBUG-TYPING] Testing UI indicator functionality...');
+
     
     const initiallyHidden = typingIndicator.classList.contains('hidden');
-    console.log('📊 [DEBUG-TYPING] Initial state - hidden:', initiallyHidden);
+
     
-    console.log('🧪 [DEBUG-TYPING] Simulating typing from test user...');
+
     window.chatSection.socketHandler.showTypingIndicator('test-debug-user', 'DebugUser');
     
     setTimeout(() => {
         const nowVisible = !typingIndicator.classList.contains('hidden');
-        console.log('📊 [DEBUG-TYPING] After adding user - visible:', nowVisible);
-        console.log('📊 [DEBUG-TYPING] Indicator content:', typingIndicator.innerHTML);
+
+
         
         if (!nowVisible) {
             console.error('❌ [DEBUG-TYPING] UI indicator failed to show');
             return false;
         }
         
-        console.log('✅ [DEBUG-TYPING] UI indicator working correctly');
+
         
-        console.log('3️⃣ [DEBUG-TYPING] Testing socket event emission...');
+
         
         const originalEmit = window.globalSocketManager.emitToRoom;
         let emitCalled = false;
@@ -4183,25 +4181,25 @@ window.debugTypingFlow = function() {
             if (event === 'typing' || event === 'stop-typing') {
                 emitCalled = true;
                 emitData = { event, data, roomType, roomId };
-                console.log('📤 [DEBUG-TYPING] Socket emit intercepted:', { event, data, roomType, roomId });
+
             }
             return originalEmit.call(this, event, data, roomType, roomId);
         };
         
-        console.log('🧪 [DEBUG-TYPING] Triggering typing event...');
+
         window.chatSection.handleTypingEvent();
         
         setTimeout(() => {
             window.globalSocketManager.emitToRoom = originalEmit;
             
             if (emitCalled) {
-                console.log('✅ [DEBUG-TYPING] Socket emission working correctly');
-                console.log('📊 [DEBUG-TYPING] Emitted data:', emitData);
+
+
             } else {
                 console.error('❌ [DEBUG-TYPING] Socket emission failed');
             }
             
-            console.log('4️⃣ [DEBUG-TYPING] Testing socket event reception...');
+
             
             const mockData = {
                 user_id: 'mock-user-123',
@@ -4210,7 +4208,7 @@ window.debugTypingFlow = function() {
                 room_id: window.chatSection.targetId
             };
             
-            console.log('🧪 [DEBUG-TYPING] Simulating incoming typing event...');
+
             
             if (window.chatSection.chatType === 'channel') {
                 window.chatSection.socketHandler.handleTyping(mockData);
@@ -4228,17 +4226,17 @@ window.debugTypingFlow = function() {
                     typingUsersCount: window.chatSection.socketHandler.typingUsers?.size || 0
                 });
                 
-                console.log('5️⃣ [DEBUG-TYPING] Cleaning up test...');
+
                 
                 window.chatSection.socketHandler.removeTypingIndicator('test-debug-user');
                 window.chatSection.socketHandler.removeTypingIndicator('mock-user-123');
                 
                 setTimeout(() => {
                     const finallyHidden = typingIndicator.classList.contains('hidden');
-                    console.log('📊 [DEBUG-TYPING] Final cleanup - hidden:', finallyHidden);
+
                     
                     if (finallyHidden) {
-                        console.log('🎉 [DEBUG-TYPING] COMPREHENSIVE TEST PASSED! All typing functionality working correctly');
+
                         return true;
                     } else {
                         console.error('❌ [DEBUG-TYPING] Cleanup failed - indicator still visible');
@@ -4250,10 +4248,10 @@ window.debugTypingFlow = function() {
     }, 100);
 };
 
-console.log('  - debugTypingFlow() - Complete typing flow test');
+
 
 window.debugRoomJoining = function() {
-    console.log('🏠 [DEBUG-ROOMS] Checking room joining for typing events...');
+
     
     if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
         console.error('❌ [DEBUG-ROOMS] Global socket manager not ready');
@@ -4272,33 +4270,33 @@ window.debugRoomJoining = function() {
         username: window.chatSection.username
     });
     
-    console.log('🔍 [DEBUG-ROOMS] Checking socket room membership...');
+
     
     if (window.globalSocketManager.socket && window.globalSocketManager.socket.rooms) {
         const rooms = Array.from(window.globalSocketManager.socket.rooms);
-        console.log('📋 [DEBUG-ROOMS] Currently joined rooms:', rooms);
+
         
         const expectedRoom = window.chatSection.chatType === 'channel' 
             ? `channel-${window.chatSection.targetId}`
             : `dm-${window.chatSection.targetId}`;
         
         const isInExpectedRoom = rooms.includes(expectedRoom);
-        console.log('🎯 [DEBUG-ROOMS] Expected room:', expectedRoom);
-        console.log('✅ [DEBUG-ROOMS] In expected room:', isInExpectedRoom);
+
+
         
         if (!isInExpectedRoom) {
             console.warn('⚠️ [DEBUG-ROOMS] Not in expected room! Attempting to join...');
             
             if (window.chatSection.socketHandler) {
                 const joinResult = window.chatSection.socketHandler.joinChannel();
-                console.log('🔄 [DEBUG-ROOMS] Join attempt result:', joinResult);
+
                 
                 setTimeout(() => {
                     if (window.globalSocketManager.socket && window.globalSocketManager.socket.rooms) {
                         const newRooms = Array.from(window.globalSocketManager.socket.rooms);
-                        console.log('📋 [DEBUG-ROOMS] Rooms after join attempt:', newRooms);
+
                         const nowInRoom = newRooms.includes(expectedRoom);
-                        console.log('✅ [DEBUG-ROOMS] Now in expected room:', nowInRoom);
+
                     }
                 }, 500);
             }
@@ -4311,4 +4309,3 @@ window.debugRoomJoining = function() {
     }
 };
 
-console.log('  - debugRoomJoining() - Check socket room membership');

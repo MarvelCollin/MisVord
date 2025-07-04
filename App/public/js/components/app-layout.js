@@ -589,7 +589,7 @@ function clearContainerSkeleton(container) {
     const skeletonContainer = container.querySelector('.skeleton-loading-container');
     if (skeletonContainer) {
         skeletonContainer.remove();
-        console.log('🧹 [APP-LAYOUT] Cleared skeleton from container');
+
     }
 }
 
@@ -929,7 +929,7 @@ function showToast(message, type = 'info') {
     if (typeof window.showToast === 'function') {
         window.showToast(message, type);
     } else {
-        console.log(type + ': ' + message);
+
     }
 }
 
@@ -1096,11 +1096,11 @@ function initializeOnPageLoad() {
         setupSocketListeners();
     } else {
         window.addEventListener('globalSocketReady', () => {
-            console.log('🔌 [APP-LAYOUT] Socket ready event received');
+
             setupSocketListeners();
         });
         window.addEventListener('socketAuthenticated', () => {
-            console.log('🔐 [APP-LAYOUT] Socket authenticated event received');
+
             setupSocketListeners();
         });
     }
@@ -1138,7 +1138,7 @@ function setupFriendPresenceUpdates() {
     const friendsManager = window.FriendsManager.getInstance();
     
     friendsManager.subscribe((type, data) => {
-        console.log(`🔄 [APP-LAYOUT] FriendsManager event: ${type}`, data);
+
         
         switch (type) {
             case 'user-online':

@@ -31,16 +31,16 @@ async function loadVoiceScripts() {
 }
 
 async function loadServerContent() {
-    console.log('[Server Page] Loading server content');
+
     
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
     if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
-        console.log('[Server Page] Skeleton loading active, deferring server content loading');
+
         return;
     }
     
     try {
-        console.log('[Server Page] Server content initialization completed');
+
         
     } catch (error) {
         console.error('[Server Page] Error loading server content:', error);
@@ -53,11 +53,11 @@ function getServerIdFromURL() {
 }
 
 async function initializeServerComponents() {
-    console.log('[Server Page] Initializing server components');
+
     
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
     if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
-        console.log('[Server Page] Skeleton loading active, deferring server components initialization');
+
         return;
     }
     
@@ -68,20 +68,20 @@ async function initializeServerComponents() {
         }
         
         await window.initializeServerPage();
-        console.log('[Server Page] ✅ Complete server initialization finished');
+
     } catch (error) {
         console.error('[Server Page] ❌ Server initialization failed:', error);
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Server Page] DOM loaded, initializing server page');
+
     
     initializeServerComponents();
     
     loadServerContent();
     
-    console.log('[Server Page] Server page initialization complete');
+
 });
 
 function initializeServerModals() {
@@ -107,7 +107,7 @@ function renderMemberItem(member) {
 }
 
 function handleSkeletonLoading(show) {
-  console.log('[Server Page] Legacy skeleton loading called, delegating to new system');
+
   
   if (show && typeof window.handleServerSkeletonLoading === 'function') {
     window.handleServerSkeletonLoading(true);
@@ -170,7 +170,7 @@ function handleSkeletonLoading(show) {
 window.handleSkeletonLoading = handleSkeletonLoading;
 
 window.toggleChannelLoading = function(loading) {
-  console.log("Channel loading toggle prevented to avoid channel section reload");
+
 };
 
 function setupPopStateListener() {
@@ -182,7 +182,7 @@ function handlePopState(event) {
   const state = event.state;
 
   if (state && state.channelId) {
-    console.log("Handling popstate event for channel:", state.channelId);
+
     
     if (window.simpleChannelSwitcher) {
       const channelType = state.channelType || 'text';
@@ -194,17 +194,17 @@ function handlePopState(event) {
 }
 
 function setupChannelListObserver() {
-  console.log("Setting up channel list observer");
+
   
   let channelListContainer = document.querySelector('.channel-list-container');
   
   if (!channelListContainer) {
-    console.log("Could not find .channel-list-container, trying alternative selectors");
+
     channelListContainer = document.querySelector('.channel-wrapper');
   }
   
   if (!channelListContainer) {
-    console.log("Could not find channel list container with standard selectors");
+
     
     const possibleContainers = [
       document.querySelector('.channel-list'),
@@ -217,20 +217,20 @@ function setupChannelListObserver() {
   }
   
   if (!channelListContainer) {
-    console.log("Could not find any suitable channel list container, will retry later");
+
     
     setTimeout(() => {
-      console.log("Retrying channel list observer setup");
+
       setupChannelListObserver();
     }, 2000);
     
     return;
   }
   
-  console.log("Found channel list container:", channelListContainer);
+
   
   if (window.channelListObserver) {
-    console.log("Channel list observer already exists, disconnecting");
+
     window.channelListObserver.disconnect();
   }
   
@@ -238,19 +238,19 @@ function setupChannelListObserver() {
   
   const observer = new MutationObserver(function(mutations) {
     if (window.channelListObserverProcessing) {
-      console.log("Observer processing in progress, skipping");
+
       return;
     }
     
     window.channelListObserverProcessing = true;
     
     try {
-      console.log("Channel list mutation detected");
+
       
       if (window.channelHandlersInitialized) {
-        console.log("Channel click handlers already initialized, skipping");
+
       } else {
-        console.log("Channel switching is handled by SimpleChannelSwitcher");
+
         window.channelHandlersInitialized = true;
       }
     } finally {
@@ -264,7 +264,7 @@ function setupChannelListObserver() {
   });
   
   window.channelListObserver = observer;
-  console.log("Channel list observer set up");
+
 }
 
 function initVoicePage() {
@@ -320,7 +320,7 @@ window.ensureServerPageLoaded = function() {
     if (window.isServerPageReady()) {
       resolve();
     } else {
-      console.log('⏳ Waiting for server-page.js to be ready...');
+
       const checkInterval = setInterval(() => {
         if (window.isServerPageReady()) {
           clearInterval(checkInterval);
@@ -332,11 +332,11 @@ window.ensureServerPageLoaded = function() {
 };
 
 function initServerPage() {
-  console.log('[Server Page] Initializing server page');
+
   
   const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
   if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
-    console.log('[Server Page] Skeleton loading active, deferring server page initialization');
+
     document.addEventListener('ServerChanged', function() {
       setTimeout(() => {
         performDelayedServerInitialization();
@@ -349,26 +349,26 @@ function initServerPage() {
 }
 
 function performDelayedServerInitialization() {
-    console.log('[Server Page] Performing delayed server initialization');
+
     
     try {
-        console.log('[Server Page] Step 1: Initialize server components');
+
         initializeServerComponents();
         
-        console.log('[Server Page] Step 2: Load server content');
+
         loadServerContent();
         
-        console.log('[Server Page] Step 3: Setup navigation listeners');
+
         setupPopStateListener();
         setupChannelListObserver();
         
-        console.log('[Server Page] Step 4: Coordinate with system initializers');
+
         coordinateSystemInitialization();
         
-        console.log('[Server Page] Step 5: Initialize server modals');
+
         initializeServerModals();
         
-        console.log('[Server Page] Server initialization completed successfully');
+
         
     } catch (error) {
         console.error('[Server Page] Error during server initialization:', error);
@@ -376,21 +376,21 @@ function performDelayedServerInitialization() {
 }
 
 function coordinateSystemInitialization() {
-    console.log('[Server Page] Coordinating with voice and chat systems');
+
     
     document.addEventListener('ServerChanged', function(event) {
-        console.log('[Server Page] ServerChanged event received:', event.detail);
+
         
         setTimeout(() => {
             if (window.voiceManager && !window.voiceManager.initialized) {
-                console.log('[Server Page] Re-initializing voice manager after server change');
+
                 window.voiceManager.init().catch(error => {
                     console.warn('[Server Page] Voice manager initialization failed:', error);
                 });
             }
             
             if (!window.chatSection && typeof window.initializeChatSection === 'function') {
-                console.log('[Server Page] Ensuring chat section is initialized after server change');
+
                 window.initializeChatSection();
             }
         }, 100);
@@ -408,18 +408,18 @@ function coordinateSystemInitialization() {
 }
 
 function initializeBotSystems() {
-    console.log('[Server Page] Initializing bot systems');
+
     
     if (window.chatSection && window.chatSection.chatBot) {
-        console.log('[Server Page] Chat bot already available in chat section');
+
         return;
     }
     
     if (typeof window.BotComponent === 'function' && !window.botComponent) {
-        console.log('[Server Page] Creating bot component');
+
         try {
             window.botComponent = new window.BotComponent();
-            console.log('[Server Page] ✅ Bot component initialized');
+
         } catch (error) {
             console.error('[Server Page] Error initializing bot component:', error);
         }
@@ -428,7 +428,7 @@ function initializeBotSystems() {
     const serverIdMeta = document.querySelector('meta[name="server-id"]');
     if (serverIdMeta && window.globalSocketManager?.isReady()) {
         const serverId = serverIdMeta.content;
-        console.log('[Server Page] Ensuring bot initialization for server:', serverId);
+
         
         setTimeout(() => {
             if (window.globalSocketManager.isReady()) {

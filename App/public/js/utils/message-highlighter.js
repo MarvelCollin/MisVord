@@ -30,7 +30,7 @@ class MessageHighlighter {
     highlightMessage(messageId, fromNotification = false) {
         if (!messageId) return false;
 
-        console.log('🎯 [MESSAGE-HIGHLIGHTER] Highlighting message:', messageId, fromNotification ? '(from notification)' : '');
+
 
         this.clearActiveHighlight();
 
@@ -62,16 +62,16 @@ class MessageHighlighter {
         for (const selector of selectors) {
             const element = document.querySelector(selector);
             if (element) {
-                console.log('✅ [MESSAGE-HIGHLIGHTER] Found message element using selector:', selector);
+
                 return element;
             }
         }
 
-        console.log('🔍 [MESSAGE-HIGHLIGHTER] Trying fuzzy search for message ID:', messageId);
+
         const allMessages = document.querySelectorAll('[data-message-id]');
         for (const msg of allMessages) {
             if (msg.dataset.messageId == messageId || msg.id.includes(messageId)) {
-                console.log('✅ [MESSAGE-HIGHLIGHTER] Found message via fuzzy search');
+
                 return msg;
             }
         }
@@ -91,7 +91,7 @@ class MessageHighlighter {
                 class: highlightClass
             };
 
-            console.log('✨ [MESSAGE-HIGHLIGHTER] Applied highlight class:', highlightClass);
+
 
             this.highlightTimeout = setTimeout(() => {
                 this.clearActiveHighlight();
@@ -125,7 +125,7 @@ class MessageHighlighter {
             behavior: 'smooth'
         });
 
-        console.log('📜 [MESSAGE-HIGHLIGHTER] Scrolled to message');
+
     }
 
     findScrollContainer() {
@@ -150,7 +150,7 @@ class MessageHighlighter {
         if (this.activeHighlight) {
             this.activeHighlight.element.classList.remove(this.activeHighlight.class);
             this.activeHighlight = null;
-            console.log('🧹 [MESSAGE-HIGHLIGHTER] Cleared active highlight');
+
         }
 
         if (this.highlightTimeout) {

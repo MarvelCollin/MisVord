@@ -1163,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event.detail?.manager?.io) {
                 event.detail.manager.io.on('debug-test-response', function(response) {
                     if (response.success) {
-                        console.log('Debug test acknowledged by server:', response);
+
                     } else {
                         console.error('❌ Debug test failed on server:', response);
                     }
@@ -1176,20 +1176,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.ctrlKey && e.key === '1') {
             e.preventDefault();
             
-            console.log('🎯 Presence Debug Panel triggered...');
+
             showPresenceDebugPanel();
         }
         
         if (e.ctrlKey && e.key === '2') {
             e.preventDefault();
             
-            console.log('🤖 Bot Debug Panel triggered...');
+
             showBotDebugPanel();
         }
     });
     
-    console.log('🎯 Presence Debug Panel: Press Ctrl+1 to open presence debugging tools');
-    console.log('🤖 Bot Debug Panel: Press Ctrl+2 to open bot debugging tools');
+
+
     
     window.addEventListener('error', function(event) {
         if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {

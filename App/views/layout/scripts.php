@@ -29,6 +29,9 @@ if ($is_auth_page) {
 <!-- jQuery CDN -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
+<!-- Load fallback logger first -->
+<script src="<?php echo js('utils/fallback-logger'); ?>?v=<?php echo time(); ?>"></script>
+
 <script>
 (function() {
     const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
@@ -128,7 +131,7 @@ $isHomePage = strpos($currentPath, '/home') === 0;
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('📄 [SCRIPTS] All scripts loaded and DOM ready');
+
     
     if (window.globalPresenceManager) {
         window.globalPresenceManager.startActivityTracking();
@@ -157,8 +160,8 @@ window.addEventListener('beforeunload', function() {
   <script>
   // Initialize music player system early
   if (typeof window !== 'undefined' && !window.musicPlayer) {
-      console.log('🎵 [INIT] Initializing music player system...');
+
       window.musicPlayer = new MusicPlayerSystem();
-      console.log('🎵 [INIT] Music player system initialized and globally available');
+
   }
   </script>
