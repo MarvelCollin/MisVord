@@ -51,7 +51,6 @@ class BotComponent {
         });
 
         io.on('bot-voice-participant-joined', (data) => {
-
             const { participant } = data;
             
             if (participant && participant.user_id && participant.username) {
@@ -62,20 +61,16 @@ class BotComponent {
                     joinedAt: Date.now()
                 });
 
-
                 window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', {
                     detail: { participant }
                 }));
 
-
                 if (window.voiceCallSection) {
-
                     window.voiceCallSection.addBotParticipant(participant);
                 } else {
                     console.warn('⚠️ [BOT] voiceCallSection not found, retrying in 1 second...');
                     setTimeout(() => {
                         if (window.voiceCallSection) {
-
                             window.voiceCallSection.addBotParticipant(participant);
                         } else {
                             console.error('❌ [BOT] voiceCallSection still not found after retry');

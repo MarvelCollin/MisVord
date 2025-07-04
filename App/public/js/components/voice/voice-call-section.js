@@ -48,6 +48,14 @@ class VoiceCallSection {
     window.addEventListener("bot-voice-participant-left", (e) =>
       this.handleBotParticipantLeft(e)
     );
+    
+    // Listen for voice disconnect events to clean up bot participants
+    window.addEventListener("voiceDisconnect", () =>
+      this.handleVoiceDisconnect()
+    );
+    window.addEventListener("voiceLeft", () =>
+      this.handleVoiceDisconnect()
+    );
   }
 
   init() {
@@ -303,12 +311,16 @@ class VoiceCallSection {
       e.preventDefault();
       e.stopPropagation();
 
+      // Clean up bot participants before leaving voice
+      this.handleVoiceDisconnect();
+
       if (
         window.voiceManager &&
         typeof window.voiceManager.leaveVoice === "function"
       ) {
         window.voiceManager.leaveVoice();
       } else {
+        console.warn('⚠️ [VOICE-CALL] VoiceManager.leaveVoice not available');
       }
     });
   }
@@ -1616,8 +1628,6 @@ class VoiceCallSection {
   }
 
   addBotParticipant(botData) {
-
-    
     if (!botData || !botData.user_id) {
       console.error('❌ [VOICE-CALL] Invalid bot data provided');
       return;
@@ -1631,7 +1641,6 @@ class VoiceCallSection {
 
     const existingBotCard = grid.querySelector(`[data-participant-id="bot-${botData.user_id}"]`);
     if (existingBotCard) {
-
       return;
     }
 
@@ -1640,13 +1649,9 @@ class VoiceCallSection {
     
     this.updateGridLayout();
     this.updateParticipantCount();
-    
-
   }
 
   removeBotParticipant(botUserId) {
-
-    
     const grid = document.getElementById("participantGrid");
     if (!grid) {
       console.error('❌ [VOICE-CALL] Participant grid not found');
@@ -1658,41 +1663,22 @@ class VoiceCallSection {
       botCard.remove();
       this.updateGridLayout();
       this.updateParticipantCount();
-
-    } else {
-
     }
   }
 
   handleBotParticipantJoined(e) {
-
     const { participant } = e.detail;
     if (!participant) {
       console.warn('[VOICE-CALL] No participant in bot-voice-participant-joined event');
       return;
     }
 
-    const grid = document.getElementById("participantGrid");
-    if (!grid) {
-      console.error('[VOICE-CALL] Participant grid not found in DOM');
-    } else {
-
-    }
-
     this.addBotParticipant(participant);
-
+    
     setTimeout(() => {
       this.updateGridLayout();
       this.updateParticipantCount();
     }, 100);
-
-    setTimeout(() => {
-      const botCard = grid?.querySelector(`[data-participant-id="bot-${participant.user_id}"]`);
-      if (botCard) {
-        botCard.style.boxShadow = '0 0 0 3px #fee75c';
-        setTimeout(() => { botCard.style.boxShadow = ''; }, 1500);
-      }
-    }, 300);
   }
 
   handleBotParticipantLeft(e) {
@@ -1702,6 +1688,39 @@ class VoiceCallSection {
     if (participant && participant.user_id) {
       this.removeBotParticipant(participant.user_id);
     }
+  }
+
+  handleVoiceDisconnect() {
+    if (window.musicPlayer) {
+      try {
+        window.musicPlayer.stop();
+      } catch (e) {
+        console.warn('⚠️ [VOICE-CALL] Failed to stop music on disconnect:', e);
+      }
+    }
+
+    const grid = document.getElementById("participantGrid");
+    if (grid) {
+      const botCards = grid.querySelectorAll("[data-is-bot='true']");
+      botCards.forEach(botCard => {
+        if (botCard.parentNode) {
+          botCard.remove();
+        }
+      });
+    }
+
+    if (window.globalSocketManager?.io) {
+      const currentChannelId = window.voiceManager?.currentChannelId;
+      if (currentChannelId) {
+        window.globalSocketManager.io.emit('bot-left-voice', {
+          channel_id: currentChannelId,
+          bot_id: '4'
+        });
+      }
+    }
+
+    this.updateGridLayout();
+    this.updateParticipantCount();
   }
 
   createBotParticipantElement(botData) {

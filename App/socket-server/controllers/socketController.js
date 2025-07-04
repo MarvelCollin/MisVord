@@ -554,6 +554,18 @@ function setup(io) {
             handleBotJoinChannel(io, client, data);
         });
 
+        client.on('bot-left-voice', (data) => {
+            if (data && data.channel_id && data.bot_id) {
+                const voiceChannelRoom = `voice-channel-${data.channel_id}`;
+                const participant = { user_id: data.bot_id };
+                
+                io.to(voiceChannelRoom).emit('bot-voice-participant-left', {
+                    participant: participant,
+                    channelId: data.channel_id
+                });
+            }
+        });
+
         client.on('join-tic-tac-toe', (data) => {
 
             ActivityHandler.handleTicTacToeJoin(io, client, data);

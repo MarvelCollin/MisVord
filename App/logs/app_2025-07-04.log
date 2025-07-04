@@ -85,3 +85,149 @@
 [2025-07-04 11:00:20] INFO [4359a7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 11:00:20"}
 [2025-07-04 11:00:20] WARNING [4359a7] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
 [2025-07-04 11:00:20] INFO [462fec] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 11:00:20"}
+[2025-07-04 14:17:04] INFO [09dfaa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:04"}
+[2025-07-04 14:17:04] DEBUG [09dfaa] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/13?channel=14&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-04 14:17:04] DEBUG [09dfaa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-04 14:17:04] INFO [09dfaa] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-04 14:17:04] INFO [0b83e9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:04"}
+[2025-07-04 14:17:04] DEBUG [0b83e9] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login?redirect=%2Fserver%2F13%3Fchannel%3D14%26type%3Dvoice","request_method":"GET","is_ajax":"no"}
+[2025-07-04 14:17:04] DEBUG [0b83e9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-04 14:17:04] INFO [0b83e9] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-04 14:17:04] INFO [0f3988] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:04"}
+[2025-07-04 14:17:05] INFO [11b543] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [11f84f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [121923] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1364dd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] WARNING [1364dd] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:05] INFO [1490a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [15f030] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [16060d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [163045] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [167728] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [16bfc9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [16f8c5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [171d64] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [173ced] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1761ae] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [178095] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] WARNING [178095] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:05] INFO [18c426] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] WARNING [18c426] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:05] INFO [19ecbc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] WARNING [19ecbc] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:05] INFO [1b0daa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] WARNING [1b0daa] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:05] INFO [1c37b3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1c5281] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1c7547] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1c8db1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1caa49] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1cc8bd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] WARNING [1cc8bd] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:05] INFO [1e0f4f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:05] INFO [1e2a09] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:05"}
+[2025-07-04 14:17:06] WARNING [1e2a09] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:06] INFO [20b113] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:06"}
+[2025-07-04 14:17:06] WARNING [20b113] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:06] INFO [220a3b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:06"}
+[2025-07-04 14:17:06] WARNING [220a3b] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:06] INFO [2324fc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:06"}
+[2025-07-04 14:17:06] WARNING [2324fc] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:06] INFO [245f05] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:06"}
+[2025-07-04 14:17:06] WARNING [245f05] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:06] INFO [25f859] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:06"}
+[2025-07-04 14:17:06] WARNING [25f859] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:08] INFO [4b2900] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:08"}
+[2025-07-04 14:17:08] DEBUG [4b2900] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login?redirect=%2Fserver%2F13%3Fchannel%3D14%26type%3Dvoice","request_method":"GET","is_ajax":"no"}
+[2025-07-04 14:17:08] DEBUG [4b2900] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-04 14:17:08] INFO [4b2900] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-04 14:17:08] INFO [4e161f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:08"}
+[2025-07-04 14:17:08] INFO [4e3c3a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:08"}
+[2025-07-04 14:17:08] INFO [4e67d3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:08"}
+[2025-07-04 14:17:09] INFO [51cdce] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [538e78] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] WARNING [538e78] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:09] INFO [559677] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [57004c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [571cf3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [573f59] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [575da8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [577e3d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [579d08] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [57cafe] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [57e8ad] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [5812a6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] INFO [5830bf] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] WARNING [5830bf] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:09] INFO [599e6d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] WARNING [599e6d] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:09] INFO [5b4b88] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:09] WARNING [5b4b88] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:09] INFO [5d616f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:09"}
+[2025-07-04 14:17:10] WARNING [5d616f] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:10] INFO [6044fe] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:10"}
+[2025-07-04 14:17:10] INFO [6094a3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:10"}
+[2025-07-04 14:17:10] INFO [60c52a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:10"}
+[2025-07-04 14:17:10] INFO [60fde9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:10"}
+[2025-07-04 14:17:10] INFO [612b1c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:10"}
+[2025-07-04 14:17:13] INFO [96eb8f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:13"}
+[2025-07-04 14:17:13] WARNING [96eb8f] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:13] INFO [990d9f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:13"}
+[2025-07-04 14:17:13] INFO [994c5e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:13"}
+[2025-07-04 14:17:13] INFO [9bd683] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:13"}
+[2025-07-04 14:17:13] WARNING [9bd683] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:13] INFO [9ea920] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:13"}
+[2025-07-04 14:17:14] INFO [a21c4f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:14"}
+[2025-07-04 14:17:14] WARNING [a21c4f] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:14] INFO [a5827d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:14"}
+[2025-07-04 14:17:14] WARNING [a5827d] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:14] INFO [a89b49] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:14"}
+[2025-07-04 14:17:14] INFO [ac45f2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:14"}
+[2025-07-04 14:17:16] INFO [c1d0f4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:16"}
+[2025-07-04 14:17:16] DEBUG [c1d0f4] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login?redirect=%2Fserver%2F13%3Fchannel%3D14%26type%3Dvoice","request_method":"GET","is_ajax":"no"}
+[2025-07-04 14:17:16] DEBUG [c1d0f4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-04 14:17:16] INFO [c1d0f4] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-04 14:17:16] INFO [c5887e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:16"}
+[2025-07-04 14:17:16] INFO [c852d7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:16"}
+[2025-07-04 14:17:16] INFO [c8781a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:16"}
+[2025-07-04 14:17:16] INFO [c89975] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:16"}
+[2025-07-04 14:17:16] INFO [cb0693] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:16"}
+[2025-07-04 14:17:16] WARNING [cb0693] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:16] INFO [cd680f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:16"}
+[2025-07-04 14:17:17] INFO [d0b5fb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d10ceb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d13aea] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d1740a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d1ad39] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d1ebf3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d21e6b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d24e96] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d26cfb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [d29a5f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] WARNING [d29a5f] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:17] INFO [d45aeb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] WARNING [d45aeb] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:17] INFO [d6859a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] WARNING [d6859a] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:17] INFO [d84eb5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] WARNING [d84eb5] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:17] INFO [da4597] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [da69a9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [da8f5c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [dab20b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:17] INFO [dad149] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:17"}
+[2025-07-04 14:17:18] INFO [e3883e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:18] WARNING [e3883e] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:18] INFO [e5ca11] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:18] INFO [e5f661] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:18] WARNING [e5f661] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:18] INFO [e79de1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:18] WARNING [e79de1] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:18] INFO [e9405d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:18] WARNING [e9405d] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:18] INFO [ea7c37] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:18] WARNING [ea7c37] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:18] INFO [ebd632] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:18] WARNING [ebd632] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-04 14:17:18] INFO [ede4a9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-04 14:17:18"}
+[2025-07-04 14:17:19] WARNING [ede4a9] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:116) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}

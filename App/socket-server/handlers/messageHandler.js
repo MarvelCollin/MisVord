@@ -592,7 +592,7 @@ class MessageHandler {
                 });
             }
             
-
+            } // Close the targetRoom if block
 
             
             try {
