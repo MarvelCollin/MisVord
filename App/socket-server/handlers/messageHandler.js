@@ -550,6 +550,7 @@ class MessageHandler {
                     broadcastData.voice_context = voiceChannelData;
                 }
                 
+                // Process bot commands once, regardless of room targeting
                 console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
                     messageId: broadcastData.id,
                     content: broadcastData.content?.substring(0, 50) + '...',
@@ -561,24 +562,25 @@ class MessageHandler {
                 });
                 BotHandler.emitBotMessageIntercept(broadcastData);
                 
+            // Broadcast temporary message to other users (excluding sender)
+            if (targetRoom) {
                 // Handle mentions notification
                 this.handleMentionNotifications(io, client, broadcastData, targetRoom);
                 
                 client.to(targetRoom).emit(eventName, broadcastData);
-
+                console.log(`✅ [SAVE-AND-SEND] Message sent to room ${targetRoom}`, {
                     messageId: broadcastData.id,
                     hasReplyData: !!broadcastData.reply_data,
                     replyMessageId: broadcastData.reply_message_id
                 });
             } else {
-
+                console.log(`⚠️ [SAVE-AND-SEND] No room found for message, broadcasting to all`, {
                     messageId: broadcastData.id,
                     content: broadcastData.content?.substring(0, 50) + '...',
                     userId: broadcastData.user_id,
                     username: broadcastData.username
                 });
-                const BotHandler = require('./botHandler');
-                BotHandler.emitBotMessageIntercept(broadcastData);
+                // Note: Bot intercept already called above, no need to call again
                 
                 this.handleMentionNotifications(io, client, broadcastData, null);
                 

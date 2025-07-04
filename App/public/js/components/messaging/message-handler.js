@@ -17,7 +17,21 @@ class MessageHandler {
             return;
         }
         
-        const isTemporary = messageData.is_temporary || messageData.id.toString().startsWith('temp-');
+        // Bot messages should never be temporary if they have a real database ID
+        const isTemporary = messageData.is_bot ? false : 
+                           (messageData.is_temporary === true || messageData.id.toString().startsWith('temp-'));
+        
+        // Debug logging for bot messages
+        if (messageData.is_bot) {
+            console.log('🤖 [MESSAGE-HANDLER] Processing bot message:', {
+                id: messageData.id,
+                is_temporary: messageData.is_temporary,
+                is_bot: messageData.is_bot,
+                isTemporary: isTemporary,
+                source: messageData.source,
+                content: messageData.content?.substring(0, 30) + '...'
+            });
+        }
         
         if (this.processedMessageIds.has(messageData.id)) {
 
@@ -26,9 +40,34 @@ class MessageHandler {
         
         const existingElement = document.querySelector(`[data-message-id="${messageData.id}"]`);
         if (existingElement) {
-
+            console.log('⚠️ [MESSAGE-HANDLER] Message element already exists:', messageData.id);
             this.processedMessageIds.add(messageData.id);
             return;
+        }
+        
+        // Special handling for bot messages - remove duplicates with same content and user
+        if (messageData.user_id && messageData.content && messageData.is_bot && !isTemporary) {
+            const duplicateSelectors = [
+                `[data-user-id="${messageData.user_id}"].bubble-message-temporary`,
+                `[data-user-id="${messageData.user_id}"][data-message-id^="bot-temp"]`
+            ];
+            
+            for (const selector of duplicateSelectors) {
+                const duplicateElements = document.querySelectorAll(selector);
+                for (const duplicate of duplicateElements) {
+                    if (duplicate.dataset.messageId !== messageData.id) { // Don't remove the same message
+                        const duplicateContent = duplicate.querySelector('.bubble-message-text')?.textContent?.trim();
+                        if (duplicateContent === messageData.content.trim()) {
+                            console.log('🧹 [MESSAGE-HANDLER] Removing duplicate temporary bot message:', {
+                                duplicateId: duplicate.dataset.messageId,
+                                newId: messageData.id,
+                                content: duplicateContent?.substring(0, 30) + '...'
+                            });
+                            duplicate.closest('.bubble-message-group')?.remove();
+                        }
+                    }
+                }
+            }
         }
         
         if (isTemporary) {

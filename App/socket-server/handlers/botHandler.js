@@ -154,7 +154,10 @@ class BotHandler extends EventEmitter {
         const messageId = data.id || `${data.user_id}-${data.channel_id || data.room_id}-${data.content}`;
         
         if (this.processedMessages.has(messageId)) {
-
+            console.log(`⚠️ [BOT-DEBUG] Message already processed:`, {
+                messageId,
+                content: data.content?.substring(0, 30) + '...'
+            });
             return;
         }
         
@@ -172,8 +175,13 @@ class BotHandler extends EventEmitter {
             return;
         }
         
-        if (data.user_id == botId) {
-
+        // Ensure proper type comparison for bot filtering
+        if (String(data.user_id) === String(botId)) {
+            console.log(`🤖 [BOT-DEBUG] Ignoring bot's own message to prevent recursion:`, {
+                messageUserId: data.user_id,
+                botId: botId,
+                content: data.content?.substring(0, 30) + '...'
+            });
             return;
         }
 
@@ -418,14 +426,8 @@ class BotHandler extends EventEmitter {
 
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Send immediate response without waiting for database save
-
-        await this.sendImmediateBotResponse(io, originalMessage, messageType, botId, username, responseContent, musicData);
-        
-        // Also try to save to database in background
-        this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData).catch(error => {
-            console.error('❌ [BOT-DEBUG] Background save failed:', error.message);
-        });
+        // Send bot response through database to maintain proper message flow
+        await this.sendDirectBotMessage(io, originalMessage, messageType, botId, username, responseContent, musicData);
     }
 
     static async sendImmediateBotResponse(io, originalMessage, messageType, botId, username, responseContent, musicData) {
@@ -645,17 +647,21 @@ class BotHandler extends EventEmitter {
                     username: username,
                     avatar_url: '/public/assets/common/default-profile-picture.png',
                     content: responseContent,
-                    sent_at: savedMessage.sent_at || savedMessage.timestamp,
+                    sent_at: savedMessage.sent_at || currentTimestamp,
+                    created_at: savedMessage.sent_at || currentTimestamp,
                     edited_at: null,
                     type: 'text',
                     message_type: 'text',
                     attachments: [],
                     has_reactions: false,
                     reaction_count: 0,
+                    reactions: [],
                     is_bot: true,
                     bot_id: botId,
                     timestamp: Date.parse(savedMessage.sent_at || currentTimestamp),
-                    source: 'bot-message',
+                    source: 'database-loaded',
+                    is_temporary: false,
+                    is_pinned: false,
                     reply_message_id: originalMessage.id,
                     reply_data: {
                         message_id: originalMessage.id,
