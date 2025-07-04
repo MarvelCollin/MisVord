@@ -20,6 +20,7 @@ class VideoSDKManager {
         this.processedParticipants = new Set();
         this.presenceMonitorInterval = null;
         this.lastPresenceCheck = null;
+        this.joiningInProgress = false;
         this.startPresenceMonitoring();
     }
 
@@ -34,6 +35,10 @@ class VideoSDKManager {
     }
 
     checkAndSyncPresence() {
+        if (this.joiningInProgress) {
+            return;
+        }
+        
         const isActuallyInVoice = this.isConnected && this.isMeetingJoined && this.meeting;
         const sessionInVoice = sessionStorage.getItem('isInVoiceCall') === 'true';
         const currentActivity = window.globalSocketManager?.currentActivityDetails?.type || '';
@@ -217,7 +222,7 @@ class VideoSDKManager {
         }
         
         try {
-
+            this.joiningInProgress = true;
             
             this.isConnected = true;
             this.meeting.join();
@@ -270,6 +275,7 @@ class VideoSDKManager {
         } catch (error) {
             this.isConnected = false;
             this.isMeetingJoined = false;
+            this.joiningInProgress = false;
             this.isDeafened = false;
             if (window.voiceState) window.voiceState.isConnected = false;
             if (window.voiceManager) window.voiceManager.isConnected = false;
@@ -285,6 +291,7 @@ class VideoSDKManager {
     markExternalJoinSuccess() {
         this.isConnected = true;
         this.isMeetingJoined = true;
+        this.joiningInProgress = false;
 
         
 
@@ -767,6 +774,7 @@ class VideoSDKManager {
 
         this.isMeetingJoined = false;
         this.isConnected = false;
+        this.joiningInProgress = false;
         this.meeting = null;
         this.processedParticipants.clear();
 

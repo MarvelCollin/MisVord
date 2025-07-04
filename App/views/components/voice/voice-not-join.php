@@ -258,6 +258,8 @@ async function joinVoiceChannel() {
         window.MusicLoaderStatic.playCallSound();
     }
     
+    let joinSuccessful = false;
+    
     try {
 
         const scriptsLoaded = await ensureVoiceScriptsLoaded();
@@ -284,6 +286,7 @@ async function joinVoiceChannel() {
         const channelId = document.querySelector('meta[name="channel-id"]')?.content;
         const userName = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
         const userId = document.querySelector('meta[name="user-id"]')?.content || window.currentUserId || '';
+        const channelName = document.querySelector('h2')?.textContent || 'Voice Channel';
         
 
         const participantName = userId ? `${userName}_${userId}` : userName;
@@ -291,31 +294,36 @@ async function joinVoiceChannel() {
         if (!meetingId) {
             throw new Error('Meeting ID not available from voice manager');
         }
-        
-
-        await window.videoSDKManager.externalInitMeeting(meetingId, participantName, true, false);
-        
-
+            await window.videoSDKManager.externalInitMeeting(meetingId, participantName, true, false);
         await window.videoSDKManager.externalJoinMeeting();
         
-
+        await waitForJoinConfirmation();
+        
         window.videoSDKManager.markExternalJoinSuccess();
+        joinSuccessful = true;
+        
+        // Fire the voice connect event to switch UI
+        console.log('[VOICE-JOIN] Firing voiceConnect event to switch UI');
+        window.dispatchEvent(new CustomEvent('voiceConnect', {
+            detail: { 
+                meetingId: window.voiceManager.currentMeetingId,
+                channelId: channelId,
+                channelName: channelName
+            }
+        }));
         
         if (window.waitForVideoSDKReady) {
 
             await window.waitForVideoSDKReady();
         }
+              await waitForVoiceCallSectionReady();
         
-
-
-        await waitForVoiceCallSectionReady();
-        
-
+        // Success - the voiceConnect event will handle UI switching
         
     } catch (error) {
         console.error('[VOICE] Error joining voice:', error);
         
-        if (!window.voiceJoinErrorShown) {
+        if (!joinSuccessful && !window.voiceJoinErrorShown) {
             if (window.showToast) {
                 window.showToast('Failed to join voice channel. Please try again.', 'error');
             } else {
@@ -338,10 +346,39 @@ async function joinVoiceChannel() {
                 if (joinView) joinView.classList.remove('hidden');
                 if (connectingView) connectingView.classList.add('hidden');
             }
-        }, 2000); // Increased delay to allow voice call section to load
+        }, 1000);
         
-        this.isProcessing = false;
+        if (!joinSuccessful) {
+            setTimeout(() => {
+                resetJoinState();
+            }, 1000);
+        }
     }
+}
+
+async function waitForJoinConfirmation(timeout = 10000) {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        
+        const checkJoinStatus = () => {
+            if (window.videoSDKManager && 
+                window.videoSDKManager.isConnected && 
+                window.videoSDKManager.isMeetingJoined &&
+                window.videoSDKManager.meeting) {
+                resolve(true);
+                return;
+            }
+            
+            if (Date.now() - startTime > timeout) {
+                reject(new Error('Join confirmation timeout'));
+                return;
+            }
+            
+            setTimeout(checkJoinStatus, 200);
+        };
+        
+        checkJoinStatus();
+    });
 }
 
 async function waitForVoiceCallSectionReady(timeout = 5000) {
