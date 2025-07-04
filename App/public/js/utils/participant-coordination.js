@@ -2,6 +2,10 @@
  * Centralized Participant Coordination System
  * Prevents duplicate participants across different systems
  */
+if (typeof window !== 'undefined' && window.ParticipantCoordinator) {
+    // Already loaded, skip redefinition
+} else {
+    
 class ParticipantCoordinator {
     constructor() {
         this.activeParticipants = new Map(); // channelId -> Set of userIds
@@ -118,7 +122,7 @@ class ParticipantCoordinator {
     }
 }
 
-
+// Initialize global instance
 if (typeof window !== 'undefined') {
     window.ParticipantCoordinator = ParticipantCoordinator;
     window.participantCoordinator = ParticipantCoordinator.getInstance();
@@ -127,3 +131,5 @@ if (typeof window !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ParticipantCoordinator;
 }
+
+} // End of conditional block

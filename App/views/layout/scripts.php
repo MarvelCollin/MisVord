@@ -32,6 +32,11 @@ if ($is_auth_page) {
 <!-- Load fallback logger first -->
 <script src="<?php echo js('utils/fallback-logger'); ?>?v=<?php echo time(); ?>"></script>
 
+<?php if (!$is_auth_page): ?>
+<!-- Load participant coordination system early -->
+<script src="<?php echo js('utils/participant-coordination'); ?>?v=<?php echo time(); ?>"></script>
+<?php endif; ?>
+
 <script>
 (function() {
     const socketHost = document.querySelector('meta[name="socket-host"]')?.content;

@@ -389,7 +389,16 @@ class GlobalPresenceManager {
         
         channelIds.forEach(channelId => {
             const channel = voiceChannels[channelId];
-            const participantCount = channel.participants.length;
+            
+            // Remove duplicates by creating a Map with userId as key
+            const uniqueParticipants = new Map();
+            channel.participants.forEach(participant => {
+                if (!uniqueParticipants.has(participant.id)) {
+                    uniqueParticipants.set(participant.id, participant);
+                }
+            });
+            
+            const participantCount = uniqueParticipants.size;
             
             html += `
                 <div class="mb-3 bg-discord-background rounded-lg p-3">
@@ -401,7 +410,7 @@ class GlobalPresenceManager {
                     <div class="space-y-1">
             `;
             
-            channel.participants.forEach(participant => {
+            uniqueParticipants.forEach(participant => {
                 const statusColor = this.getStatusClass(participant.status);
                 
                 html += `

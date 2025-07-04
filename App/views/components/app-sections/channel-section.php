@@ -336,7 +336,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 }
 </style>
 
-<script src="/public/js/utils/participant-coordination.js"></script>
 <script src="/public/js/utils/channel-voice-participants.js"></script>
 
 <script>

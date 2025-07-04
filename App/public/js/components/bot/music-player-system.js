@@ -661,7 +661,7 @@ class MusicPlayerSystem {
                 this.audio.load();
             });
 
-             Start playback
+            // Start playback
             await this.audio.play();
             this.isPlaying = true;
             
@@ -849,7 +849,7 @@ class MusicPlayerSystem {
     showNowPlaying(track) {
         this.removeExistingPlayer();
         
-         === NEW: Inject bot participant card into voice grid ===
+        // === NEW: Inject bot participant card into voice grid ===
         try {
             if (!this.botParticipantAdded) {
                 const botData = {
@@ -862,10 +862,9 @@ class MusicPlayerSystem {
                     this.botParticipantAdded = true;
 
                 } else {
-                     Fallback: dispatch event for voice-call-section listener
+                    // Fallback: dispatch event for voice-call-section listener
                     window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', { detail: { participant: botData } }));
                     this.botParticipantAdded = true;
-
                 }
             }
         } catch (e) {
@@ -986,7 +985,7 @@ class MusicPlayerSystem {
             clearInterval(this.progressInterval);
             this.progressInterval = null;
         }
-         === NEW: Remove bot participant card when music stops ===
+        // === NEW: Remove bot participant card when music stops ===
         try {
             if (this.botParticipantAdded) {
                 if (window.voiceCallSection && typeof window.voiceCallSection.removeBotParticipant === 'function') {
@@ -1053,11 +1052,10 @@ class MusicPlayerSystem {
 if (typeof window !== 'undefined' && !window.musicPlayer) {
     window.MusicPlayerSystem = MusicPlayerSystem;
     window.musicPlayer = new MusicPlayerSystem();
-
 }
 
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = MusicPlayerSystem;
 }
 
-}  End of conditional block
+} // End of conditional block
