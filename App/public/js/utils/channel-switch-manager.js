@@ -124,6 +124,18 @@ class SimpleChannelSwitcher {
         const previousChannelType = this.currentChannelType;
         const isSameVoiceChannel = previousChannelType === 'voice' && channelType === 'voice' && previousChannelId === channelId;
         
+        // CRITICAL FIX: Preserve voice connection state when switching from voice to text
+        const wasInVoiceCall = window.unifiedVoiceStateManager?.getState()?.isConnected || false;
+        const voiceChannelId = wasInVoiceCall ? (window.unifiedVoiceStateManager?.getState()?.channelId || window.voiceManager?.currentChannelId) : null;
+        const voiceChannelName = wasInVoiceCall ? (window.unifiedVoiceStateManager?.getState()?.channelName || 'Voice Channel') : null;
+        
+        console.log('🔄 [SWITCH-MANAGER] Voice state preservation check:', {
+            wasInVoiceCall,
+            voiceChannelId,
+            voiceChannelName,
+            switchingFromVoiceToText: previousChannelType === 'voice' && channelType === 'text'
+        });
+        
         this.isLoading = true;
         
         const loadMoreContainer = document.querySelector('#load-more-container');
@@ -143,6 +155,43 @@ class SimpleChannelSwitcher {
         this.updateChannelHeader(channelId, channelType);
         
         console.log('🔄 [SWITCH-MANAGER] Channel switch - type:', channelType, 'id:', channelId);
+        
+        // CRITICAL FIX: When switching from voice to text while in voice call, preserve voice context
+        if (wasInVoiceCall && channelType === 'text' && voiceChannelId) {
+            console.log('🎤 [SWITCH-MANAGER] Preserving voice context during voice-to-text switch');
+            
+            // Ensure unified voice state maintains the connection and channel context
+            if (window.unifiedVoiceStateManager) {
+                const currentState = window.unifiedVoiceStateManager.getState();
+                window.unifiedVoiceStateManager.setState({
+                    ...currentState,
+                    isConnected: true,
+                    channelId: voiceChannelId,
+                    channelName: voiceChannelName,
+                    // Add flag to indicate we're in voice but viewing text channel
+                    isViewingDifferentChannel: true,
+                    originalVoiceChannelId: voiceChannelId
+                });
+                console.log('🎤 [SWITCH-MANAGER] Voice context preserved in unified state manager');
+            }
+            
+            // Update voice manager to maintain channel context
+            if (window.voiceManager) {
+                window.voiceManager.currentChannelId = voiceChannelId;
+                window.voiceManager.currentChannelName = voiceChannelName;
+                console.log('🎤 [SWITCH-MANAGER] Voice manager context preserved');
+            }
+            
+            // Dispatch event to notify other components about voice context preservation
+            window.dispatchEvent(new CustomEvent('voiceContextPreserved', {
+                detail: { 
+                    voiceChannelId, 
+                    voiceChannelName, 
+                    currentViewChannelId: channelId,
+                    currentViewChannelType: channelType
+                }
+            }));
+        }
         
         // Immediate sync for voice channels to ensure voice context is available
         if (channelType === 'voice') {
@@ -186,6 +235,28 @@ class SimpleChannelSwitcher {
                                channelElement?.getAttribute('data-channel-name') || 
                                'Voice Channel';
             this.forceSyncVoiceContext(channelId, channelName);
+        }
+        
+        // CRITICAL FIX: Final voice context verification for text channels when user is in voice
+        if (channelType === 'text' && wasInVoiceCall && voiceChannelId) {
+            // Verify that voice context is properly preserved for bot commands
+            setTimeout(() => {
+                const finalState = window.unifiedVoiceStateManager?.getState();
+                if (finalState && finalState.isConnected && finalState.channelId === voiceChannelId) {
+                    console.log('✅ [SWITCH-MANAGER] Voice context successfully preserved for bot commands');
+                } else {
+                    console.warn('⚠️ [SWITCH-MANAGER] Voice context may not be properly preserved, attempting fix...');
+                    if (window.unifiedVoiceStateManager) {
+                        window.unifiedVoiceStateManager.setState({
+                            isConnected: true,
+                            channelId: voiceChannelId,
+                            channelName: voiceChannelName,
+                            isViewingDifferentChannel: true,
+                            originalVoiceChannelId: voiceChannelId
+                        });
+                    }
+                }
+            }, 500);
         }
         
         this.isLoading = false;

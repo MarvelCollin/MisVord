@@ -25,6 +25,13 @@ class RoomManager {
         return dmRoom;
     }
 
+    getVoiceChannelRoom(channelId) {
+        const normalizedChannelId = channelId.toString().replace('voice-channel-', '');
+        const voiceRoom = `voice-channel-${normalizedChannelId}`;
+        console.log(`🎤 [ROOM-MANAGER] Generated voice channel room name: ${voiceRoom} for channel ${channelId}`);
+        return voiceRoom;
+    }
+
     joinRoom(client, roomName) {
         console.log(`🚪 [ROOM-MANAGER] Client ${client.id} attempting to join room: ${roomName}`);
         
@@ -262,4 +269,4 @@ class RoomManager {
     }
 }
 
-module.exports = new RoomManager(); 
+module.exports = new RoomManager();

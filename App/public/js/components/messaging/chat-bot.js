@@ -1,90 +1,55 @@
 class ChatBot {
-    constructor(chatSection) {
-        this.chatSection = chatSection;
-        this.initialized = false;
-        this.socketListenersSetup = false;
-        this.botReady = false;
-        
-        console.log('🤖 [CHAT-BOT] ChatBot component initialized');
-        this.init();
-    }
-
-    init() {
-        if (this.initialized) return;
-        
-        this.setupEventListeners();
-        this.setupSocketListeners();
+    constructor() {
+        this.chatSection = null;
+        this.botActive = false;
+        this.setupBotListeners();
         this.ensureBotActive();
-        this.initialized = true;
-        
-        console.log('✅ [CHAT-BOT] ChatBot component ready');
+        console.log('🤖 [CHAT-BOT] ChatBot initialized');
     }
 
-    setupEventListeners() {
-        if (!this.chatSection.messageInput) return;
-
-        const originalInputHandler = this.chatSection.messageInput.oninput;
-        this.chatSection.messageInput.addEventListener('input', () => {
-            this.handleTitiBotAutocomplete();
-        });
-
-        const originalKeyHandler = this.chatSection.messageInput.onkeypress;
-        this.chatSection.messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Escape') {
-                this.hideTitiBotSuggestions();
-            }
-        });
-
-        console.log('🎧 [CHAT-BOT] Event listeners attached');
-    }
-
-    setupSocketListeners() {
-        if (this.socketListenersSetup) return;
-
-        const setupBotSocketHandlers = () => {
-            if (!window.globalSocketManager?.io) {
-                setTimeout(setupBotSocketHandlers, 200);
-                return;
-            }
-
+    setupBotListeners() {
+        // Set up socket listeners for bot events
+        if (window.globalSocketManager?.io) {
             const io = window.globalSocketManager.io;
-
-            io.on('bot-music-command', (data) => {
-                console.log('🎵 [CHAT-BOT] Received music command:', data);
-                if (data && data.music_data) {
-                    this.executeMusicCommand(data.music_data);
-                } else {
-                    console.warn('⚠️ [CHAT-BOT] Invalid bot-music-command data:', data);
-                }
-            });
-
+            
+            // Listen for bot messages
             io.on('new-channel-message', (data) => {
-                this.handleBotMessage(data);
-            });
-
-            io.on('user-message-dm', (data) => {
-                this.handleBotMessage(data);
-            });
-
-            // Listen for bot voice join events to update music status
-            window.addEventListener('bot-voice-participant-joined', (e) => {
-                console.log('🤖 [CHAT-BOT] Bot joined voice, ready for music commands');
-                if (e.detail?.participant?.user_id === '4') {
-                    this.updateBotParticipantStatus('🎵 Ready to play music');
+                if (data.is_bot && data.bot_id) {
+                    console.log('🤖 [CHAT-BOT] Bot message received:', data);
                 }
             });
+            
+            // Listen for bot music commands
+            io.on('bot-music-command', (data) => {
+                console.log('🤖 [CHAT-BOT] Bot music command received:', data);
+                if (!data || !data.music_data) {
+                    console.warn('⚠️ [CHAT-BOT] Invalid bot-music-command data:', data);
+                    return;
+                }
+                
+                // Forward to music player
+                if (window.musicPlayer) {
+                    window.musicPlayer.processBotMusicCommand(data);
+                } else {
+                    console.warn('⚠️ [CHAT-BOT] Music player not available');
+                }
+            });
+            
+            console.log('🤖 [CHAT-BOT] Bot listeners set up');
+        } else {
+            console.log('🤖 [CHAT-BOT] Socket not ready, will retry...');
+            setTimeout(() => this.setupBotListeners(), 1000);
+        }
+    }
 
-            this.socketListenersSetup = true;
-            console.log('🔌 [CHAT-BOT] Socket listeners setup complete');
-        };
+    ensureBotActive() {
+        this.botActive = true;
+        console.log('🤖 [CHAT-BOT] Bot activated');
+    }
 
-        setupBotSocketHandlers();
-
-        // Trigger ensureBotActive once socket is authenticated
-        window.addEventListener('socketAuthenticated', () => {
-            console.log('🔑 [CHAT-BOT] Socket authenticated event received');
-            this.ensureBotActive();
-        });
+    setChatSection(chatSection) {
+        this.chatSection = chatSection;
+        console.log('🤖 [CHAT-BOT] Chat section set:', chatSection?.chatType);
     }
 
     async handleTitiBotCommand(content) {
@@ -238,94 +203,99 @@ class ChatBot {
     }
 
     async executeMusicCommand(musicData) {
-        if (!window.musicPlayer) {
-            console.error('❌ [CHAT-BOT] Music player not available');
-            // Try to trigger in voice context if available
-            if (window.voiceCallSection && window.voiceCallSection.musicPlayer) {
-                window.voiceCallSection.musicPlayer.executeMusicCommand?.(musicData);
-            }
-            return;
-        }
-
         console.log('🎵 [CHAT-BOT] Executing music command:', musicData);
-        // Debug: show current context
-        if (window.location && window.location.search) {
-            console.log('[CHAT-BOT] Current URL:', window.location.search);
+        
+        // Try the music player first
+        if (window.musicPlayer) {
+            console.log('🎵 [CHAT-BOT] Using global music player');
+            try {
+                await this.processWithMusicPlayer(musicData);
+                return;
+            } catch (error) {
+                console.error('❌ [CHAT-BOT] Global music player failed:', error);
+            }
         }
-        if (window.voiceCallSection) {
-            console.log('[CHAT-BOT] voiceCallSection present');
+        
+        // Fallback to voice call section music player if available
+        if (window.voiceCallSection && window.voiceCallSection.musicPlayer) {
+            console.log('🎵 [CHAT-BOT] Using voice call section music player');
+            try {
+                await window.voiceCallSection.musicPlayer.executeMusicCommand?.(musicData);
+                return;
+            } catch (error) {
+                console.error('❌ [CHAT-BOT] Voice call music player failed:', error);
+            }
         }
+        
+        console.error('❌ [CHAT-BOT] No music player available');
+        this.updateBotParticipantStatus('❌ Music player not available');
+    }
+
+    async processWithMusicPlayer(musicData) {
         const { action, query, track } = musicData;
 
-        try {
-            switch (action) {
-                case 'play':
-                    if (query && query.trim()) {
-                        console.log('🎵 [CHAT-BOT] Searching and playing:', query);
-                        const searchResult = await window.musicPlayer.searchMusic(query.trim());
-                        if (searchResult && searchResult.previewUrl) {
-                            const result = await window.musicPlayer.playTrack(searchResult);
-                            console.log('✅ [CHAT-BOT] Successfully started playing:', searchResult.title);
-                            
-                            window.musicPlayer.showNowPlaying(searchResult);
-                            this.updateBotParticipantStatus('🎵 Playing: ' + searchResult.title);
-                        } else {
-                            console.warn('⚠️ [CHAT-BOT] No playable track found for:', query);
-                            this.updateBotParticipantStatus('❌ Track not found');
-                        }
-                    } else if (track && track.previewUrl) {
-                        console.log('🎵 [CHAT-BOT] Playing provided track:', track.title);
-                        const result = await window.musicPlayer.playTrack(track);
-                        console.log('✅ [CHAT-BOT] Successfully started playing:', track.title);
+        switch (action) {
+            case 'play':
+                if (query && query.trim()) {
+                    console.log('🎵 [CHAT-BOT] Searching and playing:', query);
+                    const searchResult = await window.musicPlayer.searchMusic(query.trim());
+                    if (searchResult && searchResult.previewUrl) {
+                        const result = await window.musicPlayer.playTrack(searchResult);
+                        console.log('✅ [CHAT-BOT] Successfully started playing:', searchResult.title);
                         
-                        window.musicPlayer.showNowPlaying(track);
-                        this.updateBotParticipantStatus('🎵 Playing: ' + track.title);
+                        window.musicPlayer.showNowPlaying(searchResult);
+                        this.updateBotParticipantStatus('🎵 Playing: ' + searchResult.title);
                     } else {
-                        console.warn('⚠️ [CHAT-BOT] Play command missing query or track parameter');
-                        this.updateBotParticipantStatus('❌ Invalid play command');
+                        console.warn('⚠️ [CHAT-BOT] No playable track found for:', query);
+                        this.updateBotParticipantStatus('❌ Track not found');
                     }
-                    break;
+                } else if (track && track.previewUrl) {
+                    console.log('🎵 [CHAT-BOT] Playing provided track:', track.title);
+                    const result = await window.musicPlayer.playTrack(track);
+                    console.log('✅ [CHAT-BOT] Successfully started playing:', track.title);
+                    
+                    window.musicPlayer.showNowPlaying(track);
+                    this.updateBotParticipantStatus('🎵 Playing: ' + track.title);
+                } else {
+                    console.warn('⚠️ [CHAT-BOT] Play command missing query or track parameter');
+                    this.updateBotParticipantStatus('❌ Invalid play command');
+                }
+                break;
 
-                case 'queue':
-                    if (query && query.trim()) {
-                        console.log('🎵 [CHAT-BOT] Searching and queueing:', query);
-                        const result = await window.musicPlayer.addToQueue(query.trim());
-                        console.log('✅ [CHAT-BOT] Queue operation result:', result);
-                        this.updateBotParticipantStatus('➕ Added to queue');
-                    } else {
-                        console.warn('⚠️ [CHAT-BOT] Queue command missing query parameter');
-                        this.updateBotParticipantStatus('❌ Invalid queue command');
-                    }
-                    break;
+            case 'queue':
+                if (query && query.trim()) {
+                    console.log('🎵 [CHAT-BOT] Searching and queueing:', query);
+                    const result = await window.musicPlayer.addToQueue(query.trim());
+                    console.log('✅ [CHAT-BOT] Queue operation result:', result);
+                    this.updateBotParticipantStatus('➕ Added to queue');
+                } else {
+                    console.warn('⚠️ [CHAT-BOT] Queue command missing query parameter');
+                    this.updateBotParticipantStatus('❌ Invalid queue command');
+                }
+                break;
 
-                case 'stop':
-                    console.log('🎵 [CHAT-BOT] Stopping music');
-                    await window.musicPlayer.stop();
-                    window.musicPlayer.hideNowPlaying();
-                    this.updateBotParticipantStatus('⏹️ Music stopped');
-                    break;
+            case 'stop':
+                console.log('🎵 [CHAT-BOT] Stopping music');
+                await window.musicPlayer.stop();
+                window.musicPlayer.hideNowPlaying();
+                this.updateBotParticipantStatus('⏹️ Music stopped');
+                break;
 
-                case 'next':
-                    console.log('🎵 [CHAT-BOT] Playing next song');
-                    const nextResult = await window.musicPlayer.playNext();
-                    console.log('✅ [CHAT-BOT] Next song result:', nextResult);
-                    this.updateBotParticipantStatus('⏭️ Next track');
-                    break;
+            case 'next':
+                console.log('🎵 [CHAT-BOT] Playing next track');
+                await window.musicPlayer.playNext();
+                this.updateBotParticipantStatus('⏭️ Next track');
+                break;
 
-                case 'prev':
-                    console.log('🎵 [CHAT-BOT] Playing previous song');
-                    const prevResult = await window.musicPlayer.playPrevious();
-                    console.log('✅ [CHAT-BOT] Previous song result:', prevResult);
-                    this.updateBotParticipantStatus('⏮️ Previous track');
-                    break;
+            case 'prev':
+                console.log('🎵 [CHAT-BOT] Playing previous track');
+                await window.musicPlayer.playPrevious();
+                this.updateBotParticipantStatus('⏮️ Previous track');
+                break;
 
-                default:
-                    console.warn('⚠️ [CHAT-BOT] Unknown music action:', action);
-                    this.updateBotParticipantStatus('❓ Unknown command');
-            }
-        } catch (error) {
-            console.error('❌ [CHAT-BOT] Error executing music command:', error);
-            this.updateBotParticipantStatus('❌ Command failed');
+            default:
+                console.warn('⚠️ [CHAT-BOT] Unknown music action:', action);
+                this.updateBotParticipantStatus('❌ Unknown command');
         }
     }
 

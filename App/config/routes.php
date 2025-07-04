@@ -1643,6 +1643,56 @@ Route::put('/api/chat/messages/([0-9]+)', function($messageId) {
     $controller->updateMessage($messageId);
 });
 
+Route::post('/api/debug/test-bot', function() {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../database/repositories/UserRepository.php';
+        $userRepository = new UserRepository();
+        
+        $bot = $userRepository->findByUsername('titibot');
+        if (!$bot) {
+            echo json_encode([
+                'success' => false,
+                'error' => 'TitiBot not found in database'
+            ]);
+            return;
+        }
+        
+        // Test bot response
+        $testMessage = [
+            'id' => 'test-' . time(),
+            'user_id' => 1,
+            'username' => 'tester',
+            'content' => '/titibot ping',
+            'channel_id' => 14,
+            'target_type' => 'channel',
+            'target_id' => 14,
+            'voice_context' => [
+                'voice_channel_id' => 14,
+                'user_in_voice' => true
+            ]
+        ];
+        
+        echo json_encode([
+            'success' => true,
+            'bot_info' => [
+                'id' => $bot->id,
+                'username' => $bot->username,
+                'status' => $bot->status
+            ],
+            'test_message' => $testMessage,
+            'message' => 'Bot test data prepared'
+        ]);
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

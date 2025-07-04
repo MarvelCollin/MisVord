@@ -416,9 +416,21 @@ class FriendController extends BaseController
             $existingRelationship = $this->friendListRepository->findRelationship($userId, $targetUserId);
             if ($existingRelationship) {
                 if ($existingRelationship->status === 'accepted') {
-                    return $this->error('You are already friends with this user', 400);
+                    return $this->success([
+                        'friendship_id' => $existingRelationship->id ?? null,
+                        'target_user' => [
+                            'id' => $targetUserId,
+                            'username' => $targetUsername
+                        ]
+                    ], 'You are already friends with this user');
                 } elseif ($existingRelationship->status === 'pending') {
-                    return $this->error('Friend request already sent to this user', 400);
+                    return $this->success([
+                        'friendship_id' => $existingRelationship->id ?? null,
+                        'target_user' => [
+                            'id' => $targetUserId,
+                            'username' => $targetUsername
+                        ]
+                    ], 'Friend request already pending');
                 }
             }
             

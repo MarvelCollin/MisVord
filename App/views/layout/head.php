@@ -600,6 +600,563 @@ function clearPresenceDebugLogs() {
 </script>
 
 <script>
+function showBotDebugPanel() {
+    const existingModal = document.getElementById('bot-debug-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'bot-debug-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
+    
+    modal.innerHTML = `
+        <div class="bg-discord-dark rounded-lg border border-blue-500 max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-robot mr-2 text-blue-400"></i>
+                    Bot System Debug Panel
+                    <span id="bot-status-indicator" class="ml-2 px-2 py-1 text-xs rounded bg-green-700 text-green-300">Ready</span>
+                </h2>
+                <button onclick="document.getElementById('bot-debug-modal').remove()" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 flex overflow-hidden">
+                <div class="w-1/3 border-r border-gray-700 p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4">Bot Status</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Bot Component:</div>
+                            <div id="bot-component-status" class="text-lg font-semibold text-green-400">Loading...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Voice Connection:</div>
+                            <div id="bot-voice-status" class="text-sm text-blue-400">Loading...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Music Player:</div>
+                            <div id="music-player-status" class="text-sm text-purple-400">Loading...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Current Channel:</div>
+                            <div id="bot-current-channel" class="text-sm text-yellow-400">N/A</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">User Voice State:</div>
+                            <div id="user-voice-state" class="text-sm text-cyan-400">Checking...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Socket Connection:</div>
+                            <div id="bot-socket-status" class="text-sm text-green-400">Checking...</div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold text-white mb-4 mt-6">Quick Actions</h3>
+                    <div class="space-y-2">
+                        <button onclick="testBotCommand()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-play mr-1"></i>Test Bot Command
+                        </button>
+                        <button onclick="testVoiceJoin()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-microphone mr-1"></i>Test Voice Join
+                        </button>
+                        <button onclick="testMusicPlay()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-music mr-1"></i>Test Music Play
+                        </button>
+                        <button onclick="testVoiceContextDetection()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-search mr-1"></i>Test Voice Detection
+                        </button>
+                        <button onclick="refreshBotStatus()" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-sync mr-1"></i>Refresh Status
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex flex-col">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="text-lg font-semibold text-white">Manual Bot Control</h3>
+                        <div class="mt-3 space-y-3">
+                            <div class="flex gap-2">
+                                <input type="text" id="bot-command-input" placeholder="/titibot play song name" class="flex-1 bg-gray-800 text-white px-3 py-2 rounded text-sm">
+                                <button onclick="sendBotCommand()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm">
+                                    <i class="fas fa-paper-plane mr-1"></i>Send
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="sendBotCommand('/titibot play test')" class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-play mr-1"></i>Play Test
+                                </button>
+                                <button onclick="sendBotCommand('/titibot stop')" class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-stop mr-1"></i>Stop
+                                </button>
+                                <button onclick="sendBotCommand('/titibot next')" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-forward mr-1"></i>Next
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-white">Bot Debug Logs</h3>
+                            <button onclick="clearBotDebugLogs()" class="text-red-400 hover:text-red-300 text-sm">
+                                <i class="fas fa-trash mr-1"></i>Clear
+                            </button>
+                        </div>
+                        <div id="bot-debug-logs" class="bg-black rounded p-3 h-64 overflow-y-auto font-mono text-xs text-green-400">
+                            <div class="text-gray-500">Bot debug logs will appear here...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    initializeBotDebugPanel();
+}
+
+function initializeBotDebugPanel() {
+    addBotDebugLog('🤖 Bot Debug Panel initialized', 'success');
+    refreshBotStatus();
+    
+    if (window.globalSocketManager?.io) {
+        window.globalSocketManager.io.on('bot-voice-participant-joined', (data) => {
+            addBotDebugLog(`🎤 Bot joined voice channel: ${data.channel_id}`, 'success');
+            refreshBotStatus();
+        });
+        
+        window.globalSocketManager.io.on('bot-voice-participant-left', (data) => {
+            addBotDebugLog(`🔇 Bot left voice channel: ${data.channel_id}`, 'info');
+            refreshBotStatus();
+        });
+        
+        window.globalSocketManager.io.on('bot-music-command', (data) => {
+            addBotDebugLog(`🎵 Music command received: ${data.action} - ${data.query || 'N/A'}`, 'info');
+            refreshBotStatus();
+        });
+        
+        window.globalSocketManager.io.on('bot-response', (data) => {
+            addBotDebugLog(`💬 Bot response: ${data.message}`, 'info');
+        });
+    }
+}
+
+function refreshBotStatus() {
+    const botComponentEl = document.getElementById('bot-component-status');
+    const botVoiceEl = document.getElementById('bot-voice-status');
+    const musicPlayerEl = document.getElementById('music-player-status');
+    const botChannelEl = document.getElementById('bot-current-channel');
+    const userVoiceEl = document.getElementById('user-voice-state');
+    const botSocketEl = document.getElementById('bot-socket-status');
+    
+    if (botComponentEl) {
+        const botInitialized = window.BotComponent?.isInitialized();
+        botComponentEl.textContent = botInitialized ? 'Initialized' : 'Not Initialized';
+        botComponentEl.className = botInitialized ? 'text-lg font-semibold text-green-400' : 'text-lg font-semibold text-red-400';
+    }
+    
+    if (botVoiceEl) {
+        const voiceConnected = window.voiceManager?.isConnected;
+        botVoiceEl.textContent = voiceConnected ? 'Connected' : 'Disconnected';
+        botVoiceEl.className = voiceConnected ? 'text-sm text-green-400' : 'text-sm text-red-400';
+    }
+    
+    if (musicPlayerEl) {
+        const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+        if (musicPlayer && typeof musicPlayer.processBotMusicCommand === 'function') {
+            musicPlayerEl.textContent = 'Available';
+            musicPlayerEl.className = 'text-sm text-green-400';
+        } else {
+            musicPlayerEl.textContent = 'Not Available';
+            musicPlayerEl.className = 'text-sm text-red-400';
+        }
+    }
+    
+    if (botChannelEl) {
+        const currentChannel = window.voiceManager?.currentChannelId || 'N/A';
+        botChannelEl.textContent = currentChannel;
+        botChannelEl.className = currentChannel !== 'N/A' ? 'text-sm text-yellow-400' : 'text-sm text-gray-400';
+    }
+    
+    if (userVoiceEl) {
+        const userInVoice = window.unifiedVoiceStateManager?.getState()?.isConnected;
+        userVoiceEl.textContent = userInVoice ? 'In Voice' : 'Not In Voice';
+        userVoiceEl.className = userInVoice ? 'text-sm text-cyan-400' : 'text-sm text-gray-400';
+    }
+    
+    if (botSocketEl) {
+        const socketReady = window.globalSocketManager?.isReady();
+        botSocketEl.textContent = socketReady ? 'Connected' : 'Disconnected';
+        botSocketEl.className = socketReady ? 'text-sm text-green-400' : 'text-sm text-red-400';
+    }
+    
+    // Enhanced debugging - add detailed voice context analysis
+    const debugInfo = analyzeVoiceContextForBot();
+    addBotDebugLog(`🔍 Voice Context Analysis: ${debugInfo.summary}`, debugInfo.status);
+    if (debugInfo.details) {
+        addBotDebugLog(`   Details: ${debugInfo.details}`, 'info');
+    }
+    if (debugInfo.recommendation) {
+        addBotDebugLog(`   💡 ${debugInfo.recommendation}`, 'warning');
+    }
+}
+
+// New function to analyze voice context for bot commands
+function analyzeVoiceContextForBot() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentChannelId = urlParams.get('channel');
+    const currentChannelType = urlParams.get('type');
+    const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+    const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+    
+    const unifiedState = window.unifiedVoiceStateManager?.getState();
+    const voiceManagerConnected = window.voiceManager?.isConnected;
+    const voiceManagerChannelId = window.voiceManager?.currentChannelId;
+    
+    // Simulate the exact logic used in send-receive-handler.js
+    let voiceChannelId = null;
+    let userInVoice = false;
+    let detectionMethod = 'none';
+    
+    if (unifiedState && unifiedState.isConnected && unifiedState.channelId) {
+        voiceChannelId = unifiedState.channelId;
+        userInVoice = true;
+        detectionMethod = 'unifiedVoiceStateManager';
+    } else if (metaChannelType === 'voice' && currentChannelId) {
+        voiceChannelId = currentChannelId;
+        userInVoice = false; // This is the problematic case!
+        detectionMethod = 'currentVoiceChannelPage';
+    }
+    
+    const botWouldWork = voiceChannelId && userInVoice;
+    
+    let summary = '';
+    let status = 'info';
+    let details = '';
+    let recommendation = '';
+    
+    if (botWouldWork) {
+        summary = 'Bot commands should work correctly';
+        status = 'success';
+        details = `Detection: ${detectionMethod}, Channel: ${voiceChannelId}`;
+    } else if (voiceChannelId && !userInVoice) {
+        summary = 'Bot commands will FAIL - detected as not in voice';
+        status = 'error';
+        details = `Detection: ${detectionMethod}, Channel: ${voiceChannelId}, UserInVoice: ${userInVoice}`;
+        recommendation = 'This is the bug! You ARE in voice but detection says you are not.';
+    } else if (unifiedState?.isConnected && !voiceChannelId) {
+        summary = 'Voice connected but no channel ID detected';
+        status = 'warning';
+        details = `UnifiedState connected: ${unifiedState.isConnected}, ChannelId: ${unifiedState.channelId}`;
+        recommendation = 'Voice state manager missing channel context';
+    } else {
+        summary = 'No voice context detected';
+        status = 'error';
+        details = `Currently viewing: ${currentChannelType} channel ${currentChannelId}`;
+        recommendation = 'Join a voice channel first';
+    }
+    
+    return { summary, status, details, recommendation };
+}
+
+// Enhanced sendBotCommand with detailed voice context logging
+function sendBotCommand(command) {
+    const input = document.getElementById('bot-command-input');
+    const messageText = command || input?.value;
+    
+    if (!messageText) {
+        addBotDebugLog('❌ No command to send', 'error');
+        return;
+    }
+    
+    addBotDebugLog(`📤 Sending command: ${messageText}`, 'info');
+    
+    if (!window.globalSocketManager?.isReady()) {
+        addBotDebugLog('❌ Socket not ready', 'error');
+        return;
+    }
+    
+    // Detailed voice context analysis for debugging
+    addBotDebugLog('🔍 Analyzing voice context before sending...', 'info');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentChannelId = urlParams.get('channel');
+    const currentChannelType = urlParams.get('type');
+    const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+    const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+    
+    addBotDebugLog(`   📍 URL Context: Channel ${currentChannelId}, Type ${currentChannelType}`, 'info');
+    addBotDebugLog(`   🏷️ Meta Context: Channel ${metaChannelId}, Type ${metaChannelType}`, 'info');
+    
+    const unifiedState = window.unifiedVoiceStateManager?.getState();
+    if (unifiedState) {
+        addBotDebugLog(`   🎤 Unified Voice State: Connected ${unifiedState.isConnected}, Channel ${unifiedState.channelId}`, 'info');
+    } else {
+        addBotDebugLog(`   🎤 Unified Voice State: Not available`, 'warning');
+    }
+    
+    const voiceManagerState = {
+        connected: window.voiceManager?.isConnected,
+        channelId: window.voiceManager?.currentChannelId,
+        meetingId: window.voiceManager?.currentMeetingId
+    };
+    addBotDebugLog(`   🎙️ Voice Manager: Connected ${voiceManagerState.connected}, Channel ${voiceManagerState.channelId}`, 'info');
+    
+    // Simulate the exact detection logic from send-receive-handler.js
+    let voiceChannelId = null;
+    let userInVoice = false;
+    let detectionMethod = 'none';
+    
+    if (unifiedState && unifiedState.isConnected && unifiedState.channelId) {
+        voiceChannelId = unifiedState.channelId;
+        userInVoice = true;
+        detectionMethod = 'unifiedVoiceStateManager';
+        addBotDebugLog(`   ✅ Voice context from UnifiedVoiceState: channel ${voiceChannelId}`, 'success');
+    } else {
+        if (metaChannelType === 'voice' && currentChannelId) {
+            voiceChannelId = currentChannelId;
+            userInVoice = false; // This is the problem!
+            detectionMethod = 'currentVoiceChannelPage';
+            addBotDebugLog(`   ⚠️ Voice context from current page view: channel ${voiceChannelId} (userInVoice: false)`, 'warning');
+        } else {
+            addBotDebugLog(`   ❌ No voice context detected`, 'error');
+        }
+    }
+    
+    const payload = {
+        message: messageText,
+        target_type: 'channel',
+        target_id: '1'
+    };
+    
+    if (voiceChannelId) {
+        payload.voice_context = {
+            voice_channel_id: voiceChannelId,
+            user_in_voice: userInVoice
+        };
+        addBotDebugLog(`   🎯 Voice context attached: ${JSON.stringify(payload.voice_context)}`, 'info');
+        
+        if (!userInVoice) {
+            addBotDebugLog(`   🚨 WARNING: userInVoice is false - bot will reject this command!`, 'error');
+        }
+    } else {
+        addBotDebugLog(`   ❌ No voice context to attach`, 'error');
+    }
+    
+    window.globalSocketManager.io.emit('save-and-send-message', payload);
+    
+    if (input) {
+        input.value = '';
+    }
+    
+    addBotDebugLog('✅ Command sent successfully', 'success');
+}
+
+function testBotCommand() {
+    addBotDebugLog('🧪 Testing bot command detection...', 'info');
+    
+    if (!window.BotComponent?.isInitialized()) {
+        addBotDebugLog('❌ Bot component not initialized', 'error');
+        return;
+    }
+    
+    const testMessage = '/titibot hello';
+    addBotDebugLog(`📤 Sending test message: ${testMessage}`, 'info');
+    
+    if (window.globalSocketManager?.isReady()) {
+        window.globalSocketManager.io.emit('save-and-send-message', {
+            message: testMessage,
+            target_type: 'channel',
+            target_id: '1'
+        });
+        addBotDebugLog('✅ Test message sent', 'success');
+    } else {
+        addBotDebugLog('❌ Socket not ready', 'error');
+    }
+}
+
+function testVoiceJoin() {
+    addBotDebugLog('🎤 Testing bot voice join...', 'info');
+    
+    const userVoiceState = window.unifiedVoiceStateManager?.getState();
+    if (!userVoiceState?.isConnected) {
+        addBotDebugLog('❌ User not in voice channel', 'error');
+        return;
+    }
+    
+    let channelId = userVoiceState.channelId;
+    if (!channelId && userVoiceState.meetingId?.includes('voice_channel_')) {
+        channelId = userVoiceState.meetingId.replace('voice_channel_', '');
+    }
+    
+    if (!channelId) {
+        addBotDebugLog('❌ Could not determine voice channel ID', 'error');
+        return;
+    }
+    
+    addBotDebugLog(`📤 Attempting to join voice channel: ${channelId}`, 'info');
+    sendBotCommand('/titibot join');
+}
+
+function testMusicPlay() {
+    addBotDebugLog('🎵 Testing music play...', 'info');
+    sendBotCommand('/titibot play never gonna give you up');
+}
+
+// New function to test voice context detection for bot commands
+function testVoiceContextDetection() {
+    addBotDebugLog('🔍 Testing voice context detection for bot commands...', 'info');
+    
+    // Simulate the exact logic from send-receive-handler.js
+    let voiceChannelId = null;
+    let userInVoice = false;
+    let detectionMethod = 'none';
+    
+    addBotDebugLog('🔍 Step 1: Checking unified voice state manager...', 'info');
+    const voiceState = window.unifiedVoiceStateManager?.getState();
+    
+    if (voiceState && voiceState.isConnected && voiceState.channelId) {
+        voiceChannelId = voiceState.channelId;
+        userInVoice = true;
+        detectionMethod = 'unifiedVoiceStateManager';
+        addBotDebugLog(`✅ Primary detection successful: channel ${voiceChannelId}`, 'success');
+    } 
+    else if (window.voiceManager && window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
+        voiceChannelId = window.voiceManager.currentChannelId;
+        userInVoice = true;
+        detectionMethod = 'voiceManagerConnected';
+        addBotDebugLog(`✅ Secondary detection successful: channel ${voiceChannelId}`, 'success');
+    }
+    else if (sessionStorage.getItem('isInVoiceCall') === 'true') {
+        const sessionVoiceChannelId = sessionStorage.getItem('voiceChannelId') || 
+                                    sessionStorage.getItem('currentVoiceChannelId');
+        if (sessionVoiceChannelId) {
+            voiceChannelId = sessionVoiceChannelId;
+            userInVoice = true;
+            detectionMethod = 'sessionStorageVoiceCall';
+            addBotDebugLog(`✅ Tertiary detection successful: channel ${voiceChannelId}`, 'success');
+        }
+    }
+    else {
+        addBotDebugLog('🔍 Step 2: Checking current page context...', 'info');
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentChannelId = urlParams.get('channel');
+        const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+
+        if (metaChannelType === 'voice' && currentChannelId) {
+            voiceChannelId = currentChannelId;
+            const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
+            if (channelElement) {
+                const hasVoiceIndicator = document.querySelector('.voice-call-app:not(.hidden)') || 
+                                        document.querySelector('[data-voice-connected="true"]') ||
+                                        window.videoSDKManager?.isMeetingJoined;
+                
+                userInVoice = hasVoiceIndicator || false;
+                detectionMethod = hasVoiceIndicator ? 'currentVoiceChannelPage+connected' : 'currentVoiceChannelPage+notConnected';
+                
+                addBotDebugLog(`🔍 Page detection: channel ${voiceChannelId}, connected: ${userInVoice}`, userInVoice ? 'success' : 'warning');
+            }
+        }
+    }
+    
+    // Final verification steps
+    if (voiceChannelId && !userInVoice) {
+        addBotDebugLog('🔍 Step 3: Performing additional verification checks...', 'info');
+        
+        if (window.videoSDKManager && window.videoSDKManager.isMeetingJoined) {
+            userInVoice = true;
+            detectionMethod += '+videoSDKVerified';
+            addBotDebugLog('✅ VideoSDK connection verified - user IS in voice', 'success');
+        }
+        
+        if (!userInVoice) {
+            const voiceUIVisible = document.querySelector('.voice-call-app:not(.hidden)') || 
+                                 document.querySelector('.voice-controls:not(.hidden)') ||
+                                 document.querySelector('[data-voice-status="connected"]');
+            
+            if (voiceUIVisible) {
+                userInVoice = true;
+                detectionMethod += '+voiceUIVerified';
+                addBotDebugLog('✅ Voice UI indicators verified - user IS in voice', 'success');
+            }
+        }
+        
+        if (!userInVoice && window.unifiedVoiceStateManager) {
+            const freshState = window.unifiedVoiceStateManager.getState();
+            if (freshState && freshState.isConnected) {
+                userInVoice = true;
+                detectionMethod += '+freshStateVerified';
+                addBotDebugLog('✅ Fresh unified state verified - user IS in voice', 'success');
+            }
+        }
+    }
+    
+    // Final result
+    addBotDebugLog('🎯 FINAL DETECTION RESULT:', 'info');
+    addBotDebugLog(`   Voice Channel ID: ${voiceChannelId || 'None'}`, voiceChannelId ? 'success' : 'error');
+    addBotDebugLog(`   User In Voice: ${userInVoice}`, userInVoice ? 'success' : 'error');
+    addBotDebugLog(`   Detection Method: ${detectionMethod}`, 'info');
+    
+    if (voiceChannelId && userInVoice) {
+        addBotDebugLog('🎉 SUCCESS: Bot commands should work!', 'success');
+        return true;
+    } else if (voiceChannelId && !userInVoice) {
+        addBotDebugLog('❌ FAILURE: Bot will reject commands (detected as not in voice)', 'error');
+        addBotDebugLog('💡 This indicates the bug is still present', 'warning');
+        return false;
+    } else {
+        addBotDebugLog('❌ FAILURE: No voice context detected', 'error');
+        addBotDebugLog('💡 User may not be in a voice channel', 'warning');
+        return false;
+    }
+}
+
+let botDebugLogCount = 0;
+function addBotDebugLog(message, type = 'info') {
+    const logsContainer = document.getElementById('bot-debug-logs');
+    if (!logsContainer) return;
+    
+    botDebugLogCount++;
+    const timestamp = new Date().toLocaleTimeString();
+    const colors = {
+        info: 'text-green-400',
+        warning: 'text-yellow-400',
+        error: 'text-red-400',
+        success: 'text-blue-400'
+    };
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `${colors[type] || 'text-green-400'} mb-1`;
+    logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+    
+    logsContainer.appendChild(logEntry);
+    logsContainer.scrollTop = logsContainer.scrollHeight;
+    
+    if (botDebugLogCount > 50) {
+        logsContainer.removeChild(logsContainer.firstChild);
+        botDebugLogCount--;
+    }
+}
+
+function clearBotDebugLogs() {
+    const logsContainer = document.getElementById('bot-debug-logs');
+    if (logsContainer) {
+        logsContainer.innerHTML = '<div class="text-gray-500">Logs cleared...</div>';
+        botDebugLogCount = 0;
+    }
+}
+</script>
+
+<script>
 document.addEventListener('DOMContentLoaded', function() {
     if (window.addEventListener) {
         window.addEventListener('globalSocketReady', function(event) {
@@ -622,9 +1179,17 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🎯 Presence Debug Panel triggered...');
             showPresenceDebugPanel();
         }
+        
+        if (e.ctrlKey && e.key === '2') {
+            e.preventDefault();
+            
+            console.log('🤖 Bot Debug Panel triggered...');
+            showBotDebugPanel();
+        }
     });
     
     console.log('🎯 Presence Debug Panel: Press Ctrl+1 to open presence debugging tools');
+    console.log('🤖 Bot Debug Panel: Press Ctrl+2 to open bot debugging tools');
     
     window.addEventListener('error', function(event) {
         if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {

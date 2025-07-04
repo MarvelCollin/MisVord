@@ -572,4 +572,82 @@ console.log('  4. Run testTitiBotCommandWithFix() to test sending a command');
 console.log('  5. Or just type "/titibot play [song name]" in chat normally');
 console.log('');
 console.log('🎵 [TITIBOT-FIX] The bot should now work when you\'re connected to voice!');
+
+// Simple test function to verify bot is working
+window.testBotDirectly = function() {
+    console.log('🧪 [BOT-TEST] Testing bot directly...');
+    
+    // Test 1: Check if bot exists
+    fetch('/api/debug/test-bot', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('✅ [BOT-TEST] Bot exists in database:', data.bot_info);
+            
+            // Test 2: Send a direct ping command
+            if (window.globalSocketManager?.io) {
+                const testMessage = {
+                    id: 'test-' + Date.now(),
+                    user_id: 1,
+                    username: 'tester',
+                    content: '/titibot ping',
+                    channel_id: 14,
+                    target_type: 'channel',
+                    target_id: 14,
+                    voice_context: {
+                        voice_channel_id: 14,
+                        user_in_voice: true
+                    }
+                };
+                
+                console.log('🚀 [BOT-TEST] Sending test message to bot handler...');
+                window.globalSocketManager.io.emit('bot-message-intercept', testMessage);
+                console.log('✅ [BOT-TEST] Test message sent');
+            } else {
+                console.error('❌ [BOT-TEST] Socket not available');
+            }
+        } else {
+            console.error('❌ [BOT-TEST] Bot test failed:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('❌ [BOT-TEST] Error testing bot:', error);
+    });
+};
+
+// Music test function
+window.testBotMusic = function(song = 'never gonna give you up') {
+    console.log('🎵 [BOT-TEST] Testing bot music with:', song);
+    
+    if (window.globalSocketManager?.io) {
+        const testMessage = {
+            id: 'test-music-' + Date.now(),
+            user_id: 1,
+            username: 'tester',
+            content: `/titibot play ${song}`,
+            channel_id: 14,
+            target_type: 'channel',
+            target_id: 14,
+            voice_context: {
+                voice_channel_id: 14,
+                user_in_voice: true
+            }
+        };
+        
+        console.log('🚀 [BOT-TEST] Sending music test message...');
+        window.globalSocketManager.io.emit('bot-message-intercept', testMessage);
+        console.log('✅ [BOT-TEST] Music test message sent');
+    } else {
+        console.error('❌ [BOT-TEST] Socket not available');
+    }
+};
+
+console.log('🧪 [BOT-TEST] Test functions loaded:');
+console.log('  - testBotDirectly() - Test if bot responds to ping');
+console.log('  - testBotMusic(song) - Test music command');
 </script>

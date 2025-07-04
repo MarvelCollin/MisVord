@@ -868,6 +868,12 @@ function initFriendRequestForm() {
             return;
         }
         
+        const validation = friendAPI.validateUsername(username);
+        if (!validation.valid) {
+            showToast(validation.message, 'error');
+            return;
+        }
+        
         if (errorDiv) errorDiv.classList.add('hidden');
         if (successDiv) successDiv.classList.add('hidden');
         
@@ -879,7 +885,8 @@ function initFriendRequestForm() {
             const response = await friendAPI.sendFriendRequest(username);
             
             if (response.success) {
-                showToast(response.message || 'Friend request sent successfully!', 'success');
+                const toastType = response.message.includes('already') ? 'info' : 'success';
+                showToast(response.message || 'Friend request sent successfully!', toastType);
                 input.value = '';
                 updateButtonState();
                 

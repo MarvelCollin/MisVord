@@ -111,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo asset('/js/components/voice/voice-dependency-loader.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/voice-state-manager.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/videosdk/videosdk.js'); ?>"></script>
-<script src="<?php echo asset('/js/test-voice-presence.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-section.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>
@@ -123,7 +122,6 @@ $currentPath = $_SERVER['REQUEST_URI'] ?? '';
 $isHomePage = strpos($currentPath, '/home') === 0;
 ?>
 <script src="<?php echo js('components/app-layout'); ?>?v=<?php echo time(); ?>" type="module"></script>
-<script type="module" src="<?php echo js('debug-deletion-test'); ?>?v=<?php echo time(); ?>"></script>
 <script type="module" src="<?php echo js('utils/dm-switch-manager'); ?>?v=<?php echo time(); ?>"></script>
 
 <script type="module" src="<?php echo js('components/common/notification-handler'); ?>"></script>
@@ -153,5 +151,14 @@ window.addEventListener('beforeunload', function() {
     if (window.globalSocketManager && window.globalSocketManager.disconnect) {
         window.globalSocketManager.disconnect();
     }
-});
-</script>
+  });
+  </script>
+
+  <script>
+  // Initialize music player system early
+  if (typeof window !== 'undefined' && !window.musicPlayer) {
+      console.log('🎵 [INIT] Initializing music player system...');
+      window.musicPlayer = new MusicPlayerSystem();
+      console.log('🎵 [INIT] Music player system initialized and globally available');
+  }
+  </script>

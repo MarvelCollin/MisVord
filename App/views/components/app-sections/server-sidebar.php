@@ -166,5 +166,4 @@ document.addEventListener('DOMContentLoaded', function() {
 $additional_js = isset($additional_js) ? $additional_js : [];
 $additional_js[] = 'components/servers/server-sidebar';
 $additional_js[] = 'components/servers/server-drag';
-$additional_js[] = 'test-drag-system';
 ?>

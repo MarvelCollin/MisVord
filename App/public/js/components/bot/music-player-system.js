@@ -18,9 +18,11 @@ class MusicPlayerSystem {
         this.debugMode = false;
         this.currentTrack = null;
         this.processedMessageIds = new Set();
+        this.initialized = false;
         
         console.log('🎵 [MUSIC-PLAYER] Music player system initialized');
         this.setupEventListeners();
+        this.forceInitialize();
 
         this.audio.addEventListener('error', (e) => {
             console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
@@ -48,19 +50,167 @@ class MusicPlayerSystem {
         });
     }
 
+    forceInitialize() {
+        console.log('🎵 [MUSIC-PLAYER] Force initializing music player...');
+        
+        // Ensure global availability
+        if (typeof window !== 'undefined') {
+            window.musicPlayer = this;
+            window.MusicPlayerSystem = MusicPlayerSystem;
+        }
+        
+        // Set up immediate listeners
+        this.setupImmediateListeners();
+        
+        // Mark as initialized
+        this.initialized = true;
+        
+        console.log('🎵 [MUSIC-PLAYER] Music player force initialized and globally available');
+    }
+
+    setupImmediateListeners() {
+        // Listen for commands immediately
+        if (typeof window !== 'undefined') {
+            window.addEventListener('bot-music-command', (e) => {
+                console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Window event received:', e.detail);
+                this.processBotMusicCommand(e.detail);
+            });
+            
+            // Set up socket listeners if available
+            if (window.globalSocketManager?.io) {
+                console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Setting up socket listeners');
+                window.globalSocketManager.io.on('bot-music-command', (data) => {
+                    console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Socket command received:', data);
+                    this.processBotMusicCommand(data);
+                });
+            } else {
+                console.log('🎵 [MUSIC-PLAYER] [IMMEDIATE] Socket not ready, will retry...');
+                setTimeout(() => this.setupImmediateListeners(), 1000);
+            }
+        }
+    }
+
     setupEventListeners() {
         document.addEventListener('DOMContentLoaded', () => {
             this.initializeAudioEvents();
         });
-        // Listen for bot-music-command globally for debug
+        
+        // Listen for bot-music-command globally
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.on('bot-music-command', (data) => {
                 console.log('🎵 [MUSIC-PLAYER] [GLOBAL] Received bot-music-command:', data);
+                this.processBotMusicCommand(data);
             });
         }
+        
         window.addEventListener('bot-music-command', (e) => {
             console.log('🎵 [MUSIC-PLAYER] [EVENT] bot-music-command:', e.detail);
+            this.processBotMusicCommand(e.detail);
         });
+        
+        // Setup socket listeners when socket is ready
+        this.setupSocketListeners();
+    }
+
+    setupSocketListeners() {
+        const setupListeners = () => {
+            if (!window.globalSocketManager?.isReady()) {
+                setTimeout(setupListeners, 500);
+                return;
+            }
+            
+            const io = window.globalSocketManager.io;
+            console.log('🎵 [MUSIC-PLAYER] Setting up socket listeners');
+            
+            // Remove existing listeners to prevent duplicates
+            io.off('bot-music-command');
+            
+            io.on('bot-music-command', (data) => {
+                console.log('🎵 [MUSIC-PLAYER] Received bot music command via socket:', data);
+                this.processBotMusicCommand(data);
+            });
+        };
+        
+        setupListeners();
+    }
+
+    async processBotMusicCommand(data) {
+        console.log('🎵 [MUSIC-PLAYER] Processing bot music command:', data);
+        
+        if (!data || !data.music_data) {
+            console.warn('⚠️ [MUSIC-PLAYER] Invalid bot music command data:', data);
+            return;
+        }
+        
+        const { music_data } = data;
+        const { action, query, track } = music_data;
+        
+        // Show immediate feedback
+        this.showStatus(`Processing ${action} command...`);
+        
+        try {
+            switch (action) {
+                case 'play':
+                    console.log('🎵 [MUSIC-PLAYER] Executing PLAY command:', query);
+                    if (query && query.trim()) {
+                        this.showStatus(`Searching for: ${query}`);
+                        const searchResult = await this.searchMusic(query.trim());
+                        if (searchResult && searchResult.previewUrl) {
+                            await this.playTrack(searchResult);
+                            this.showNowPlaying(searchResult);
+                            this.showStatus(`Now playing: ${searchResult.title}`);
+                            console.log('✅ [MUSIC-PLAYER] Successfully started playing:', searchResult.title);
+                        } else {
+                            console.warn('⚠️ [MUSIC-PLAYER] No playable track found for:', query);
+                            this.showError('No playable track found for: ' + query);
+                        }
+                    } else if (track && track.previewUrl) {
+                        await this.playTrack(track);
+                        this.showNowPlaying(track);
+                        this.showStatus(`Now playing: ${track.title}`);
+                        console.log('✅ [MUSIC-PLAYER] Successfully started playing provided track:', track.title);
+                    } else {
+                        this.showError('No song specified or found');
+                    }
+                    break;
+                    
+                case 'stop':
+                    console.log('🎵 [MUSIC-PLAYER] Executing STOP command');
+                    await this.stop();
+                    this.hideNowPlaying();
+                    this.showStatus('Music stopped');
+                    break;
+                    
+                case 'next':
+                    console.log('🎵 [MUSIC-PLAYER] Executing NEXT command');
+                    await this.playNext();
+                    this.showStatus('Playing next song');
+                    break;
+                    
+                case 'prev':
+                    console.log('🎵 [MUSIC-PLAYER] Executing PREV command');
+                    await this.playPrevious();
+                    this.showStatus('Playing previous song');
+                    break;
+                    
+                case 'queue':
+                    console.log('🎵 [MUSIC-PLAYER] Executing QUEUE command:', query);
+                    if (query && query.trim()) {
+                        await this.addToQueue(query.trim());
+                        this.showStatus('Added to queue: ' + query);
+                    } else {
+                        this.showError('No song specified for queue');
+                    }
+                    break;
+                    
+                default:
+                    console.warn('⚠️ [MUSIC-PLAYER] Unknown music action:', action);
+                    this.showError('Unknown music command: ' + action);
+            }
+        } catch (error) {
+            console.error('❌ [MUSIC-PLAYER] Error processing bot music command:', error);
+            this.showError('Failed to process music command: ' + error.message);
+        }
     }
 
 
@@ -495,7 +645,7 @@ class MusicPlayerSystem {
             }
             return null;
         } catch (error) {
-            console.error('Music search error:', error);
+            console.error('Music search erfror:', error);
             return null;
         }
     }
