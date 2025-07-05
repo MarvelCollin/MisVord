@@ -14,7 +14,7 @@ if ($activeChannel) {
     $channelType = is_array($activeChannel) ? ($activeChannel['type'] ?? 'text') : ($activeChannel->type ?? 'text');
 }
 
-$isVoiceChannel = ($channelType === 'voice' || $channelType === 'vc' || $channelType === 2);
+$isVoiceChannel = ($channelType === 'voice' || $channelType === 'vc');
 $isTextChannel = !$isVoiceChannel;
 
 $serverIdFromUrl = null;
@@ -109,7 +109,7 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
                                 if (!$channelType) {
                                     if (isset($channel['type_name']) && $channel['type_name'] === 'voice') {
                                         $channelType = 'voice';
-                                    } elseif (isset($channel['type']) && ($channel['type'] === 'voice' || $channel['type'] === 2)) {
+                                    } elseif (isset($channel['type']) && $channel['type'] === 'voice') {
                                         $channelType = 'voice';
                                     } else {
                                         $channelType = 'text';

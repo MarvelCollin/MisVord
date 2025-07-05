@@ -2075,7 +2075,7 @@ class ServerController extends BaseController
 
             $defaultChannelId = null;
             foreach ($channels as $channel) {
-                if ($channel['type'] === 'text' || $channel['type'] === 0 || $channel['type_name'] === 'text') {
+                if ($channel['type'] === 'text' || $channel['type_name'] === 'text') {
                     $defaultChannelId = $channel['id'];
                     break;
                 }
@@ -2221,7 +2221,7 @@ class ServerController extends BaseController
 
             if (!$activeChannelId && !empty($channels)) {
                 foreach ($channels as $channel) {
-                    if ($channel['type'] === 'text' || $channel['type'] === 0 || $channel['type_name'] === 'text') {
+                    if ($channel['type'] === 'text' || $channel['type_name'] === 'text') {
                         $activeChannelId = $channel['id'];
                         break;
                     }
@@ -2233,7 +2233,7 @@ class ServerController extends BaseController
                 if ($activeChannel && $activeChannel->server_id == $serverId) {
                     if (isset($activeChannel->type_name) && $activeChannel->type_name === 'voice') {
                         $channelType = 'voice';
-                    } elseif (isset($activeChannel->type) && ($activeChannel->type === 'voice' || $activeChannel->type === 2)) {
+                    } elseif (isset($activeChannel->type) && $activeChannel->type === 'voice') {
                         $channelType = 'voice';
                     }
                     
@@ -2368,13 +2368,21 @@ class ServerController extends BaseController
                 return $this->forbidden('You do not have permission to update this server');
             }
 
-            if (!isset($_FILES['icon']) || $_FILES['icon']['error'] !== UPLOAD_ERR_OK) {
+            // Check for both field names for compatibility
+            $iconField = null;
+            if (isset($_FILES['icon']) && $_FILES['icon']['error'] === UPLOAD_ERR_OK) {
+                $iconField = 'icon';
+            } elseif (isset($_FILES['server_icon']) && $_FILES['server_icon']['error'] === UPLOAD_ERR_OK) {
+                $iconField = 'server_icon';
+            }
+
+            if (!$iconField) {
                 return $this->validationError(['icon' => 'No icon file uploaded']);
             }
 
             try {
-                $this->validateUploadedFile($_FILES['icon']);
-                $imageUrl = $this->uploadImage($_FILES['icon'], 'icon');
+                $this->validateUploadedFile($_FILES[$iconField]);
+                $imageUrl = $this->uploadImage($_FILES[$iconField], 'icon');
                 
                 if ($imageUrl === false) {
                     return $this->serverError('Failed to upload server icon');
@@ -2422,13 +2430,21 @@ class ServerController extends BaseController
                 return $this->forbidden('You do not have permission to update this server');
             }
 
-            if (!isset($_FILES['banner']) || $_FILES['banner']['error'] !== UPLOAD_ERR_OK) {
+            // Check for both field names for compatibility
+            $bannerField = null;
+            if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
+                $bannerField = 'banner';
+            } elseif (isset($_FILES['server_banner']) && $_FILES['server_banner']['error'] === UPLOAD_ERR_OK) {
+                $bannerField = 'server_banner';
+            }
+
+            if (!$bannerField) {
                 return $this->validationError(['banner' => 'No banner file uploaded']);
             }
 
             try {
-                $this->validateUploadedFile($_FILES['banner']);
-                $bannerUrl = $this->uploadImage($_FILES['banner'], 'banner');
+                $this->validateUploadedFile($_FILES[$bannerField]);
+                $bannerUrl = $this->uploadImage($_FILES[$bannerField], 'banner');
                 
                 if ($bannerUrl === false) {
                     return $this->serverError('Failed to upload server banner');

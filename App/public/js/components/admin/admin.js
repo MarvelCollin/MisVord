@@ -255,7 +255,7 @@ class AdminManager {
             Cancel
           </button>
           <button id="discord-confirm-button" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors">
-            ${isUnban ? 'Unban' : 'Ban'}
+            ${title.toLowerCase().includes('unban') ? 'Unban' : 'Ban'}
           </button>
         </div>
       </div>

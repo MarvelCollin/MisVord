@@ -94,32 +94,35 @@ function initServerSettingsPage() {
     initCloseButton();
 }
 
-function createImageUploadHandler(containerId, inputId, previewId, placeholderId, type, onSuccess) {
+function createImageUploadHandler(containerId, previewId, placeholderId, type, onSuccess) {
     const container = document.getElementById(containerId);
-    const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
     const placeholder = document.getElementById(placeholderId);
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
-    
-    if (!container || !input || !serverId) return;
-    
+
+    if (!container || !serverId) return;
+
     try {
         const cutter = new ImageCutter({
             container: container,
             type: type,
             modalTitle: `Upload Server ${type === 'profile' ? 'Icon' : 'Banner'}`,
-            aspectRatio: type === 'profile' ? 1 : 16/9,
+            aspectRatio: type === 'profile' ? 1 : 16 / 9,
             onCrop: async (result) => {
                 if (result && result.error) {
                     showToast(result.message || `Error cropping server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
                     return;
                 }
-                
+
+                if (!result || !result.dataUrl) {
+                    showToast(`Failed to get cropped image data.`, 'error');
+                    return;
+                }
+
                 try {
-                    // Convert data URL to Blob
                     const blob = dataURLtoBlob(result.dataUrl);
-                    
-                    const response = await (type === 'profile' 
+
+                    const response = await (type === 'profile'
                         ? window.serverAPI.updateServerIcon(serverId, blob)
                         : window.serverAPI.updateServerBanner(serverId, blob));
 
@@ -127,14 +130,12 @@ function createImageUploadHandler(containerId, inputId, previewId, placeholderId
                         if (preview) {
                             preview.src = result.dataUrl;
                             preview.classList.remove('hidden');
-                            
+
                             if (placeholder) placeholder.classList.add('hidden');
                         }
-                        
-                        container.dataset.croppedImage = result.dataUrl;
-                        
+
                         if (onSuccess) onSuccess(result.dataUrl);
-                        
+
                         showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated successfully`, 'success');
                     } else {
                         throw new Error(response.message || `Failed to update server ${type === 'profile' ? 'icon' : 'banner'}`);
@@ -145,7 +146,7 @@ function createImageUploadHandler(containerId, inputId, previewId, placeholderId
                 }
             }
         });
-        
+
         if (type === 'profile') {
             window.serverIconCutter = cutter;
         } else {
@@ -153,58 +154,13 @@ function createImageUploadHandler(containerId, inputId, previewId, placeholderId
         }
     } catch (error) {
         console.error(`Error initializing ${type} cutter:`, error);
-    }
-    
-    if (container) {
-        container.addEventListener('click', function(e) {
-            e.preventDefault();
-            input.click();
-        });
-    }
-    
-    if (input) {
-        input.addEventListener('change', function() {
-            if (!this.files || !this.files[0]) return;
-            
-            const file = this.files[0];
-            
-            if (!file.type.match('image.*')) {
-                showToast('Please select a valid image file', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const cutter = type === 'profile' ? window.serverIconCutter : window.serverBannerCutter;
-                    if (cutter) {
-                        cutter.loadImage(e.target.result);
-                    } else {
-                        if (preview) {
-                            preview.src = e.target.result;
-                            preview.classList.remove('hidden');
-                            
-                            if (placeholder) placeholder.classList.add('hidden');
-                        }
-                        
-                        container.dataset.croppedImage = e.target.result;
-                        
-                        if (onSuccess) onSuccess(e.target.result);
-                    }
-                } catch (error) {
-                    showToast(`Error processing server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
-                }
-            };
-            
-            reader.readAsDataURL(file);
-        });
+        showToast(`Could not initialize image uploader for server ${type}.`, 'error');
     }
 }
 
 function initServerIconUpload() {
     createImageUploadHandler(
         'server-icon-container',
-        'server-icon-input', 
         'server-icon-preview',
         'server-icon-placeholder',
         'profile',
@@ -215,7 +171,6 @@ function initServerIconUpload() {
 function initServerBannerUpload() {
     createImageUploadHandler(
         'server-banner-container',
-        'server-banner-input',
         'server-banner-preview', 
         'server-banner-placeholder',
         'banner',

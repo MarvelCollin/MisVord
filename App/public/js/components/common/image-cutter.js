@@ -39,6 +39,7 @@ class ImageCutter {
             }
             
             this.options.container.classList.add('image-cutter-enabled');
+            this.createFileInput();
             
             if (this.options.imageUrl) {
                 this.createModal();
@@ -50,10 +51,8 @@ class ImageCutter {
                     if (e.target.tagName === 'INPUT' && e.target.type === 'file') {
                         return;
                     }
-                    
-                    if (this.image && this.image.src) {
-                        this.showModal();
-                    }
+
+                    this.fileInput.click();
                 } catch (error) {
                     console.error('Error in container click handler:', error);
                 }
@@ -61,6 +60,21 @@ class ImageCutter {
         } catch (error) {
             console.error('Error initializing ImageCutter:', error);
         }
+    }
+
+    createFileInput() {
+        this.fileInput = document.createElement('input');
+        this.fileInput.type = 'file';
+        this.fileInput.accept = 'image/*';
+        this.fileInput.style.display = 'none';
+        this.options.container.appendChild(this.fileInput);
+
+        this.fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.loadImageFromFile(file);
+            }
+        });
     }
 
     createSliderControls() {

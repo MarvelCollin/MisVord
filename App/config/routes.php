@@ -818,8 +818,7 @@ Route::get('/api/admin/users', function() {
 });
 
 Route::get('/api/admin/users/search', function() {
-    $controller = new AdminController();
-    return $controller->searchUsers();
+    (new AdminController())->searchUsers();
 });
 
 Route::get('/api/admin/users/([0-9]+)', function($id) {
@@ -888,8 +887,7 @@ Route::get('/api/admin/nitro/list', function() {
 });
 
 Route::get('/api/admin/nitro/stats', function() {
-    $controller = new NitroController();
-    $controller->getStats();
+    (new AdminController())->getNitroStats();
 });
 
 Route::post('/api/admin/nitro/generate', function() {

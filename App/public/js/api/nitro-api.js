@@ -55,7 +55,7 @@ class NitroAPI {
     }
 
     async getStats() {
-        return await this.makeRequest(`${this.baseURL}/stats`);
+        return await this.makeRequest('/api/admin/nitro/stats');
     }
 
     async listCodes(page = 1, limit = 10, search = '') {

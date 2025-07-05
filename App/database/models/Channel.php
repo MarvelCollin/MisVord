@@ -15,7 +15,17 @@ class Channel extends Model {
                 ->get();
 
             foreach ($channels as &$channel) {
-                $channel['type'] = $channel['type'] ?? 'text';
+                // If type is numeric, convert to string
+                if (is_numeric($channel['type'])) {
+                    $channel['type'] = match((int)$channel['type']) {
+                        2 => 'voice',
+                        3 => 'category',
+                        4 => 'announcement',
+                        5 => 'forum',
+                        default => 'text'
+                    };
+                }
+                // Ensure we have a type_name for backward compatibility
                 $channel['type_name'] = $channel['type'];
             }
 
@@ -45,17 +55,23 @@ class Channel extends Model {
         try {
             if (isset($this->attributes['type'])) {
                 $type = $this->attributes['type'];
-                if (is_string($type)) {
-                    $this->attributes['type'] = match(strtolower($type)) {
-                        'text' => 1,
-                        'voice' => 2,
-                        'category' => 3,
-                        'announcement' => 4,
-                        'forum' => 5,
-                        default => 1
+                if (is_numeric($type)) {
+                    $this->attributes['type'] = match((int)$type) {
+                        2 => 'voice',
+                        3 => 'category',
+                        4 => 'announcement',
+                        5 => 'forum',
+                        default => 'text'
                     };
                 } else {
-                    $this->attributes['type'] = (int)$type;
+                    // Ensure type is a valid string value
+                    $this->attributes['type'] = match(strtolower($type)) {
+                        'voice' => 'voice',
+                        'category' => 'category',
+                        'announcement' => 'announcement',
+                        'forum' => 'forum',
+                        default => 'text'
+                    };
                 }
             }
 
@@ -153,7 +169,7 @@ class Channel extends Model {
                         CREATE TABLE IF NOT EXISTS " . static::$table . " (
                             id INT AUTO_INCREMENT PRIMARY KEY,
                             name VARCHAR(255) NOT NULL,
-                            type INT NOT NULL DEFAULT 1,
+                            type VARCHAR(20) NOT NULL DEFAULT 'text',
                             description TEXT NULL,
                             server_id INT NOT NULL,
                             category_id INT NULL,
@@ -165,8 +181,7 @@ class Channel extends Model {
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                             FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
                             FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL,
-                            FOREIGN KEY (parent_id) REFERENCES channels(id) ON DELETE SET NULL,
-                            FOREIGN KEY (type) REFERENCES channel_types(id) ON DELETE RESTRICT
+                            FOREIGN KEY (parent_id) REFERENCES channels(id) ON DELETE SET NULL
                         )
                     ");
                 } catch (PDOException $e) {
@@ -177,7 +192,7 @@ class Channel extends Model {
                         CREATE TABLE IF NOT EXISTS " . static::$table . " (
                             id INT AUTO_INCREMENT PRIMARY KEY,
                             name VARCHAR(255) NOT NULL,
-                            type INT NOT NULL DEFAULT 1,
+                            type VARCHAR(20) NOT NULL DEFAULT 'text',
                             description TEXT NULL,
                             server_id INT NOT NULL,
                             category_id INT NULL,
@@ -221,15 +236,18 @@ class Channel extends Model {
                 ->get();
 
             foreach ($channels as &$channel) {
-                $type = $channel['type'] ?? 1;
-                $channel['type_name'] = match($type) {
-                    2 => 'voice',
-                    3 => 'category',
-                    4 => 'announcement',
-                    5 => 'forum',
-                    default => 'text'
-                };
-                $channel['type'] = $channel['type_name'];
+                // If type is numeric, convert to string
+                if (is_numeric($channel['type'])) {
+                    $channel['type'] = match((int)$channel['type']) {
+                        2 => 'voice',
+                        3 => 'category',
+                        4 => 'announcement',
+                        5 => 'forum',
+                        default => 'text'
+                    };
+                }
+                // Ensure we have a type_name for backward compatibility
+                $channel['type_name'] = $channel['type'];
             }
 
             return $channels;
@@ -255,11 +273,26 @@ class Channel extends Model {
     public static function getServerChannelsMinimal($serverId) {
         $query = new Query();
         try {
-            return $query->table(self::$table)
+            $channels = $query->table(self::$table)
                 ->select('id, name, type, category_id, is_private, server_id')
                 ->where('server_id', $serverId)
                 ->orderBy('name', 'ASC')
                 ->get();
+                
+            // Convert numeric types to string values
+            foreach ($channels as &$channel) {
+                if (is_numeric($channel['type'])) {
+                    $channel['type'] = match((int)$channel['type']) {
+                        2 => 'voice',
+                        3 => 'category',
+                        4 => 'announcement',
+                        5 => 'forum',
+                        default => 'text'
+                    };
+                }
+            }
+            
+            return $channels;
         } catch (Exception $e) {
             log_error("Error getting minimal channels for server: " . $e->getMessage());
             return [];

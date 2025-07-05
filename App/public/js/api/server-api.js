@@ -548,13 +548,18 @@ const serverAPI = {
         
         // Handle both Blob and DataURL
         if (iconData instanceof Blob) {
-            formData.append('icon', iconData, 'server_icon.png');
+            formData.append('server_icon', iconData, 'server_icon.png');
         } else {
             // Convert DataURL to Blob if needed
-            const blob = this.dataURLtoBlob ? 
-                this.dataURLtoBlob(iconData) : 
-                new Blob([iconData], { type: 'image/png' });
-            formData.append('icon', blob, 'server_icon.png');
+            try {
+                const blob = this.dataURLtoBlob ? 
+                    this.dataURLtoBlob(iconData) : 
+                    this.convertDataURLToBlob(iconData);
+                formData.append('server_icon', blob, 'server_icon.png');
+            } catch (error) {
+                console.error('Error converting data URL to blob:', error);
+                return Promise.reject(new Error('Failed to process image data'));
+            }
         }
         
         return fetch(`/api/servers/${serverId}/update/icon`, {
@@ -575,13 +580,18 @@ const serverAPI = {
         
         // Handle both Blob and DataURL
         if (bannerData instanceof Blob) {
-            formData.append('banner', bannerData, 'server_banner.png');
+            formData.append('server_banner', bannerData, 'server_banner.png');
         } else {
             // Convert DataURL to Blob if needed
-            const blob = this.dataURLtoBlob ? 
-                this.dataURLtoBlob(bannerData) : 
-                new Blob([bannerData], { type: 'image/png' });
-            formData.append('banner', blob, 'server_banner.png');
+            try {
+                const blob = this.dataURLtoBlob ? 
+                    this.dataURLtoBlob(bannerData) : 
+                    this.convertDataURLToBlob(bannerData);
+                formData.append('server_banner', blob, 'server_banner.png');
+            } catch (error) {
+                console.error('Error converting data URL to blob:', error);
+                return Promise.reject(new Error('Failed to process image data'));
+            }
         }
         
         return fetch(`/api/servers/${serverId}/update/banner`, {
@@ -597,7 +607,21 @@ const serverAPI = {
         });
     },
     
-    // Helper method to convert dataURL to Blob
+    // Helper method to convert data URL to Blob
+    convertDataURLToBlob: function(dataURL) {
+        const arr = dataURL.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        
+        return new Blob([u8arr], { type: mime });
+    },
+
     dataURLtoBlob: function(dataURL) {
         const arr = dataURL.split(',');
         const mime = arr[0].match(/:(.*?);/)[1];

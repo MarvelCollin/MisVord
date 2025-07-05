@@ -281,7 +281,6 @@ ob_start();
                                         };
                                         ?>
                                     ">
-                                        <span class="badge-status <?php echo $user->status === 'banned' ? 'banned' : ($user->status === 'online' ? 'online' : 'offline'); ?>"></span>
                                         <?php echo htmlspecialchars($user->status); ?>
                                     </span>
                                 </div>
@@ -324,7 +323,6 @@ ob_start();
                                 <div class="ml-3">
                                     <div class="user-name">
                                         <?php echo htmlspecialchars($user->username); ?>
-                                        <span class="badge-status <?php echo $user->status === 'banned' ? 'banned' : ($user->status === 'online' ? 'online' : 'offline'); ?>"></span>
                                     </div>
                                     <div class="text-discord-lighter text-xs">#<?php echo htmlspecialchars($user->discriminator); ?></div>
                                 </div>

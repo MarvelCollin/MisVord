@@ -4,12 +4,14 @@ require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../database/repositories/ServerRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
+require_once __DIR__ . '/../database/repositories/NitroRepository.php';
 
 class AdminController extends BaseController
 {
     private $userRepository;
     private $serverRepository;
     private $messageRepository;
+    private $nitroRepository;
 
     public function __construct()
     {
@@ -17,6 +19,7 @@ class AdminController extends BaseController
         $this->userRepository = new UserRepository();
         $this->serverRepository = new ServerRepository();
         $this->messageRepository = new MessageRepository();
+        $this->nitroRepository = new NitroRepository();
     }
 
     public function index()
@@ -545,8 +548,28 @@ class AdminController extends BaseController
         ]);
     }
     
+    public function getNitroStats()
+    {
+        $this->requireAdmin();
 
+        try {
+            $total = $this->nitroRepository->countTotalCodes();
+            $active = $this->nitroRepository->countActiveCodes();
+            $used = $total - $active;
 
+            $stats = [
+                'total' => intval($total),
+                'active' => intval($active),
+                'used' => intval($used)
+            ];
+
+            return $this->success(['stats' => $stats], 'Nitro stats retrieved successfully');
+        } catch (Exception $e) {
+            error_log("AdminController getNitroStats error: " . $e->getMessage());
+            return $this->serverError('Failed to get Nitro stats: ' . $e->getMessage());
+        }
+    }
+    
     public function toggleUserBan($userId) {
         $this->requireAdmin();
         

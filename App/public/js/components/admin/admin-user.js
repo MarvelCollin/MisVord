@@ -489,7 +489,6 @@ export class UserManager {
         <td>${email}</td>
         <td>
           <span class="user-badge inline-flex items-center px-2 py-1 rounded-md text-xs" style="${statusStyle}">
-              <span class="badge-status ${statusClass}"></span>
               ${statusDisplay}
             </span>
         </td>
@@ -559,8 +558,6 @@ export class UserManager {
       const createdAt = user.created_at ? this.formatDate(user.created_at) : 'Unknown';
       const isBanned = user.status === 'banned';
       
-      let statusClass = isBanned ? 'banned' : 'active';
-      
       let avatarContent = user.avatar_url 
         ? `<img src="${user.avatar_url}" alt="${username}">`
         : `${username.charAt(0).toUpperCase()}`;
@@ -574,7 +571,6 @@ export class UserManager {
             <div>
               <div class="font-medium flex items-center">
               ${username}
-                <span class="badge-status ${statusClass} ml-2"></span>
             </div>
             <div class="text-discord-lighter text-xs">#${discriminator}</div>
           </div>

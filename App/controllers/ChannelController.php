@@ -83,7 +83,7 @@ class ChannelController extends BaseController
         }
     }
 
-        public function show($channelId = null)
+    public function show($channelId = null)
     {
         $this->requireAuth();
 
@@ -100,11 +100,23 @@ class ChannelController extends BaseController
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;
 
+            // Ensure channel type is a string
+            $channelType = $channel->type;
+            if (is_numeric($channelType)) {
+                $channelType = match((int)$channelType) {
+                    2 => 'voice',
+                    3 => 'category',
+                    4 => 'announcement',
+                    5 => 'forum',
+                    default => 'text'
+                };
+            }
+
             $responseData = [
                 'channel' => [
                     'id' => $channel->id,
                     'name' => $channel->name,
-                    'type' => $channel->type,
+                    'type' => $channelType,
                     'description' => $channel->description,
                     'server_id' => $channel->server_id,
                     'category_id' => $channel->category_id,
@@ -149,10 +161,30 @@ class ChannelController extends BaseController
             $accessCheck = $this->validateServerAccess($input['server_id'], true);
             if ($accessCheck) return $accessCheck;
 
+            // Ensure type is a valid string value
+            $type = $input['type'];
+            if (is_numeric($type)) {
+                $type = match((int)$type) {
+                    2 => 'voice',
+                    3 => 'category',
+                    4 => 'announcement',
+                    5 => 'forum',
+                    default => 'text'
+                };
+            } else {
+                $type = match(strtolower($type)) {
+                    'voice' => 'voice',
+                    'category' => 'category',
+                    'announcement' => 'announcement',
+                    'forum' => 'forum',
+                    default => 'text'
+                };
+            }
+
             $channelData = [
                 'name' => $input['name'],
                 'server_id' => $input['server_id'],
-                'type' => $input['type'],
+                'type' => $type,
                 'description' => $input['description'] ?? null,
                 'category_id' => $input['category_id'] ?? null,
                 'created_by' => $this->getCurrentUserId(),
@@ -615,11 +647,23 @@ class ChannelController extends BaseController
                 $message = $this->formatMessage($message);
             }
             
+            // Ensure channel type is a string
+            $channelType = $channel->type;
+            if (is_numeric($channelType)) {
+                $channelType = match((int)$channelType) {
+                    2 => 'voice',
+                    3 => 'category',
+                    4 => 'announcement',
+                    5 => 'forum',
+                    default => 'text'
+                };
+            }
+            
             return $this->success([
                 'channel' => [
                     'id' => $channel->id,
                     'name' => $channel->name,
-                    'type' => $channel->type,
+                    'type' => $channelType,
                     'description' => $channel->description,
                     'server_id' => $channel->server_id,
                     'category_id' => $channel->category_id,
@@ -661,11 +705,23 @@ class ChannelController extends BaseController
                 return $this->notFound('Channel not found');
             }
 
+            // Ensure channel type is a string
+            $channelType = $channel->type;
+            if (is_numeric($channelType)) {
+                $channelType = match((int)$channelType) {
+                    2 => 'voice',
+                    3 => 'category',
+                    4 => 'announcement',
+                    5 => 'forum',
+                    default => 'text'
+                };
+            }
+
             $responseData = [
                 'channel' => [
                     'id' => $channel->id,
                     'name' => $channel->name,
-                    'type' => $channel->type,
+                    'type' => $channelType,
                     'description' => $channel->description,
                     'server_id' => $channel->server_id,
                     'category_id' => $channel->category_id,
