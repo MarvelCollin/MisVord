@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice UI Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="h-screen w-screen bg-gray-900 p-8">
+        <h1 class="text-white text-2xl mb-4">Voice Interface Test</h1>
+        <div class="bg-gray-800 p-4 rounded-lg">
+            <h2 class="text-white mb-2">Expected Behavior:</h2>
+            <ul class="text-gray-300 space-y-1 mb-4">
+                <li>✅ Join button should be enabled immediately (no automatic loading)</li>
+                <li>✅ Loading container should be hidden initially</li>
+                <li>✅ When clicking join, loading should appear and button should disable</li>
+                <li>✅ Join button text should change to "Connecting..."</li>
+            </ul>
+            
+            <div class="bg-black p-4 rounded" style="height: 400px; overflow: hidden;">
+                <!-- Simulated voice interface -->
+                <div id="joinView" class="h-full w-full flex flex-col items-center justify-center bg-gradient-to-b from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] relative overflow-hidden">
+                    <div class="relative z-10 text-center space-y-8">
+                        <h2 class="text-4xl font-bold text-white mb-2">Test Voice Channel</h2>
+                        <p class="text-blue-100/90 text-lg">No one is currently exploring this space</p>
+                        
+                        <div class="space-y-4">
+                            <div id="loadingContainer" class="w-full max-w-md mx-auto hidden">
+                                <div id="loadingBar" class="mb-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm text-blue-100/80 font-medium">Connecting to voice channel...</span>
+                                        <span id="loadingPercent" class="text-sm text-cyan-300 font-mono">0%</span>
+                                    </div>
+                                    <div class="w-full bg-black/30 rounded-full h-2 overflow-hidden border border-white/10">
+                                        <div id="loadingProgress" class="h-full bg-gradient-to-r from-[#8b5cf6] via-[#06b6d4] to-[#6366f1] rounded-full transition-all duration-100 ease-out" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button id="joinBtn" class="relative transition-all duration-300 bg-gradient-to-r from-[#8b5cf6]/20 to-[#06b6d4]/20 border border-white/30 text-white font-semibold py-4 px-12 rounded-xl hover:scale-110 cursor-pointer z-50" onclick="testJoinVoiceChannel()">
+                                <span class="relative z-10 flex items-center gap-3">
+                                    <i class="fas fa-microphone text-xl"></i>
+                                    <span id="btnText">Enter the voice channel</span>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="status" class="mt-4 p-2 bg-gray-700 rounded text-white text-sm">
+                Ready to test
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testJoinVoiceChannel() {
+            const joinBtn = document.getElementById('joinBtn');
+            const loadingContainer = document.getElementById('loadingContainer');
+            const btnText = document.getElementById('btnText');
+            const status = document.getElementById('status');
+            
+            status.textContent = 'Join button clicked - starting test sequence...';
+            
+            if (joinBtn) {
+                joinBtn.disabled = true;
+                joinBtn.style.cursor = 'not-allowed';
+                joinBtn.style.opacity = '0.7';
+            }
+            
+            if (btnText) btnText.textContent = 'Connecting...';
+            
+            if (loadingContainer) {
+                loadingContainer.classList.remove('hidden');
+                startTestLoadingSequence();
+            }
+        }
+        
+        function startTestLoadingSequence() {
+            const loadingProgress = document.getElementById('loadingProgress');
+            const loadingPercent = document.getElementById('loadingPercent');
+            const status = document.getElementById('status');
+            
+            if (!loadingProgress || !loadingPercent) {
+                return;
+            }
+            
+            const loadingDuration = 2000;
+            let currentProgress = 0;
+            const progressInterval = 50;
+            const progressStep = (100 / (loadingDuration / progressInterval));
+            
+            const updateProgress = () => {
+                currentProgress += progressStep;
+                
+                if (currentProgress > 100) {
+                    currentProgress = 100;
+                }
+                
+                loadingProgress.style.width = currentProgress + '%';
+                loadingPercent.textContent = Math.floor(currentProgress) + '%';
+                
+                if (currentProgress >= 100) {
+                    clearInterval(progressTimer);
+                    status.textContent = '✅ Test completed successfully! Loading works on button click.';
+                    
+                    setTimeout(() => {
+                        resetTestState();
+                    }, 2000);
+                }
+            };
+            
+            const progressTimer = setInterval(updateProgress, progressInterval);
+        }
+        
+        function resetTestState() {
+            const joinBtn = document.getElementById('joinBtn');
+            const loadingContainer = document.getElementById('loadingContainer');
+            const btnText = document.getElementById('btnText');
+            const status = document.getElementById('status');
+            
+            if (joinBtn) {
+                joinBtn.disabled = false;
+                joinBtn.style.cursor = 'pointer';
+                joinBtn.style.opacity = '1';
+            }
+            if (btnText) btnText.textContent = 'Enter the voice channel';
+            if (loadingContainer) loadingContainer.classList.add('hidden');
+            if (status) status.textContent = 'Ready to test again';
+        }
+        
+        // Verify initial state
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingContainer = document.getElementById('loadingContainer');
+            const joinBtn = document.getElementById('joinBtn');
+            const status = document.getElementById('status');
+            
+            let initialChecks = [];
+            
+            if (loadingContainer && loadingContainer.classList.contains('hidden')) {
+                initialChecks.push('✅ Loading container is hidden initially');
+            } else {
+                initialChecks.push('❌ Loading container should be hidden initially');
+            }
+            
+            if (joinBtn && !joinBtn.disabled) {
+                initialChecks.push('✅ Join button is enabled initially');
+            } else {
+                initialChecks.push('❌ Join button should be enabled initially');
+            }
+            
+            status.innerHTML = initialChecks.join('<br>') + '<br><br>Click the join button to test the loading sequence.';
+        });
+    </script>
+</body>
+</html>

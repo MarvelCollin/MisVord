@@ -50,10 +50,10 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
         <p class="text-blue-100/90 text-lg drop-shadow-lg font-light tracking-wide">No one is currently exploring this space</p>
         
         <div class="space-y-4">
-            <div id="loadingContainer" class="w-full max-w-md mx-auto">
+            <div id="loadingContainer" class="w-full max-w-md mx-auto hidden">
                 <div id="loadingBar" class="mb-4">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm text-blue-100/80 font-medium">Initializing voice connection...</span>
+                        <span class="text-sm text-blue-100/80 font-medium">Connecting to voice channel...</span>
                         <span id="loadingPercent" class="text-sm text-cyan-300 font-mono">0%</span>
                     </div>
                     <div class="w-full bg-black/30 rounded-full h-2 overflow-hidden border border-white/10">
@@ -69,10 +69,10 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
                 </div>
             </div>
             
-            <button id="joinBtn" class="relative transition-all duration-300 bg-gradient-to-r from-gray-600/20 to-gray-500/20 border border-gray-500/30 text-gray-400 font-semibold py-4 px-12 rounded-xl cursor-not-allowed z-50 opacity-50" disabled onclick="joinVoiceChannel()">
+            <button id="joinBtn" class="relative transition-all duration-300 bg-gradient-to-r from-[#8b5cf6]/20 to-[#06b6d4]/20 border border-white/30 text-white font-semibold py-4 px-12 rounded-xl hover:scale-110 cursor-pointer z-50" onclick="joinVoiceChannel()">
                 <span class="relative z-10 flex items-center gap-3">
                     <i class="fas fa-microphone text-xl"></i>
-                    <span id="btnText">Preparing...</span>
+                    <span id="btnText">Enter the voice channel</span>
                 </span>
             </button>
         </div>
@@ -227,8 +227,16 @@ function resetJoinState() {
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
+    const loadingContainer = document.getElementById('loadingContainer');
+    const btnText = document.getElementById('btnText');
     
-    if (joinBtn) joinBtn.disabled = false;
+    if (joinBtn) {
+        joinBtn.disabled = false;
+        joinBtn.style.cursor = 'pointer';
+        joinBtn.style.opacity = '1';
+    }
+    if (btnText) btnText.textContent = 'Enter the voice channel';
+    if (loadingContainer) loadingContainer.classList.add('hidden');
     if (joinView) joinView.classList.remove('hidden');
     if (connectingView) connectingView.classList.add('hidden');
 }
@@ -237,12 +245,21 @@ async function joinVoiceChannel() {
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
+    const loadingContainer = document.getElementById('loadingContainer');
+    const btnText = document.getElementById('btnText');
     
-
+    if (joinBtn) {
+        joinBtn.disabled = true;
+        joinBtn.style.cursor = 'not-allowed';
+        joinBtn.style.opacity = '0.7';
+    }
     
-    if (joinBtn) joinBtn.disabled = true;
-    if (joinView) joinView.classList.add('hidden');
-    if (connectingView) connectingView.classList.remove('hidden');
+    if (btnText) btnText.textContent = 'Connecting...';
+    
+    if (loadingContainer) {
+        loadingContainer.classList.remove('hidden');
+        startVoiceLoadingSequence();
+    }
     
     if (window.MusicLoaderStatic?.playCallSound) {
         window.MusicLoaderStatic.playCallSound();
@@ -287,7 +304,9 @@ async function joinVoiceChannel() {
         window.videoSDKManager.markExternalJoinSuccess();
         joinSuccessful = true;
         
-        // Fire the voice connect event to switch UI
+        if (joinView) joinView.classList.add('hidden');
+        if (connectingView) connectingView.classList.remove('hidden');
+        
         console.log('[VOICE-JOIN] Firing voiceConnect event to switch UI');
         window.dispatchEvent(new CustomEvent('voiceConnect', {
             detail: { 
@@ -298,12 +317,9 @@ async function joinVoiceChannel() {
         }));
         
         if (window.waitForVideoSDKReady) {
-
             await window.waitForVideoSDKReady();
         }
-              await waitForVoiceCallSectionReady();
-        
-        // Success - the voiceConnect event will handle UI switching
+        await waitForVoiceCallSectionReady();
         
     } catch (error) {
         console.error('[VOICE] Error joining voice:', error);
@@ -320,9 +336,15 @@ async function joinVoiceChannel() {
             }, 3000);
         }
         
-
+        if (loadingContainer) loadingContainer.classList.add('hidden');
+        if (joinBtn) {
+            joinBtn.disabled = false;
+            joinBtn.style.cursor = 'pointer';
+            joinBtn.style.opacity = '1';
+        }
+        if (btnText) btnText.textContent = 'Enter the voice channel';
+        
         setTimeout(() => {
-
             const voiceCallContainer = document.getElementById('voice-call-container');
             const isVoiceCallVisible = voiceCallContainer && !voiceCallContainer.classList.contains('hidden');
             
@@ -407,22 +429,19 @@ async function waitForVoiceCallSectionReady(timeout = 5000) {
 function startVoiceLoadingSequence() {
     const loadingProgress = document.getElementById('loadingProgress');
     const loadingPercent = document.getElementById('loadingPercent');
-    const joinBtn = document.getElementById('joinBtn');
-    const btnText = document.getElementById('btnText');
     
-    if (!loadingProgress || !loadingPercent || !joinBtn) {
+    if (!loadingProgress || !loadingPercent) {
         return;
     }
     
-    const loadingDuration = Math.floor(Math.random() * 1000) + 3000;
+    const loadingDuration = 2000;
     let currentProgress = 0;
     const progressInterval = 50;
     const progressStep = (100 / (loadingDuration / progressInterval));
     
     const loadingMessages = [
-        'Initializing voice connection...',
-        'Checking audio permissions...',
         'Connecting to voice server...',
+        'Initializing VideoSDK...',
         'Preparing audio systems...',
         'Almost ready...'
     ];
@@ -445,7 +464,7 @@ function startVoiceLoadingSequence() {
         loadingProgress.style.width = currentProgress + '%';
         loadingPercent.textContent = Math.floor(currentProgress) + '%';
         
-        if (currentProgress >= 20 && messageIndex < loadingMessages.length - 1) {
+        if (currentProgress >= 25 && messageIndex < loadingMessages.length - 1) {
             const messageThreshold = (messageIndex + 1) * (100 / loadingMessages.length);
             if (currentProgress >= messageThreshold) {
                 messageIndex++;
@@ -457,52 +476,10 @@ function startVoiceLoadingSequence() {
         
         if (currentProgress >= 100) {
             clearInterval(progressTimer);
-            setTimeout(() => {
-                completeLoading();
-            }, 300);
         }
     };
     
     const progressTimer = setInterval(updateProgress, progressInterval);
-    
-    function completeLoading() {
-        const loadingContainer = document.getElementById('loadingContainer');
-        
-        if (loadingContainer) {
-            loadingContainer.style.opacity = '0';
-            loadingContainer.style.transform = 'translateY(-20px)';
-            loadingContainer.style.transition = 'all 0.5s ease-out';
-            
-            setTimeout(() => {
-                loadingContainer.style.display = 'none';
-            }, 500);
-        }
-        
-        if (joinBtn && btnText) {
-            joinBtn.disabled = false;
-            joinBtn.style.pointerEvents = 'auto';
-            joinBtn.style.cursor = 'pointer';
-            joinBtn.className = 'relative transition-all duration-300 bg-gradient-to-r from-[#8b5cf6]/20 to-[#06b6d4]/20 border border-white/30 text-white font-semibold py-4 px-12 rounded-xl hover:scale-110 cursor-pointer z-50';
-            
-            btnText.textContent = 'Enter the voice channel';
-            
-            joinBtn.style.opacity = '0';
-            joinBtn.style.transform = 'translateY(20px)';
-            
-            setTimeout(() => {
-                joinBtn.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
-                joinBtn.style.opacity = '1';
-                joinBtn.style.transform = 'translateY(0)';
-                
-                setTimeout(() => {
-                    const icon = joinBtn.querySelector('i');
-                    if (icon) {
-                        icon.className = 'fas fa-microphone text-xl transition-transform group-hover:scale-110';
-                    }
-                }, 300);
-            }, 100);
-        }
-    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -538,15 +515,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 resetJoinState();
             }
         });
-
     }
-    
-    setTimeout(() => {
-        const voiceElements = document.getElementById('joinView');
-        if (voiceElements) {
-            startVoiceLoadingSequence();
-        }
-    }, 500);
     
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });
