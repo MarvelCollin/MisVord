@@ -139,6 +139,14 @@ foreach ($members as $member) {
                                 default => $isOffline ? 'text-gray-500' : 'text-gray-300'
                             };
                             
+                            $hoverTextColorClass = match($role) {
+                                'owner' => $isOffline ? 'group-hover:text-yellow-700' : 'group-hover:text-yellow-400',
+                                'admin' => $isOffline ? 'group-hover:text-red-700' : 'group-hover:text-red-400',
+                                'bot' => 'group-hover:text-blue-400',
+                                'offline' => 'group-hover:text-gray-500',
+                                default => $isOffline ? 'group-hover:text-gray-500' : 'group-hover:text-gray-300'
+                            };
+                            
                             $imgOpacityClass = $isOffline ? 'opacity-70' : '';
                         ?>
                             <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" 
@@ -162,7 +170,7 @@ foreach ($members as $member) {
                                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <span class="<?php echo $textColorClass; ?> text-sm truncate font-bold member-username" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
+                                    <span class="<?php echo $textColorClass; ?> <?php echo $hoverTextColorClass; ?> text-sm truncate font-bold member-username" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
                                     <?php if ($member['status'] === 'bot'): ?>
                                         <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
                                     <?php endif; ?>
@@ -517,6 +525,12 @@ function updateParticipantDisplay() {
                                   role === 'offline' ? 'text-gray-500' :
                                   isOffline ? 'text-gray-500' : 'text-gray-300';
             
+            const hoverTextColorClass = role === 'owner' ? (isOffline ? 'group-hover:text-yellow-700' : 'group-hover:text-yellow-400') :
+                                  role === 'admin' ? (isOffline ? 'group-hover:text-red-700' : 'group-hover:text-red-400') :
+                                  role === 'bot' ? 'group-hover:text-blue-400' :
+                                  role === 'offline' ? 'group-hover:text-gray-500' :
+                                  isOffline ? 'group-hover:text-gray-500' : 'group-hover:text-gray-300';
+            
             const imgOpacityClass = isOffline ? 'opacity-70' : '';
             
             const memberEl = document.createElement('div');
@@ -540,7 +554,7 @@ function updateParticipantDisplay() {
                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator"></span>
                 </div>
                 <div class="flex-1 min-w-0">
-                    <span class="${textColorClass} text-sm truncate font-bold member-username" data-user-id="${member.id || '0'}">${username}</span>
+                    <span class="${textColorClass} ${hoverTextColorClass} text-sm truncate font-bold member-username" data-user-id="${member.id || '0'}">${username}</span>
                     ${member.status === 'bot' ? '<span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>' : ''}
                     <div class="text-xs text-gray-400 truncate user-presence-text" data-user-id="${member.id || '0'}">${activityText}</div>
                 </div>
