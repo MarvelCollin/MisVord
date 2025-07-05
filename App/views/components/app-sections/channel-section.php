@@ -149,6 +149,13 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 });
                 
                 if (empty($categoryChannels)) continue;
+                
+                $textChannels = array_filter($categoryChannels, function($ch) {
+                    return ($ch['type'] ?? 'text') === 'text';
+                });
+                $voiceChannels = array_filter($categoryChannels, function($ch) {
+                    return ($ch['type'] ?? 'text') === 'voice';
+                });
                 ?>
                 <div class="category-section mb-4" data-category-id="<?php echo $category['id']; ?>">
                     <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer group transition-all duration-200" 
@@ -157,9 +164,21 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                         <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
                     </div>
                     <div class="category-channels ml-2" data-category-id="<?php echo $category['id']; ?>">
-                        <?php foreach ($categoryChannels as $channel): ?>
-                            <?php renderChannel($channel, $activeChannelId); ?>
-                        <?php endforeach; ?>
+                        <?php if (!empty($textChannels)): ?>
+                            <div class="channels-section group" data-section-type="text" data-server-id="<?php echo $currentServerId; ?>">
+                                <?php foreach ($textChannels as $channel): ?>
+                                    <?php renderChannel($channel, $activeChannelId); ?>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if (!empty($voiceChannels)): ?>
+                            <div class="voice-channels-section group" data-section-type="voice" data-server-id="<?php echo $currentServerId; ?>">
+                                <?php foreach ($voiceChannels as $channel): ?>
+                                    <?php renderChannel($channel, $activeChannelId); ?>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
