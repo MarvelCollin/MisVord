@@ -25,11 +25,12 @@ if (file_exists($tooltipPath)) {
 
 <link rel="stylesheet" href="/public/css/server-sidebar.css">
 
-
+<!-- Add a container for tooltips at the root level -->
+<div id="tooltip-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 0; z-index: 99999; pointer-events: none;"></div>
 
 <div class="flex h-full">
-    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible transition-all duration-200">
-        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto">
+    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible transition-all duration-200" style="overflow: visible !important;">
+        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto" style="overflow-x: visible !important;">
             <div class="server-sidebar-icon <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">
                     <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
@@ -110,45 +111,22 @@ if (file_exists($tooltipPath)) {
         'currentServer_type' => isset($currentServer) ? gettype($currentServer) : 'N/A'
     ]);
     ?>
-    
-
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    
-    document.querySelectorAll('.server-sidebar-icon').forEach(icon => {
-        const tooltip = icon.querySelector('.tooltip');
-        if (tooltip) {
-            icon.addEventListener('mouseenter', () => {
-                tooltip.classList.remove('hidden');
-                tooltip.style.opacity = '1';
-            });
-            
-            icon.addEventListener('mouseleave', () => {
-                tooltip.classList.add('hidden');
-                tooltip.style.opacity = '0';
-            });
-        }
-    });
-
     document.querySelectorAll('.server-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const serverId = this.getAttribute('data-server-id');
             
             if (!serverId) return;
-            
-
-            
 
             const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
                                     window.voiceManager?.isConnected || 
                                     window.videoSDKManager?.isConnected;
             
             if (isVoiceConnected) {
-
-
                 if (window.handleServerClick) {
                     window.handleServerClick(serverId, e);
                     return;
@@ -158,11 +136,73 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.href = `/server/${serverId}`;
         });
     });
+
+    // Add a function to move tooltips to the container
+    setTimeout(() => {
+        const tooltipContainer = document.getElementById('tooltip-container');
+        if (tooltipContainer) {
+            document.querySelectorAll('.tooltip').forEach(tooltip => {
+                const clone = tooltip.cloneNode(true);
+                tooltipContainer.appendChild(clone);
+                tooltip.style.display = 'none';
+                tooltip.setAttribute('data-has-clone', 'true');
+            });
+        }
+    }, 500);
+});
+
+// Add a periodic cleanup for tooltips
+setInterval(() => {
+    const tooltipContainer = document.getElementById('tooltip-container');
+    if (tooltipContainer) {
+        const visibleTooltips = tooltipContainer.querySelectorAll('.tooltip:not(.hidden)');
+        if (visibleTooltips.length > 0) {
+            // Check if mouse is over the related element
+            let shouldHide = true;
+            visibleTooltips.forEach(tooltip => {
+                const elementId = tooltip.getAttribute('data-for-element');
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const rect = element.getBoundingClientRect();
+                    const mouseX = window.mouseX || 0;
+                    const mouseY = window.mouseY || 0;
+                    
+                    // If mouse is over element, don't hide
+                    if (mouseX >= rect.left && mouseX <= rect.right && 
+                        mouseY >= rect.top && mouseY <= rect.bottom) {
+                        shouldHide = false;
+                    }
+                }
+            });
+            
+            if (shouldHide) {
+                visibleTooltips.forEach(tooltip => {
+                    tooltip.classList.add('hidden');
+                    tooltip.style.opacity = '0';
+                    tooltip.style.display = 'none';
+                });
+            }
+        }
+    }
+}, 2000);
+
+// Track mouse position
+window.mouseX = 0;
+window.mouseY = 0;
+document.addEventListener('mousemove', (e) => {
+    window.mouseX = e.clientX;
+    window.mouseY = e.clientY;
+});
+
+// Hide tooltips on page scroll
+document.addEventListener('scroll', () => {
+    if (window.hideAllTooltips) {
+        window.hideAllTooltips();
+    }
 });
 </script>
 
 <?php
-
 $additional_js = isset($additional_js) ? $additional_js : [];
 $additional_js[] = 'components/servers/server-sidebar';
 $additional_js[] = 'components/servers/server-drag';

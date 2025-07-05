@@ -99,8 +99,9 @@ function createImageUploadHandler(containerId, inputId, previewId, placeholderId
     const input = document.getElementById(inputId);
     const preview = document.getElementById(previewId);
     const placeholder = document.getElementById(placeholderId);
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
     
-    if (!container || !input) return;
+    if (!container || !input || !serverId) return;
     
     try {
         const cutter = new ImageCutter({
@@ -108,24 +109,40 @@ function createImageUploadHandler(containerId, inputId, previewId, placeholderId
             type: type,
             modalTitle: `Upload Server ${type === 'profile' ? 'Icon' : 'Banner'}`,
             aspectRatio: type === 'profile' ? 1 : 16/9,
-            onCrop: (result) => {
+            onCrop: async (result) => {
                 if (result && result.error) {
                     showToast(result.message || `Error cropping server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
                     return;
                 }
                 
-                if (preview) {
-                    preview.src = result.dataUrl;
-                    preview.classList.remove('hidden');
+                try {
+                    // Convert data URL to Blob
+                    const blob = dataURLtoBlob(result.dataUrl);
                     
-                    if (placeholder) placeholder.classList.add('hidden');
+                    const response = await (type === 'profile' 
+                        ? window.serverAPI.updateServerIcon(serverId, blob)
+                        : window.serverAPI.updateServerBanner(serverId, blob));
+
+                    if (response && response.success) {
+                        if (preview) {
+                            preview.src = result.dataUrl;
+                            preview.classList.remove('hidden');
+                            
+                            if (placeholder) placeholder.classList.add('hidden');
+                        }
+                        
+                        container.dataset.croppedImage = result.dataUrl;
+                        
+                        if (onSuccess) onSuccess(result.dataUrl);
+                        
+                        showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated successfully`, 'success');
+                    } else {
+                        throw new Error(response.message || `Failed to update server ${type === 'profile' ? 'icon' : 'banner'}`);
+                    }
+                } catch (error) {
+                    console.error(`Error updating server ${type}:`, error);
+                    showToast(error.message || `Failed to update server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
                 }
-                
-                container.dataset.croppedImage = result.dataUrl;
-                
-                if (onSuccess) onSuccess(result.dataUrl);
-                
-                showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated. Save changes to apply.`, 'info');
             }
         });
         

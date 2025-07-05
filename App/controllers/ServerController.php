@@ -2354,4 +2354,112 @@ class ServerController extends BaseController
         exit;
     }
 
+    public function updateServerIcon($serverId)
+    {
+        try {
+            $this->requireAuth();
+
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->canManageServer($server)) {
+                return $this->forbidden('You do not have permission to update this server');
+            }
+
+            if (!isset($_FILES['icon']) || $_FILES['icon']['error'] !== UPLOAD_ERR_OK) {
+                return $this->validationError(['icon' => 'No icon file uploaded']);
+            }
+
+            try {
+                $this->validateUploadedFile($_FILES['icon']);
+                $imageUrl = $this->uploadImage($_FILES['icon'], 'icon');
+                
+                if ($imageUrl === false) {
+                    return $this->serverError('Failed to upload server icon');
+                }
+
+                $updated = $this->serverRepository->update($serverId, ['image_url' => $imageUrl]);
+                
+                if (!$updated) {
+                    return $this->serverError('Failed to update server icon');
+                }
+
+                $this->logActivity('server_icon_updated', [
+                    'server_id' => $serverId,
+                    'image_url' => $imageUrl
+                ]);
+
+                return $this->success([
+                    'message' => 'Server icon updated successfully',
+                    'image_url' => $imageUrl
+                ]);
+
+            } catch (Exception $e) {
+                $this->logActivity('server_icon_update_error', [
+                    'server_id' => $serverId,
+                    'error' => $e->getMessage()
+                ]);
+                return $this->serverError('Failed to update server icon: ' . $e->getMessage());
+            }
+        } catch (Exception $e) {
+            return $this->serverError('An unexpected error occurred');
+        }
+    }
+
+    public function updateServerBanner($serverId)
+    {
+        try {
+            $this->requireAuth();
+
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            if (!$this->canManageServer($server)) {
+                return $this->forbidden('You do not have permission to update this server');
+            }
+
+            if (!isset($_FILES['banner']) || $_FILES['banner']['error'] !== UPLOAD_ERR_OK) {
+                return $this->validationError(['banner' => 'No banner file uploaded']);
+            }
+
+            try {
+                $this->validateUploadedFile($_FILES['banner']);
+                $bannerUrl = $this->uploadImage($_FILES['banner'], 'banner');
+                
+                if ($bannerUrl === false) {
+                    return $this->serverError('Failed to upload server banner');
+                }
+
+                $updated = $this->serverRepository->update($serverId, ['banner_url' => $bannerUrl]);
+                
+                if (!$updated) {
+                    return $this->serverError('Failed to update server banner');
+                }
+
+                $this->logActivity('server_banner_updated', [
+                    'server_id' => $serverId,
+                    'banner_url' => $bannerUrl
+                ]);
+
+                return $this->success([
+                    'message' => 'Server banner updated successfully',
+                    'banner_url' => $bannerUrl
+                ]);
+
+            } catch (Exception $e) {
+                $this->logActivity('server_banner_update_error', [
+                    'server_id' => $serverId,
+                    'error' => $e->getMessage()
+                ]);
+                return $this->serverError('Failed to update server banner: ' . $e->getMessage());
+            }
+        } catch (Exception $e) {
+            return $this->serverError('An unexpected error occurred');
+        }
+    }
+
 }

@@ -541,6 +541,75 @@ const serverAPI = {
             if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
             return response.json();
         });
+    },
+
+    updateServerIcon: function(serverId, iconData) {
+        const formData = new FormData();
+        
+        // Handle both Blob and DataURL
+        if (iconData instanceof Blob) {
+            formData.append('icon', iconData, 'server_icon.png');
+        } else {
+            // Convert DataURL to Blob if needed
+            const blob = this.dataURLtoBlob ? 
+                this.dataURLtoBlob(iconData) : 
+                new Blob([iconData], { type: 'image/png' });
+            formData.append('icon', blob, 'server_icon.png');
+        }
+        
+        return fetch(`/api/servers/${serverId}/update/icon`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
+    updateServerBanner: function(serverId, bannerData) {
+        const formData = new FormData();
+        
+        // Handle both Blob and DataURL
+        if (bannerData instanceof Blob) {
+            formData.append('banner', bannerData, 'server_banner.png');
+        } else {
+            // Convert DataURL to Blob if needed
+            const blob = this.dataURLtoBlob ? 
+                this.dataURLtoBlob(bannerData) : 
+                new Blob([bannerData], { type: 'image/png' });
+            formData.append('banner', blob, 'server_banner.png');
+        }
+        
+        return fetch(`/api/servers/${serverId}/update/banner`, {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+    
+    // Helper method to convert dataURL to Blob
+    dataURLtoBlob: function(dataURL) {
+        const arr = dataURL.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        
+        while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        
+        return new Blob([u8arr], { type: mime });
     }
 };
 

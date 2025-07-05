@@ -647,6 +647,16 @@ Route::post('/api/servers/([0-9]+)/update/category', function($serverId) {
     $controller->updateServerCategory($serverId);
 });
 
+Route::post('/api/servers/([0-9]+)/update/icon', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerIcon($serverId);
+});
+
+Route::post('/api/servers/([0-9]+)/update/banner', function($serverId) {
+    $controller = new ServerController();
+    $controller->updateServerBanner($serverId);
+});
+
 Route::get('/api/servers/([0-9]+)/members', function($serverId) {
     $controller = new ServerController();
     $controller->getServerMembers($serverId);   

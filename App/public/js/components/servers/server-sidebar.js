@@ -17,6 +17,30 @@ document.addEventListener('DOMContentLoaded', function() {
     initServerSidebar();
     initializeHomeIconEasterEgg();
     
+    // Delay tooltip setup slightly to ensure DOM is fully ready
+    setTimeout(() => {
+        setupAllTooltips();
+        console.log('Tooltips initialized');
+    }, 100);
+    
+    // Add global click handler to hide stuck tooltips
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.server-sidebar-icon') && !e.target.closest('.group-header')) {
+            hideAllTooltips();
+        }
+    });
+    
+    // Add mouse move handler to hide tooltips when cursor is far from sidebar
+    document.addEventListener('mousemove', function(e) {
+        const sidebar = document.querySelector('.w-\\[72px\\]');
+        if (sidebar) {
+            const rect = sidebar.getBoundingClientRect();
+            if (e.clientX > rect.right + 200) {
+                hideAllTooltips();
+            }
+        }
+    });
+    
     document.addEventListener('click', async function(e) {
         const homeLink = e.target.closest('a[href="/home"]') || 
                         e.target.closest('a[href="/"]') ||
@@ -418,40 +442,59 @@ function resetServersToMainList() {
 
 function setupTooltipForElement(element) {
     const tooltip = element.querySelector('.tooltip');
-    if (tooltip) {
+    if (!tooltip || tooltip.getAttribute('data-has-clone') === 'true') return;
+    
+    const tooltipContainer = document.getElementById('tooltip-container');
+    if (!tooltipContainer) return;
+    
+    // Create a clone of the tooltip in the container
+    const tooltipId = 'tooltip-' + Math.random().toString(36).substr(2, 9);
+    tooltip.id = tooltipId;
+    
+    const clone = tooltip.cloneNode(true);
+    clone.setAttribute('data-for-element', tooltipId);
+    tooltipContainer.appendChild(clone);
+    
+    // Hide the original tooltip
+    tooltip.style.display = 'none';
+    tooltip.setAttribute('data-has-clone', 'true');
+    
+    const showTooltip = (e) => {
+        // Hide any other visible tooltips first
+        hideAllTooltips();
+        
+        const rect = element.getBoundingClientRect();
+        clone.style.left = (rect.right + 10) + 'px';
+        clone.style.top = (rect.top + rect.height/2) + 'px';
+        clone.style.transform = 'translateY(-50%)';
+        clone.classList.remove('hidden');
+        clone.style.display = 'block';
+        clone.style.opacity = '1';
+    };
+    
+    const hideTooltip = () => {
+        clone.classList.add('hidden');
+        clone.style.opacity = '0';
+        setTimeout(() => {
+            if (clone.classList.contains('hidden')) {
+                clone.style.display = 'none';
+            }
+        }, 200);
+    };
 
-        element.removeEventListener('mouseenter', showTooltip);
-        element.removeEventListener('mouseleave', hideTooltip);
-        
-
-        element.addEventListener('mouseenter', showTooltip);
-        element.addEventListener('mouseleave', hideTooltip);
-        
-        function showTooltip() {
-            tooltip.classList.remove('hidden');
-            tooltip.style.opacity = '1';
-            tooltip.style.transform = 'translateY(-50%) translateX(4px)';
-        }
-        
-        function hideTooltip() {
-            tooltip.classList.add('hidden');
-            tooltip.style.opacity = '0';
-            tooltip.style.transform = 'translateY(-50%)';
-        }
-    }
+    // Remove existing listeners
+    element.removeEventListener('mouseenter', showTooltip);
+    element.removeEventListener('mouseleave', hideTooltip);
+    
+    // Add new listeners
+    element.addEventListener('mouseenter', showTooltip);
+    element.addEventListener('mouseleave', hideTooltip);
 }
 
 function setupAllTooltips() {
-
-    
-
-    document.querySelectorAll('.server-sidebar-icon').forEach(icon => {
+    console.log('Setting up all tooltips');
+    document.querySelectorAll('.server-sidebar-icon, .server-sidebar-group .group-header').forEach(icon => {
         setupTooltipForElement(icon);
-    });
-    
-
-    document.querySelectorAll('.server-sidebar-group .group-header').forEach(header => {
-        setupTooltipForElement(header);
     });
 }
 
@@ -1286,3 +1329,19 @@ function groupMessagesByUser(messages) {
     
     return groups;
 }
+
+// Function to hide all tooltips
+function hideAllTooltips() {
+    const tooltipContainer = document.getElementById('tooltip-container');
+    if (tooltipContainer) {
+        const tooltips = tooltipContainer.querySelectorAll('.tooltip');
+        tooltips.forEach(tooltip => {
+            tooltip.classList.add('hidden');
+            tooltip.style.opacity = '0';
+            tooltip.style.display = 'none';
+        });
+    }
+}
+
+// Expose the function globally
+window.hideAllTooltips = hideAllTooltips;
