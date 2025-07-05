@@ -71,23 +71,12 @@ class ChannelVoiceParticipants {
     }
 
     setupVideoSDKListeners() {
-
+        // DISABLED: No longer listen to VideoSDK events to prevent conflicts
+        // VoiceCallSection now handles VideoSDK participants exclusively
+        // This system focuses only on socket-based channel indicators
         
-
-        window.addEventListener('videosdkParticipantJoined', (event) => {
-            const { participant, participantObj } = event.detail;
-
-            this.handleVideoSDKParticipantJoined(participantObj || { id: participant });
-        });
-
-        window.addEventListener('videosdkParticipantLeft', (event) => {
-            const { participant } = event.detail;
-
-            this.handleVideoSDKParticipantLeft(participant);
-        });
-
-
-        this.startVideoSDKSync();
+        // Keep the sync for current user's presence validation only
+        this.startPresenceSync();
     }
 
     attachSocketEvents() {
@@ -138,115 +127,15 @@ class ChannelVoiceParticipants {
         });
     }
 
-    startVideoSDKSync() {
-
-
-        setInterval(async () => {
-            await this.syncWithVideoSDK();
+    startPresenceSync() {
+        // Sync only for presence validation, not participant management
+        setInterval(() => {
+            this.validateCurrentUserPresence();
         }, 5000);
     }
 
-    async syncWithVideoSDK() {
-        if (!window.videoSDKManager?.isReady() || !window.videoSDKManager?.meeting) {
-            return;
-        }
-
-        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
-        if (!currentVoiceChannelId) {
-            return;
-        }
-
-
-        
-        const videoSDKParticipants = new Map();
-        const existingParticipants = this.participants.get(currentVoiceChannelId) || new Map();
-        
-
-        if (window.videoSDKManager.meeting.participants) {
-            for (const [participantId, participant] of window.videoSDKManager.meeting.participants.entries()) {
-                const username = participant.displayName || participant.name || 'Unknown';
-                
-
-                const existingData = existingParticipants.get(participantId);
-                if (existingData && existingData.avatar_url !== '/public/assets/common/default-profile-picture.png') {
-                    videoSDKParticipants.set(participantId, existingData);
-                    continue;
-                }
-                
-                try {
-
-                    const userData = await window.userDataHelper?.getUserData(username, username);
-                    if (userData) {
-                        videoSDKParticipants.set(participantId, userData);
-                    } else {
-
-                        videoSDKParticipants.set(participantId, {
-                            id: participantId,
-                            username: username,
-                            display_name: username,
-                            avatar_url: '/public/assets/common/default-profile-picture.png'
-                        });
-                    }
-                } catch (error) {
-                    console.warn('[VOICE-PARTICIPANT] Failed to fetch user data for:', username, error);
-
-                    videoSDKParticipants.set(participantId, {
-                        id: participantId,
-                        username: username,
-                        display_name: username,
-                        avatar_url: '/public/assets/common/default-profile-picture.png'
-                    });
-                }
-            }
-        }
-
-
-        if (window.videoSDKManager.meeting.localParticipant) {
-            const localParticipant = window.videoSDKManager.meeting.localParticipant;
-            const currentUserData = window.userDataHelper?.getCurrentUserData();
-            
-            videoSDKParticipants.set(localParticipant.id, {
-                id: localParticipant.id,
-                username: currentUserData?.username || localParticipant.displayName || localParticipant.name || 'You',
-                display_name: currentUserData?.display_name || localParticipant.displayName || localParticipant.name || 'You',
-                avatar_url: currentUserData?.avatar_url || '/public/assets/common/default-profile-picture.png'
-            });
-        }
-
-
-        if (videoSDKParticipants.size > 0) {
-            this.participants.set(currentVoiceChannelId, videoSDKParticipants);
-            this.updateParticipantContainer(currentVoiceChannelId);
-            this.updateChannelCount(currentVoiceChannelId, videoSDKParticipants.size);
-        }
-    }
-
-    handleVideoSDKParticipantJoined(participant) {
-        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
-        if (!currentVoiceChannelId) {
-            return;
-        }
-
-
-        const channelParticipants = this.participants.get(currentVoiceChannelId);
-        if (channelParticipants && channelParticipants.has(participant.id)) {
-            return;
-        }
-
-        this.addParticipant(currentVoiceChannelId, participant.id, participant.displayName || participant.name);
-        this.updateParticipantContainer(currentVoiceChannelId);
-    }
-
-    handleVideoSDKParticipantLeft(participantId) {
-        const currentVoiceChannelId = window.voiceManager?.currentChannelId;
-        if (!currentVoiceChannelId) {
-            return;
-        }
-
-
-        this.removeParticipant(currentVoiceChannelId, participantId);
-        this.updateParticipantContainer(currentVoiceChannelId);
-    }
+    // VideoSDK-specific methods removed to prevent conflicts
+    // VoiceCallSection now handles all VideoSDK participants
 
     attachVoiceEvents() {
         let voiceConnectHandled = false;
@@ -310,7 +199,8 @@ class ChannelVoiceParticipants {
 
         await this.addParticipant(channelId, window.currentUserId, window.currentUsername);
         this.updateParticipantContainer(channelId);
-    }    async addParticipant(channelId, userId, username) {
+    }    
+    async addParticipant(channelId, userId, username) {
         if (!this.participants.has(channelId)) {
             this.participants.set(channelId, new Map());
         }
@@ -318,9 +208,15 @@ class ChannelVoiceParticipants {
         const channelParticipants = this.participants.get(channelId);
         const normalizedUserId = userId.toString();
         
-
-        if (this.coordinator && this.coordinator.hasParticipant(channelId, normalizedUserId)) {
-            return;
+        // Use coordinator to prevent conflicts with VoiceCallSection
+        if (this.coordinator) {
+            if (this.coordinator.hasParticipant(channelId, normalizedUserId)) {
+                const existingSystem = this.coordinator.getParticipantSystem(normalizedUserId);
+                if (existingSystem === 'VoiceCallSection') {
+                    // VoiceCallSection has priority, don't add to channel indicators
+                    return;
+                }
+            }
         }
         
         if (channelParticipants.has(normalizedUserId)) {

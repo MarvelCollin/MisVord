@@ -114,6 +114,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 <script src="/public/js/components/activity/tic-tac-toe.js?v=<?php echo time(); ?>"></script>
 <script src="/public/js/components/voice/voice-call-section.js?v=<?php echo time(); ?>"></script>
 <script src="/public/js/debug/titibot-voice-music-test.js?v=<?php echo time(); ?>"></script>
+<script src="/public/js/debug/participant-management-test.js?v=<?php echo time(); ?>"></script>
 <script type="module">
 import ChatBot from '/public/js/components/messaging/chat-bot.js';
 

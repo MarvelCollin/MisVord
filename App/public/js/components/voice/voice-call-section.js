@@ -751,17 +751,25 @@ class VoiceCallSection {
       return;
     }
 
-
+    // Check if already exists in DOM
     if (grid.querySelector(`[data-participant-id="${participantId}"]`)) {
       return;
     }
 
-
+    // Use coordinator to resolve conflicts and prevent duplicates
     const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
-    if (this.coordinator && this.coordinator.hasParticipant(currentChannelId, participantId)) {
-      const existingData = this.coordinator.getParticipantData(participantId);
-      if (existingData && existingData.addedBy !== 'VoiceCallSection') {
-        return; // Another system is already managing this participant
+    if (this.coordinator) {
+      // Check if participant exists and resolve conflicts
+      if (this.coordinator.hasParticipant(currentChannelId, participantId)) {
+        const existingSystem = this.coordinator.getParticipantSystem(participantId);
+        if (existingSystem === 'VoiceCallSection') {
+          return; // We already manage this participant
+        }
+        // Try to take over from other systems (like ChannelVoiceParticipants)
+        const resolved = this.coordinator.resolveConflict(currentChannelId, participantId, 'VoiceCallSection', null);
+        if (!resolved) {
+          return;
+        }
       }
     }
 
@@ -805,9 +813,13 @@ class VoiceCallSection {
       userData
     );
     
-
+    // Register with coordinator before adding to DOM
     if (this.coordinator && userData) {
-      this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection');
+      const added = this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection');
+      if (!added) {
+        // Coordinator rejected the addition, likely a duplicate
+        return;
+      }
     }
     
     grid.appendChild(participantElement);
@@ -1160,28 +1172,46 @@ class VoiceCallSection {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
 
+    // Clear coordinator data for this channel before rebuilding
+    const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
+    if (this.coordinator) {
+      this.coordinator.clearChannel(currentChannelId);
+    }
+
     grid.innerHTML = "";
+
+    // Initialize delay outside the if block to avoid scope issues
+    let delay = 0;
 
     if (window.videoSDKManager?.meeting?.participants) {
       const participants = Array.from(
         window.videoSDKManager.meeting.participants.values()
       );
+      
+      // Add participants with small delays to prevent race conditions
       participants.forEach((participant) => {
-        this.addParticipantToGrid(participant.id, participant);
-        this.checkParticipantStreams(participant);
+        setTimeout(() => {
+          this.addParticipantToGrid(participant.id, participant);
+          this.checkParticipantStreams(participant);
+        }, delay);
+        delay += 50;
       });
 
       const localParticipant = window.videoSDKManager.meeting.localParticipant;
-      if (
-        localParticipant &&
-        !grid.querySelector(`[data-participant-id="${localParticipant.id}"]`)
-      ) {
-        this.addParticipantToGrid(localParticipant.id, localParticipant);
-        this.checkParticipantStreams(localParticipant);
+      if (localParticipant) {
+        setTimeout(() => {
+          if (!grid.querySelector(`[data-participant-id="${localParticipant.id}"]`)) {
+            this.addParticipantToGrid(localParticipant.id, localParticipant);
+            this.checkParticipantStreams(localParticipant);
+          }
+        }, delay);
+        delay += 50; // Add delay for local participant
       }
     }
 
-    this.updateParticipantCount();
+    setTimeout(() => {
+      this.updateParticipantCount();
+    }, delay + 100);
   }
 
   checkParticipantStreams(participant) {

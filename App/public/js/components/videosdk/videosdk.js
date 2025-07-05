@@ -384,13 +384,12 @@ class VideoSDKManager {
     }
     
     handleParticipantJoined(participant) {
-
-        
+        // Prevent rapid duplicate processing
         if (this.processedParticipants.has(participant.id)) {
-
             return;
         }
         
+        // Check for same user with different participant ID (reconnection)
         const existingParticipantName = participant.displayName || participant.name;
         if (existingParticipantName) {
             for (const [processedId] of this.processedParticipants.entries()) {
@@ -398,8 +397,8 @@ class VideoSDKManager {
                 if (processedParticipant && 
                     (processedParticipant.displayName === existingParticipantName || 
                      processedParticipant.name === existingParticipantName)) {
-
                     
+                    // Handle reconnection - remove old participant
                     if (processedId !== participant.id) {
                         this.processedParticipants.delete(processedId);
                         this.cleanupParticipantResourcesById(processedId);
@@ -417,12 +416,12 @@ class VideoSDKManager {
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
-
+        // Dispatch event with minimal delay to reduce race conditions
         setTimeout(() => {
             window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                 detail: { participant: participant.id, participantObj: participant }
             }));
-        }, 200);
+        }, 50);
     }
     
     handleParticipantLeft(participant) {
@@ -440,29 +439,29 @@ class VideoSDKManager {
     setupExistingParticipants() {
         if (!this.meeting || !this.meeting.participants) return;
         
-
-        
+        // Process existing participants with staggered delays to prevent conflicts
         try {
             setTimeout(() => {
+                let delay = 0;
                 this.meeting.participants.forEach((participant, participantId) => {
-
                     
+                    // Skip if already processed
                     if (this.processedParticipants.has(participant.id)) {
-
                         return;
                     }
                     
-                    this.processedParticipants.add(participant.id);
-                    this.registerStreamEvents(participant);
-                    this.startStreamMonitoring(participant);
-                    
                     setTimeout(() => {
+                        this.processedParticipants.add(participant.id);
+                        this.registerStreamEvents(participant);
+                        this.startStreamMonitoring(participant);
+                        
                         window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                             detail: { participant: participant.id, participantObj: participant }
                         }));
-                    }, 300);
+                    }, delay);
+                    delay += 100; // Stagger each participant by 100ms
                 });
-            }, 1000);
+            }, 500);
         } catch (error) {
             console.error('Error setting up existing participants:', error);
         }
