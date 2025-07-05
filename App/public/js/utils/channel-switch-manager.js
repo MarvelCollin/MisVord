@@ -259,6 +259,13 @@ class SimpleChannelSwitcher {
             }, 500);
         }
         
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            if (instance && typeof instance.onChannelSwitch === 'function') {
+                instance.onChannelSwitch();
+            }
+        }
+        
         this.isLoading = false;
     }
     

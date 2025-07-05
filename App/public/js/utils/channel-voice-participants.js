@@ -13,6 +13,8 @@ class ChannelVoiceParticipants {
         this.attachVoiceEvents();
         this.setupChannelSwitchListeners();
         this.setupPresenceValidation();
+        this.startGlobalParticipantSync();
+        this.setupCoordinationListeners();
     }
 
     setupCoordinator() {
@@ -107,12 +109,16 @@ class ChannelVoiceParticipants {
         });
 
         socket.on('voice-meeting-status', (data) => {
-
             if (data.has_meeting && data.participants && data.participants.length > 0) {
                 data.participants.forEach(participant => {
                     this.addParticipant(data.channel_id, participant.user_id, participant.username);
                 });
                 this.updateParticipantContainer(data.channel_id);
+                this.forceRefreshAllContainers();
+            } else if (!data.has_meeting) {
+                this.clearChannelParticipants(data.channel_id);
+                this.updateParticipantContainer(data.channel_id);
+                this.forceRefreshAllContainers();
             }
         });
 
@@ -266,17 +272,14 @@ class ChannelVoiceParticipants {
         
         if (!channel_id) return;
 
-
         if (participant_count !== undefined) {
             this.updateChannelCount(channel_id, participant_count);
         }
-
 
         const isOwnEvent = user_id === window.currentUserId || user_id === window.globalSocketManager?.userId;
         if (isOwnEvent && window.videoSDKManager?.isReady()) {
             return;
         }
-
 
         const channelParticipants = this.participants.get(channel_id);
         const participantExists = channelParticipants && channelParticipants.has(user_id?.toString());
@@ -290,6 +293,7 @@ class ChannelVoiceParticipants {
         }
 
         this.updateParticipantContainer(channel_id);
+        this.forceRefreshAllContainers();
     }
 
     async addCurrentUserToChannel(channelId) {
@@ -388,6 +392,14 @@ class ChannelVoiceParticipants {
         }
     }
 
+    clearChannelParticipants(channelId) {
+        if (this.coordinator) {
+            this.coordinator.clearChannel(channelId);
+        }
+        
+        this.participants.delete(channelId);
+    }
+
     updateParticipantContainer(channelId) {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) {
@@ -400,6 +412,7 @@ class ChannelVoiceParticipants {
             container.classList.add('hidden');
             container.style.display = 'none';
             container.innerHTML = '';
+            this.updateChannelCount(channelId, 0);
             return;
         }
 
@@ -410,11 +423,9 @@ class ChannelVoiceParticipants {
 
         container.innerHTML = '';
 
-
         const addedParticipants = new Set();
 
         channelParticipants.forEach(participant => {
-
             if (addedParticipants.has(participant.id)) {
                 return;
             }
@@ -423,6 +434,8 @@ class ChannelVoiceParticipants {
             const participantEl = this.createParticipantElement(participant);
             container.appendChild(participantEl);
         });
+
+        this.updateChannelCount(channelId, channelParticipants.size);
     }
 
     createParticipantElement(participant) {
@@ -469,7 +482,25 @@ class ChannelVoiceParticipants {
 
         const countEl = channelItem.querySelector('.voice-user-count');
         if (countEl) {
-            countEl.textContent = count.toString();
+            if (count > 0) {
+                countEl.textContent = count.toString();
+                countEl.style.display = 'inline-block';
+                countEl.classList.remove('hidden');
+            } else {
+                countEl.style.display = 'none';
+                countEl.classList.add('hidden');
+            }
+        }
+
+        const channelElement = channelItem.querySelector('.channel-item, .voice-channel');
+        if (channelElement) {
+            if (count > 0) {
+                channelElement.classList.add('has-participants');
+                channelElement.classList.remove('no-participants');
+            } else {
+                channelElement.classList.remove('has-participants');
+                channelElement.classList.add('no-participants');
+            }
         }
     }
 
@@ -484,29 +515,26 @@ class ChannelVoiceParticipants {
                 break;
             }
         }
-    }
-
-    async loadExistingMeetings() {
-
-        
+    }    async loadExistingMeetings() {
         if (!window.globalSocketManager?.isReady()) {
-
             setTimeout(() => this.loadExistingMeetings(), 1000);
             return;
         }
 
         const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
-
         
         voiceChannels.forEach(channel => {
             const channelId = channel.getAttribute('data-channel-id');
             const channelName = channel.getAttribute('data-channel-name');
 
-            
             if (channelId) {
                 window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
             }
         });
+
+        setTimeout(() => {
+            this.forceRefreshAllContainers();
+        }, 2000);
     }
 
     getParticipants(channelId) {
@@ -550,6 +578,24 @@ class ChannelVoiceParticipants {
         }
     }
 
+    startGlobalParticipantSync() {
+        setInterval(() => {
+            if (window.globalSocketManager?.isReady()) {
+                this.requestAllVoiceChannelUpdates();
+            }
+        }, 10000);
+    }
+
+    requestAllVoiceChannelUpdates() {
+        const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
+        voiceChannels.forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            }
+        });
+    }
+
 
 
     static getInstance() {
@@ -560,20 +606,13 @@ class ChannelVoiceParticipants {
     }
 
     refreshAllChannelParticipants() {
-
-        
-
         if (window.videoSDKManager?.isReady()) {
             this.syncWithVideoSDK();
         }
 
-
-        document.querySelectorAll('.voice-participants').forEach(container => {
-            const channelId = container.getAttribute('data-channel-id');
-            if (channelId) {
-                this.updateParticipantContainer(channelId);
-            }
-        });
+        this.forceRefreshAllContainers();
+        
+        this.loadExistingMeetings();
     }
 
     preserveCurrentState(voiceState) {
@@ -587,6 +626,30 @@ class ChannelVoiceParticipants {
         this.preservedChannelId = voiceState.channelId;
         this.preservedMeetingId = voiceState.meetingId;
     }
+
+    forceRefreshAllContainers() {
+        document.querySelectorAll('.voice-participants').forEach(container => {
+            const channelId = container.getAttribute('data-channel-id');
+            if (channelId) {
+                const channelParticipants = this.participants.get(channelId);
+                if (channelParticipants && channelParticipants.size > 0) {
+                    this.updateParticipantContainer(channelId);
+                } else {
+                    container.classList.add('hidden');
+                    container.style.display = 'none';
+                    container.innerHTML = '';
+                    this.updateChannelCount(channelId, 0);
+                }
+            }
+        });
+    }
+
+    onChannelSwitch() {
+        setTimeout(() => {
+            this.forceRefreshAllContainers();
+            this.requestAllVoiceChannelUpdates();
+        }, 500);
+    }
 }
 
 window.ChannelVoiceParticipants = ChannelVoiceParticipants;
@@ -596,6 +659,69 @@ window.addCurrentUserToVoiceChannel = function(channelId) {
     instance.addCurrentUserToChannel(channelId);
 };
 
+window.refreshAllVoiceParticipants = function() {
+    if (window.ChannelVoiceParticipants) {
+        const instance = window.ChannelVoiceParticipants.getInstance();
+        if (instance) {
+            instance.refreshAllChannelParticipants();
+            instance.forceRefreshAllContainers();
+        }
+    }
+};
+
+window.updateVoiceChannelCount = function(channelId, count) {
+    if (window.ChannelVoiceParticipants) {
+        const instance = window.ChannelVoiceParticipants.getInstance();
+        if (instance && typeof instance.updateChannelCount === 'function') {
+            instance.updateChannelCount(channelId, count);
+        }
+    }
+};
+
+window.debugVoiceParticipants = function() {
+    const instance = window.ChannelVoiceParticipants?.getInstance();
+    if (!instance) {
+        console.log('❌ No ChannelVoiceParticipants instance found');
+        return;
+    }
+    
+    console.log('🔍 Voice Participants Debug Info:');
+    console.log('Participants by Channel:', Array.from(instance.participants.entries()));
+    
+    document.querySelectorAll('.voice-participants').forEach(container => {
+        const channelId = container.getAttribute('data-channel-id');
+        const isHidden = container.classList.contains('hidden');
+        const participantCount = container.children.length;
+        
+        console.log(`Channel ${channelId}: Hidden=${isHidden}, Participants=${participantCount}`);
+    });
+    
+    if (window.participantCoordinator) {
+        console.log('Coordinator Active Participants:', Array.from(window.participantCoordinator.activeParticipants.entries()));
+    }
+    
+    instance.forceRefreshAllContainers();
+    instance.requestAllVoiceChannelUpdates();
+};
+
+window.testVoiceParticipantSync = function() {
+    console.log('🧪 Testing voice participant synchronization...');
+    window.debugVoiceParticipants();
+    
+    setTimeout(() => {
+        console.log('🔄 Refreshing after 2 seconds...');
+        window.refreshAllVoiceParticipants();
+    }, 2000);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     ChannelVoiceParticipants.getInstance();
 });
+
+window.ChannelVoiceParticipants.prototype.setupCoordinationListeners = function() {
+        window.addEventListener('voiceParticipantUpdate', (event) => {
+            const { channelId, action, participant } = event.detail;
+            this.updateParticipantContainer(channelId);
+            this.forceRefreshAllContainers();
+        });
+    }

@@ -41,6 +41,8 @@ class ParticipantCoordinator {
             addedAt: Date.now()
         });
         
+        this.broadcastParticipantUpdate(normalizedChannelId, 'added', this.participantData.get(normalizedUserId));
+        
         return true; // Successfully added
     }
 
@@ -62,6 +64,8 @@ class ParticipantCoordinator {
                 this.activeParticipants.delete(normalizedChannelId);
             }
         }
+        
+        this.broadcastParticipantUpdate(normalizedChannelId, 'removed', { userId: normalizedUserId });
         
         return removed;
     }
@@ -112,6 +116,12 @@ class ParticipantCoordinator {
         
 
         return existingData.channelId === channelId.toString();
+    }
+
+    broadcastParticipantUpdate(channelId, action, participantData) {
+        window.dispatchEvent(new CustomEvent('voiceParticipantUpdate', {
+            detail: { channelId, action, participant: participantData }
+        }));
     }
 
     static getInstance() {

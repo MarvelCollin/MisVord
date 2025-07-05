@@ -44,10 +44,6 @@
             </div>
             
             <div class="user-detail-actions">
-                <button class="user-detail-action-btn bg-discord-blue text-white" id="user-detail-message-btn">
-                    <i class="fas fa-comment w-4 h-4"></i>
-                    Message
-                </button>
                 <button class="user-detail-action-btn bg-discord-dark text-white" id="user-detail-add-friend-btn">
                     <i class="fas fa-user-plus w-4 h-4"></i>
                     Add Friend
