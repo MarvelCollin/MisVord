@@ -184,37 +184,28 @@ function handleMouseMove(event) {
 
 
 async function ensureVoiceScriptsLoaded() {
-    
-    
     return new Promise((resolve) => {
         let attempts = 0;
-        const maxAttempts = 30;
+        const maxAttempts = 10;
         
         const checkComponents = () => {
             attempts++;
             
             const components = {
                 VideoSDK: typeof VideoSDK !== 'undefined',
-                videoSDKManager: !!window.videoSDKManager && window.videoSDKManager.initialized,
+                videoSDKManager: !!window.videoSDKManager,
                 VoiceManager: !!window.VoiceManager,
                 voiceManager: !!window.voiceManager,
-                VoiceSection: !!window.VoiceSection,
-                GlobalVoiceIndicator: !!window.GlobalVoiceIndicator
+                VoiceSection: !!window.VoiceSection
             };
             
             const readyComponents = Object.values(components).filter(Boolean).length;
             const totalComponents = Object.keys(components).length;
             
-            
-            
             if (readyComponents >= totalComponents - 1 || attempts >= maxAttempts) {
-
-                
                 if (!window.voiceManager && window.VoiceManager) {
-
                     try {
                         window.voiceManager = new window.VoiceManager();
-
                     } catch (error) {
                         console.error('[Voice Not Join] Error creating VoiceManager:', error);
                     }
@@ -222,8 +213,7 @@ async function ensureVoiceScriptsLoaded() {
                 
                 resolve(true);
             } else {
-
-                setTimeout(checkComponents, 300);
+                setTimeout(checkComponents, 100);
             }
         };
         
@@ -261,7 +251,6 @@ async function joinVoiceChannel() {
     let joinSuccessful = false;
     
     try {
-
         const scriptsLoaded = await ensureVoiceScriptsLoaded();
         
         if (!scriptsLoaded) {
@@ -272,29 +261,25 @@ async function joinVoiceChannel() {
             throw new Error('Voice manager not available after script loading');
         }
         
-
-
-        await window.voiceManager.joinVoice(); // This will prepare meeting ID and registration
+        await window.voiceManager.joinVoice();
         
-
         if (!window.videoSDKManager) {
             throw new Error('VideoSDK manager not available');
         }
         
-
         const meetingId = window.voiceManager.currentMeetingId;
         const channelId = document.querySelector('meta[name="channel-id"]')?.content;
         const userName = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
         const userId = document.querySelector('meta[name="user-id"]')?.content || window.currentUserId || '';
         const channelName = document.querySelector('h2')?.textContent || 'Voice Channel';
         
-
         const participantName = userId ? `${userName}_${userId}` : userName;
         
         if (!meetingId) {
             throw new Error('Meeting ID not available from voice manager');
         }
-            await window.videoSDKManager.externalInitMeeting(meetingId, participantName, true, false);
+        
+        await window.videoSDKManager.externalInitMeeting(meetingId, participantName, true, false);
         await window.videoSDKManager.externalJoinMeeting();
         
         await waitForJoinConfirmation();
@@ -565,4 +550,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });
+</script>
+
+<script>
+// Debug function to check voice initialization state
+window.debugVoiceInitState = function() {
+    console.log('=== Voice Initialization Debug ===');
+    console.log('VideoSDK loaded:', typeof VideoSDK !== 'undefined');
+    console.log('VideoSDK Manager:', {
+        exists: !!window.videoSDKManager,
+        initialized: window.videoSDKManager?.initialized,
+        hasToken: !!window.videoSDKManager?.authToken
+    });
+    console.log('Voice Manager:', {
+        exists: !!window.voiceManager,
+        initialized: window.voiceManager?.initialized,
+        preloadComplete: window.voiceManager?.preloadComplete,
+        preloadStarted: window.voiceManager?.preloadStarted,
+        hasVideoSDKRef: !!window.voiceManager?.videoSDKManager
+    });
+    console.log('Voice Dependencies:', {
+        ensureVoiceReady: !!window.ensureVoiceReady,
+        voiceDependencyLoader: !!window.voiceDependencyLoader,
+        isReady: window.voiceDependencyLoader?.isReady()
+    });
+};
 </script>

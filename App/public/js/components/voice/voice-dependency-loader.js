@@ -1,3 +1,4 @@
+if (typeof window.VoiceDependencyLoader === 'undefined') {
 class VoiceDependencyLoader {
     constructor() {
         this.loadedScripts = new Set();
@@ -14,24 +15,30 @@ class VoiceDependencyLoader {
 
     async loadScript(src) {
         if (this.loadedScripts.has(src)) {
+            console.log(`[VoiceDependencyLoader] Script already loaded: ${src}`);
             return true;
         }
 
         if (this.loadingPromises.has(src)) {
+            console.log(`[VoiceDependencyLoader] Script loading in progress: ${src}`);
             return await this.loadingPromises.get(src);
         }
 
+        console.log(`[VoiceDependencyLoader] Loading script: ${src}`);
+        
         const promise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
             script.src = src;
             script.async = true;
             
             script.onload = () => {
+                console.log(`[VoiceDependencyLoader] Successfully loaded: ${src}`);
                 this.loadedScripts.add(src);
                 resolve(true);
             };
             
             script.onerror = () => {
+                console.error(`[VoiceDependencyLoader] Failed to load: ${src}`);
                 reject(new Error(`Failed to load ${src}`));
             };
             
@@ -89,7 +96,12 @@ class VoiceDependencyLoader {
     }
 }
 
-window.voiceDependencyLoader = new VoiceDependencyLoader();
+window.VoiceDependencyLoader = VoiceDependencyLoader;
+}
+
+if (!window.voiceDependencyLoader) {
+    window.voiceDependencyLoader = new VoiceDependencyLoader();
+}
 
 window.ensureVoiceReady = async function() {
     if (window.voiceDependencyLoader.isReady()) {

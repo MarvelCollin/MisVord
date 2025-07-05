@@ -1,3 +1,4 @@
+if (typeof window.VoiceManager === 'undefined') {
 class VoiceManager {
     constructor() {
         this.isConnected = false;
@@ -33,15 +34,25 @@ class VoiceManager {
     async init() {
         if (this.initialized) return;
         
+        if (!this.initializationPromise) {
+            this.initializationPromise = this._performInit();
+        }
+        
+        return await this.initializationPromise;
+    }
+    
+    async _performInit() {
         try {
+            console.log('[VOICE-MANAGER] Performing initialization...');
             await this.loadVideoSDKScript();
             await this.initVideoSDK();
             this.attachEventListeners();
             this.setupErrorHandling();
             this.initialized = true;
-
+            console.log('[VOICE-MANAGER] Initialization completed');
         } catch (error) {
             console.error('❌ Failed to initialize voice manager:', error);
+            this.initializationPromise = null;
             throw error;
         }
     }
@@ -50,13 +61,24 @@ class VoiceManager {
         if (this.preloadStarted) return;
         
         this.preloadStarted = true;
+        console.log('[VOICE-MANAGER] Starting preload...');
         
         try {
             await this.loadVideoSDKScript();
-            await this.initVideoSDK();
+            
+            if (window.videoSDKManager && typeof window.videoSDKManager.preload === 'function') {
+                console.log('[VOICE-MANAGER] Using VideoSDK preload method...');
+                await window.videoSDKManager.preload();
+            } else {
+                console.log('[VOICE-MANAGER] Using regular VideoSDK init...');
+                await this.initVideoSDK();
+            }
+            
             this.preloadComplete = true;
+            console.log('[VOICE-MANAGER] Preload completed');
         } catch (error) {
-            console.warn('Voice preload failed:', error);
+            console.warn('[VOICE-MANAGER] Voice preload failed:', error);
+            this.preloadStarted = false;
         }
     }
 
@@ -88,9 +110,12 @@ class VoiceManager {
     }
 
     async initVideoSDK() {
+        console.log('[VOICE-MANAGER] Starting VideoSDK initialization...');
+        
         await new Promise((resolve) => {
             const checkSDK = () => {
                 if (window.videoSDKManager) {
+                    console.log('[VOICE-MANAGER] VideoSDK manager found');
                     resolve();
                 } else {
                     console.warn('VideoSDK manager not available, waiting...');
@@ -102,8 +127,22 @@ class VoiceManager {
 
         try {
             this.videoSDKManager = window.videoSDKManager;
-            const config = this.videoSDKManager.getMetaConfig();
-            await this.videoSDKManager.init(config.authToken);
+            
+            console.log('[VOICE-MANAGER] Checking VideoSDK manager state:', {
+                initialized: this.videoSDKManager.initialized,
+                hasVideoSDK: typeof VideoSDK !== 'undefined',
+                hasAuthToken: !!this.videoSDKManager.authToken
+            });
+            
+            if (!this.videoSDKManager.initialized) {
+                const config = this.videoSDKManager.getMetaConfig();
+                console.log('[VOICE-MANAGER] Initializing with config:', config);
+                
+                await this.videoSDKManager.init(config.authToken);
+                console.log('[VOICE-MANAGER] VideoSDK initialization completed');
+            } else {
+                console.log('[VOICE-MANAGER] VideoSDK already initialized');
+            }
 
             return true;
         } catch (error) {
@@ -248,15 +287,29 @@ class VoiceManager {
         try {
             this.setupVoice(targetChannelId);
 
-            if (!this.preloadComplete) {
+            console.log('[VOICE-MANAGER] Checking initialization state:', {
+                preloadComplete: this.preloadComplete,
+                initialized: this.initialized,
+                hasVideoSDKManager: !!this.videoSDKManager,
+                videoSDKInitialized: this.videoSDKManager?.initialized
+            });
+
+            if (!this.initialized || !this.videoSDKManager) {
+                console.log('[VOICE-MANAGER] Need to initialize...');
                 await this.init();
             }
 
             if (!this.videoSDKManager) {
-                await this.initializationPromise;
+                throw new Error('VideoSDK manager not available after initialization');
+            }
+            
+            if (!this.videoSDKManager.initialized) {
+                console.log('[VOICE-MANAGER] VideoSDK manager exists but not initialized, initializing now...');
+                const config = this.videoSDKManager.getMetaConfig();
+                await this.videoSDKManager.init(config.authToken);
             }
 
-            if (!this.videoSDKManager) {
+            if (!this.videoSDKManager.initialized) {
                 throw new Error('VideoSDK initialization failed');
             }
             
@@ -587,6 +640,9 @@ class VoiceManager {
             });
         }, 100);
     }
+}
+
+window.VoiceManager = VoiceManager;
 }
 
 window.addEventListener('DOMContentLoaded', async function() {

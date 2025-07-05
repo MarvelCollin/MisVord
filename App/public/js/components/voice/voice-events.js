@@ -1,11 +1,10 @@
+if (typeof window.VOICE_EVENTS === 'undefined') {
 const VOICE_EVENTS = {
-
     VOICE_CONNECT: 'voiceConnect',
     VOICE_DISCONNECT: 'voiceDisconnect',
     VOICE_STATE_CHANGED: 'voiceStateChanged',
     VOICE_UI_READY: 'voiceUIReady',
     
-
     VIDEOSDK_STREAM_ENABLED: 'videosdkStreamEnabled',
     VIDEOSDK_STREAM_DISABLED: 'videosdkStreamDisabled',
     VIDEOSDK_MEETING_JOINED: 'videosdkMeetingFullyJoined',
@@ -29,4 +28,5 @@ const CONNECTION_STATES = {
 
 window.VOICE_EVENTS = VOICE_EVENTS;
 window.STREAM_TYPES = STREAM_TYPES;
-window.CONNECTION_STATES = CONNECTION_STATES; 
+window.CONNECTION_STATES = CONNECTION_STATES;
+} 

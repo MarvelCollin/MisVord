@@ -1,3 +1,4 @@
+if (typeof window.VideoSDKManager === 'undefined') {
 class VideoSDKManager {
     constructor() {
         this.authToken = null;
@@ -116,19 +117,32 @@ class VideoSDKManager {
     }
 
     async init(authToken = null) {
+        if (this.initialized) {
+            console.log('[VideoSDK] Already initialized');
+            return this;
+        }
+        
+        console.log('[VideoSDK] Starting initialization...');
+        
         if (!authToken) {
+            console.log('[VideoSDK] No auth token provided, getting fallback token...');
             authToken = await this.getAuthToken();
         }
         
-        if (typeof VideoSDK === 'undefined') {
-            throw new Error("VideoSDK not loaded");
+        if (!authToken) {
+            throw new Error("No auth token available for VideoSDK initialization");
         }
         
+        if (typeof VideoSDK === 'undefined') {
+            throw new Error("VideoSDK not loaded - make sure the VideoSDK script is included");
+        }
+        
+        console.log('[VideoSDK] Configuring with token...');
         this.authToken = authToken;
         VideoSDK.config(authToken);
         this.initialized = true;
         
-
+        console.log('[VideoSDK] Initialization completed successfully');
         return this;
     }
     
@@ -913,6 +927,7 @@ class VideoSDKManager {
             }));
             
 
+
             return this.isDeafened;
         } catch (error) {
             console.error("Error toggling deafen:", error);
@@ -1217,6 +1232,25 @@ class VideoSDKManager {
         }
     }
 
+    async preload() {
+        if (this.initialized) {
+            console.log('[VideoSDK] Already initialized, skipping preload');
+            return true;
+        }
+        
+        console.log('[VideoSDK] Starting preload...');
+        
+        try {
+            const authToken = await this.getAuthToken();
+            await this.init(authToken);
+            console.log('[VideoSDK] Preload completed successfully');
+            return true;
+        } catch (error) {
+            console.warn('[VideoSDK] Preload failed:', error);
+            return false;
+        }
+    }
+
     static getInstance() {
         if (!window.videoSDKManager) {
             window.videoSDKManager = new VideoSDKManager();
@@ -1225,12 +1259,13 @@ class VideoSDKManager {
     }
 }
 
+window.VideoSDKManager = VideoSDKManager;
+}
+
 if (!window.videoSDKManager) {
     const videoSDKManager = new VideoSDKManager();
     window.videoSDKManager = videoSDKManager;
-
 } else {
-
 }
 
 window.addEventListener('beforeunload', () => {

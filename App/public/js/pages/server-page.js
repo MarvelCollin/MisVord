@@ -14,17 +14,11 @@ function loadScript(src, type = '', async = false) {
 
 async function loadVoiceScripts() {
   try {
-    if (!window.VideoSDK) {
-      await loadScript('https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js');
+    if (window.ensureVoiceReady && typeof window.ensureVoiceReady === 'function') {
+      return await window.ensureVoiceReady();
     }
     
-    if (!window.videoSDKManager) {
-      await loadScript('/public/js/components/videosdk/videosdk.js?v=' + Date.now());
-    }
-    
-    await loadScript('/public/js/components/voice/voice-manager.js?v=' + Date.now());
-    
-    return true;
+    return window.VideoSDK && window.videoSDKManager && window.voiceManager;
   } catch (error) {
     return false;
   }
@@ -272,39 +266,8 @@ function initVoicePage() {
   if (channelItems.length > 0) {
   }
   
-  if (!window.VideoSDK && !document.querySelector('script[src*="videosdk.js"]')) {
-    const script = document.createElement('script');
-    script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
-    script.onload = () => {
-      if (!window.videoSDKManager && !document.querySelector('script[src*="/videosdk/videosdk.js"]')) {
-        const managerScript = document.createElement('script');
-        managerScript.src = '/public/js/components/videosdk/videosdk.js?v=' + Date.now();
-        managerScript.onload = () => {
-          if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-            const voiceScript = document.createElement('script');
-            voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
-            document.head.appendChild(voiceScript);
-          }
-        };
-        document.head.appendChild(managerScript);
-      }
-    };
-    document.head.appendChild(script);
-  } else if (!window.videoSDKManager && !document.querySelector('script[src*="/videosdk/videosdk.js"]')) {
-    const managerScript = document.createElement('script');
-    managerScript.src = '/public/js/components/videosdk/videosdk.js?v=' + Date.now();
-    managerScript.onload = () => {
-      if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-        const voiceScript = document.createElement('script');
-        voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
-        document.head.appendChild(voiceScript);
-      }
-    };
-    document.head.appendChild(managerScript);
-  } else if (!window.voiceManager && !document.querySelector('script[src*="voice-manager.js"]')) {
-    const voiceScript = document.createElement('script');
-    voiceScript.src = '/public/js/components/voice/voice-manager.js?v=' + Date.now();
-    document.head.appendChild(voiceScript);
+  if (window.ensureVoiceReady && typeof window.ensureVoiceReady === 'function') {
+    window.ensureVoiceReady().catch(console.warn);
   }
 }
 

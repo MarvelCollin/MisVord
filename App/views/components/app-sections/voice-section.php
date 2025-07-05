@@ -18,8 +18,27 @@ echo '</div>';
 echo '</div>';
 echo '<script src="/public/js/utils/voice-presence-debug.js"></script>';
 echo '<script>
+    let voicePreloadStarted = false;
+    
+    async function preloadVoiceResources() {
+        if (voicePreloadStarted) return;
+        voicePreloadStarted = true;
+        
+        try {
+            if (window.ensureVoiceReady) {
+                await window.ensureVoiceReady();
+            }
+            
+            if (window.voiceManager && typeof window.voiceManager.preloadResources === "function") {
+                await window.voiceManager.preloadResources();
+            }
+        } catch (error) {
+            console.warn("[VOICE-SECTION] Preload failed:", error);
+        }
+    }
+    
     document.addEventListener("DOMContentLoaded", function() {
-
+        preloadVoiceResources();
         
         window.addEventListener("voiceConnect", function() {
             console.log("[VOICE-SECTION] Switching to call UI");
@@ -34,7 +53,6 @@ echo '<script>
         });
         
         if (typeof window.initializeVoiceSection === "function") {
-
             window.initializeVoiceSection();
         }
         
@@ -42,20 +60,19 @@ echo '<script>
             if (window.voiceManager && typeof window.voiceManager.setupVoice === "function") {
                 const channelId = "' . htmlspecialchars($activeChannelId) . '";
                 if (channelId) {
-
                     window.voiceManager.setupVoice(channelId);
                 }
             }
             
             if (window.VoiceSection && !window.voiceSection) {
-
                 window.voiceSection = new window.VoiceSection();
             }
         }, 100);
     });
     
     if (document.readyState === "complete") {
-
+        preloadVoiceResources();
+        
         setTimeout(() => {
             if (typeof window.initializeVoiceSection === "function") {
                 window.initializeVoiceSection();

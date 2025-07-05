@@ -462,33 +462,31 @@ class SimpleChannelSwitcher {
     }
     
     async initializeVoiceChannel(channelId, forceFresh = false) {
-
-        
-
         const currentParticipants = window.voiceManager?.getParticipants?.() || [];
         const wasConnected = window.voiceManager?.isConnected || false;
         const previousChannelId = window.voiceManager?.currentChannelId;
         
         if (window.chatSection) {
-
             window.chatSection.leaveCurrentSocketRoom();
             window.chatSection.forceStopAllOperations();
         }
         
-
+        if (window.ensureVoiceReady && typeof window.ensureVoiceReady === 'function') {
+            try {
+                await window.ensureVoiceReady();
+            } catch (error) {
+                console.warn('[CHANNEL-SWITCH] Voice preload failed:', error);
+            }
+        }
+        
         if (window.voiceSection && (forceFresh || previousChannelId !== channelId)) {
             await window.voiceSection.resetState();
             await window.voiceSection.updateChannelId(channelId, true);
         } else if (window.voiceSection && previousChannelId === channelId) {
-
-
-            
-
             if (wasConnected && window.voiceManager && window.voiceManager.isConnected) {
                 if (typeof window.voiceSection.restoreConnectedState === 'function') {
                     window.voiceSection.restoreConnectedState();
                 } else {
-
                     if (window.voiceSection.elements.joinView) {
                         window.voiceSection.elements.joinView.classList.add('hidden');
                     }
