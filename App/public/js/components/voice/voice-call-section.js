@@ -592,6 +592,20 @@ class VoiceCallSection {
     if (isScreenShare) {
       if (stream) {
         this.createScreenShareCard(participantId, stream);
+        const participantCard = document.querySelector(`[data-participant-id="${participantId}"]`);
+        
+        // Ensure the participant's primary card is not overridden by the screen share stream
+        if (participantCard) {
+          const videoOverlay = participantCard.querySelector(".participant-video-overlay");
+          const videoElement = videoOverlay?.querySelector("video");
+          const defaultView = participantCard.querySelector(".participant-default-view");
+          if (videoElement) {
+            videoElement.srcObject = null;
+          }
+          if (videoOverlay) videoOverlay.classList.add("hidden");
+          if (defaultView) defaultView.classList.remove("hidden");
+          participantCard.classList.remove("video-active");
+        }
       } else {
         this.removeScreenShareCard(participantId);
       }

@@ -35,8 +35,8 @@ class EmojiReactions {
     transform: translateY(8px);
     transition: opacity 0.2s ease, transform 0.2s ease;
     pointer-events: none;
-    min-width: 240px;
-    max-width: 360px;
+    min-width: 200px;
+    max-width: 320px;
 }
 
 .reaction-tooltip-content {
@@ -51,25 +51,25 @@ class EmojiReactions {
 .reaction-tooltip-header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 20px 12px;
+    gap: 10px;
+    padding: 12px 16px 10px;
     border-bottom: 1px solid #41434a;
     background: #2b2d31;
 }
 
 .reaction-tooltip-emoji {
-    font-size: 24px;
+    font-size: 22px;
     line-height: 1;
 }
 
 .reaction-tooltip-count {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: #f2f3f5;
 }
 
 .reaction-tooltip-users {
-    max-height: 240px;
+    max-height: 220px;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #41434a #2b2d31;
@@ -91,8 +91,8 @@ class EmojiReactions {
 .reaction-tooltip-user {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 20px;
+    gap: 10px;
+    padding: 10px 16px;
     transition: background-color 0.15s ease;
 }
 
@@ -101,15 +101,15 @@ class EmojiReactions {
 }
 
 .reaction-tooltip-avatar {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
 }
 
 .reaction-tooltip-username {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     color: #f2f3f5;
     overflow: hidden;
@@ -119,8 +119,8 @@ class EmojiReactions {
 }
 
 .reaction-tooltip-more {
-    padding: 12px 20px;
-    font-size: 13px;
+    padding: 10px 16px;
+    font-size: 12px;
     color: #a3a6aa;
     text-align: center;
     font-style: italic;
@@ -156,20 +156,47 @@ class EmojiReactions {
     }
 
     init() {
-        if (this.initialized) {
-
-            return;
-        }
-        
-
-        
         this.setupStyles();
-        this.setupMessageHandling(); 
+        this.initTooltipStyles();
+        this.setupMessageHandling();
         this.setupExistingReactionButtons();
+        this.setupSocketListeners();
         this.setupTooltipEventListeners();
         
-        this.initialized = true;
-
+        const messages = document.querySelectorAll('.bubble-message-content');
+        messages.forEach(message => {
+            const messageId = message.dataset.messageId;
+            if (!messageId) return;
+            
+            const reactionElements = message.querySelectorAll('.bubble-reaction');
+            const reactions = [];
+            
+            reactionElements.forEach(reaction => {
+                const emoji = reaction.dataset.emoji;
+                const count = parseInt(reaction.querySelector('.bubble-reaction-count')?.textContent || '0');
+                const hasCurrentUser = reaction.classList.contains('user-reacted');
+                const title = reaction.title || '';
+                const usernames = title.includes(' by ') ? 
+                    title.split(' by ')[1].split(', ').map(name => name.trim()) : 
+                    [];
+                
+                for (let i = 0; i < count; i++) {
+                    reactions.push({
+                        emoji,
+                        user_id: hasCurrentUser && i === 0 ? document.querySelector('meta[name="user-id"]')?.content : `user_${i}`,
+                        username: usernames[i] || 'Unknown User',
+                        display_name: usernames[i] || 'Unknown User',
+                        avatar_url: '/public/assets/common/default-profile-picture.png'
+                    });
+                }
+            });
+            
+            if (reactions.length > 0) {
+                this.currentReactions[messageId] = reactions;
+            }
+            
+            this.loadMessageReactions(messageId);
+        });
     }
 
     setupStyles() {

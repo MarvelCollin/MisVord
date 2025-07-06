@@ -303,6 +303,9 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
 .voice-participants .user-avatar {
     transition: transform 0.2s ease;
+    margin: 0;
+    padding: 0;
+    border: none;
 }
 
 .voice-participants .user-avatar:hover {
@@ -312,6 +315,9 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
 .voice-user-count img {
     transition: transform 0.2s ease;
+    margin: 0;
+    padding: 0;
+    border: none;
 }
 
 .voice-user-count img:hover {
