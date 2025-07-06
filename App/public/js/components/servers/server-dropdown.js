@@ -294,8 +294,8 @@ async function fetchAndInviteTitiBot() {
     try {
         showToast('Searching for TitiBot...', 'info');
         
-        // Search for TitiBot in the database
-        const response = await fetch('/api/bot/check/titibot');
+        // Use the public endpoint that doesn't require authentication
+        const response = await fetch('/api/bots/public-check/titibot');
         const result = await response.json();
 
         if (result.success && result.exists && result.is_bot) {
@@ -772,7 +772,7 @@ async function inviteBotToServer(botId) {
     }
 
     try {
-        const response = await fetch('/api/bot/add-to-server', {
+        const response = await fetch('/api/bots/add-to-server', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -400,7 +400,7 @@ function initMemberManagementTab() {
     const memberSearch = document.getElementById('member-search');
     const memberTemplate = document.getElementById('member-template');
     const memberFilter = document.getElementById('member-filter');
-    const filterOptions = document.querySelectorAll('.filter-option');
+    const filterOptions = document.querySelectorAll('#filter-dropdown .filter-option');
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
     
     if (!membersList || !memberTemplate || !serverId) return;
@@ -831,27 +831,54 @@ function initChannelManagementTab() {
             </div>
         `;
         
-        window.channelAPI.getChannels(serverId).done(function(response) {
-            if (response && response.success) {
-                if (response.data && response.data.channels) {
-                    allChannels = response.data.channels;
-                } else if (response.channels) {
-                    allChannels = response.channels;
-                } else {
-                    allChannels = [];
+        try {
+            // Replace jQuery AJAX with fetch API
+            fetch(`/api/servers/${serverId}/channels`, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                        return;
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(response => {
+                if (response && response.success) {
+                    if (response.data && response.data.channels) {
+                        allChannels = response.data.channels;
+                    } else if (response.channels) {
+                        allChannels = response.channels;
+                    } else {
+                        allChannels = [];
+                    }
+                    
+                    filterChannels(currentFilter);
+                } else {
+                    throw new Error(response.message || 'Failed to load server channels');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading server channels:', error);
                 
-                filterChannels(currentFilter);
-            } else {
-                throw new Error(response.message || 'Failed to load server channels');
-            }
-        }).fail(function(xhr, status, error) {
-            console.error('Error loading server channels:', error);
-            
-            if (xhr.status === 401) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            }
+                channelsList.innerHTML = `
+                    <div class="channels-empty-state">
+                        <i class="fas fa-exclamation-triangle text-red-400"></i>
+                        <div class="text-lg">Error loading channels</div>
+                        <div class="text-sm">Please try refreshing the page</div>
+                    </div>
+                `;
+            });
+        } catch (error) {
+            console.error('Error initiating channel loading:', error);
             
             channelsList.innerHTML = `
                 <div class="channels-empty-state">
@@ -860,7 +887,7 @@ function initChannelManagementTab() {
                     <div class="text-sm">Please try refreshing the page</div>
                 </div>
             `;
-        });
+        }
     }
     
     function filterChannels(filterType) {
@@ -1076,28 +1103,64 @@ function initChannelManagementTab() {
     }
 
     function handleRenameChannel(channel, newName) {
-        window.channelAPI.updateChannel(channel.id, { name: newName }).done(function(response) {
+        fetch(`/api/channels/${channel.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ name: newName })
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                    throw new Error('Unauthorized');
+                }
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(response => {
             if (response && response.success) {
                 showToast(`Channel renamed to "${newName}" successfully`, 'success');
                 loadChannels();
             } else {
                 showToast(response.message || 'Failed to rename channel', 'error');
             }
-        }).fail(function(xhr, status, error) {
+        })
+        .catch(error => {
             console.error('Error renaming channel:', error);
             showToast('Failed to rename channel', 'error');
         });
     }
     
     function handleDeleteChannel(channel) {
-        window.channelAPI.deleteChannel(channel.id).done(function(response) {
+        fetch(`/api/channels/${channel.id}`, {
+            method: 'DELETE',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                    throw new Error('Unauthorized');
+                }
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(response => {
             if (response && response.success) {
                 showToast(`Channel "${channel.name}" deleted successfully`, 'success');
                 loadChannels();
             } else {
                 showToast(response.message || 'Failed to delete channel', 'error');
             }
-        }).fail(function(xhr, status, error) {
+        })
+        .catch(error => {
             console.error('Error deleting channel:', error);
             showToast('Failed to delete channel', 'error');
         });

@@ -147,20 +147,43 @@ function initServerSidebar() {
 }
 
 function performCompleteRender() {
-
     clearAllPreviousState();
+    
+    document.querySelectorAll('.server-sidebar-icon[data-server-id]').forEach(icon => {
+        icon.removeAttribute('data-setup');
+    });
+    
     renderFolders();
 }
 
 function clearAllPreviousState() {
-
-    
     resetServersToMainList();
     
     document.querySelectorAll('.server-sidebar-icon[data-setup]').forEach(icon => {
         icon.removeAttribute('data-setup');
         icon.draggable = false;
         icon.classList.remove('in-group');
+        
+        // Ensure server icon is visible if it should be
+        if (!icon.classList.contains('in-group')) {
+            icon.style.display = '';
+        }
+        
+        // Store original server data for recovery
+        if (!icon.hasAttribute('data-original-stored')) {
+            const img = icon.querySelector('.server-sidebar-button img');
+            const span = icon.querySelector('.server-sidebar-button span');
+            
+            if (img && img.src) {
+                icon.setAttribute('data-original-img', img.src);
+            }
+            
+            if (span && span.textContent) {
+                icon.setAttribute('data-original-text', span.textContent);
+            }
+            
+            icon.setAttribute('data-original-stored', 'true');
+        }
     });
     
     document.querySelectorAll('.server-sidebar-group').forEach(folder => {
@@ -182,14 +205,25 @@ function clearAllPreviousState() {
 }
 
 function setupServerIcons() {           
-
     document.querySelectorAll('.server-sidebar-icon[data-server-id]:not([data-setup])').forEach(icon => {
         icon.setAttribute('data-setup', 'true');
         icon.draggable = true;
         
         setupTooltipForElement(icon);
         
-        icon.addEventListener('dragstart', e => {
+        const existingDragStart = icon._dragStartListener;
+        const existingDragEnd = icon._dragEndListener;
+        const existingDragOver = icon._dragOverListener;
+        const existingDragLeave = icon._dragLeaveListener;
+        const existingDrop = icon._dropListener;
+        
+        if (existingDragStart) icon.removeEventListener('dragstart', existingDragStart);
+        if (existingDragEnd) icon.removeEventListener('dragend', existingDragEnd);
+        if (existingDragOver) icon.removeEventListener('dragover', existingDragOver);
+        if (existingDragLeave) icon.removeEventListener('dragleave', existingDragLeave);
+        if (existingDrop) icon.removeEventListener('drop', existingDrop);
+        
+        const dragStartListener = e => {
             const serverId = icon.getAttribute('data-server-id');
             e.dataTransfer.setData('text/plain', serverId);
             icon.classList.add('dragging');
@@ -199,24 +233,24 @@ function setupServerIcons() {
                     el.classList.add('repositioning');
                 }
             });
-        });
+        };
         
-        icon.addEventListener('dragend', () => {
+        const dragEndListener = () => {
             icon.classList.remove('dragging');
             document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
             document.querySelectorAll('.repositioning').forEach(el => el.classList.remove('repositioning'));
-        });
+        };
         
-        icon.addEventListener('dragover', e => {
+        const dragOverListener = e => {
             e.preventDefault();
             icon.classList.add('drop-target');
-        });
+        };
         
-        icon.addEventListener('dragleave', () => {
+        const dragLeaveListener = () => {
             icon.classList.remove('drop-target');
-        });
+        };
         
-        icon.addEventListener('drop', e => {
+        const dropListener = e => {
             e.preventDefault();
             icon.classList.remove('drop-target');
             
@@ -245,7 +279,19 @@ function setupServerIcons() {
                 
                 performCompleteRender();
             }
-        });
+        };
+        
+        icon.addEventListener('dragstart', dragStartListener);
+        icon.addEventListener('dragend', dragEndListener);
+        icon.addEventListener('dragover', dragOverListener);
+        icon.addEventListener('dragleave', dragLeaveListener);
+        icon.addEventListener('drop', dropListener);
+        
+        icon._dragStartListener = dragStartListener;
+        icon._dragEndListener = dragEndListener;
+        icon._dragOverListener = dragOverListener;
+        icon._dragLeaveListener = dragLeaveListener;
+        icon._dropListener = dropListener;
     });
 }
 
@@ -261,104 +307,128 @@ async function renderFolders() {
     
     serverDataCache = null;
     
-    let groups = LocalStorageManager.getServerGroups();
-
-    const allAvailableServerIds = new Set(
-        Array.from(document.querySelectorAll('.server-sidebar-icon[data-server-id]'))
-             .map(el => el.getAttribute('data-server-id'))
-    );
-
-    let groupsChanged = false;
-    groups.forEach(group => {
-        const originalServerCount = group.servers.length;
-        group.servers = group.servers.filter(serverId => allAvailableServerIds.has(serverId));
-        if (group.servers.length !== originalServerCount) {
-            groupsChanged = true;
-        }
-    });
-
-    if (groupsChanged) {
-        LocalStorageManager.setServerGroups(groups);
-    }
+    try {
+        let groups = LocalStorageManager.getServerGroups();
     
-    // Automatically dissolve groups with one or zero servers.
-    const validGroups = groups.filter(group => {
-        if (group.servers.length <= 1) {
-            LocalStorageManager.removeServerGroup(group.id);
-            return false;
-        }
-        return true;
-    });
-    groups = validGroups;
-
+        const allAvailableServerIds = new Set(
+            Array.from(document.querySelectorAll('.server-sidebar-icon[data-server-id]'))
+                .map(el => el.getAttribute('data-server-id'))
+        );
     
-    document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
-    
-    const serversInGroups = new Set();
-    groups.forEach(group => {
-        group.servers.forEach(serverId => serversInGroups.add(serverId));
-    });
-    
-    const currentServerElements = Array.from(document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]'));
-    
-    currentServerElements.forEach(serverIcon => {
-        const serverId = serverIcon.getAttribute('data-server-id');
-        if (serversInGroups.has(serverId)) {
-            serverIcon.style.display = 'none';
-            serverIcon.classList.add('in-group');
-        } else {
-            serverIcon.style.display = '';
-            serverIcon.classList.remove('in-group');
-        }
-    });
-    
-    const serverImageData = await buildServerImageData();
-    
-    const addServerButton = serverList.querySelector('.discord-add-server-button')?.parentNode;
-    
-    for (const group of groups) {
-        const folderElement = createFolderElement(group);
-        if (addServerButton) {
-            serverList.insertBefore(folderElement, addServerButton);
-        } else {
-            const lastServer = serverList.querySelector('.server-sidebar-icon[data-server-id]:last-of-type');
-            if (lastServer) {
-                lastServer.insertAdjacentElement('afterend', folderElement);
-            } else {
-                serverList.appendChild(folderElement);
+        let groupsChanged = false;
+        groups.forEach(group => {
+            const originalServerCount = group.servers.length;
+            group.servers = group.servers.filter(serverId => allAvailableServerIds.has(serverId));
+            if (group.servers.length !== originalServerCount) {
+                groupsChanged = true;
             }
+        });
+    
+        if (groupsChanged) {
+            LocalStorageManager.setServerGroups(groups);
         }
         
-        const serversContainer = folderElement.querySelector('.group-servers');
+        // Automatically dissolve groups with one or zero servers.
+        const validGroups = groups.filter(group => {
+            if (group.servers.length <= 1) {
+                LocalStorageManager.removeServerGroup(group.id);
+                return false;
+            }
+            return true;
+        });
+        groups = validGroups;
+    
+        // Clear existing groups first
+        document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
         
-        const serversToMove = group.servers
-            .map(serverId => ({
-                id: serverId,
-                element: document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`)
-            }))
-            .filter(server => server.element);
+        // Create a set of all servers that belong to any group
+        const serversInGroups = new Set();
+        groups.forEach(group => {
+            group.servers.forEach(serverId => serversInGroups.add(serverId));
+        });
         
-        serversToMove.forEach(server => {
-            if (serversContainer) {
-
-                server.element.style.display = '';
-                server.element.classList.add('in-group');
-                if (server.element.parentNode) {
-                    server.element.parentNode.removeChild(server.element);
-                }
-                serversContainer.appendChild(server.element);
+        // Update visibility of server icons in the main list
+        const currentServerElements = Array.from(document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]'));
+        
+        currentServerElements.forEach(serverIcon => {
+            const serverId = serverIcon.getAttribute('data-server-id');
+            if (serversInGroups.has(serverId)) {
+                serverIcon.style.display = 'none';
+                serverIcon.classList.add('in-group');
+            } else {
+                serverIcon.style.display = '';
+                serverIcon.classList.remove('in-group');
             }
         });
         
-        createFolderPreview(group, folderElement, serverImageData);
-        updateFolderState(group, folderElement);
-        setupFolderEvents(group, folderElement);
+        // Build server image data once for all servers
+        const serverImageData = await buildServerImageData();
+        
+        // Find reference for adding server button placement
+        const addServerButton = serverList.querySelector('.discord-add-server-button')?.parentNode;
+        
+        // Create and insert folder elements
+        for (const group of groups) {
+            const folderElement = createFolderElement(group);
+            if (addServerButton) {
+                serverList.insertBefore(folderElement, addServerButton);
+            } else {
+                const lastServer = serverList.querySelector('.server-sidebar-icon[data-server-id]:last-of-type');
+                if (lastServer) {
+                    lastServer.insertAdjacentElement('afterend', folderElement);
+                } else {
+                    serverList.appendChild(folderElement);
+                }
+            }
+            
+            // Get the servers container inside the folder
+            const serversContainer = folderElement.querySelector('.group-servers');
+            
+            // Find all server elements belonging to this group
+            const serversToMove = group.servers
+                .map(serverId => {
+                    // Look for server element in both the main list and within groups
+                    let element = document.querySelector(`#server-list > .server-sidebar-icon[data-server-id="${serverId}"]`) || 
+                                  document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
+                    return {
+                        id: serverId,
+                        element: element
+                    };
+                })
+                .filter(server => server.element);
+            
+            // Move servers into the group container
+            serversToMove.forEach(server => {
+                if (serversContainer) {
+                    server.element.style.display = '';
+                    server.element.classList.add('in-group');
+                    
+                    // Remove from current parent before appending to new parent
+                    if (server.element.parentNode) {
+                        server.element.parentNode.removeChild(server.element);
+                    }
+                    serversContainer.appendChild(server.element);
+                    
+                    // Ensure we keep the data-setup attribute for tracking
+                    server.element.removeAttribute('data-setup');
+                }
+            });
+            
+            // Create folder preview, update state and set up events
+            createFolderPreview(group, folderElement, serverImageData);
+            updateFolderState(group, folderElement);
+            setupFolderEvents(group, folderElement);
+        }
+        
+        // Set up event handlers for server icons, drop zones and tooltips
+        setupServerIcons();
+        setupDropZones();
+        setupAllTooltips();
+    } catch (error) {
+        console.error('Error in renderFolders:', error);
+    } finally {
+        isRendering = false;
     }
-    
-    setupServerIcons();
-    setupDropZones();
-    setupAllTooltips();
-    isRendering = false;
 }
 
 function resetServersToMainList() {
@@ -396,6 +466,8 @@ function resetServersToMainList() {
         } else {
             mainList.appendChild(serverData.element);
         }
+        
+        serverData.element.removeAttribute('data-setup');
     });
 }
 
@@ -463,8 +535,10 @@ async function buildServerImageData() {
     const serverData = await getServerData();
     
     document.querySelectorAll('.server-sidebar-icon[data-server-id]').forEach(icon => {
-        icon.removeAttribute('data-setup');
         const serverId = icon.getAttribute('data-server-id');
+        
+        // Restore server content if needed
+        restoreServerContent(icon);
         
         const existingImg = icon.querySelector('.server-sidebar-button img');
         const existingText = icon.querySelector('.server-sidebar-button span');
@@ -500,6 +574,39 @@ async function buildServerImageData() {
     });
     
     return serverImageData;
+}
+
+function restoreServerContent(icon) {
+    if (!icon) return;
+    
+    const serverButton = icon.querySelector('.server-sidebar-button');
+    if (!serverButton) return;
+    
+    // Check if we need to restore from stored data
+    const hasImage = !!serverButton.querySelector('img');
+    const hasText = !!serverButton.querySelector('span');
+    
+    if (!hasImage && !hasText) {
+        const originalImg = icon.getAttribute('data-original-img');
+        const originalText = icon.getAttribute('data-original-text');
+        
+        if (originalImg) {
+            // Restore image
+            const img = document.createElement('img');
+            img.src = originalImg;
+            img.alt = 'Server';
+            img.className = 'w-full h-full object-cover rounded-full';
+            serverButton.innerHTML = '';
+            serverButton.appendChild(img);
+        } else if (originalText) {
+            // Restore text
+            const span = document.createElement('span');
+            span.textContent = originalText.charAt(0).toUpperCase();
+            span.className = 'text-white font-bold text-xl';
+            serverButton.innerHTML = '';
+            serverButton.appendChild(span);
+        }
+    }
 }
 
 function createFolderElement(group) {
@@ -799,8 +906,9 @@ function setupDropZones() {
                         const wasInGroup = LocalStorageManager.getServerGroup(serverId);
                         if (wasInGroup) {
                             LocalStorageManager.removeServerFromAllGroups(serverId);
-                            performCompleteRender();
                         }
+                        // Always render regardless if server was in group or not
+                        performCompleteRender();
                     }
                 }
             });
@@ -832,10 +940,7 @@ function setupDropZones() {
                 const wasInGroup = LocalStorageManager.getServerGroup(serverId);
                 LocalStorageManager.removeServerFromAllGroups(serverId);
                 
-                if (wasInGroup) {
-
-                }
-                
+                // Always render to ensure server is visible
                 performCompleteRender();
             }
         });
@@ -856,7 +961,9 @@ async function handleServerAddToGroup(serverId, groupId, folderElement) {
     
     const serversContainer = folderElement.querySelector('.group-servers');
     if (serversContainer) {
+        serverElement.removeAttribute('data-setup');
         serversContainer.appendChild(serverElement);
+        serverElement.classList.add('in-group');
         
         const newRect = serverElement.getBoundingClientRect();
         const deltaX = originalRect.left - newRect.left;
@@ -872,7 +979,7 @@ async function handleServerAddToGroup(serverId, groupId, folderElement) {
                 serverElement.style.transition = '';
                 serverElement.style.transform = '';
                 
-                updateGroupPreview(groupId, folderElement);
+                performCompleteRender(); // Do a full render to ensure consistency
             }, 300);
         });
     } else {
@@ -1243,8 +1350,11 @@ function showServerChannelSection() {
 }
 
 export function refreshServerGroups() {
-
+    // Reset cache to force a fresh read from local storage
+    serverDataCache = null;
+    cacheExpiry = 0;
     
+    // Force a complete re-render
     performCompleteRender();
 }
 

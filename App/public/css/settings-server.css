@@ -2802,7 +2802,7 @@ textarea.form-input {
 }
 
 .channel-item:hover {
-  background-color: rgba(88, 101, 242, 0.18); /* subtle blurple tint */
+  background-color: rgba(79, 84, 92, 0.3); /* changed from blurple tint to subtle gray */
 }
 
 .channel-icon-wrapper {
