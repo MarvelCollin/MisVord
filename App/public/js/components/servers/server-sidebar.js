@@ -580,10 +580,17 @@ function createFolderElement(group) {
 
 function createFolderPreview(group, folderElement, serverImageData) {
     const header = folderElement.querySelector('.group-header');
-    const existingTooltip = header.querySelector('.tooltip');
     
-
-    const tooltipText = existingTooltip ? existingTooltip.textContent : group.name;
+    // Build the tooltip content with server names
+    const serverNames = group.servers
+        .map(serverId => (serverDataCache && serverDataCache[serverId]) ? serverDataCache[serverId].name : null)
+        .filter(name => name !== null);
+        
+    let tooltipContent = `<div style="text-align: center;"><strong>${group.name || 'Folder'}</strong></div>`;
+    if (serverNames.length > 0) {
+        tooltipContent += `<div style="text-align: left; margin-top: 5px; padding-top: 5px; border-top: 1px solid #4f545c;">${serverNames.join('<br>')}</div>`;
+    }
+    
     header.innerHTML = '';
     
     const previewContainer = document.createElement('div');
@@ -643,8 +650,11 @@ function createFolderPreview(group, folderElement, serverImageData) {
     
 
     const tooltip = document.createElement('div');
-    tooltip.className = 'tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50';
-    tooltip.textContent = tooltipText;
+    tooltip.className = 'tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm z-50';
+    tooltip.style.whiteSpace = 'normal';
+    tooltip.style.textAlign = 'left';
+    tooltip.innerHTML = tooltipContent;
+
     header.appendChild(tooltip);
 }
 

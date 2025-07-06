@@ -37,11 +37,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 <span>Create Channel</span>
             </div>
             
-            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white" data-role-restricted="false" style="display: flex;">
-                <i class="fas fa-folder-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
-                <span>Create Category</span>
-            </div>
-            
             <div class="border-t border-gray-700 my-1"></div>
             
             <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-red-400 hover:text-white" data-role-restricted="false" style="display: flex;">

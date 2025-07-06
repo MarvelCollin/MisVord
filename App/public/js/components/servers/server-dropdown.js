@@ -75,8 +75,7 @@ function applyRoleBasedVisibility(userRole) {
     const adminOnlyItems = [
         'Invite People',
         'Server Settings', 
-        'Create Channel',
-        'Create Category'
+        'Create Channel'
     ];
 
     const dropdownItems = document.querySelectorAll('.server-dropdown-item');
@@ -223,9 +222,6 @@ function executeDropdownAction(actionText) {
                 case 'Create Channel':
                     showCreateChannelModal();
                     break;
-                case 'Create Category':
-                    showCreateCategoryModal();
-                    break;
                 case 'Leave Server':
                     showLeaveServerConfirmation();
                     break;
@@ -326,14 +322,6 @@ function showCreateChannelModal() {
         window.openCreateChannelModal();
     } else {
         console.error('openCreateChannelModal function not available');
-    }
-}
-
-function showCreateCategoryModal() {
-    if (typeof window.openCreateCategoryModal === 'function') {
-        window.openCreateCategoryModal();
-    } else {
-        console.error('openCreateCategoryModal function not available');
     }
 }
 
@@ -466,6 +454,11 @@ async function generateNewInvite(serverId, expirationValue = null) {
         generateBtn.textContent = 'Generating...';
     }
 
+    if (inviteLinkInput) {
+        inviteLinkInput.value = 'Generating...';
+        inviteLinkInput.disabled = true;
+    }
+
     try {
         await waitForServerAPI();
         
@@ -473,7 +466,7 @@ async function generateNewInvite(serverId, expirationValue = null) {
             throw new Error('serverAPI not available');
         }
 
-        const options = {};
+        const options = { force_new: true };
         if (expirationValue && expirationValue !== 'never') {
             const hoursMap = { hour: 1, day: 24, week: 168, month: 720 };
             options.expires_in = hoursMap[expirationValue] || null;

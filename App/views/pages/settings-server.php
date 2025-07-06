@@ -45,12 +45,6 @@ ob_start();
                     </a>
                 </li>
                 
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=my-profile" class="sidebar-item <?php echo $section === 'my-profile' ? 'active' : ''; ?>">
-                        My Profile
-                    </a>
-                </li>
-                
                 <li class="mt-6">
                     <div class="sidebar-category">
                         <span>CHANNELS</span>
@@ -247,21 +241,6 @@ ob_start();
                     </div>
                     
                 </form>
-            </div>
-
-        <?php elseif ($section === 'my-profile'): ?>
-            <div class="p-10 max-w-[740px]">
-                <div class="mb-8">
-                    <h1 class="text-2xl font-bold mb-2">My Server Profile</h1>
-                    <p class="text-discord-lighter">View your profile in this server</p>
-                </div>
-                
-                <div class="bg-discord-darker rounded-lg p-6 space-y-6">
-                    <div class="text-center">
-                        <p class="text-discord-lighter">Your username will be displayed in this server.</p>
-                        <p class="text-white font-medium mt-2"><?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?></p>
-                    </div>
-                </div>
             </div>
 
         <?php elseif ($section === 'roles'): ?>

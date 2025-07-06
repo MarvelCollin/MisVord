@@ -87,8 +87,6 @@ function initServerSettingsPage() {
         initChannelManagementTab();
     } else if (activeSection === 'delete') {
         initDeleteServerTab();
-    } else if (activeSection === 'my-profile') {
-        initMyProfileTab();
     }
     
     initCloseButton();
@@ -1573,9 +1571,4 @@ async function updateServerCategory(serverId, category) {
         approveBtn.disabled = false;
         approveBtn.innerHTML = originalIcon;
     }
-}
-
-function initMyProfileTab() {
-    const serverId = document.querySelector('meta[name="server-id"]')?.content;
-    if (!serverId) return;
 }
