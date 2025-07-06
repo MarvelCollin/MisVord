@@ -583,16 +583,16 @@ function initMemberManagementTab() {
             const demoteBtn = memberElement.querySelector('.demote-btn');
             const kickBtn = memberElement.querySelector('.kick-btn');
             
-            if (isBot || member.role === 'owner') {
-                if (promoteBtn) {
-                    promoteBtn.style.display = 'none';
-                }
-                if (demoteBtn) {
-                    demoteBtn.style.display = 'none';
-                }
-                if (kickBtn) {
-                    kickBtn.style.display = 'none';
-                }
+            if (member.role === 'owner') {
+                // Hide all action buttons for the owner
+                if (promoteBtn) promoteBtn.style.display = 'none';
+                if (demoteBtn) demoteBtn.style.display = 'none';
+                if (kickBtn) kickBtn.style.display = 'none';
+            } else if (isBot) {
+                // For the bot, hide promote and demote, but allow kick
+                if (promoteBtn) promoteBtn.style.display = 'none';
+                if (demoteBtn) demoteBtn.style.display = 'none';
+                // Keep kick button visible for bots
             } else if (member.role === 'admin') {
                 if (promoteBtn) {
                     // Only enable the promote button if we are the owner and can transfer ownership
@@ -854,14 +854,22 @@ function initMemberManagementTab() {
                     break;
                     
                 case 'kick':
+                    const isBot = member.username.toLowerCase() === 'titibot';
                     if (modalIcon) modalIcon.className = 'fas fa-user-times';
-                    if (modalTitle) modalTitle.textContent = 'Kick Member';
-                    if (actionMessage) actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
+                    if (modalTitle) modalTitle.textContent = isBot ? 'Remove Bot' : 'Kick Member';
+                    
+                    if (actionMessage) {
+                        if (isBot) {
+                            actionMessage.textContent = `Are you sure you want to remove ${member.display_name || member.username} from the server? The bot will be removed immediately but can be added again later.`;
+                        } else {
+                            actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
+                        }
+                    }
                     
                     if (confirmBtn) {
                         confirmBtn.classList.add('danger');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Kick';
+                        if (confirmText) confirmText.textContent = isBot ? 'Remove Bot' : 'Kick';
                     }
                     
                     actionHandler = () => handleKick(member);
@@ -981,19 +989,26 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
-            // Show loading toast
-            showToast(`Kicking ${member.display_name || member.username}...`, 'info', 2000);
+            const isBot = member.username.toLowerCase() === 'titibot';
+            
+            // Show loading toast with appropriate message
+            showToast(isBot ? `Removing ${member.display_name || member.username}...` : `Kicking ${member.display_name || member.username}...`, 'info', 2000);
             
             const response = await window.serverAPI.kickMember(serverId, member.id);
             if (response && response.success) {
-                showToast(`${member.display_name || member.username} has been kicked from the server`, 'success', 5000, 'Member Kicked');
+                const actionText = isBot ? 'removed from' : 'kicked from';
+                const toastTitle = isBot ? 'Bot Removed' : 'Member Kicked';
+                
+                showToast(`${member.display_name || member.username} has been ${actionText} the server`, 'success', 5000, toastTitle);
                 loadMembers();
             } else {
-                throw new Error(response.message || 'Failed to kick member');
+                throw new Error(response.message || `Failed to ${isBot ? 'remove bot' : 'kick member'}`);
             }
         } catch (error) {
             console.error('Error kicking member:', error);
-            showToast(error.message || 'Failed to kick member', 'error', 5000, 'Kick Failed');
+            const isBot = member.username.toLowerCase() === 'titibot';
+            const errorTitle = isBot ? 'Bot Removal Failed' : 'Kick Failed';
+            showToast(error.message || `Failed to ${isBot ? 'remove bot' : 'kick member'}`, 'error', 5000, errorTitle);
         }
     }
 
