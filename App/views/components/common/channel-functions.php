@@ -44,7 +44,7 @@ if (!function_exists('renderChannel')) {
         echo '</div>';
         
         if ($type === 'voice') {
-            echo '<div class="voice-participants ml-6" data-channel-id="' . $channel['id'] . '">';
+            echo '<div class="voice-participants ml-6 hidden" data-channel-id="' . $channel['id'] . '">';
             echo '</div>';
         }
     }

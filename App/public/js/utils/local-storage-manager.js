@@ -409,15 +409,23 @@ class LocalStorageManager {
     static removeServerFromAllGroups(serverId) {
         const groups = this.getServerGroups();
         let updated = false;
+        let groupsRemoved = false;
+        const remainingGroups = [];
         groups.forEach(group => {
             const originalLength = group.servers.length;
             group.servers = group.servers.filter(id => id !== serverId);
             if (group.servers.length !== originalLength) {
                 updated = true;
             }
+            // Only keep the group if it still has 2 or more servers
+            if (group.servers.length >= 2) {
+                remainingGroups.push(group);
+            } else {
+                groupsRemoved = true;
+            }
         });
-        if (updated) {
-            return this.setServerGroups(groups);
+        if (updated || groupsRemoved) {
+            return this.setServerGroups(remainingGroups);
         }
         return false;
     }

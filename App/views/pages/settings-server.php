@@ -497,7 +497,6 @@ ob_start();
                         </div>
                         <div class="channel-info">
                             <div class="channel-name"></div>
-                            <div class="channel-category"></div>
                         </div>
                         <div class="channel-type-badge text"></div>
                         <div class="channel-actions">

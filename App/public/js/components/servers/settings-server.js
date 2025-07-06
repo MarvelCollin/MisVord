@@ -948,11 +948,6 @@ function initChannelManagementTab() {
                 channelNameElement.textContent = channel.name;
             }
             
-            const channelCategoryElement = channelElement.querySelector('.channel-category');
-            if (channelCategoryElement) {
-                channelCategoryElement.textContent = channel.category_name || 'No Category';
-            }
-            
             const channelTypeElement = channelElement.querySelector('.channel-type-badge');
             if (channelTypeElement) {
                 channelTypeElement.textContent = channel.type.charAt(0).toUpperCase() + channel.type.slice(1);

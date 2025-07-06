@@ -301,21 +301,21 @@ class ChannelVoiceParticipants {
 
     updateParticipantContainer(channelId) {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-        if (!container) {
-            return;
+        if (!container) return;
+
+        const channelParticipants = this.participants.get(channelId) || new Map();
+        
+        if (channelParticipants.size > 0) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
         }
 
-        const channelParticipants = this.participants.get(channelId);
-        
-        if (!channelParticipants || channelParticipants.size === 0) {
-            this.updateChannelCount(channelId, 0);
-            return;
-        }
-
-        container.classList.remove('hidden');
-        container.style.display = 'block';
-        container.style.visibility = 'visible';
-        
+        const activeParticipantIds = new Set(Array.from(channelParticipants.keys()));
+        const renderedParticipantElements = container.querySelectorAll('.participant-profile');
+        const renderedParticipantIds = new Set(
+            Array.from(renderedParticipantElements).map(el => el.getAttribute('data-user-id'))
+        );
 
         container.innerHTML = '';
 

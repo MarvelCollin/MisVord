@@ -659,11 +659,75 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
+        const channelNameInput = modal.querySelector('#channel-name');
+        if (channelNameInput && !channelNameInput.dataset.inputListenerAttached) {
+            channelNameInput.addEventListener('input', function() {
+                this.value = this.value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9-_]/g, '');
+            });
+            channelNameInput.dataset.inputListenerAttached = 'true';
+        }
+
         setTimeout(() => {
             modal.querySelector('#channel-name')?.focus();
         }, 300);
     };
     
+    window.submitChannelForm = function(event) {
+        event.preventDefault();
+
+        const form = document.getElementById('create-channel-form');
+        if (form.hasAttribute('data-submitting')) {
+            return false;
+        }
+        form.setAttribute('data-submitting', 'true');
+
+        const formData = new FormData(form);
+        const submitBtn = form.querySelector('[type="submit"]');
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin h-5 w-5 mr-2 inline"></i> Creating...';
+        }
+
+        fetch('/api/channels', {
+            method: 'POST',
+            body: formData,
+            headers: { 'Accept': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeCreateChannelModal();
+                form.reset();
+                if (typeof showToast === 'function') {
+                    showToast('Channel created successfully', 'success');
+                }
+                if (typeof refreshChannelList === 'function') {
+                    refreshChannelList();
+                }
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast(data.message || 'Error creating channel', 'error');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('API Error:', error);
+            if (typeof showToast === 'function') {
+                showToast('Error creating channel. Please try again.', 'error');
+            }
+        })
+        .finally(() => {
+            form.removeAttribute('data-submitting');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Create Channel';
+            }
+        });
+
+        return false;
+    };
+
     window.closeCreateChannelModal = closeCreateChannelModal;
     
     window.openCreateCategoryModal = function(position = null) {
@@ -940,363 +1004,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     };
     
-
-    
-    const channelNameInput = document.getElementById('channel-name');
-    if (channelNameInput) {
-        channelNameInput.addEventListener('input', function() {
-            let value = this.value.toLowerCase();
-            value = value.replace(/\s+/g, '-');
-            value = value.replace(/[^a-z0-9\-_]/g, '');
-            this.value = value;
-        });
-    }
-    
-    window.submitChannelForm = function(event) {
-        event.preventDefault();
-
-        
-        const form = document.getElementById('create-channel-form');
-        
-        if (form.hasAttribute('data-submitting')) {
-
-            return false;
-        }
-        
-        form.setAttribute('data-submitting', 'true');
-        
-        const formData = new FormData(form);
-        
-        const positionField = document.getElementById('channel-position');
-        
-        if (positionField && (positionField.value === '' || positionField.value === null)) {
-            formData.set('position', null);
-        }
-        
-        const submitBtn = form.querySelector('[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin h-5 w-5 mr-2 inline"></i> Creating...';
-        }
-        
-        try {
-            const typeInput = form.querySelector('[name="type"]');
-            if (typeInput && typeInput.value) {
-                const typeValue = typeInput.value.toString().trim();
-                formData.set('type', typeValue);
-            }
-            
-            fetch('/api/channels', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-
-                
-                return response.text().then(rawText => {
-
-                    
-                    if (!response.ok) {
-                        console.warn("Server returned error status:", response.status);
-                        
-                        try {
-                            const errorData = JSON.parse(rawText);
-                            console.error("Server error details:", errorData);
-                            
-                            if (errorData && errorData.message) {
-                                if (typeof showToast === 'function') {
-                                    showToast(errorData.message, 'error');
-                                }
-                                if (submitBtn) {
-                                    submitBtn.disabled = false;
-                                    submitBtn.innerHTML = 'Create Channel';
-                                }
-                                return { success: false, message: errorData.message };
-                            }
-                        } catch (parseError) {
-                            console.error("Failed to parse error response:", parseError);
-                            
-                            if (response.status >= 500) {
-                                throw new Error('Server error');
-                            }
-                        }
-                    }
-                    
-                    try {
-                        const data = JSON.parse(rawText);
-                        return data;
-                    } catch (e) {
-                        console.error("Failed to parse JSON:", e);
-                        if (rawText.includes("</html>") || rawText.includes("<br />")) {
-                            console.error("Server returned HTML instead of JSON. Possible PHP error.");
-                            throw new Error("Server returned HTML instead of JSON");
-                        }
-                        throw new Error("Invalid response format from server");
-                    }
-                });
-            })
-            .then(data => {
-                if (data === true) {
-                    return; 
-                }
-                
-                if (!data || data.success === false) {
-                    const errorMsg = (data && data.message) ? data.message : 'Error creating channel';
-                    console.error("Error from API:", errorMsg);
-                    
-                    if (typeof showToast === 'function') {
-                        showToast(errorMsg, 'error');
-                    }
-                    
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Create Channel';
-                    }
-                    return;
-                }
-
-                if (data && data.success) {
-                    closeCreateChannelModal();
-                    form.reset();
-                    form.removeAttribute('data-submitting');
-                    
-                    if (typeof showToast === 'function') {
-                        showToast('Channel created successfully', 'success');
-                    }
-                    
-                    try {
-                        if (typeof refreshChannelList === 'function') {
-                            refreshChannelList();
-
-                        } else if (typeof window.channelManager !== 'undefined' && window.channelManager.refreshChannelList) {
-                            window.channelManager.refreshChannelList();
-
-                        } else {
-
-                        }
-                    } catch (navError) {
-                        console.error("Navigation error:", navError);
-                    }
-                } else {
-                    form.removeAttribute('data-submitting');
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Create Channel';
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('API Error:', error);
-                form.removeAttribute('data-submitting');
-                
-                if (typeof showToast === 'function') {
-                    showToast('Error creating channel. Please try again.', 'error');
-                }
-                
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Create Channel';
-                }
-            });
-        } catch (outerError) {
-            console.error('Critical error in form submission:', outerError);
-            form.removeAttribute('data-submitting');
-            
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Create Channel';
-            }
-        }
-        
-        
-        return false;
-    };
-    
-    
-    window.submitCategoryForm = function(event) {
-        event.preventDefault();
-
-        
-        const form = document.getElementById('create-category-form');
-        
-        if (form.hasAttribute('data-submitting')) {
-
-            return false;
-        }
-        
-        form.setAttribute('data-submitting', 'true');
-        
-        const formData = new FormData(form);
-        
-        const positionField = document.getElementById('category-position');
-        
-        if (positionField && (positionField.value === '' || positionField.value === null)) {
-            formData.set('position', null);
-        }
-        
-        const submitBtn = form.querySelector('[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin h-5 w-5 mr-2 inline"></i> Creating...';
-        }
-        
-        try {
-            fetch('/api/categories', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json'
-                }
-            })
-            .then(response => {
-
-                
-                
-                return response.text().then(rawText => {
-
-                    
-                    
-                    if (!response.ok) {
-                        console.warn("Server returned error status:", response.status);
-                        
-                        try {
-                            
-                            const errorData = JSON.parse(rawText);
-                            console.error("Server error details:", errorData);
-                            
-                            
-                            if (errorData && errorData.message) {
-                                if (typeof showToast === 'function') {
-                                    showToast(errorData.message, 'error');
-                                }
-                                
-                                if (submitBtn) {
-                                    submitBtn.disabled = false;
-                                    submitBtn.innerHTML = 'Create Category';
-                                }
-                                return { success: false, message: errorData.message };
-                            }
-                        } catch (parseError) {
-                            
-                            console.error("Failed to parse error response:", parseError);
-                            
-                            
-                            if (response.status >= 500) {
-                                throw new Error('Server error');
-                            }
-                        }
-                    }
-                    
-                    try {
-                        
-                        const data = JSON.parse(rawText);
-                        return data;
-                    } catch (e) {
-                        console.error("Failed to parse JSON:", e);
-                        
-                        if (rawText.includes("</html>") || rawText.includes("<br />")) {
-                            console.error("Server returned HTML instead of JSON. Possible PHP error.");
-                            throw new Error("Server returned HTML instead of JSON");
-                        }
-                        throw new Error("Invalid response format from server");
-                    }
-                });
-            })
-            .then(data => {
-                
-                if (data === true) {
-                    return; 
-                }
-                
-                
-                if (!data || data.success === false) {
-                    const errorMsg = (data && data.message) ? data.message : 'Error creating category';
-                    console.error("Error from API:", errorMsg);
-                    
-                    if (typeof showToast === 'function') {
-                        showToast(errorMsg, 'error');
-                    }
-                    
-                    
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Create Category';
-                    }
-                    return;
-                }
-                
-
-                if (data && data.success) {
-                    closeCreateCategoryModal();
-                    form.reset();
-                    form.removeAttribute('data-submitting');
-                    
-                    if (typeof showToast === 'function') {
-                        showToast('Category created successfully', 'success');
-                    }
-                    
-                    try {
-                        if (data.redirect) {
-
-                            setTimeout(function() {
-                                window.location.href = data.redirect;
-                            }, 500);
-                        } else if (data.data && data.data.redirect) {
-
-                            setTimeout(function() {
-                                window.location.href = data.data.redirect;
-                            }, 500);
-                        } else {
-
-                            setTimeout(function() {
-                                window.location.reload();
-                            }, 500);
-                        }
-                    } catch (navError) {
-                        console.error("Navigation error:", navError);
-                        setTimeout(function() {
-                            window.location.reload();
-                        }, 1000);
-                    }
-                } else {
-                    form.removeAttribute('data-submitting');
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Create Category';
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('API Error:', error);
-                form.removeAttribute('data-submitting');
-                
-                if (typeof showToast === 'function') {
-                    showToast('Error creating category. Please try again.', 'error');
-                }
-                
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Create Category';
-                }
-            });
-        } catch (outerError) {
-            console.error('Critical error in form submission:', outerError);
-            form.removeAttribute('data-submitting');
-            
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = 'Create Category';
-            }
-        }
-        
-        
-        return false;
-    };
-    
-
 
     
 
