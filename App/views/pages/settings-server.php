@@ -430,7 +430,6 @@ ob_start();
                     <div class="channels-controls">
                         <div class="search-container">
                             <div class="search-input-wrapper">
-                                <i class="fas fa-search search-icon"></i>
                                 <input type="text" id="channel-search" class="search-input" placeholder="Search channels">
                             </div>
                         </div>

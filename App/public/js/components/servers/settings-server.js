@@ -1008,6 +1008,15 @@ function initChannelManagementTab() {
                 renameInputContainer.classList.remove('hidden');
                 const nameInput = modal.querySelector('#new-channel-name');
                 nameInput.value = channel.name;
+
+                // Attach listener once to sanitize input (replace spaces with hyphens and remove invalid chars)
+                if (nameInput && !nameInput.dataset.listenerAttached) {
+                    nameInput.addEventListener('input', function() {
+                        let val = this.value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9\-_]/g, '');
+                        this.value = val;
+                    });
+                    nameInput.dataset.listenerAttached = 'true';
+                }
                 
                 confirmBtn.classList.add('channel-modal-btn-primary');
                 confirmText.textContent = 'Rename';

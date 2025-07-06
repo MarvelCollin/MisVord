@@ -466,25 +466,8 @@ async function buildServerImageData() {
         icon.removeAttribute('data-setup');
         const serverId = icon.getAttribute('data-server-id');
         
-        const apiServer = serverData[serverId];
-        if (apiServer) {
-            if (apiServer.image_url) {
-                serverImageData.set(serverId, {
-                    type: 'image',
-                    src: apiServer.image_url,
-                    alt: apiServer.name || 'Server'
-                });
-            } else {
-                serverImageData.set(serverId, {
-                    type: 'text',
-                    text: (apiServer.name || 'Server').charAt(0).toUpperCase()
-                });
-            }
-            return;
-        }
-        
-        const existingImg = icon.querySelector('.server-button img');
-        const existingText = icon.querySelector('.server-button span');
+        const existingImg = icon.querySelector('.server-sidebar-button img');
+        const existingText = icon.querySelector('.server-sidebar-button span');
         
         if (existingImg && existingImg.src && !existingImg.src.includes('default-profile-picture')) {
             serverImageData.set(serverId, {
@@ -492,16 +475,27 @@ async function buildServerImageData() {
                 src: existingImg.src,
                 alt: existingImg.alt || 'Server'
             });
-        } else if (existingText && existingText.textContent) {
+        } else if (existingText && existingText.textContent.trim()) {
             serverImageData.set(serverId, {
                 type: 'text',
-                text: existingText.textContent.charAt(0).toUpperCase()
+                text: existingText.textContent.trim().charAt(0).toUpperCase()
             });
         } else {
-            serverImageData.set(serverId, {
-                type: 'text',
-                text: 'S'
-            });
+            const apiServer = serverData[serverId];
+            if (apiServer && apiServer.image_url) {
+                 serverImageData.set(serverId, {
+                    type: 'image',
+                    src: apiServer.image_url,
+                    alt: apiServer.name || 'Server'
+                });
+            } else if (apiServer && apiServer.name) {
+                serverImageData.set(serverId, {
+                    type: 'text',
+                    text: (apiServer.name || 'S').charAt(0).toUpperCase()
+                });
+            } else {
+                 serverImageData.set(serverId, { type: 'text', text: '?' });
+            }
         }
     });
     

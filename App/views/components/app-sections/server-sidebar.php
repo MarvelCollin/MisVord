@@ -29,7 +29,7 @@ if (file_exists($tooltipPath)) {
 <div id="tooltip-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 0; z-index: 99999; pointer-events: none;"></div>
 
 <div class="flex h-full">
-    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 overflow-visible transition-all duration-200" style="overflow: visible !important;">
+    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 transition-all duration-200">
         <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto" style="overflow-x: visible !important;">
             <div class="server-sidebar-icon <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">

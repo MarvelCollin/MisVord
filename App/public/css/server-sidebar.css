@@ -24,11 +24,25 @@
   width: 72px;
   overflow-y: auto;
   overflow-x: visible !important;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: #1a1b1e transparent;
 }
 
 .server-sidebar-list::-webkit-scrollbar {
-  display: none;
+  width: 8px;
+}
+
+.server-sidebar-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.server-sidebar-list::-webkit-scrollbar-thumb {
+  background: #1a1b1e;
+  border-radius: 4px;
+}
+
+.server-sidebar-list::-webkit-scrollbar-thumb:hover {
+  background: #202225;
 }
 
 .server-sidebar-icon {
