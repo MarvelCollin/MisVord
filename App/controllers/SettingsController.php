@@ -36,13 +36,12 @@ class SettingsController extends BaseController
             header('Location: /home');
             exit;
         }
-        
-        // Get the user's role in this server
+
         require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
         $userServerMembershipRepository = new UserServerMembershipRepository();
         $currentUserId = $_SESSION['user_id'] ?? null;
-        $userRole = 'member'; // Default role
-        
+        $userRole = 'member';
+
         if ($currentUserId && $serverId) {
             $membership = $userServerMembershipRepository->findByUserAndServer($currentUserId, $serverId);
             if ($membership) {

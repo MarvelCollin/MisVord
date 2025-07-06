@@ -18,15 +18,15 @@ class HomeController extends BaseController
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->userRepository = new UserRepository();
     }
-    
+
     public function redirectToApp()
     {
         $this->requireAuth();
-        
+
         header('Location: /home/friends');
         exit;
     }
-    
+
     public function index()
     {
         if (function_exists('logger')) {
@@ -37,19 +37,16 @@ class HomeController extends BaseController
                 'request_uri' => $_SERVER['REQUEST_URI'] ?? ''
             ]);
         }
-        
+
         $this->requireAuth();
 
-        
         if (strpos($_SERVER['REQUEST_URI'] ?? '', '/home/friends') === 0) {
             $GLOBALS['contentType'] = 'home';
-            
-            
+
             $tab = $_GET['tab'] ?? 'online';
             $GLOBALS['activeTab'] = in_array($tab, ['online', 'all', 'pending', 'blocked', 'add-friend']) 
                 ? $tab : 'online';
-                
-            
+
             $this->loadFriendsData($this->getCurrentUserId());
         }
 
@@ -117,7 +114,7 @@ class HomeController extends BaseController
 
         try {
             $currentUserId = $this->getCurrentUserId();
-            
+
             $userServers = $this->serverRepository->getForUser($currentUserId);
             $GLOBALS['userServers'] = $userServers;
 
@@ -157,8 +154,6 @@ class HomeController extends BaseController
         }
     }
 
-
-
     private function getPageType($uri) {
         if (strpos($uri, '/home/friends') === 0) {
             return 'friends';
@@ -175,15 +170,15 @@ class HomeController extends BaseController
             $GLOBALS['contentType'] = 'dm';
             $GLOBALS['chatType'] = 'direct';
             $GLOBALS['targetId'] = $activeDmId;
-            
+
             require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
             $chatRoomRepository = new ChatRoomRepository();
-            
+
             $chatRoom = $chatRoomRepository->find($activeDmId);
             if ($chatRoom) {
                 $participants = $chatRoomRepository->getParticipants($activeDmId);
                 $friend = null;
-                
+
                 foreach ($participants as $participant) {
                     if ($participant['user_id'] != $userId) {
                         $friend = [
@@ -195,19 +190,19 @@ class HomeController extends BaseController
                         break;
                     }
                 }
-                
+
                 $chatData = [
                     'friend_username' => $friend['display_name'] ?? $friend['username'] ?? 'Unknown User',
                     'friend_id' => $friend['id'] ?? null,
                     'friend_avatar_url' => $friend['avatar_url'] ?? null
                 ];
-                
+
                 $GLOBALS['chatData'] = $chatData;
-                
+
                 require_once __DIR__ . '/../database/repositories/ChatRoomMessageRepository.php';
                 $chatRoomMessageRepository = new ChatRoomMessageRepository();
                 $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
-                
+
                 require_once __DIR__ . '/ChatController.php';
                 $chatController = new ChatController();
                 $formattedMessages = [];
@@ -217,7 +212,7 @@ class HomeController extends BaseController
                     $formatMethod->setAccessible(true);
                     $formattedMessages[] = $formatMethod->invoke($chatController, $rawMessage);
                 }
-                
+
                 $GLOBALS['messages'] = $formattedMessages;
             }
         }
@@ -225,16 +220,15 @@ class HomeController extends BaseController
 
     private function loadFriendsData($userId) {
         try {
-            
+
             require_once __DIR__ . '/FriendController.php';
             $friendController = new FriendController();
             $friendData = $friendController->getUserFriends();
-            
-            
+
             $GLOBALS['currentUser'] = $friendData['currentUser'] ?? [];
             $GLOBALS['friends'] = $friendData['friends'] ?? [];
             $GLOBALS['onlineFriends'] = $friendData['onlineFriends'] ?? [];
-            
+
             return $friendData;
         } catch (Exception $e) {
             if (function_exists('logger')) {
@@ -243,11 +237,10 @@ class HomeController extends BaseController
                     'user_id' => $userId
                 ]);
             }
-            
-            
+
             $GLOBALS['friends'] = [];
             $GLOBALS['onlineFriends'] = [];
-            
+
             return [
                 'currentUser' => [],
                 'friends' => [],

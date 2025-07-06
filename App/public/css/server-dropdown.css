@@ -424,6 +424,31 @@
     box-shadow: 0 0 0 1px #5865f2;
 }
 
+.user-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.user-item:hover {
+    background-color: #40444b;
+}
+
+.user-item img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 12px;
+}
+
+.user-item span {
+    color: #dcddde;
+    font-weight: 500;
+}
+
 #owner-transfer-users-container .user-item {
     display: flex;
     align-items: center;
@@ -447,4 +472,19 @@
 #owner-transfer-users-container .user-item span {
     color: #dcddde;
     font-weight: 500;
+}
+
+/* Skeleton loading without blue effect */
+@keyframes subtle-pulse {
+    0%, 100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.skeleton-item {
+    animation: subtle-pulse 1.5s ease-in-out infinite;
+    background-color: #36393f;
 }

@@ -4,7 +4,7 @@
  * in the voice call interface
  */
 class VoiceCallSection {
-  constructor() {
+  constructor(options = {}) {
     this.micBtn = null;
     this.videoBtn = null;
     this.deafenBtn = null;
@@ -16,6 +16,11 @@ class VoiceCallSection {
     this.streamProcessingDebounce = new Map();
     this.coordinator = null;
     this.bindEvents();
+
+    this._pageUnloading = false; // New flag to track page unload
+    
+    // Setup page unload listener
+    this.setupPageUnloadListener();
   }
 
   bindEvents() {
@@ -894,9 +899,9 @@ class VoiceCallSection {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
 
-    // Don't remove the local participant unless it's an explicit leave
+    // Don't remove the local participant unless it's an explicit leave or page unload
     const isLocalParticipant = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
-    if (isLocalParticipant && !this.coordinator?.explicitLeaveRequested) {
+    if (isLocalParticipant && !this.coordinator?.explicitLeaveRequested && !this._pageUnloading) {
       console.log('[VOICE-CALL] Prevented auto removal of local participant:', participantId);
       return;
     }
@@ -908,11 +913,11 @@ class VoiceCallSection {
       element.remove();
     }
 
-    // MODIFIED: Only remove from coordinator if it's an explicit leave
+    // Only remove from coordinator if it's an explicit leave or page unload
     const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
     if (this.coordinator) {
-      // Only remove if it's from leave button click or if the coordinator says it's okay
-      if (this.coordinator.explicitLeaveRequested) {
+      // Only remove if it's from leave button click, page unload, or if the coordinator says it's okay
+      if (this.coordinator.explicitLeaveRequested || this._pageUnloading) {
         this.coordinator.removeParticipant(currentChannelId, participantId, 'VoiceCallSection');
       } else {
         console.log('[VOICE-CALL] Prevented auto removal of participant:', participantId);
@@ -1942,6 +1947,28 @@ class VoiceCallSection {
     
     grid.appendChild(participantElement);
     this.updateGridLayout();
+  }
+
+  // Add method to handle page unload
+  setupPageUnloadListener() {
+    window.addEventListener('beforeunload', () => {
+      this._pageUnloading = true;
+      
+      // When page is reloading, we should allow participant removal
+      if (this.coordinator) {
+        this.coordinator.setExplicitLeaveRequested(true);
+      } else if (window.participantCoordinator) {
+        window.participantCoordinator.setExplicitLeaveRequested(true);
+      }
+      
+      // Clean up bot participants before leaving voice (same as leave button)
+      this.handleVoiceDisconnect();
+      
+      // Call leaveVoice on the voice manager (same as leave button)
+      if (window.voiceManager && typeof window.voiceManager.leaveVoice === "function") {
+        window.voiceManager.leaveVoice();
+      }
+    });
   }
 }
 

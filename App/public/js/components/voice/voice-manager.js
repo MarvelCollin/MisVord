@@ -11,7 +11,10 @@ class VoiceManager {
         this.preloadStarted = false;
         this.preloadComplete = false;
         
+        this._pageUnloading = false;
+        
         this.validateExistingState();
+        this.attachEventListeners();
     }
     
     validateExistingState() {
@@ -171,8 +174,13 @@ class VoiceManager {
         
         window.addEventListener('beforeunload', () => {
             if (this.isConnected) {
-
-                this.cleanup();
+                this._pageUnloading = true;
+                
+                if (window.participantCoordinator) {
+                    window.participantCoordinator.setExplicitLeaveRequested(true);
+                }
+                
+                this.leaveVoice();
             }
         });
         
@@ -291,7 +299,8 @@ class VoiceManager {
                 preloadComplete: this.preloadComplete,
                 initialized: this.initialized,
                 hasVideoSDKManager: !!this.videoSDKManager,
-                videoSDKInitialized: this.videoSDKManager?.initialized
+                videoSDKInitialized: this.videoSDKManager?.initialized,
+                isPageReload: !!sessionStorage.getItem('wasInVoiceCall')
             });
 
             if (!this.initialized || !this.videoSDKManager) {
@@ -315,7 +324,17 @@ class VoiceManager {
             
             window.videoSDKJoiningInProgress = true;
 
-
+            // Check if this is a rejoin after page reload
+            const wasInVoiceCall = sessionStorage.getItem('wasInVoiceCall');
+            const previousChannelId = sessionStorage.getItem('voiceChannelId');
+            const isRejoinAfterReload = wasInVoiceCall && previousChannelId === targetChannelId;
+            
+            if (isRejoinAfterReload) {
+                console.log('🔄 [VOICE-MANAGER] Detected rejoin after page reload:', {
+                    previousChannelId,
+                    targetChannelId
+                });
+            }
 
             const existingMeeting = await this.checkExistingMeeting(targetChannelId);
             
@@ -333,31 +352,38 @@ class VoiceManager {
 
             }
 
-            
-
-
-            
+            // Store current voice state in session storage for potential page reloads
+            sessionStorage.setItem('wasInVoiceCall', 'true');
+            sessionStorage.setItem('voiceChannelId', targetChannelId);
+            sessionStorage.setItem('voiceMeetingId', meetingId);
 
             const userName = this.getUsernameFromMultipleSources();
 
-            
-
-            this.currentMeetingId = meetingId;
-            this.currentChannelId = targetChannelId;
-            
-
-
-            await this.registerMeetingWithSocket(targetChannelId, meetingId);
-            
-
-
-            console.log(`� [VOICE-MANAGER] Meeting prepared for external joining`, {
+            console.log(`🎉 [VOICE-MANAGER] Meeting prepared for external joining`, {
                 meetingId: meetingId,
                 channelId: targetChannelId,
                 wasExistingMeeting: !!existingMeeting,
-                action: existingMeeting ? 'PREPARED_EXISTING' : 'PREPARED_NEW'
+                action: existingMeeting ? 'PREPARED_EXISTING' : 'PREPARED_NEW',
+                isRejoinAfterReload
             });
 
+            // Register with socket server with broadcast flag if this is a rejoin
+            await this.registerMeetingWithSocket(targetChannelId, meetingId, isRejoinAfterReload);
+
+            // If this is a rejoin after reload, force refresh all voice participants
+            if (isRejoinAfterReload && window.globalSocketManager?.io) {
+                window.globalSocketManager.io.emit('force-refresh-voice-participants', {
+                    channel_id: targetChannelId
+                });
+                
+                // Also request refresh from ChannelVoiceParticipants
+                if (window.ChannelVoiceParticipants) {
+                    const instance = window.ChannelVoiceParticipants.getInstance();
+                    if (instance) {
+                        instance.refreshAllChannelParticipants();
+                    }
+                }
+            }
 
             return Promise.resolve();
         } catch (error) {
@@ -414,9 +440,10 @@ class VoiceManager {
         });
     }
 
-    async registerMeetingWithSocket(channelId, meetingId) {
+    async registerMeetingWithSocket(channelId, meetingId, broadcast = false) {
         return new Promise((resolve) => {
             if (!window.globalSocketManager?.io || !window.globalSocketManager.isReady()) {
+                console.warn('🔄 [VOICE-MANAGER] GlobalSocketManager not ready, skipping socket registration');
                 resolve({ meeting_id: meetingId, channel_id: channelId });
                 return;
             }
@@ -424,19 +451,51 @@ class VoiceManager {
             const handleUpdate = (data) => {
                 if (data.channel_id === channelId && (data.action === 'join' || data.action === 'already_registered')) {
                     window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-
                     resolve(data);
                 }
             };
             
+            // Listen for the server's response
             window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
-            window.globalSocketManager.io.emit('register-voice-meeting', {
-                channel_id: channelId,
-                meeting_id: meetingId
+            
+            // Get username from multiple sources to ensure it's available
+            const username = this.getUsernameFromMultipleSources();
+            
+            // Get server ID if available
+            const serverId = document.querySelector('meta[name="server-id"]')?.content || 
+                            document.getElementById('current-server-id')?.value || 
+                            null;
+            
+            // Emit the registration event with all required data
+            console.log('🔄 [VOICE-MANAGER] Registering with socket server:', {
+                channelId,
+                meetingId,
+                serverId,
+                username,
+                broadcast
             });
             
+            window.globalSocketManager.io.emit('register-voice-meeting', {
+                channel_id: channelId,
+                meeting_id: meetingId,
+                server_id: serverId,
+                username: username,
+                broadcast: broadcast // Pass the broadcast flag
+            });
+            
+            // Set a timeout to resolve the promise if we don't get a response
             setTimeout(() => {
                 window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
+                
+                // Try one more time with a broadcast flag to ensure global visibility
+                window.globalSocketManager.io.emit('register-voice-meeting', {
+                    channel_id: channelId,
+                    meeting_id: meetingId,
+                    server_id: serverId,
+                    username: username,
+                    broadcast: true // Always set broadcast flag on retry
+                });
+                
                 resolve({ meeting_id: meetingId, channel_id: channelId });
             }, 2000);
         });
@@ -456,7 +515,7 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
-        // MODIFIED: Set the explicit leave flag in coordinator
+        // Set the explicit leave flag in coordinator
         if (window.participantCoordinator) {
             window.participantCoordinator.setExplicitLeaveRequested(true);
         }
@@ -478,6 +537,11 @@ class VoiceManager {
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
+        
+        // Clean up session storage
+        sessionStorage.removeItem('wasInVoiceCall');
+        sessionStorage.removeItem('voiceChannelId');
+        sessionStorage.removeItem('voiceMeetingId');
         
         if (window.unifiedVoiceStateManager) {
             window.unifiedVoiceStateManager.handleDisconnect();
@@ -502,7 +566,6 @@ class VoiceManager {
     }
     
     cleanup() {
-        // MODIFIED: Set the explicit leave flag in coordinator
         if (window.participantCoordinator) {
             window.participantCoordinator.setExplicitLeaveRequested(true);
         }

@@ -14,176 +14,177 @@ $channels = $GLOBALS['serverChannels'] ?? [];
 $categories = $GLOBALS['serverCategories'] ?? [];
 ?>
 
-<div class="w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800">
-    <div class="h-12 border-b border-black flex items-center px-4 shadow-sm relative">
-        <h2 class="font-bold text-white flex-1"><?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?></h2>
-        <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none w-5 h-5 flex items-center justify-center">
-            <i class="fas fa-chevron-down text-sm"></i>
+<div class="w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800/80">
+    <div class="h-12 border-b border-gray-800/90 flex items-center px-4 shadow-sm relative bg-discord-dark/95">
+        <h2 class="font-bold text-white flex-1 truncate"><?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?></h2>
+        <button id="server-dropdown-btn" class="text-gray-400 hover:text-white focus:outline-none w-6 h-6 flex items-center justify-center rounded hover:bg-gray-700/30 transition-colors duration-150">
+            <i class="fas fa-chevron-down text-sm transition-transform duration-200"></i>
         </button>
         
-        <div id="server-dropdown" class="hidden absolute right-2 top-12 w-56 bg-[#18191c] rounded-md shadow-lg z-50 py-2 text-gray-100 text-sm overflow-hidden">
-            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white" data-role-restricted="false" style="display: flex;">
-                <i class="fas fa-user-plus w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+        <div id="server-dropdown" class="hidden absolute right-2 top-12 w-56 bg-[#18191c] rounded-lg shadow-lg shadow-black/40 z-50 py-1.5 text-gray-100 text-sm overflow-hidden border border-gray-800/50">
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white transition-colors duration-150" data-role-restricted="false">
+                <i class="fas fa-user-plus w-5 text-center mr-2.5"></i>
                 <span>Invite People</span>
             </div>
             
-            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white" data-role-restricted="false" style="display: flex;">
-                <i class="fas fa-cog w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white transition-colors duration-150" data-role-restricted="false">
+                <i class="fas fa-cog w-5 text-center mr-2.5"></i>
                 <span>Server Settings</span>
             </div>
             
-            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white" data-role-restricted="false" style="display: flex;">
-                <i class="fas fa-plus-circle w-5 text-center mr-2.5 text-gray-300 group-hover:text-white"></i>
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-gray-300 hover:text-white transition-colors duration-150" data-role-restricted="false">
+                <i class="fas fa-plus-circle w-5 text-center mr-2.5"></i>
                 <span>Create Channel</span>
             </div>
             
-            <div class="border-t border-gray-700 my-1"></div>
+            <div class="border-t border-gray-700/80 my-1"></div>
             
-            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-[#5865f2] cursor-pointer text-red-400 hover:text-white" data-role-restricted="false" style="display: flex;">
-                <i class="fas fa-sign-out-alt w-5 text-center mr-2.5 text-red-400 group-hover:text-white"></i>
+            <div class="server-dropdown-item flex items-center px-3 py-2 hover:bg-red-500/10 cursor-pointer text-red-400 hover:text-red-400 transition-colors duration-150" data-role-restricted="false">
+                <i class="fas fa-sign-out-alt w-5 text-center mr-2.5"></i>
                 <span>Leave Server</span>
             </div>
         </div>
     </div>
 
-<div class="channel-wrapper flex-1 overflow-y-auto">
-    <div id="channel-skeleton-loading" class="channel-skeleton-container p-2">
-        <div class="mb-4">
-            <div class="flex items-center px-3 py-1 mb-1">
-                <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
-                <div class="h-4 bg-gray-700 rounded w-24"></div>
+    <div class="channel-wrapper flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent hover:scrollbar-thumb-gray-700">
+        <div id="channel-skeleton-loading" class="channel-skeleton-container p-2 space-y-6">
+            <div class="space-y-1">
+                <div class="flex items-center px-2 py-1">
+                    <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 simple-pulse"></div>
+                    <div class="h-3.5 bg-gray-700 rounded w-24 simple-pulse"></div>
+                </div>
+                <div class="ml-2 space-y-1">
+                    <?php for ($i = 0; $i < 3; $i++): ?>
+                        <div class="flex items-center py-1.5 px-2">
+                            <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 flex-shrink-0 simple-pulse"></div>
+                            <div class="h-3.5 bg-gray-700 rounded w-24 flex-1 simple-pulse"></div>
+                        </div>
+                    <?php endfor; ?>
+                </div>
             </div>
-            <div class="ml-2">
-                <?php renderChannelSkeleton(3, ''); ?>
+            <div class="space-y-1">
+                <div class="flex items-center px-2 py-1">
+                    <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 simple-pulse"></div>
+                    <div class="h-3.5 bg-gray-700 rounded w-32 simple-pulse"></div>
+                </div>
+                <div class="ml-2 space-y-1">
+                    <?php for ($i = 0; $i < 4; $i++): ?>
+                        <div class="flex items-center py-1.5 px-2">
+                            <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 flex-shrink-0 simple-pulse"></div>
+                            <div class="h-3.5 bg-gray-700 rounded w-28 flex-1 simple-pulse"></div>
+                        </div>
+                    <?php endfor; ?>
+                </div>
             </div>
         </div>
-        <div class="mb-4">
-            <div class="flex items-center px-3 py-1 mb-1">
-                <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
-                <div class="h-4 bg-gray-700 rounded w-32"></div>
-            </div>
-            <div class="ml-2">
-                <?php renderChannelSkeleton(4, ''); ?>
-            </div>
-        </div>
-        <div class="mb-4">
-            <div class="flex items-center px-3 py-1 mb-1">
-                <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
-                <div class="h-4 bg-gray-700 rounded w-28"></div>
-            </div>
-            <div class="ml-2">
-                <?php renderChannelSkeleton(2, ''); ?>
-            </div>
-        </div>
-    </div>
-    
-    <div class="channel-list p-2" data-server-id="<?php echo $currentServerId; ?>" id="channel-real-content" style="display: none;">
-        <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
-        <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
         
-        <?php
-        $uncategorizedChannels = array_filter($channels, function($ch) {
-            return !isset($ch['category_id']) || $ch['category_id'] === null || $ch['category_id'] === '';
-        });
-        
-        usort($uncategorizedChannels, function($a, $b) {
-            return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
-        });
+        <div class="channel-list p-2 space-y-4" data-server-id="<?php echo $currentServerId; ?>" id="channel-real-content" style="display: none;">
+            <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
+            <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
+            
+            <?php
+            $uncategorizedChannels = array_filter($channels, function($ch) {
+                return !isset($ch['category_id']) || $ch['category_id'] === null || $ch['category_id'] === '';
+            });
+            
+            usort($uncategorizedChannels, function($a, $b) {
+                return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+            });
 
-        if (!empty($uncategorizedChannels)):
-            $textChannels = array_filter($uncategorizedChannels, function($ch) {
-                return ($ch['type'] ?? 'text') === 'text';
-            });
-            
-            usort($textChannels, function($a, $b) {
-                return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
-            });
-            
-            if (!empty($textChannels)):
-        ?>
-        <div class="channels-section group" data-section-type="text" data-server-id="<?php echo $currentServerId; ?>">
-            <?php foreach ($textChannels as $channel): ?>
-                <?php renderChannel($channel, $activeChannelId); ?>
-            <?php endforeach; ?>
-        </div>
-        <?php 
-            endif;
-            
-            $voiceChannels = array_filter($uncategorizedChannels, function($ch) {
-                return ($ch['type'] ?? 'text') === 'voice';
-            });
-            
-            usort($voiceChannels, function($a, $b) {
-                return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
-            });
-            
-            if (!empty($voiceChannels)):
-        ?>
-        <div class="voice-channels-section group" data-section-type="voice" data-server-id="<?php echo $currentServerId; ?>">
-            <?php foreach ($voiceChannels as $channel): ?>
-                <?php renderChannel($channel, $activeChannelId); ?>
-            <?php endforeach; ?>
-        </div>
-        <?php endif; ?>
-        <?php endif; ?>
-
-        <?php if (!empty($categories)): ?>
-            <?php 
-            usort($categories, function($a, $b) {
-                return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
-            });
-            ?>
-            <?php foreach ($categories as $category): ?>
-                <?php
-                $categoryChannels = array_filter($channels, function($ch) use ($category) {
-                    return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
+            if (!empty($uncategorizedChannels)):
+                $textChannels = array_filter($uncategorizedChannels, function($ch) {
+                    return ($ch['type'] ?? 'text') === 'text';
                 });
                 
-                usort($categoryChannels, function($a, $b) {
+                usort($textChannels, function($a, $b) {
                     return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
                 });
                 
-                if (empty($categoryChannels)) continue;
+                if (!empty($textChannels)):
+            ?>
+            <div class="channels-section group" data-section-type="text" data-server-id="<?php echo $currentServerId; ?>">
+                <?php foreach ($textChannels as $channel): ?>
+                    <?php renderChannel($channel, $activeChannelId); ?>
+                <?php endforeach; ?>
+            </div>
+            <?php 
+                endif;
                 
-                $textChannels = array_filter($categoryChannels, function($ch) {
-                    return ($ch['type'] ?? 'text') === 'text';
-                });
-                $voiceChannels = array_filter($categoryChannels, function($ch) {
+                $voiceChannels = array_filter($uncategorizedChannels, function($ch) {
                     return ($ch['type'] ?? 'text') === 'voice';
                 });
+                
+                usort($voiceChannels, function($a, $b) {
+                    return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+                });
+                
+                if (!empty($voiceChannels)):
+            ?>
+            <div class="voice-channels-section group" data-section-type="voice" data-server-id="<?php echo $currentServerId; ?>">
+                <?php foreach ($voiceChannels as $channel): ?>
+                    <?php renderChannel($channel, $activeChannelId); ?>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+            <?php endif; ?>
+
+            <?php if (!empty($categories)): ?>
+                <?php 
+                usort($categories, function($a, $b) {
+                    return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+                });
                 ?>
-                <div class="category-section mb-4" data-category-id="<?php echo $category['id']; ?>">
-                    <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer group transition-all duration-200" 
-                         data-category-id="<?php echo $category['id']; ?>">
-                        <i class="fas fa-chevron-down text-xs mr-1 text-gray-500"></i>
-                        <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
-                    </div>
-                    <div class="category-channels ml-2" data-category-id="<?php echo $category['id']; ?>">
-                        <?php if (!empty($textChannels)): ?>
-                            <div class="channels-section group" data-section-type="text" data-server-id="<?php echo $currentServerId; ?>">
-                                <?php foreach ($textChannels as $channel): ?>
-                                    <?php renderChannel($channel, $activeChannelId); ?>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
+                <?php foreach ($categories as $category): ?>
+                    <?php
+                    $categoryChannels = array_filter($channels, function($ch) use ($category) {
+                        return isset($ch['category_id']) && $ch['category_id'] == $category['id'];
+                    });
+                    
+                    usort($categoryChannels, function($a, $b) {
+                        return ($a['position'] ?? 0) <=> ($b['position'] ?? 0);
+                    });
+                    
+                    if (empty($categoryChannels)) continue;
+                    
+                    $textChannels = array_filter($categoryChannels, function($ch) {
+                        return ($ch['type'] ?? 'text') === 'text';
+                    });
+                    $voiceChannels = array_filter($categoryChannels, function($ch) {
+                        return ($ch['type'] ?? 'text') === 'voice';
+                    });
+                    ?>
+                    <div class="category-section mb-4" data-category-id="<?php echo $category['id']; ?>">
+                        <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer group transition-all duration-200" 
+                             data-category-id="<?php echo $category['id']; ?>">
+                            <i class="fas fa-chevron-down text-xs mr-1 text-gray-500"></i>
+                            <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
+                        </div>
+                        <div class="category-channels ml-2" data-category-id="<?php echo $category['id']; ?>">
+                            <?php if (!empty($textChannels)): ?>
+                                <div class="channels-section group" data-section-type="text" data-server-id="<?php echo $currentServerId; ?>">
+                                    <?php foreach ($textChannels as $channel): ?>
+                                        <?php renderChannel($channel, $activeChannelId); ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
 
-                        <?php if (!empty($voiceChannels)): ?>
-                            <div class="voice-channels-section group" data-section-type="voice" data-server-id="<?php echo $currentServerId; ?>">
-                                <?php foreach ($voiceChannels as $channel): ?>
-                                    <?php renderChannel($channel, $activeChannelId); ?>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
+                            <?php if (!empty($voiceChannels)): ?>
+                                <div class="voice-channels-section group" data-section-type="voice" data-server-id="<?php echo $currentServerId; ?>">
+                                    <?php foreach ($voiceChannels as $channel): ?>
+                                        <?php renderChannel($channel, $activeChannelId); ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
+                <?php endforeach; ?>
+            <?php endif; ?>
 
-        <?php if (empty($channels)): ?>
-        <div class="p-4 text-gray-400 text-center text-sm">No channels available</div>
-        <?php endif; ?>
+            <?php if (empty($channels)): ?>
+            <div class="p-4 text-gray-400 text-center text-sm">No channels available</div>
+            <?php endif; ?>
+        </div>
     </div>
-</div>
 
     <?php 
     $userProfilePath = dirname(__DIR__) . '/common/user-profile.php';
@@ -194,112 +195,106 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 </div>
 
 <style>
-.channel-skeleton-container {
-    animation-delay: 0.1s;
+.channel-skeleton-container > div {
+    opacity: 0;
+    animation: simple-fade-in 0.3s ease forwards;
 }
 
 .channel-skeleton-container > div:nth-child(1) {
-    animation-delay: 0ms;
-    animation: simple-slide-in 0.5s ease forwards;
+    animation-delay: 0.1s;
 }
 
 .channel-skeleton-container > div:nth-child(2) {
-    animation-delay: 300ms;
-    animation: simple-slide-in 0.5s ease forwards;
-    animation-delay: 100ms;
+    animation-delay: 0.2s;
 }
 
-.channel-skeleton-container > div:nth-child(3) {
-    animation-delay: 600ms;
-    animation: simple-slide-in 0.5s ease forwards;
-    animation-delay: 200ms;
-}
-
-@keyframes simple-slide-in {
+@keyframes simple-fade-in {
     from {
-        transform: translateX(-10px);
         opacity: 0;
+        transform: translateY(4px);
     }
     to {
-        transform: translateX(0);
         opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.simple-pulse {
+    animation: simple-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes simple-pulse {
+    0%, 100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 0.4;
     }
 }
 
 .channel-item {
-    transition: all 0.15s ease;
-    border-radius: 4px;
     position: relative;
+    transition: all 0.15s ease;
 }
 
-.channel-item:hover {
-    background-color: rgba(79, 84, 92, 0.16) !important;
+.channel-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 50%;
+    transform: translateY(-50%) scaleY(0.5);
+    width: 3px;
+    height: 8px;
+    background-color: #fff;
+    border-radius: 0 3px 3px 0;
+    opacity: 0;
+    transition: all 0.2s ease;
 }
 
-.channel-item.active:hover {
-    background-color: #4752c4 !important;
-    color: #ffffff !important;
+.channel-item:hover::before {
+    opacity: 0.3;
+    transform: translateY(-50%) scaleY(1);
 }
 
-.channel-item.active:hover i {
-    color: #ffffff !important;
-}
-
-.channel-item.active:hover .voice-user-count {
-    color: rgba(255, 255, 255, 0.7) !important;
-}
-
-.channel-item.active {
-    background-color: #5865f2 !important;
-    color: #ffffff !important;
-}
-
-.channel-item.active i {
-    color: #ffffff !important;
-}
-
-.group:hover .opacity-0 {
-    opacity: 1 !important;
+.channel-item.active::before {
+    opacity: 1;
+    transform: translateY(-50%) scaleY(1);
+    height: 20px;
 }
 
 .category-header {
-    transition: color 0.15s ease;
+    transition: all 0.15s ease;
+    user-select: none;
 }
 
 .category-header:hover {
-    color: #ffffff;
+    color: #fff;
+}
+
+.category-header i {
+    transition: transform 0.2s ease;
+}
+
+.category-header.collapsed i {
+    transform: rotate(-90deg);
 }
 
 .category-channels {
-    transition: max-height 0.3s ease;
-}
-
-.category-channels.hidden {
-    max-height: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
 }
 
-.channel-menu {
-    z-index: 1000;
-}
-
-.channel-dropdown {
-    z-index: 1001;
+.category-channels.collapsed {
+    max-height: 0 !important;
 }
 
 .voice-participants {
-    margin-left: 1.5rem;
-    margin-bottom: 0.5rem;
-    border-radius: 0.375rem;
-    background-color: rgba(79, 84, 92, 0.12);
-    padding: 0.25rem;
-    transition: all 0.2s ease;
-    min-height: 20px;
-    border: 1px solid rgba(79, 84, 92, 0.2);
+    background-color: rgba(79, 84, 92, 0.2);
+    border: 1px solid rgba(79, 84, 92, 0.3);
 }
 
 .voice-participants:hover {
-    background-color: rgba(79, 84, 92, 0.20);
+    background-color: rgba(79, 84, 92, 0.25);
 }
 
 .voice-participants .user-avatar {
@@ -308,61 +303,45 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
 .voice-participants .user-avatar:hover {
     transform: scale(1.1);
-}
-
-.voice-participants > div:hover {
-    background-color: rgba(79, 84, 92, 0.3);
-    border-radius: 0.25rem;
-}
-
-.voice-participants .text-sm {
-    font-weight: 500;
-    max-width: 8rem;
-}
-
-.voice-participants .relative::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 8px;
-    height: 8px;
-    background-color: #313338;
-    border-radius: 50%;
-    z-index: 1;
-}
-
-.voice-participants .bg-discord-green {
-    z-index: 2;
-}
-
-.voice-user-count.flex {
-    align-items: center;
-    justify-content: flex-end;
-    min-height: 20px;
-}
-
-.voice-user-count .w-5 {
-    border: 2px solid #313338;
-    transition: transform 0.2s ease;
-}
-
-.voice-user-count .w-5:hover {
-    transform: scale(1.1);
-    z-index: 20 !important;
-}
-
-.voice-user-count .relative:not(:first-child) {
-    margin-left: -6px;
+    z-index: 10;
 }
 
 .voice-user-count img {
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease;
 }
 
-.voice-user-count .text-xs {
-    font-weight: 500;
-    line-height: 1;
+.voice-user-count img:hover {
+    transform: scale(1.1);
+    z-index: 10;
+}
+
+#server-dropdown-btn[aria-expanded="true"] i {
+    transform: rotate(-180deg);
+}
+
+.server-dropdown-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.server-dropdown-item::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: currentColor;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+}
+
+.server-dropdown-item:hover::after {
+    opacity: 0.05;
+}
+
+.server-dropdown-item:active::after {
+    opacity: 0.1;
 }
 </style>
 

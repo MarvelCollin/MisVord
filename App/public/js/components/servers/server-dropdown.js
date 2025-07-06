@@ -387,15 +387,23 @@ function setupOwnerLeaveFlow(serverId) {
 
     const loadEligibleMembers = async () => {
         try {
-            const members = await window.serverAPI.getEligibleNewOwners(serverId);
-            if (members.success && members.members.length > 0) {
+            await waitForServerAPI();
+            if (!window.serverAPI) throw new Error('serverAPI not available');
+
+            const response = await window.serverAPI.getEligibleNewOwners(serverId);
+            console.log('Eligible members response:', response);
+            
+            // Check if we have members to transfer to
+            if (response && response.success && Array.isArray(response.members) && response.members.length > 0) {
                 transferView.classList.remove('hidden');
                 deleteView.classList.add('hidden');
             } else {
+                // No eligible members, show delete view
                 transferView.classList.add('hidden');
                 deleteView.classList.remove('hidden');
             }
         } catch (error) {
+            console.error('Error loading eligible members:', error);
             showToast('Could not load members for transfer.', 'error');
             closeModal('leave-server-modal');
         }
@@ -410,11 +418,26 @@ function setupOwnerLeaveFlow(serverId) {
         usersContainer.innerHTML = '';
 
         try {
-            const result = await window.serverAPI.searchMembers(serverId, query);
+            await waitForServerAPI();
+            if (!window.serverAPI) throw new Error('serverAPI not available');
+
+            let result;
+            if (typeof window.serverAPI.searchMembers === 'function') {
+                result = await window.serverAPI.searchMembers(serverId, query);
+            } else {
+                // fallback: fetch all members and filter client-side
+                const all = await window.serverAPI.getServerMembers(serverId);
+                if (all.success && all.members) {
+                    const filtered = all.members.filter(u => (u.username || '').toLowerCase().includes(query.toLowerCase()) || (u.display_name || '').toLowerCase().includes(query.toLowerCase()));
+                    result = { success: true, data: filtered };
+                } else {
+                    result = { success: false, data: [] };
+                }
+            }
             usersLoading.classList.add('hidden');
             if (result.success && result.data.length > 0) {
                 usersContainer.innerHTML = result.data.map(user => `
-                    <div class="p-2 flex items-center hover:bg-discord-dark-input cursor-pointer" data-user-id="${user.id}" data-user-name="${user.username}" data-user-avatar="${user.avatar_url}">
+                    <div class="user-item p-2 flex items-center hover:bg-discord-dark-input cursor-pointer" data-user-id="${user.id}" data-user-name="${user.username}" data-user-avatar="${user.avatar_url || ''}">
                         <img src="${user.avatar_url || '/assets/common/default-profile-picture.png'}" class="w-8 h-8 rounded-full mr-2">
                         <span>${user.username}</span>
                     </div>
@@ -425,6 +448,7 @@ function setupOwnerLeaveFlow(serverId) {
                 usersContainer.classList.remove('hidden');
             }
         } catch (error) {
+            console.error('Error searching users:', error);
             showToast('Failed to search for users.', 'error');
             usersLoading.classList.add('hidden');
         }

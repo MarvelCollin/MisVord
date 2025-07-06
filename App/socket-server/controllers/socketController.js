@@ -409,7 +409,7 @@ function setup(io) {
         });
         
         client.on('register-voice-meeting', async (data) => {
-            const { channel_id, meeting_id, server_id, username } = data;
+            const { channel_id, meeting_id, server_id, username, broadcast } = data;
             const userId = client.data?.user_id;
             
             if (!userId || !channel_id || !meeting_id) {
@@ -425,7 +425,8 @@ function setup(io) {
                 username: username || client.data?.username,
                 channelId: channel_id,
                 meetingId: meeting_id,
-                serverId: server_id
+                serverId: server_id,
+                broadcast: !!broadcast
             });
 
             const voiceChannelRoom = `voice_channel_${channel_id}`;
@@ -457,24 +458,39 @@ function setup(io) {
                     channelId: channel_id,
                     serverId: server_id,
                     userId,
-                    participantCount
+                    participantCount,
+                    broadcast: !!broadcast
                 });
                 
-
+                // Always emit to the voice channel room
                 io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
 
+                // If broadcast flag is set or this is a fresh join, emit globally to ensure visibility
+                if (broadcast || participantCount === 1) {
+                    console.log(`📣 [VOICE-PARTICIPANT] Broadcasting globally for visibility`);
+                    io.emit('voice-meeting-update', updateData);
+                    
+                    // Also broadcast to all server channels to ensure visibility
+                    if (server_id) {
+                        const serverRoom = `server_${server_id}`;
+                        io.to(serverRoom).emit('voice-meeting-update', updateData);
+                    }
+                }
                 
-
-                io.emit('voice-meeting-update', updateData);
-
-                
+                // Confirm registration to the client
                 client.emit('voice-meeting-update', {
                     ...updateData,
                     action: 'registered',
                     message: 'Successfully registered to voice meeting'
                 });
 
-                
+                // Force refresh all clients to see the updated participant list
+                setTimeout(() => {
+                    io.emit('force-refresh-voice-participants', {
+                        channel_id: channel_id,
+                        timestamp: Date.now()
+                    });
+                }, 500);
             } catch (error) {
                 console.error(`❌ [VOICE-PARTICIPANT] Error registering voice meeting:`, error);
                 if (!client.data?.errorSent) {

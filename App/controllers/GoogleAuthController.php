@@ -22,10 +22,9 @@ class GoogleAuthController
         $this->clientId = $config['client_id'];
         $this->clientSecret = $config['client_secret'];
         $this->redirectUri = $config['redirect_uri'];
-        
-        error_log("GoogleAuthController initialized with: clientId={$this->clientId}, redirectUri={$this->redirectUri}");
-    }
-    
+
+            }
+
     public function redirectToGoogle()
     {
 
@@ -42,41 +41,32 @@ class GoogleAuthController
         ];
 
         $url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
-        error_log("Redirecting to Google OAuth: $url");
-
-        header('Location: ' . $url);
+                header('Location: ' . $url);
         exit;
     }
 
     public function callback()
     {
-        error_log("Google OAuth callback received: " . json_encode($_GET));
-
-        if (!isset($_GET['state']) || !isset($_SESSION['oauth_state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
-            error_log("OAuth state validation failed. Received: " . ($_GET['state'] ?? 'null') . ", Expected: " . ($_SESSION['oauth_state'] ?? 'not set'));
-            $_SESSION['errors'] = ['auth' => 'Invalid state parameter. Possible CSRF attack.'];
+                if (!isset($_GET['state']) || !isset($_SESSION['oauth_state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
+                        $_SESSION['errors'] = ['auth' => 'Invalid state parameter. Possible CSRF attack.'];
             header('Location: /login');
             exit;
         }
 
         if (isset($_GET['error'])) {
-            error_log("Google OAuth error: " . $_GET['error']);
-            $_SESSION['errors'] = ['auth' => 'Google authentication error: ' . $_GET['error']];
+                        $_SESSION['errors'] = ['auth' => 'Google authentication error: ' . $_GET['error']];
             header('Location: /login');
             exit;
         }
 
         if (!isset($_GET['code'])) {
-            error_log("No authorization code received from Google");
-            $_SESSION['errors'] = ['auth' => 'No authorization code received from Google.'];
+                        $_SESSION['errors'] = ['auth' => 'No authorization code received from Google.'];
             header('Location: /login');
             exit;
         }
 
         $code = $_GET['code'];
-        error_log("Received authorization code: " . substr($code, 0, 10) . "...");
-
-        try {
+                try {
 
             $tokenData = $this->getAccessToken($code);
 
@@ -85,20 +75,16 @@ class GoogleAuthController
                     "Failed to get access token: {$tokenData['error']} - {$tokenData['error_description']}" :
                     "Failed to get access token: " . json_encode($tokenData);
 
-                error_log($errorMsg);
-                throw new Exception($errorMsg);
+                                throw new Exception($errorMsg);
             }
 
             $userInfo = $this->getUserInfo($tokenData['access_token']);
-            error_log("Google user info received: " . json_encode($userInfo));
-
-            $this->authenticateUser($userInfo);
+                        $this->authenticateUser($userInfo);
 
             header('Location: /home');
             exit;
         } catch (Exception $e) {
-            error_log('Google OAuth error: ' . $e->getMessage());
-            $_SESSION['errors'] = ['auth' => 'Google authentication error: ' . $e->getMessage()];
+                        $_SESSION['errors'] = ['auth' => 'Google authentication error: ' . $e->getMessage()];
             header('Location: /login');
             exit;
         }
@@ -114,9 +100,7 @@ class GoogleAuthController
             'grant_type' => 'authorization_code'
         ];
 
-        error_log("Token request parameters: client_id={$this->clientId}, redirect_uri={$this->redirectUri}, grant_type=authorization_code");
-
-        $ch = curl_init('https://oauth2.googleapis.com/token');
+                $ch = curl_init('https://oauth2.googleapis.com/token');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
         curl_setopt($ch, CURLOPT_POST, true);
@@ -135,21 +119,14 @@ class GoogleAuthController
 
             rewind($verbose);
             $verboseLog = stream_get_contents($verbose);
-            error_log("cURL verbose log: " . $verboseLog);
-
-            throw new Exception('cURL error when getting access token: ' . $error);
+                        throw new Exception('cURL error when getting access token: ' . $error);
         }
 
         rewind($verbose);
         $verboseLog = stream_get_contents($verbose);
-        error_log("cURL verbose log: " . $verboseLog);
+                curl_close($ch);
 
-        curl_close($ch);
-
-        error_log("Token response HTTP code: " . $httpCode);
-        error_log("Token response body: " . $response);
-
-        return json_decode($response, true);
+                        return json_decode($response, true);
     }
 
     private function getUserInfo($accessToken)
@@ -182,21 +159,16 @@ class GoogleAuthController
         $firstName = $googleData['given_name'] ?? null;
         $lastName = $googleData['family_name'] ?? null;
         $picture = $googleData['picture'] ?? null;
-        error_log("Authenticating Google user: email={$email}, name={$name}, picture=" . ($picture ? "provided" : "not provided"));
-
-        $user = $this->userRepository->findByGoogleId($googleId);
+                $user = $this->userRepository->findByGoogleId($googleId);
 
         if (!$user) {
             $user = $this->userRepository->findByEmail($email);
             if ($user) {
-                error_log("User found by email, updating Google ID: user_id={$user->id}");
-                $user->google_id = $googleId;
+                                $user->google_id = $googleId;
                 $user->avatar_url = $picture;
                 $user->save();
             } else {
-                error_log("Creating new user from Google data");
-
-                $userData = [
+                                $userData = [
                     'username' => $name ?? $email,
                     'email' => $email,
                     'discriminator' => User::generateDiscriminator(),
@@ -208,12 +180,9 @@ class GoogleAuthController
                 if (!$user) {
                     throw new Exception("Failed to create user account");
                 }
-                error_log("Created new user: user_id={$user->id}");
-            }
+                            }
         } else {
-            error_log("User found by Google ID: user_id={$user->id}");
-
-            if ($user->avatar_url != $picture) {
+                        if ($user->avatar_url != $picture) {
                 $user->avatar_url = $picture;
                 $user->save();
             }
@@ -226,6 +195,5 @@ class GoogleAuthController
 
         $user->save();
 
-        error_log("User authenticated successfully: user_id={$user->id}, username={$user->username}");
-    }
+            }
 }

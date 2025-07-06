@@ -58,7 +58,18 @@
                         </div>
                         <div id="owner-transfer-users-loading" class="bg-discord-dark-hover rounded mt-2 max-h-36 overflow-y-auto hidden">
                             <!-- Skeleton loading -->
-                            <div class="p-2 flex items-center animate-pulse"><div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2"></div><div class="flex-grow"><div class="h-4 bg-discord-dark-input rounded w-3/4"></div></div></div>
+                            <div class="p-2 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
+                                <div class="flex-grow">
+                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
+                                </div>
+                            </div>
+                            <div class="p-2 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
+                                <div class="flex-grow">
+                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

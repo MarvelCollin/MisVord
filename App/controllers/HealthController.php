@@ -160,16 +160,16 @@ class HealthController extends BaseController
     public function ping()
     {
         $startTime = microtime(true);
-        
+
         $serverLoad = function_exists('sys_getloadavg') ? sys_getloadavg() : [0, 0, 0];
         $memoryUsage = memory_get_usage(true);
         $networkName = $this->getNetworkName();
-        
+
         $processingTime = (microtime(true) - $startTime) * 1000;
-        
+
         header('Content-Type: application/json');
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        
+
         echo json_encode([
             'status' => 'ok', 
             'timestamp' => microtime(true),
@@ -186,10 +186,10 @@ class HealthController extends BaseController
         $networkName = $this->getNetworkName();
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $hostname = gethostbyaddr($ipAddress);
-        
+
         header('Content-Type: application/json');
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        
+
         echo json_encode([
             'status' => 'ok',
             'network_name' => $networkName,
@@ -199,15 +199,15 @@ class HealthController extends BaseController
             'time' => time()
         ]);
     }
-    
+
     private function getNetworkName()
     {
         $networkName = 'Unknown';
-        
+
         if (strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false) {
             return 'Local Development';
         }
-        
+
         $ipAddress = $_SERVER['REMOTE_ADDR'] ?? '';
         if ($ipAddress) {
             $hostname = gethostbyaddr($ipAddress);
@@ -221,12 +221,12 @@ class HealthController extends BaseController
                 }
             }
         }
-        
+
         $xForwardedFor = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
         if ($xForwardedFor && strpos($xForwardedFor, ',') !== false) {
             $networkName = 'Network via Proxy';
         }
-        
+
         return $networkName;
     }
 }

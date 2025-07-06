@@ -14,6 +14,58 @@ class ParticipantCoordinator {
         this.processedParticipants = new Set(); // Track processed participants to prevent duplicates
         this.lastUpdate = new Map(); // Track last update time per participant
         this.explicitLeaveRequested = false; // Flag to track if leave was explicitly requested by leave button
+        this.pageUnloading = false; // New flag to track page unload/reload
+        
+        // Setup page unload listener
+        this.setupPageUnloadListener();
+    }
+
+    // Add method to handle page unload
+    setupPageUnloadListener() {
+        window.addEventListener('beforeunload', () => {
+            this.pageUnloading = true;
+            this.explicitLeaveRequested = true; // Treat page unload as explicit leave
+            
+            // Get current channel ID from voice manager
+            const currentChannelId = window.voiceManager?.currentChannelId;
+            if (!currentChannelId) return;
+            
+            // Current user's ID
+            const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+            if (!currentUserId) return;
+            
+            // Log for debugging
+            console.log('[PARTICIPANT] Page unloading, allowing participant removal');
+            
+            // Clean up bot participants if music player is active (same as leave button)
+            if (window.musicPlayer) {
+                try {
+                    window.musicPlayer.stop();
+                } catch (e) {
+                    console.warn('[PARTICIPANT] Failed to stop music on page unload:', e);
+                }
+            }
+            
+            // Notify server about disconnection (same as leave button)
+            if (window.globalSocketManager?.io) {
+                try {
+                    window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                        channel_id: currentChannelId
+                    });
+                    
+                    // Also notify about bot leaving (same as leave button)
+                    window.globalSocketManager.io.emit('bot-left-voice', {
+                        channel_id: currentChannelId,
+                        bot_id: '4'
+                    });
+                } catch (e) {
+                    console.warn('[PARTICIPANT] Failed to emit socket events on page unload:', e);
+                }
+            }
+            
+            // Dispatch voice disconnect event (same as leave button)
+            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        });
     }
 
     registerSystem(systemName) {
@@ -79,8 +131,8 @@ class ParticipantCoordinator {
         const normalizedChannelId = channelId.toString();
         const participantKey = `${normalizedChannelId}-${normalizedUserId}`;
         
-        // MODIFIED: Only allow removal if explicitly requested through leave button
-        // or if this is the system that added it
+        // MODIFIED: Allow removal if explicitly requested through leave button
+        // or if the page is unloading/reloading
         const channelParticipants = this.activeParticipants.get(normalizedChannelId);
         if (!channelParticipants) {
             return false;
@@ -89,8 +141,11 @@ class ParticipantCoordinator {
         // Check if this system has authority to remove
         const existingData = this.participantData.get(normalizedUserId);
         if (existingData && existingData.addedBy !== systemName) {
-            // Only allow removal if it's an explicit leave request or the same system that added it
-            if (!this.explicitLeaveRequested && systemName !== 'leave-button-action') {
+            // Allow removal if:
+            // 1. It's an explicit leave request
+            // 2. The page is unloading/reloading
+            // 3. It's the leave button action
+            if (!this.explicitLeaveRequested && !this.pageUnloading && systemName !== 'leave-button-action') {
                 console.log(`[PARTICIPANT] Preventing removal of ${normalizedUserId} from ${normalizedChannelId} by ${systemName} - not authorized`);
                 return false;
             }
@@ -119,7 +174,10 @@ class ParticipantCoordinator {
         // Reset after a short delay to prevent unintended consequences
         if (value) {
             setTimeout(() => {
-                this.explicitLeaveRequested = false;
+                // Only reset if page is not unloading
+                if (!this.pageUnloading) {
+                    this.explicitLeaveRequested = false;
+                }
             }, 2000);
         }
     }
@@ -148,8 +206,8 @@ class ParticipantCoordinator {
     }
 
     clearChannel(channelId) {
-        // MODIFIED: Only allow clearing if it's an explicit leave request
-        if (!this.explicitLeaveRequested) {
+        // MODIFIED: Allow clearing if it's an explicit leave request or page unload
+        if (!this.explicitLeaveRequested && !this.pageUnloading) {
             console.log(`[PARTICIPANT] Preventing clearChannel for ${channelId} - not an explicit leave request`);
             return false;
         }

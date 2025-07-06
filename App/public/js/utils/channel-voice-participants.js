@@ -3,6 +3,7 @@ class ChannelVoiceParticipants {
         this.participants = new Map();
         this.coordinator = null;
         this._processingSocketLeaveEvent = false;
+        this._pageUnloading = false;
         this.init();
     }
 
@@ -16,6 +17,7 @@ class ChannelVoiceParticipants {
         this.setupPresenceValidation();
         this.startGlobalParticipantSync();
         this.setupCoordinationListeners();
+        this.setupPageUnloadListeners();
     }
 
     setupCoordinator() {
@@ -123,7 +125,23 @@ class ChannelVoiceParticipants {
             }
         });
         
-
+        // Add handler for force-refresh event
+        socket.on('force-refresh-voice-participants', (data) => {
+            console.log('[VOICE-PARTICIPANT] Received force refresh request:', data);
+            
+            if (data.channel_id) {
+                // Request updated participant list for this specific channel
+                socket.emit('check-voice-meeting', { channel_id: data.channel_id });
+            } else {
+                // Request updates for all voice channels
+                this.requestAllVoiceChannelUpdates();
+            }
+            
+            // Force refresh UI after a short delay
+            setTimeout(() => {
+                this.forceRefreshAllContainers();
+            }, 300);
+        });
     }
 
     setupChannelSwitchListeners() {
@@ -276,13 +294,16 @@ class ChannelVoiceParticipants {
     removeParticipant(channelId, userId) {
         const normalizedUserId = userId.toString();
         
-        // MODIFIED: Only check coordinator flag for direct method calls, not for socket 'leave' events
-        // Socket 'leave' events should always be processed as they come from the server
+        // Allow removal in these cases:
+        // 1. Socket leave event (server-initiated)
+        // 2. Explicit leave button click (coordinator.explicitLeaveRequested)
+        // 3. Page is unloading/reloading (_pageUnloading flag)
         const isSocketLeaveEvent = this._processingSocketLeaveEvent || false;
+        const isPageUnloading = this._pageUnloading || false;
         
-        if (this.coordinator && !isSocketLeaveEvent) {
+        if (this.coordinator && !isSocketLeaveEvent && !isPageUnloading) {
             // Only pass this through if it's an explicit leave button action
-            // which will be marked by the coordinator's explicitLeaveRequested flag
+            // or if the page is unloading
             if (!this.coordinator.explicitLeaveRequested) {
                 console.log('[VOICE-PARTICIPANT] Prevented automatic removal of participant:', normalizedUserId);
                 return false; // Prevent automatic removal
@@ -311,11 +332,14 @@ class ChannelVoiceParticipants {
     }
 
     clearChannelParticipants(channelId) {
-        // MODIFIED: Only check coordinator flag for direct method calls, not for socket events
-        // Socket events should always be processed as they come from the server
+        // Allow clearing in these cases:
+        // 1. Socket event (server-initiated)
+        // 2. Explicit leave button click (coordinator.explicitLeaveRequested)
+        // 3. Page is unloading/reloading (_pageUnloading flag)
         const isSocketEvent = this._processingSocketLeaveEvent || false;
+        const isPageUnloading = this._pageUnloading || false;
         
-        if (this.coordinator && !isSocketEvent && !this.coordinator.explicitLeaveRequested) {
+        if (this.coordinator && !isSocketEvent && !isPageUnloading && !this.coordinator.explicitLeaveRequested) {
             console.log('[VOICE-PARTICIPANT] Prevented clearing channel participants:', channelId);
             return false;
         }
@@ -606,6 +630,62 @@ class ChannelVoiceParticipants {
         this.participants = newParticipantsState;
         
         this.forceRefreshAllContainers();
+    }
+
+    setupPageUnloadListeners() {
+        // Set flag when page is about to unload
+        window.addEventListener('beforeunload', () => {
+            this._pageUnloading = true;
+            
+            // When page is reloading, we should allow participant removal
+            // This exactly matches what the leave button does
+            if (this.coordinator) {
+                this.coordinator.setExplicitLeaveRequested(true);
+            }
+            
+            // Current user's ID
+            const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
+            if (!currentUserId) return;
+            
+            // Get current channel ID from voice manager
+            const currentChannelId = window.voiceManager?.currentChannelId;
+            if (!currentChannelId) return;
+            
+            // Clean up bot participants if music player is active
+            if (window.musicPlayer) {
+                try {
+                    window.musicPlayer.stop();
+                } catch (e) {
+                    console.warn('[VOICE-PARTICIPANT] Failed to stop music on page unload:', e);
+                }
+            }
+            
+            // Notify server about disconnection
+            if (window.globalSocketManager?.io) {
+                try {
+                    window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                        channel_id: currentChannelId
+                    });
+                    
+                    // Also notify about bot leaving (same as leave button)
+                    window.globalSocketManager.io.emit('bot-left-voice', {
+                        channel_id: currentChannelId,
+                        bot_id: '4'
+                    });
+                } catch (e) {
+                    console.warn('[VOICE-PARTICIPANT] Failed to emit socket events on page unload:', e);
+                }
+            }
+            
+            // Remove current user from all voice channels
+            if (currentChannelId) {
+                this.removeParticipant(currentChannelId, currentUserId);
+                this.updateParticipantContainer(currentChannelId);
+            }
+            
+            // Dispatch voice disconnect event (same as leave button)
+            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        });
     }
 }
 

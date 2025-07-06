@@ -15,12 +15,12 @@ class ExploreController extends BaseController
         $this->serverRepository = new ServerRepository();
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
     }
-    
+
     public function getPublicServers()
     {
         try {
             $servers = $this->serverRepository->getPublicServersWithMemberCount();
-            
+
             return array_map(function($server) {
                 return is_array($server) ? $server : (array) $server;
             }, $servers);
@@ -33,7 +33,7 @@ class ExploreController extends BaseController
     {
         try {
             $featuredServers = $this->serverRepository->getFeaturedServersWithMemberCount($limit);
-            
+
             return array_map(function($server) {
                 return is_array($server) ? $server : (array) $server;
             }, $featuredServers);
@@ -59,7 +59,7 @@ class ExploreController extends BaseController
         $userServers = array_map(function($server) {
             return is_array($server) ? $server : (array) $server;
         }, $userServers);
-        
+
         $servers = $this->getPublicServers();
         $featuredServers = $this->getFeaturedServers(3);
         $userServerIds = $this->getUserServerIds($currentUserId);
@@ -67,7 +67,7 @@ class ExploreController extends BaseController
         $allServers = array_merge($featuredServers, $servers);
         $uniqueServers = [];
         $seenIds = [];
-        
+
         foreach ($allServers as $server) {
             if (!in_array($server['id'], $seenIds)) {
                 $uniqueServers[] = $server;
@@ -93,6 +93,5 @@ class ExploreController extends BaseController
             'currentUserId' => $currentUserId
         ];
     }
-
 
 }

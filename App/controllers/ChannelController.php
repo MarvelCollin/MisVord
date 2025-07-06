@@ -32,7 +32,7 @@ class ChannelController extends BaseController
     private function validateServerAccess($serverId, $requireOwner = false)
     {
         $userId = $this->getCurrentUserId();
-        
+
         if ($requireOwner) {
             $membership = $this->membershipRepository->findByUserAndServer($userId, $serverId);
             if (!$membership || ($membership->role !== 'owner' && $membership->role !== 'admin')) {
@@ -43,7 +43,7 @@ class ChannelController extends BaseController
                 return $this->forbidden('You do not have access to this server');
             }
         }
-        
+
         return null;
     }
 
@@ -71,7 +71,7 @@ class ChannelController extends BaseController
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
         }
-        
+
         try {
             $accessCheck = $this->validateServerAccess($serverId);
             if ($accessCheck) return $accessCheck;
@@ -100,7 +100,6 @@ class ChannelController extends BaseController
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;
 
-            // Ensure channel type is a string
             $channelType = $channel->type;
             if (is_numeric($channelType)) {
                 $channelType = match((int)$channelType) {
@@ -126,7 +125,7 @@ class ChannelController extends BaseController
                     'updated_at' => $channel->updated_at
                 ]
             ];
-            
+
             if ($channel->server_id && $channel->server_id !== 0) {
                 $server = $this->serverRepository->find($channel->server_id);
                 if ($server) {
@@ -156,12 +155,11 @@ class ChannelController extends BaseController
             'server_id' => 'required',
             'type' => 'required'
         ]);
-        
+
         try {
             $accessCheck = $this->validateServerAccess($input['server_id'], true);
             if ($accessCheck) return $accessCheck;
 
-            // Ensure type is a valid string value
             $type = $input['type'];
             if (is_numeric($type)) {
                 $type = match((int)$type) {
@@ -211,11 +209,11 @@ class ChannelController extends BaseController
 
         $this->validate($input, ['channel_id' => 'required']);
         $channelId = $input['channel_id'];
-        
+
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId, true);
             if ($error) return $error;
-            
+
             $updateData = [];
             if (isset($input['name'])) {
                 $updateData['name'] = $input['name'];
@@ -249,32 +247,32 @@ class ChannelController extends BaseController
 
         $channelId = $input['channel_id'] ?? $_POST['channel_id'] ?? null;
         $newPosition = (int)($input['position'] ?? 0);
-        
+
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-        
+
         if (!$newPosition) {
             return $this->validationError(['position' => 'Position is required']);
         }
-        
+
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId, true);
             if ($error) return $error;
-            
+
             $serverId = $channel->server_id;
-            
+
             require_once __DIR__ . '/../database/query.php';
             $query = new Query();
-            
+
             $currentPosition = (int)$channel->position;
-            
+
             if ($newPosition === $currentPosition) {
                 return $this->success(['message' => 'Channel position unchanged']);
             }
-            
+
             $query->beginTransaction();
-            
+
             if ($newPosition > $currentPosition) {
                 $query->table('channels')
                     ->where('server_id', $serverId)
@@ -290,16 +288,16 @@ class ChannelController extends BaseController
                     ->where('id', '!=', $channelId)
                     ->update(['position' => $query->raw('position + 1')]);
             }
-            
+
             $query->table('channels')
                 ->where('id', $channelId)
                 ->update([
                     'position' => $newPosition,
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
-            
+
             $query->commit();
-            
+
             return $this->success(['message' => 'Channel position updated successfully']);
         } catch (Exception $e) {
             if (isset($query)) {
@@ -318,7 +316,7 @@ class ChannelController extends BaseController
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-        
+
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId, true);
             if ($error) return $error;
@@ -345,7 +343,7 @@ class ChannelController extends BaseController
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-        
+
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;
@@ -402,7 +400,7 @@ class ChannelController extends BaseController
 
             $query = new Query();
             $query->beginTransaction();
-            
+
             $messageData = [
                 'content' => $content,
                 'user_id' => $userId,
@@ -412,7 +410,7 @@ class ChannelController extends BaseController
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
             ];
-            
+
             if ($replyMessageId) {
                 $repliedMessage = $this->messageRepository->find($replyMessageId);
                 if ($repliedMessage) {
@@ -424,11 +422,11 @@ class ChannelController extends BaseController
 
             if ($message && isset($message->id)) {
                 $this->channelMessageRepository->addMessageToChannel($targetId, $message->id);
-                
+
                 require_once __DIR__ . '/../database/repositories/UserRepository.php';
                 $userRepository = new UserRepository();
                 $user = $userRepository->find($userId);
-                
+
                 $formattedMessage = [
                     'id' => $message->id,
                     'content' => $message->content,
@@ -444,7 +442,7 @@ class ChannelController extends BaseController
                     'reaction_count' => 0,
                     'reactions' => []
                 ];
-                
+
                 if ($message->reply_message_id) {
                     $repliedMessage = $this->messageRepository->find($message->reply_message_id);
                     if ($repliedMessage) {
@@ -461,7 +459,7 @@ class ChannelController extends BaseController
                 }
 
                 $query->commit();
-                
+
                 return $this->success([
                     'success' => true,
                     'data' => [
@@ -491,7 +489,7 @@ class ChannelController extends BaseController
             'name' => 'required',
             'server_id' => 'required'
         ]);
-        
+
         try {
             $accessCheck = $this->validateServerAccess($input['server_id'], true);
             if ($accessCheck) return $accessCheck;
@@ -532,7 +530,7 @@ class ChannelController extends BaseController
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-        
+
         try {
             $channel = $this->channelRepository->find($channelId);
             if (!$channel) {
@@ -575,7 +573,7 @@ class ChannelController extends BaseController
     {
         $this->requireAuth();
         $currentUserId = $this->getCurrentUserId();
-        
+
         try {
             if (!$this->membershipRepository->isMember($currentUserId, $serverId)) {
                 return [
@@ -588,21 +586,21 @@ class ChannelController extends BaseController
             $channels = $this->channelRepository->getByServerId($serverId);
             $categories = $this->categoryRepository->getForServer($serverId);
             $activeChannelId = $_GET['channel'] ?? null;
-            
+
             if (!$activeChannelId && !empty($channels)) {
                 $activeChannelId = $channels[0]['id'] ?? null;
             }
-            
+
             $GLOBALS['serverChannels'] = $channels;
             $GLOBALS['serverCategories'] = $categories;
             $GLOBALS['activeChannelId'] = $activeChannelId;
-            
+
             return [
                 'activeChannelId' => $activeChannelId,
                 'channels' => $channels,
                 'categories' => $categories
             ];
-            
+
         } catch (Exception $e) {
             return [
                 'activeChannelId' => null,
@@ -615,39 +613,38 @@ class ChannelController extends BaseController
     public function switchToChannel()
     {
         $this->requireAuth();
-        
+
         $input = $this->getInput();
         $channelId = $input['channel_id'] ?? null;
         $forceFresh = $input['force_fresh'] ?? false;
         $timestamp = $input['timestamp'] ?? null;
-        
+
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-        
+
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;
 
             $serverId = $channel->server_id;
             $server = $this->serverRepository->find($serverId);
-            
+
             $limit = $input['limit'] ?? 50;
             $offset = $input['offset'] ?? 0;
             $before = $input['before'] ?? null;
-            
+
             if ($forceFresh || $timestamp) {
                 $offset = 0;
                 $before = null;
             }
-            
+
             $messages = $this->messageRepository->getForChannel($channelId, $limit, $offset, $before);
-            
+
             foreach ($messages as &$message) {
                 $message = $this->formatMessage($message);
             }
-            
-            // Ensure channel type is a string
+
             $channelType = $channel->type;
             if (is_numeric($channelType)) {
                 $channelType = match((int)$channelType) {
@@ -658,7 +655,7 @@ class ChannelController extends BaseController
                     default => 'text'
                 };
             }
-            
+
             return $this->success([
                 'channel' => [
                     'id' => $channel->id,
@@ -705,7 +702,6 @@ class ChannelController extends BaseController
                 return $this->notFound('Channel not found');
             }
 
-            // Ensure channel type is a string
             $channelType = $channel->type;
             if (is_numeric($channelType)) {
                 $channelType = match((int)$channelType) {
@@ -731,7 +727,7 @@ class ChannelController extends BaseController
                     'updated_at' => $channel->updated_at
                 ]
             ];
-            
+
             if ($channel->server_id && $channel->server_id !== 0) {
                 $server = $this->serverRepository->find($channel->server_id);
                 if ($server) {
@@ -777,7 +773,7 @@ class ChannelController extends BaseController
             }
 
             $allMembers = $this->membershipRepository->getServerMembers($channel->server_id);
-            
+
             $usersByRole = [
                 'admin' => [],
                 'members' => [],
@@ -811,27 +807,27 @@ class ChannelController extends BaseController
     {
         $this->requireAuth();
         $input = $this->getInput();
-        
+
         $channelId = $input['channel_id'] ?? null;
         $categoryId = $input['category_id'] ?? null;
         $position = $input['position'] ?? null;
-        
+
         if (!$channelId) {
             return $this->validationError(['channel_id' => 'Channel ID is required']);
         }
-        
+
         try {
             [$channel, $error] = $this->validateChannelAccess($channelId);
             if ($error) return $error;
-            
+
             $accessCheck = $this->validateServerAccess($channel->server_id, true);
             if ($accessCheck) return $accessCheck;
-            
+
             $channel->category_id = $categoryId;
             if ($position !== null) {
                 $channel->position = (int)$position;
             }
-            
+
             if ($channel->save()) {
                 return $this->success(['message' => 'Channel moved successfully']);
             } else {
@@ -841,182 +837,182 @@ class ChannelController extends BaseController
             return $this->serverError('Failed to move channel');
         }
     }
-    
+
     public function reorderChannels()
     {
         $this->requireAuth();
         $input = $this->getInput();
-        
+
         $channels = $input['channels'] ?? [];
-        
+
         if (empty($channels)) {
             return $this->validationError(['channels' => 'Channels array is required']);
         }
-        
+
         try {
             require_once __DIR__ . '/../database/query.php';
             $query = new Query();
-            
+
             foreach ($channels as $channelData) {
                 $channelId = $channelData['id'] ?? null;
                 $position = $channelData['position'] ?? null;
                 $categoryId = $channelData['category_id'] ?? null;
-                
+
                 if (!$channelId || $position === null) continue;
-                
+
                 [$channel, $error] = $this->validateChannelAccess($channelId);
                 if ($error) continue;
-                
+
                 $accessCheck = $this->validateServerAccess($channel->server_id, true);
                 if ($accessCheck) continue;
-                
+
                 $updateData = ['position' => (int)$position];
                 if ($categoryId !== null) {
                     $updateData['category_id'] = $categoryId === '' ? null : (int)$categoryId;
                 }
-                
+
                 $query->table('channels')
                     ->where('id', $channelId)
                     ->update($updateData);
             }
-            
+
             return $this->success(['message' => 'Channels reordered successfully']);
         } catch (Exception $e) {
             return $this->serverError('Failed to reorder channels');
         }
     }
-    
+
     public function reorderCategories()
     {
         $this->requireAuth();
         $input = $this->getInput();
-        
+
         $categories = $input['categories'] ?? [];
-        
+
         if (empty($categories)) {
             return $this->validationError(['categories' => 'Categories array is required']);
         }
-        
+
         try {
             require_once __DIR__ . '/../database/query.php';
             $query = new Query();
-            
+
             foreach ($categories as $categoryData) {
                 $categoryId = $categoryData['id'] ?? null;
                 $position = $categoryData['position'] ?? null;
-                
+
                 if (!$categoryId || $position === null) continue;
-                
+
                 $category = $this->categoryRepository->find($categoryId);
                 if (!$category) continue;
-                
+
                 $accessCheck = $this->validateServerAccess($category->server_id, true);
                 if ($accessCheck) continue;
-                
+
                 $query->table('categories')
                     ->where('id', $categoryId)
                     ->update(['position' => (int)$position]);
             }
-            
+
             return $this->success(['message' => 'Categories reordered successfully']);
         } catch (Exception $e) {
             return $this->serverError('Failed to reorder categories');
         }
     }
-    
+
     public function batchUpdatePositions()
     {
         $this->requireAuth();
         $input = $this->getInput();
-        
+
         $updates = $input['updates'] ?? [];
-        
+
         if (empty($updates)) {
             return $this->validationError(['updates' => 'Updates array is required']);
         }
-        
+
         try {
             require_once __DIR__ . '/../database/query.php';
             $query = new Query();
-            
+
             foreach ($updates as $update) {
                 $type = $update['type'] ?? null;
                 $id = $update['id'] ?? null;
                 $position = $update['position'] ?? null;
                 $categoryId = $update['category_id'] ?? null;
-                
+
                 if (!$type || !$id || $position === null) continue;
-                
+
                 if ($type === 'channel') {
                     [$channel, $error] = $this->validateChannelAccess($id);
                     if ($error) continue;
-                    
+
                     $accessCheck = $this->validateServerAccess($channel->server_id, true);
                     if ($accessCheck) continue;
-                    
+
                     $updateData = ['position' => (int)$position];
                     if ($categoryId !== null) {
                         $updateData['category_id'] = $categoryId === '' ? null : (int)$categoryId;
                     }
-                    
+
                     $query->table('channels')
                         ->where('id', $id)
                         ->update($updateData);
-                        
+
                 } elseif ($type === 'category') {
                     $category = $this->categoryRepository->find($id);
                     if (!$category) continue;
-                    
+
                     $accessCheck = $this->validateServerAccess($category->server_id, true);
                     if ($accessCheck) continue;
-                    
+
                     $query->table('categories')
                         ->where('id', $id)
                         ->update(['position' => (int)$position]);
                 }
             }
-            
+
             return $this->success(['message' => 'Positions updated successfully']);
         } catch (Exception $e) {
             return $this->serverError('Failed to update positions');
         }
     }
-    
+
     public function syncServerPositions()
     {
         $this->requireAuth();
         $input = $this->getInput();
-        
+
         $serverId = $input['server_id'] ?? $_POST['server_id'] ?? null;
         $globalSequence = $input['global_sequence'] ?? false;
-        
+
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
         }
-        
+
         try {
             $accessCheck = $this->validateServerAccess($serverId, true);
             if ($accessCheck) return $accessCheck;
-            
+
             require_once __DIR__ . '/../database/query.php';
             $query = new Query();
-            
+
             $categories = $query->table('categories')
                 ->where('server_id', $serverId)
                 ->orderBy('position', 'ASC')
                 ->orderBy('id', 'ASC')
                 ->get();
-                
+
             $channels = $query->table('channels')
                 ->where('server_id', $serverId)
                 ->orderBy('position', 'ASC')
                 ->orderBy('id', 'ASC')
                 ->get();
-            
+
             $position = 1;
             $categoriesUpdated = 0;
             $channelsUpdated = 0;
-            
+
             if ($globalSequence) {
                 foreach ($categories as $category) {
                     $query->table('categories')
@@ -1025,7 +1021,7 @@ class ChannelController extends BaseController
                     $position++;
                     $categoriesUpdated++;
                 }
-                
+
                 foreach ($channels as $channel) {
                     $query->table('channels')
                         ->where('id', $channel['id'])
@@ -1033,7 +1029,7 @@ class ChannelController extends BaseController
                     $position++;
                     $channelsUpdated++;
                 }
-                
+
                 return $this->success([
                     'message' => 'Global sequence sync completed',
                     'sync_type' => 'global',
@@ -1050,7 +1046,7 @@ class ChannelController extends BaseController
                     $categoryPosition++;
                     $categoriesUpdated++;
                 }
-                
+
                 $channelPosition = 1;
                 foreach ($channels as $channel) {
                     $query->table('channels')
@@ -1059,7 +1055,7 @@ class ChannelController extends BaseController
                     $channelPosition++;
                     $channelsUpdated++;
                 }
-                
+
                 return $this->success([
                     'message' => 'Independent sync completed',
                     'sync_type' => 'independent',

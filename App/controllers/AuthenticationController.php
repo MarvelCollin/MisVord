@@ -44,17 +44,17 @@ class AuthenticationController extends BaseController
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        
+
         if ($this->isAuthenticated()) {
             $redirectUrl = $_GET['redirect'] ?? null;
             $redirect = $redirectUrl ?? $_SESSION['login_redirect'] ?? '/home';
             unset($_SESSION['login_redirect']);
-            
+
             $this->setSecurityHeaders();
             header('Location: ' . $redirect);
             exit;
         }
-        
+
         $redirectUrl = $_GET['redirect'] ?? null;
         if ($redirectUrl) {
             $_SESSION['login_redirect'] = $redirectUrl;
@@ -77,7 +77,7 @@ class AuthenticationController extends BaseController
             header('Location: /login');
             exit;
         }
-        
+
         if (empty($password)) {
             $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'Password is required'];
@@ -86,8 +86,6 @@ class AuthenticationController extends BaseController
             header('Location: /login');
             exit;
         }
-
-
 
         if ($email === 'admin@admin.com' && $password === 'admin123') {
             session_regenerate_id(true);
@@ -99,7 +97,7 @@ class AuthenticationController extends BaseController
             $_SESSION['banner_url'] = '';
             $_SESSION['last_activity'] = time();
             $_SESSION['user_status'] = 'active';
-            
+
             $this->setSecurityHeaders();
             header('Location: /admin');
             exit;
@@ -115,7 +113,7 @@ class AuthenticationController extends BaseController
             header('Location: /login');
             exit;
         }
-        
+
         if ($user->status === 'banned') {
             $this->logFailedLogin($email);
             $_SESSION['errors'] = [
@@ -127,9 +125,9 @@ class AuthenticationController extends BaseController
             header('Location: /login');
             exit;
         }
-        
+
         $passwordVerified = $user->verifyPassword($password);
-        
+
         if (!$passwordVerified) {
             $this->logFailedLogin($email);
             $_SESSION['errors'] = ['auth' => 'Login failed. Incorrect password provided.'];
@@ -144,17 +142,17 @@ class AuthenticationController extends BaseController
         ]);
 
         session_regenerate_id(true);
-        
+
         $_SESSION['user_id'] = $user->id;
         $_SESSION['username'] = $user->username;
         $_SESSION['discriminator'] = $user->discriminator;
         $_SESSION['avatar_url'] = $user->avatar_url;
         $_SESSION['banner_url'] = $user->banner_url;
         $_SESSION['last_activity'] = time();
-        
+
         $redirect = isset($_SESSION['login_redirect']) ? $_SESSION['login_redirect'] : '/home';
         unset($_SESSION['login_redirect']);
-        
+
         $this->setSecurityHeaders();
         header('Location: ' . $redirect);
         exit;
@@ -187,13 +185,6 @@ class AuthenticationController extends BaseController
     {
         $input = $this->getInput();
         $input = $this->sanitize($input);
-        
-        error_log('Registration data: ' . json_encode([
-            'has_security_question' => isset($input['security_question']),
-            'security_question' => isset($input['security_question']) ? substr($input['security_question'], 0, 10) . '...' : null,
-            'has_security_answer' => isset($input['security_answer']),
-            'all_keys' => array_keys($input)
-        ]));
 
         $username = $input['username'] ?? '';
         $email = $input['email'] ?? '';
@@ -203,7 +194,7 @@ class AuthenticationController extends BaseController
         $securityAnswer = $input['security_answer'] ?? '';
         $errors = [];
         $failedStep = 1;
-        
+
         if (empty($username)) {
             $errors['username'] = 'Username is required';
         } elseif (strlen($username) < 3 || strlen($username) > 32) {
@@ -235,12 +226,12 @@ class AuthenticationController extends BaseController
         if ($password !== $passwordConfirm) {
             $errors['password_confirm'] = 'Passwords do not match';
         }
-        
+
         if (empty($securityQuestion)) {
             $errors['security_question'] = 'Security question is required';
             $failedStep = 2;
         }
-        
+
         if (empty($securityAnswer)) {
             $errors['security_answer'] = 'Security answer is required';
             $failedStep = 2;
@@ -248,8 +239,6 @@ class AuthenticationController extends BaseController
             $errors['security_answer'] = 'Security answer must be at least 3 characters';
             $failedStep = 2;
         }
-
-
 
         if (!empty($errors)) {
             $this->logActivity('registration_failed', ['email' => $email, 'errors' => array_keys($errors)]);
@@ -284,7 +273,7 @@ class AuthenticationController extends BaseController
             'security_question' => $securityQuestion,
             'security_answer' => password_hash($securityAnswer, PASSWORD_DEFAULT)
         ];
-        
+
         $this->logActivity('registration_data', [
             'has_security_question' => !empty($securityQuestion),
             'has_security_answer' => !empty($securityAnswer),
@@ -298,7 +287,7 @@ class AuthenticationController extends BaseController
                 $userData['avatar_url'] = $avatarUrl;
             }
         }
-        
+
         if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
             $bannerUrl = $this->uploadImage($_FILES['banner'], 'banner');
             if ($bannerUrl !== false) {
@@ -313,21 +302,21 @@ class AuthenticationController extends BaseController
             $user->setPassword($password);
             $user->discriminator = $discriminator;
             $user->status = 'active';
-            
+
             $user->display_name = $username;
             $user->bio = null;
-            
+
             if (empty($securityQuestion) || empty($securityAnswer)) {
                 throw new Exception('Security question and answer are required');
             }
-            
+
             $user->security_question = $securityQuestion;
             $user->security_answer = password_hash($securityAnswer, PASSWORD_DEFAULT);
-            
+
             if (isset($userData['avatar_url'])) {
                 $user->avatar_url = $userData['avatar_url'];
             }
-            
+
             if (isset($userData['banner_url'])) {
                 $user->banner_url = $userData['banner_url'];
             }
@@ -397,7 +386,7 @@ class AuthenticationController extends BaseController
         $this->logActivity('logout', ['user_id' => $userId]);
 
         $this->clearAllAuthData();
-        
+
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success(['redirect' => '/login'], 'Logged out successfully');
         }
@@ -428,29 +417,29 @@ class AuthenticationController extends BaseController
     {
         $input = $this->getInput();
         $input = $this->sanitize($input);
-        
+
         if (empty($input)) {
             unset($_SESSION['security_question']);
             unset($_SESSION['reset_email']);
             unset($_SESSION['old_input']);
-            
+
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success(['view' => 'forgot_password']);
             }
-            
+
             if (!headers_sent()) {
                 header('Location: /forgot-password');
             }
             exit;
         }
-        
+
         $step = $input['step'] ?? 'get_question';
         $email = $input['email'] ?? '';
-        
+
         if ($step === 'get_question') {
             unset($_SESSION['security_question']);
             unset($_SESSION['reset_email']);
-            
+
             if (empty($email)) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['email' => 'Email is required']);
@@ -461,9 +450,9 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             $user = $this->userRepository->findByEmail($email);
-            
+
             if (!$user) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['email' => 'No account found with this email']);
@@ -474,7 +463,7 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             if (!$user->security_question || empty($user->security_question)) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['email' => 'This account does not have a security question set']);
@@ -485,27 +474,27 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             $_SESSION['security_question'] = $user->security_question;
             $_SESSION['reset_email'] = $email;
-            
+
             session_write_close();
             session_start();
-            
+
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
                     'view' => 'security_verify',
                     'security_question' => $user->security_question
                 ]);
             }
-            
+
             require_once __DIR__ . '/../views/pages/authentication-page.php';
             exit;
         } 
         else if ($step === 'verify_answer') {
             $securityAnswer = $input['security_answer'] ?? '';
             $email = $input['email'] ?? $_SESSION['reset_email'] ?? '';
-            
+
             if (empty($securityAnswer)) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['security_answer' => 'Security answer is required']);
@@ -516,9 +505,9 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             $user = $this->userRepository->findByEmail($email);
-            
+
             if (!$user) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['email' => 'Invalid account information']);
@@ -529,10 +518,10 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             if (!$this->userRepository->verifySecurityAnswer($user->id, $securityAnswer)) {
                 $this->logActivity('security_answer_incorrect', ['user_id' => $user->id]);
-                
+
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['security_answer' => 'Incorrect security answer']);
                 }
@@ -542,26 +531,26 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             $_SESSION['reset_token'] = md5(uniqid(rand(), true));
             $_SESSION['reset_user_id'] = $user->id;
-            
+
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
                     'redirect' => '/reset-password'
                 ]);
             }
-            
+
             if (!headers_sent()) {
                 header('Location: /reset-password');
             }
             exit;
         }
-        
+
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->validationError(['error' => 'Invalid request']);
         }
-        
+
         $_SESSION['errors'] = ['error' => 'Invalid request'];
         if (!headers_sent()) {
             header('Location: /forgot-password');
@@ -604,11 +593,11 @@ class AuthenticationController extends BaseController
             } else {
                 if ($user->status === 'banned') {
                     $this->logActivity('banned_user_google_login_attempt', ['user_id' => $user->id, 'email' => $email]);
-                    
+
                     if ($this->isApiRoute() || $this->isAjaxRequest()) {
                         return $this->error('This account has been banned. Please contact an administrator.', 403);
                     }
-                    
+
                     $_SESSION['errors'] = [
                         'auth' => 'This account has been banned. Please contact an administrator.',
                         'banned' => true
@@ -618,7 +607,7 @@ class AuthenticationController extends BaseController
                     }
                     exit;
                 }
-                
+
                 $user->google_id = $googleId;
                 $user->save();
 
@@ -633,14 +622,14 @@ class AuthenticationController extends BaseController
             $_SESSION['google_auth_completed'] = true;
 
             $redirect = '/home';
-            
+
             if (!$user->security_question) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->success([
                         'redirect' => '/set-security-question'
                     ], 'Please set a security question');
                 }
-                
+
                 if (!headers_sent()) {
                     header('Location: /set-security-question');
                 }
@@ -722,11 +711,11 @@ class AuthenticationController extends BaseController
         $securityAnswer = $input['security_answer'];
 
         $errors = [];
-        
+
         if (empty($securityQuestion)) {
             $errors['security_question'] = 'Security question is required';
         }
-        
+
         if (empty($securityAnswer)) {
             $errors['security_answer'] = 'Security answer is required';
         } elseif (strlen($securityAnswer) < 3) {
@@ -752,23 +741,23 @@ class AuthenticationController extends BaseController
             if (!$user) {
                 throw new Exception('User not found');
             }
-            
+
             $user->security_question = $securityQuestion;
             $user->security_answer = password_hash($securityAnswer, PASSWORD_DEFAULT);
-            
+
             if ($user->save()) {
                 $_SESSION['security_question_set'] = true;
-                
+
                 $this->logActivity('security_question_set', ['user_id' => $userId]);
-                
+
                 $redirect = '/home';
-                
+
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->success([
                         'redirect' => $redirect
                     ], 'Security question set successfully');
                 }
-                
+
                 if (!headers_sent()) {
                     header('Location: ' . $redirect);
                 }
@@ -781,9 +770,9 @@ class AuthenticationController extends BaseController
                 'user_id' => $userId,
                 'error' => $e->getMessage()
             ]);
-            
+
             $errorMessage = 'Failed to set security question. Please try again.';
-            
+
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->serverError($errorMessage);
             }
@@ -801,14 +790,14 @@ class AuthenticationController extends BaseController
         unset($_SESSION['reset_email']);
         unset($_SESSION['reset_token']);
         unset($_SESSION['reset_user_id']);
-        
+
         session_write_close();
         session_start();
-                            
+
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->redirectResponse('/forgot-password');
         }
-        
+
         if (!headers_sent()) {
             header('Location: /forgot-password');
             header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -816,15 +805,15 @@ class AuthenticationController extends BaseController
         }
         exit;
     }
-    
+
     public function verifySecurityQuestion()
     {
         $input = $this->getInput();
         $input = $this->sanitize($input);
-        
+
         $step = $input['step'] ?? 'get_question';
         $email = $input['email'] ?? '';
-        
+
         if (empty($email)) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError(['email' => 'Email is required']);
@@ -835,9 +824,9 @@ class AuthenticationController extends BaseController
             }
             exit;
         }
-        
+
         $user = $this->userRepository->findByEmail($email);
-        
+
         if (!$user) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError(['email' => 'No account found with this email']);
@@ -848,7 +837,7 @@ class AuthenticationController extends BaseController
             }
             exit;
         }
-        
+
         if ($step === 'get_question') {
             if (!$user->security_question || empty($user->security_question)) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
@@ -860,17 +849,17 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             $_SESSION['security_question'] = $user->security_question;
             $_SESSION['reset_email'] = $email;
-            
+
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
                     'view' => 'security_verify',
                     'security_question' => $user->security_question
                 ]);
             }
-            
+
             $_SESSION['old_input'] = ['email' => $email];
             if (!headers_sent()) {
                 header('Location: /forgot-password');
@@ -878,7 +867,7 @@ class AuthenticationController extends BaseController
             exit;
         } else {
             $securityAnswer = $input['security_answer'] ?? '';
-            
+
             if (empty($securityAnswer)) {
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['security_answer' => 'Security answer is required']);
@@ -889,10 +878,10 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             if (!$this->userRepository->verifySecurityAnswer($user->id, $securityAnswer)) {
                 $this->logActivity('security_answer_incorrect', ['user_id' => $user->id]);
-                
+
                 if ($this->isApiRoute() || $this->isAjaxRequest()) {
                     return $this->validationError(['security_answer' => 'Incorrect security answer']);
                 }
@@ -902,23 +891,23 @@ class AuthenticationController extends BaseController
                 }
                 exit;
             }
-            
+
             $_SESSION['reset_token'] = md5(uniqid(rand(), true));
             $_SESSION['reset_user_id'] = $user->id;
-            
+
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
                     'redirect' => '/reset-password'
                 ]);
             }
-            
+
             if (!headers_sent()) {
                 header('Location: /reset-password');
             }
             exit;
         }
     }
-    
+
     public function showResetPassword()
     {
         if (isset($_GET['fresh']) && $_GET['fresh'] == '1') {
@@ -926,118 +915,118 @@ class AuthenticationController extends BaseController
             header('Location: /forgot-password');
             exit;
         }
-        
+
         if ($this->isAuthenticated()) {
             $this->setSecurityHeaders();
             header('Location: /home');
             exit;
         }
-        
+
         if (!isset($_SESSION['reset_token']) || !isset($_SESSION['reset_user_id'])) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->error('Invalid or expired reset token', 400);
             }
-            
+
             $this->setSecurityHeaders();
             header('Location: /forgot-password');
             exit;
         }
-        
+
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
                 'view' => 'reset_password',
                 'csrf_token' => $_SESSION['csrf_token'] ?? ''
             ]);
         }
-        
+
         require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
-    
+
     public function resetPassword()
     {
         $input = $this->getInput();
-        
+
         if (empty($input)) {
             return $this->redirectResponse('/login');
         }
-        
+
         $token = $input['token'] ?? '';
         $email = $input['email'] ?? '';
         $password = $input['password'] ?? '';
         $passwordConfirm = $input['password_confirm'] ?? '';
-        
+
         if (empty($token) || empty($email) || empty($password) || empty($passwordConfirm)) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError([
                     'password' => 'All fields are required'
                 ]);
             }
-            
+
             $_SESSION['errors'] = ['password' => 'All fields are required'];
             header('Location: /reset-password');
             exit;
         }
-        
+
         if (!isset($_SESSION['reset_token']) || $token !== $_SESSION['reset_token'] || !isset($_SESSION['reset_user_id'])) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError([
                     'password' => 'Invalid or expired reset token'
                 ]);
             }
-            
+
             $_SESSION['errors'] = ['password' => 'Invalid or expired reset token'];
             header('Location: /forgot-password');
             exit;
         }
-        
+
         if ($password !== $passwordConfirm) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError([
                     'password_confirm' => 'Passwords do not match'
                 ]);
             }
-            
+
             $_SESSION['errors'] = ['password_confirm' => 'Passwords do not match'];
             header('Location: /reset-password');
             exit;
         }
-        
+
         if (strlen($password) < 8) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->validationError([
                     'password' => 'Password must be at least 8 characters long'
                 ]);
             }
-            
+
             $_SESSION['errors'] = ['password' => 'Password must be at least 8 characters long'];
             header('Location: /reset-password');
             exit;
         }
-        
+
         $userId = $_SESSION['reset_user_id'];
         if (!$this->userRepository->updatePassword($userId, $password)) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->error('Failed to update password');
             }
-            
+
             $_SESSION['errors'] = ['password' => 'Failed to update password'];
             header('Location: /reset-password');
             exit;
         }
-        
+
         unset($_SESSION['reset_token']);
         unset($_SESSION['reset_user_id']);
         unset($_SESSION['reset_email']);
         unset($_SESSION['security_question']);
-        
+
         $this->logActivity('password_reset', ['user_id' => $userId]);
-        
+
         if ($this->isApiRoute() || $this->isAjaxRequest()) {
             return $this->success([
                 'redirect' => '/login'
             ], 'Password reset successfully');
         }
-        
+
         $_SESSION['success'] = 'Password has been reset successfully. Please log in with your new password.';
         $this->setSecurityHeaders();
         header('Location: /login');
@@ -1047,10 +1036,10 @@ class AuthenticationController extends BaseController
     protected function getInput()
     {
         $input = [];
-        
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
-            
+
             if (strpos($contentType, 'application/json') !== false) {
                 $jsonData = file_get_contents('php://input');
                 $input = json_decode($jsonData, true) ?? [];
@@ -1060,7 +1049,7 @@ class AuthenticationController extends BaseController
         } else if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $input = $_GET;
         }
-        
+
         return $input;
     }
 
@@ -1094,34 +1083,34 @@ class AuthenticationController extends BaseController
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        
+
         $preserveKeys = [
             'login_redirect',
             'csrf_token'
         ];
-        
+
         if ($preserveErrors) {
             $preserveKeys[] = 'errors';
             $preserveKeys[] = 'old_input';
             $preserveKeys[] = 'success';
         }
-        
+
         $preservedData = [];
         foreach ($preserveKeys as $key) {
             if (isset($_SESSION[$key])) {
                 $preservedData[$key] = $_SESSION[$key];
             }
         }
-        
+
         session_regenerate_id(true);
         $_SESSION = array();
-        
+
         foreach ($preservedData as $key => $value) {
             $_SESSION[$key] = $value;
         }
-        
+
         $this->setSecurityHeaders();
-        
+
         header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
         header('Pragma: no-cache');
         header('Expires: 0');
@@ -1137,11 +1126,11 @@ class AuthenticationController extends BaseController
 
     public function generateVideoSDKToken() {
         header('Content-Type: application/json');
-        
+
         try {
             $apiKey = "8ad2dbcd-638d-4fbb-999c-9a48a83caa15";
             $secretKey = "2894abac68603be19aa80b781cad6683eebfb922f496c22cc46b19ad91647d4e";
-            
+
             $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
             $payload = json_encode([
                 'apikey' => $apiKey,
@@ -1149,25 +1138,25 @@ class AuthenticationController extends BaseController
                 'iat' => time(),
                 'exp' => time() + (30 * 24 * 60 * 60)
             ]);
-            
+
             function base64UrlEncode($data) {
                 return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
             }
-            
+
             $base64Header = base64UrlEncode($header);
             $base64Payload = base64UrlEncode($payload);
-            
+
             $signature = hash_hmac('sha256', $base64Header . "." . $base64Payload, $secretKey, true);
             $base64Signature = base64UrlEncode($signature);
-            
+
             $jwt = $base64Header . "." . $base64Payload . "." . $base64Signature;
-            
+
             echo json_encode([
                 'success' => true,
                 'token' => $jwt,
                 'expires_at' => time() + (30 * 24 * 60 * 60)
             ]);
-            
+
         } catch (Exception $e) {
             http_response_code(500);
             echo json_encode([

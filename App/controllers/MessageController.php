@@ -10,7 +10,6 @@ require_once __DIR__ . '/../database/query.php';
 require_once __DIR__ . '/BaseController.php';
 require_once __DIR__ . '/../exceptions/ValidationException.php';
 
-
 class MessageController extends BaseController
 {
     private $messageRepository;
@@ -31,23 +30,18 @@ class MessageController extends BaseController
     {
         $this->requireAuth();
 
-
         $input = $this->getInput();
 
-
         $chatType = $_GET['chat_type'] ?? null;
-
 
         if (!$chatType) {
             $chatType = 'channel';
         }
 
-
         $targetId = $channelId;
         if (!$targetId) {
             $targetId = $input['channel_id'] ?? $input['target_id'] ?? null;
         }
-
 
         if (!$targetId) {
             return $this->validationError(['target_id' => 'Target ID is required']);
@@ -58,10 +52,7 @@ class MessageController extends BaseController
             $limit = $_GET['limit'] ?? 50;
             $offset = $_GET['offset'] ?? 0;
 
-
-            error_log("MessageController::getMessages - chatType: $chatType, targetId: $targetId, limit: $limit, offset: $offset");
-
-            if ($chatType === 'channel') {
+                        if ($chatType === 'channel') {
                 return $this->getChannelMessages($targetId, $limit, $offset);
             } else if ($chatType === 'dm' || $chatType === 'direct') {
                 return $this->getDirectMessages($targetId, $limit, $offset);
@@ -69,8 +60,7 @@ class MessageController extends BaseController
                 return $this->validationError(['chat_type' => 'Invalid chat type']);
             }
         } catch (Exception $e) {
-            error_log("Error in MessageController::getMessages: " . $e->getMessage());
-            return $this->serverError('Failed to load messages: ' . $e->getMessage());
+                        return $this->serverError('Failed to load messages: ' . $e->getMessage());
         }
     }
 
@@ -85,22 +75,18 @@ class MessageController extends BaseController
                 return $this->notFound('Channel not found');
             }
 
-
             if ($channel->server_id != 0) {
                 if (!$this->membershipRepository->isMember($userId, $channel->server_id)) {
                     return $this->forbidden('You do not have access to this channel');
                 }
             }
 
-
             $messages = $this->channelMessageRepository->getMessagesByChannelId($channelId, $limit, $offset);
-
 
             $this->logActivity('channel_messages_viewed', [
                 'channel_id' => $channelId,
                 'message_count' => count($messages)
             ]);
-
 
             return $this->success([
                 'messages' => $messages,
@@ -109,8 +95,7 @@ class MessageController extends BaseController
                 'has_more' => count($messages) >= $limit
             ]);
         } catch (Exception $e) {
-            error_log("Error in MessageController::getChannelMessages: " . $e->getMessage());
-            return $this->serverError('Failed to load channel messages');
+                        return $this->serverError('Failed to load channel messages');
         }
     }
 
@@ -127,7 +112,6 @@ class MessageController extends BaseController
                 return $this->forbidden('You are not a participant in this chat');
             }
 
-
             require_once __DIR__ . '/../database/repositories/ChatRoomMessageRepository.php';
             $chatRoomMessageRepository = new ChatRoomMessageRepository();
             $messages = $chatRoomMessageRepository->getMessagesByRoomId($roomId, $limit, $offset);
@@ -139,8 +123,7 @@ class MessageController extends BaseController
                 'has_more' => count($messages) >= $limit
             ]);
         } catch (Exception $e) {
-            error_log("Error in MessageController::getDirectMessages: " . $e->getMessage());
-            return $this->serverError('Failed to load direct messages');
+                        return $this->serverError('Failed to load direct messages');
         }
     }
 
@@ -262,8 +245,7 @@ class MessageController extends BaseController
             if (isset($query)) {
                 $query->rollback();
             }
-            error_log('Channel message send error: ' . $e->getMessage());
-            return $this->serverError('Failed to send message');
+                        return $this->serverError('Failed to send message');
         }
     }
 
@@ -281,14 +263,12 @@ class MessageController extends BaseController
                 return $this->unauthorized('Invalid user');
             }
 
-            error_log("Socket reaction: User $userId ($username) authenticated via headers");
-        } else {
+                    } else {
             $this->requireAuth();
             $userId = $this->getCurrentUserId();
             $username = $_SESSION['username'] ?? 'Unknown User';
 
-            error_log("Web reaction: User $userId ($username) authenticated via session");
-        }
+                    }
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
@@ -327,7 +307,6 @@ class MessageController extends BaseController
                 return $this->serverError('Could not determine message target');
             }
 
-
             $existingReaction = MessageReaction::findByMessageAndUser($messageId, $userId, $emoji);
             if ($existingReaction) {
                 if ($existingReaction->delete()) {
@@ -346,7 +325,6 @@ class MessageController extends BaseController
                     return $this->serverError('Failed to remove reaction');
                 }
             }
-
 
             $reaction = new MessageReaction([
                 'message_id' => $messageId,
@@ -388,14 +366,12 @@ class MessageController extends BaseController
                 return $this->unauthorized('Invalid user');
             }
 
-            error_log("Socket reaction removal: User $userId ($username) authenticated via headers");
-        } else {
+                    } else {
             $this->requireAuth();
             $userId = $this->getCurrentUserId();
             $username = $_SESSION['username'] ?? 'Unknown User';
 
-            error_log("Web reaction removal: User $userId ($username) authenticated via session");
-        }
+                    }
 
         $input = $this->getInput();
         $input = $this->sanitize($input);
@@ -466,11 +442,9 @@ class MessageController extends BaseController
             if (!$user) {
                 return $this->unauthorized('Invalid user');
             }
-            error_log("Socket get reactions: User $socketUserId authenticated via headers");
-        } else {
+                    } else {
             $this->requireAuth();
-            error_log("Web get reactions: User authenticated via session");
-        }
+                    }
 
         $message = $this->messageRepository->find($messageId);
         if (!$message) {
@@ -662,8 +636,7 @@ class MessageController extends BaseController
                 'message_id' => $messageData['id']
             ], 'Bubble message rendered successfully');
         } catch (Exception $e) {
-            error_log("Error rendering bubble message: " . $e->getMessage());
-            return $this->serverError('Failed to render bubble message: ' . $e->getMessage());
+                        return $this->serverError('Failed to render bubble message: ' . $e->getMessage());
         }
     }
 

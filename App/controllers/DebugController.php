@@ -114,23 +114,14 @@ class DebugController extends BaseController
     }
     public function testSocketInput()
     {
-        error_log("=== DEBUG SOCKET INPUT TEST ===");
-        error_log("Request Method: " . ($_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN'));
-        error_log("Content Type: " . ($_SERVER['CONTENT_TYPE'] ?? 'UNKNOWN'));
-        error_log("Raw Input: " . file_get_contents('php://input'));
-        
-        $input = $this->getInput();
-        error_log("Parsed Input: " . json_encode($input));
-        
-        $headers = [];
+                                        $input = $this->getInput();
+                $headers = [];
         foreach ($_SERVER as $key => $value) {
             if (strpos($key, 'HTTP_') === 0 || strpos($key, 'X_') !== false) {
                 $headers[$key] = $value;
             }
         }
-        error_log("Headers: " . json_encode($headers));
-        
-        return $this->success([
+                return $this->success([
             'raw_input' => file_get_contents('php://input'),
             'parsed_input' => $input,
             'headers' => $headers,
@@ -141,29 +132,29 @@ class DebugController extends BaseController
     public function botDebug()
     {
         header('Content-Type: application/json');
-        
+
         try {
             require_once __DIR__ . '/../database/repositories/UserRepository.php';
             require_once __DIR__ . '/../database/query.php';
-            
+
             $userRepo = new UserRepository();
             $query = new Query();
-            
+
             $directQuery = $query->query("SELECT * FROM users WHERE username = 'titibot'");
-            
+
             $caseInsensitive = $query->query("SELECT * FROM users WHERE LOWER(username) = 'titibot'");
-            
+
             $similarUsers = $query->query("SELECT id, username, status, email FROM users WHERE username LIKE '%titi%'");
-            
+
             $allBots = $query->query("SELECT id, username, status, email FROM users WHERE status = 'bot'");
-            
+
             $repoResult = $userRepo->findByUsername('titibot');
-            
+
             $user1004 = $query->query("SELECT * FROM users WHERE id = 1004");
-            
+
             $tables = $query->query("SHOW TABLES");
             $userTableInfo = $query->query("DESCRIBE users");
-            
+
             echo json_encode([
                 'success' => true,
                 'debug_data' => [
@@ -185,7 +176,7 @@ class DebugController extends BaseController
                 ],
                 'timestamp' => date('Y-m-d H:i:s')
             ], JSON_PRETTY_PRINT);
-            
+
         } catch (Exception $e) {
             echo json_encode([
                 'success' => false,
@@ -193,7 +184,7 @@ class DebugController extends BaseController
                 'trace' => $e->getTraceAsString()
             ], JSON_PRETTY_PRINT);
         }
-        
+
         exit;
     }
 }
