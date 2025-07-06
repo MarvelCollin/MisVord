@@ -1951,7 +1951,7 @@ class ServerController extends BaseController
             $shouldDeleteServer = empty($eligibleMembers);
             
             return $this->success([
-                'members' => $eligibleMembers,
+                'users' => $eligibleMembers,
                 'should_delete_server' => $shouldDeleteServer,
                 'server_name' => $server->name
             ]);

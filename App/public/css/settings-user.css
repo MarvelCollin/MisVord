@@ -816,256 +816,662 @@ button:active {
     flex-direction: column;
     height: auto;
     min-height: 100vh;
-    padding: 0;
-    margin: 0;
+    padding: 15px;
+    gap: 15px;
   }
   
   .w-60 {
     width: 100%;
     min-width: auto;
-    border-right: none;
-    border-bottom: 1px solid rgba(4, 4, 5, 0.2);
-    border-radius: var(--discord-border-radius-primary) var(--discord-border-radius-primary) 0 0;
     height: auto;
-    max-height: 50vh;
-    overflow-y: auto;
+    max-height: none;
+    border-radius: 8px;
+    border-right: none;
+    border-bottom: 1px solid rgba(79, 84, 92, 0.3);
   }
   
   .flex-1.bg-discord-dark {
-    border-radius: 0 0 var(--discord-border-radius-primary) var(--discord-border-radius-primary);
-    max-height: none;
-    flex: 1;
+    border-radius: 8px;
+    height: auto;
   }
   
   .p-10 {
-    padding: var(--discord-spacing-lg);
+    padding: 20px;
+  }
+  
+  .close-button {
+    top: 25px;
+    right: 25px;
+  }
+  
+  .volume-slider {
+    height: 12px;
+    padding: 8px 0;
+  }
+  
+  .volume-slider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .volume-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+  
+  .video-preview-container {
+    max-width: 100%;
+    margin: 0;
+  }
+  
+  .voice-video-tabs {
+    margin-bottom: 1rem;
+  }
+  
+  .voice-tab {
+    padding: 14px 16px;
+    font-size: 16px;
+    min-height: 52px;
+  }
+  
+  .bg-discord-darker {
+    padding: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .flex.min-h-screen {
+    padding: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+  }
+  
+  .p-10 {
+    padding: var(--discord-spacing-md);
+  }
+  
+  .close-button {
+    top: 8px;
+    right: 8px;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .close-button-text {
+  display: none;
+}
+
+  .form-group .flex.justify-between.items-center {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--discord-spacing-xs);
+  }
+  
+  .form-group .flex.items-center.space-x-2 {
+    align-self: flex-end;
+  }
+  
+  .text-lg.font-medium.mb-4 {
+    font-size: 18px;
+  }
+  
+  .bg-discord-darker {
+    margin-bottom: var(--discord-spacing-sm);
+    padding: var(--discord-spacing-md);
+  }
+  
+  .w-60 .p-4 {
+    padding: var(--discord-spacing-sm) var(--discord-spacing-md);
+  }
+  
+  .sidebar-item {
+    padding: 10px var(--discord-spacing-md);
+    font-size: 14px;
+  }
+}
+
+/* Video Settings Styles */
+.video-preview-container {
+    position: relative;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #1e1f22, #18191c);
+    border-radius: var(--discord-border-radius-primary);
+    overflow: hidden;
+    border: 2px solid var(--discord-bg-overlay);
+    box-shadow: var(--discord-elevation-high);
+    transition: all var(--discord-animation-default) ease;
+}
+
+.video-preview-container::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, 
+        rgba(88, 101, 242, 0) 0%, 
+        rgba(88, 101, 242, 0.3) 50%, 
+        rgba(88, 101, 242, 0) 100%);
+    opacity: 0;
+    transition: opacity var(--discord-animation-default) ease;
+    z-index: 2;
+}
+
+.video-preview-container:hover {
+    border-color: var(--discord-blurple);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(88, 101, 242, 0.2);
+    transform: translateY(-1px);
+}
+
+.video-preview-container:hover::before {
+    opacity: 1;
+}
+
+.video-preview {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4/3;
+    background: var(--discord-bg-overlay);
+    border-radius: var(--discord-border-radius-tertiary);
+    display: block;
+    transition: filter var(--discord-animation-short) ease;
+}
+
+.video-preview:not([src]) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--discord-interactive-normal);
+    font-size: 14px;
+    min-height: 240px;
+}
+
+.video-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--discord-interactive-normal);
+    font-size: 14px;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: var(--discord-bg-overlay);
+    border-radius: var(--discord-border-radius-tertiary);
+    flex-direction: column;
+    gap: 16px;
+}
+
+.video-placeholder::before {
+    content: "📹";
+    font-size: 32px;
+    opacity: 0.7;
+}
+
+.video-preview-container.video-error .video-placeholder::before {
+    content: "❌";
+    color: var(--discord-red);
+}
+
+.video-preview-container.video-success .video-placeholder::before {
+    content: "✓";
+    color: var(--discord-green);
+}
+
+#video-test-btn.recording {
+    background-color: #f04747;
+}
+
+#video-test-btn.recording:hover {
+    background-color: #d73939;
+}
+
+/* Enhanced Device Display Styling */
+#current-input-device, #current-output-device, #current-video-device {
+    padding: 12px 16px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+#current-input-device:hover, #current-output-device:hover, #current-video-device:hover {
+    background-color: rgba(79, 84, 92, 0.1);
+}
+
+#current-input-device .fa-microphone {
+    color: #43b581;
+}
+
+#current-output-device .fa-headphones {
+    color: #3498db;
+}
+
+#current-video-device .fa-video {
+    color: #8b5cf6;
+}
+
+/* Enhanced Button Styling */
+button {
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    position: relative;
+    overflow: hidden;
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+button:hover::before {
+    left: 100%;
+}
+
+/* Enhanced Mic Test Button */
+#mic-test-btn, #video-test-btn {
+    background: linear-gradient(135deg, #5865f2, #4752c4);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(88, 101, 242, 0.3);
+}
+
+#mic-test-btn:hover, #video-test-btn:hover {
+    background: linear-gradient(135deg, #4752c4, #3c45a5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(88, 101, 242, 0.4);
+}
+
+#mic-test-btn.recording, #video-test-btn.recording {
+    background: linear-gradient(135deg, #f04747, #d73939);
+    box-shadow: 0 2px 8px rgba(240, 71, 71, 0.3);
+}
+
+#mic-test-btn.recording:hover, #video-test-btn.recording:hover {
+    background: linear-gradient(135deg, #d73939, #c92a2a);
+    box-shadow: 0 4px 12px rgba(240, 71, 71, 0.4);
+}
+
+/* Approve button styles */
+#approve-username {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: #2563eb;
+    opacity: 0;
+  transform: scale(0.8) translateX(10px);
+  pointer-events: none;
+  }
+
+#approve-username.show {
+    opacity: 1;
+  transform: scale(1) translateX(0);
+  pointer-events: all;
+}
+
+#approve-username:hover {
+  background-color: #1d4ed8;
+  transform: scale(1.05) translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+}
+
+#approve-username:active {
+  transform: scale(0.95) translateY(0);
+}
+
+#approve-username:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: scale(1) translateX(0);
+}
+
+#approve-display-name {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: #23a559;
+  opacity: 0;
+  transform: scale(0.8) translateX(10px);
+  pointer-events: none;
+}
+
+#approve-display-name.show {
+  opacity: 1;
+  transform: scale(1) translateX(0);
+  pointer-events: all;
+}
+
+#approve-display-name:hover {
+  background-color: #1e9150;
+  transform: scale(1.05) translateY(-1px);
+  box-shadow: 0 4px 12px rgba(35, 165, 89, 0.4);
+}
+
+#approve-display-name:active {
+  transform: scale(0.95) translateY(0);
+}
+
+#approve-display-name:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#logout-confirmation-modal {
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+  }
+
+#logout-confirmation-modal.opacity-100 {
+    opacity: 1;
+}
+
+#logout-confirmation-modal .bg-discord-darker {
+    opacity: 0;
+    transform: scale(0.95);
+    transition: all 0.2s ease-in-out;
+}
+
+#logout-confirmation-modal.opacity-100 .bg-discord-darker {
+    opacity: 1;
+    transform: scale(1);
+}
+
+#logout-confirmation-modal button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+#logout-confirmation-modal button i.fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+#bio {
+  width: 100%;
+  background-color: var(--discord-bg-tertiary);
+  border: 1px solid rgba(4, 4, 5, 0.3);
+  border-radius: var(--discord-border-radius-secondary);
+  padding: 12px;
+  color: var(--discord-interactive-active);
+  font-size: 15px;
+  font-family: var(--discord-font-primary);
+  line-height: 1.4;
+  resize: none;
+  transition: border-color var(--discord-animation-default) ease, box-shadow var(--discord-animation-default) ease;
+  min-height: 80px;
+  max-height: 150px;
+}
+
+#bio:hover {
+  border-color: rgba(79, 84, 92, 0.6);
+}
+
+#bio:focus {
+  outline: none;
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+}
+
+#bio::placeholder {
+  color: var(--discord-interactive-muted);
+  transition: color var(--discord-animation-short) ease, opacity var(--discord-animation-short) ease;
+}
+
+#bio:focus::placeholder {
+  color: var(--discord-interactive-muted);
+  opacity: 0.5;
+}
+
+#bio-counter {
+  font-family: var(--discord-font-code);
+  font-size: 11px;
+  font-weight: 500;
+  transition: color var(--discord-animation-short) ease;
+}
+
+#bio-counter.text-yellow-400 {
+  color: var(--discord-yellow);
+}
+
+#bio-counter.text-red-400 {
+  color: var(--discord-red);
+}
+
+#approve-bio {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  border-radius: var(--discord-border-radius-secondary);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--discord-animation-default) ease;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+  position: relative;
+  overflow: hidden;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 32px;
+  opacity: 0;
+  transform: translateX(10px) scale(0.9);
+}
+
+#approve-bio::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left var(--discord-animation-long) ease;
+}
+
+#approve-bio:hover::before {
+  left: 100%;
+}
+
+#approve-bio.show {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+#approve-bio:hover {
+  background: linear-gradient(135deg, #9333ea 0%, #8b5cf6 100%);
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.3);
+  transform: translateY(-1px) scale(1.02);
+}
+
+#approve-bio:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.2);
+}
+
+#approve-bio:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#approve-bio i {
+  font-size: 12px;
+}
+
+.form-group .flex.flex-col {
+  gap: var(--discord-spacing-sm);
+}
+
+.form-group .flex.justify-between.items-center {
+  margin-top: var(--discord-spacing-xs);
+}
+
+.form-group .flex.items-center.space-x-2 > * + * {
+  margin-left: var(--discord-spacing-sm);
+}
+
+@media (max-width: 768px) {
+  #bio {
+    font-size: 16px;
+    padding: 14px;
+    min-height: 90px;
+  }
+  
+  #approve-bio {
+    padding: 10px 14px;
+    font-size: 14px;
+    height: 36px;
+    min-width: 40px;
+  }
+  
+  #bio-counter {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .flex.min-h-screen {
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+  }
+  
+  .p-10 {
+    padding: var(--discord-spacing-md);
     min-height: auto;
   }
   
   .close-button {
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
+  width: 32px;
+  height: 32px;
   }
   
-  .form-input {
-    font-size: 16px;
-    padding: 12px;
-    height: 44px;
+  .close-button-text {
+    display: none;
+  }
+  
+  .form-group .flex.justify-between.items-center {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--discord-spacing-xs);
+  }
+  
+  .form-group .flex.items-center.space-x-2 {
+    align-self: flex-end;
+  }
+  
+  .text-lg.font-medium.mb-4 {
+    font-size: 18px;
   }
   
   .bg-discord-darker {
-    margin-bottom: var(--discord-spacing-md);
-  }
-}
-
-@media (min-width: 1400px) {
-  .flex.min-h-screen {
-    max-width: 1300px;
-    padding: var(--discord-spacing-xxl) calc(var(--discord-spacing-xxl) * 1.5);
+    margin-bottom: var(--discord-spacing-sm);
+    padding: var(--discord-spacing-md);
   }
   
-  .p-10 {
-    padding: calc(var(--discord-spacing-xxl) * 1.2) calc(var(--discord-spacing-xxl) * 1.2) calc(var(--discord-spacing-xxl) * 1.2 + 2rem) calc(var(--discord-spacing-xl) * 1.2);
+  .w-60 .p-4 {
+    padding: var(--discord-spacing-sm) var(--discord-spacing-md);
+  }
+  
+  .sidebar-item {
+    padding: 10px var(--discord-spacing-md);
+    font-size: 14px;
   }
 }
 
-.hidden {
-  display: none;
-}
-
-.text-center {
-  text-align: center;
-}
-
-.ml-2 {
-  margin-left: var(--spacing-sm);
-}
-
-.ml-auto {
-  margin-left: auto;
-}
-
-.mt-2 {
-  margin-top: var(--spacing-sm);
-}
-
-.mt-4 {
-  margin-top: var(--spacing-md);
-}
-
-.mt-6 {
-  margin-top: var(--spacing-lg);
-}
-
-.mt-8 {
-  margin-top: var(--spacing-xl);
-}
-
-.flex-grow {
-  flex-grow: 1;
-}
-
-.rounded-r-md {
-  border-top-right-radius: var(--border-radius-sm);
-  border-bottom-right-radius: var(--border-radius-sm);
-}
-
-.border-l.border-gray-700 {
-  border-left: 1px solid rgba(79, 84, 92, 0.6);
-}
-
-.text-blue-500 {
-  color: #3b82f6;
-}
-
-.text-blue-500:hover {
-  text-decoration: underline;
-}
-
-.bg-discord-darkest {
-  background-color: var(--discord-background-tertiary);
-}
-
-.w-8.h-8 {
-  width: 32px;
-  height: 32px;
-}
-
-.w-5.h-5 {
-  width: 20px;
-  height: 20px;
-}
-
-.flex.flex-wrap.gap-2 {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-
-.flex.flex-wrap.gap-2 > * {
-  margin: 0;
-}
-
-/* Password Change Modal Styles */
-#change-password-modal {
-  backdrop-filter: blur(8px);
+#delete-account-modal {
   z-index: 9999;
-  display: none !important;
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  backdrop-filter: blur(4px);
+  animation: modalFadeIn var(--discord-animation-default) ease-out;
 }
 
-#change-password-modal.show {
-  display: flex !important;
-  animation: modalFadeIn 0.3s ease forwards;
-}
-
-#change-password-modal.hidden {
+#delete-account-modal.hidden {
   display: none !important;
 }
 
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-#change-password-modal .bg-discord-darker {
+#delete-account-modal .bg-discord-darker {
   background-color: var(--discord-bg-secondary);
-  border: 1px solid rgba(79, 84, 92, 0.4);
-  transform: scale(0.9);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 25px 50px -12px rgba(0, 0, 0, 0.8),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
+  border: 1px solid #f23f43;
+  box-shadow: var(--discord-elevation-high);
+  animation: slideIn var(--discord-animation-default) ease-out;
+  transform-origin: center center;
 }
 
-#change-password-modal.show .bg-discord-darker {
-  transform: scale(1);
+@keyframes slideIn {
+  from { transform: scale(0.9) translateY(-20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
 }
 
-/* Step transitions */
-#security-question-step,
-#new-password-step,
-#set-security-step {
-  animation: stepFadeIn 0.4s ease-in-out;
+#delete-account-modal h2 {
+  color: #f23f43;
+  font-family: var(--discord-font-headline);
+  letter-spacing: 0.02em;
 }
 
-#security-question-step.hidden,
-#new-password-step.hidden,
-#set-security-step.hidden {
-  display: none !important;
+#delete-account-modal .w-16.h-16 {
+  background: linear-gradient(135deg, rgba(242, 63, 67, 0.2) 0%, rgba(242, 63, 67, 0.1) 100%);
+  border: 1px solid rgba(242, 63, 67, 0.3);
 }
 
-@keyframes stepFadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Icon containers */
-#change-password-modal .w-16.h-16 {
-  transition: all 0.3s ease;
-}
-
-#change-password-modal .w-16.h-16:hover {
-  transform: scale(1.05);
-}
-
-/* Input animations */
-#change-password-modal input[type="text"],
-#change-password-modal input[type="password"],
-#change-password-modal select {
-  background-color: var(--discord-bg-tertiary);
-  border: 1px solid rgba(79, 84, 92, 0.6);
+#delete-account-modal input[type="text"] {
+  background-color: var(--discord-bg-primary);
+  border: 1px solid #f23f43;
   color: var(--discord-text-normal);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  transform: translateY(0);
-  font-size: 14px;
+  transition: all var(--discord-animation-default) ease;
 }
 
-#change-password-modal input[type="text"]:focus,
-#change-password-modal input[type="password"]:focus,
-#change-password-modal select:focus {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+#delete-account-modal input[type="text"]:focus {
+  border-color: #f23f43;
+  box-shadow: 0 0 0 2px rgba(242, 63, 67, 0.2);
+  outline: none;
 }
 
-#change-password-modal input[type="text"]:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+#delete-account-modal input[type="text"]:hover {
+  border-color: rgba(242, 63, 67, 0.8);
 }
 
-#change-password-modal input[type="password"]:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
-}
-
-#change-password-modal select:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-/* Button animations */
-#change-password-modal button {
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+#delete-account-modal button {
   font-weight: 600;
-  transform: translateY(0);
   position: relative;
-  overflow: hidden;
+    overflow: hidden;
+  transition: all var(--discord-animation-default) ease;
 }
 
-#change-password-modal button::before {
+#delete-account-modal button::before {
   content: '';
   position: absolute;
   top: 0;
@@ -1076,263 +1482,129 @@ button:active {
   transition: left 0.5s ease;
 }
 
-#change-password-modal button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-#change-password-modal button:hover:not(:disabled)::before {
+#delete-account-modal button:hover:not(:disabled)::before {
   left: 100%;
 }
 
-#change-password-modal button:active:not(:disabled) {
-  transform: translateY(0);
-  transition: all 0.1s ease;
+#delete-account-modal .bg-red-600 {
+  background-color: #f23f43;
+  border: 1px solid transparent;
 }
 
-#change-password-modal button:disabled {
-  opacity: 0.6;
+#delete-account-modal .bg-red-600:hover:not(:disabled) {
+  background-color: #d22d31;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(242, 63, 67, 0.3);
+}
+
+#delete-account-modal .bg-red-600:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: translateY(0);
+  transform: none;
+  box-shadow: none;
 }
 
-/* Loading animation for buttons */
-#change-password-modal button.loading {
+#delete-account-modal .bg-gray-600 {
+  background-color: var(--discord-interactive-muted);
+}
+
+#delete-account-modal .bg-gray-600:hover {
+  background-color: var(--discord-interactive-normal);
+}
+
+#delete-account-error {
+  background-color: rgba(242, 63, 67, 0.1);
+  border: 1px solid rgba(242, 63, 67, 0.3);
+  border-radius: var(--discord-border-radius-secondary);
+  padding: var(--discord-spacing-sm);
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.text-red-400 {
+  color: #f87171 !important;
+}
+
+.text-red-300 {
+  color: #fca5a5 !important;
+}
+
+.text-red-200 {
+  color: #fecaca !important;
+}
+
+.bg-red-900\/20 {
+  background-color: rgba(127, 29, 29, 0.2) !important;
+}
+
+.border-red-600\/50 {
+  border-color: rgba(220, 38, 38, 0.5) !important;
+}
+
+.border-red-600 {
+  border-color: #dc2626 !important;
+}
+
+#delete-account-btn {
+  background: linear-gradient(135deg, #f23f43 0%, #d22d31 100%);
+  border: 1px solid transparent;
+  font-weight: 600;
   position: relative;
+  overflow: hidden;
+  transition: all var(--discord-animation-default) ease;
 }
 
-#change-password-modal button.loading::after {
+#delete-account-btn::before {
   content: '';
-  position: absolute;
-  top: 0;
+    position: absolute;
+    top: 0;
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  animation: buttonLoading 1.5s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
 }
 
-@keyframes buttonLoading {
-  0% {
-    left: -100%;
-  }
-  100% {
-    left: 100%;
-  }
+#delete-account-btn:hover::before {
+  left: 100%;
 }
 
-/* Error message animations */
-#security-answer-error,
-#password-error,
-#set-security-error {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  opacity: 0;
-  transform: translateY(-10px);
-  max-height: 0;
-  overflow: hidden;
-  font-weight: 500;
-  font-size: 13px;
+#delete-account-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(242, 63, 67, 0.4);
+  background: linear-gradient(135deg, #d22d31 0%, #b91c1c 100%);
 }
 
-#security-answer-error:not(.hidden),
-#password-error:not(.hidden),
-#set-security-error:not(.hidden) {
-  opacity: 1;
-  transform: translateY(0);
-  max-height: 60px;
+#delete-account-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(242, 63, 67, 0.3);
 }
 
-#security-answer-error.text-green-400 {
-  color: #10b981 !important;
-}
-
-#security-answer-error.text-red-400 {
-  color: #ef4444 !important;
-}
-
-/* Close button */
-#close-password-modal {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-#close-password-modal:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: scale(1.1);
-}
-
-/* Color scheme consistency */
-#change-password-modal .bg-blue-600 {
-  background-color: #2563eb;
-}
-
-#change-password-modal .bg-blue-600:hover {
-  background-color: #1d4ed8;
-}
-
-#change-password-modal .bg-green-600 {
-  background-color: #16a34a;
-}
-
-#change-password-modal .bg-green-600:hover {
-  background-color: #15803d;
-}
-
-#change-password-modal .bg-gray-600 {
-  background-color: #4b5563;
-}
-
-#change-password-modal .bg-gray-600:hover {
-  background-color: #374151;
-}
-
-#change-password-modal .border-gray-600 {
-  border-color: rgba(79, 84, 92, 0.6);
-}
-
-#change-password-modal .bg-discord-dark {
-  background-color: var(--discord-bg-tertiary);
-}
-
-#change-password-modal select {
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-  background-position: right 0.75rem center;
-  background-repeat: no-repeat;
-  background-size: 1.5em 1.5em;
-  padding-right: 3rem;
-  appearance: none;
-}
-
-#change-password-modal select option {
-  background-color: var(--discord-bg-secondary);
-  color: white;
-  padding: 8px;
-}
-
-/* Responsive design */
-@media (max-width: 480px) {
-  #change-password-modal .w-full.max-w-md {
+@media (max-width: 768px) {
+  #delete-account-modal .w-full.max-w-md {
     margin: 1rem;
     max-width: calc(100vw - 2rem);
   }
   
-  #change-password-modal .p-6 {
+  #delete-account-modal .p-6 {
     padding: 1.5rem;
   }
-  
-  #change-password-modal .space-x-3 {
+}
+
+@media (max-width: 480px) {
+  #delete-account-modal .flex.space-x-3 {
     flex-direction: column;
     gap: 0.75rem;
   }
   
-  #change-password-modal .space-x-3 > * {
+  #delete-account-modal .flex.space-x-3 > * {
     margin: 0;
   }
-}
-
-/* Connection cards and toggle switches for settings-user.php */
-.connection-card {
-    background-color: #2f3136;
-    border-radius: 8px;
-    width: 100%;
-    max-width: 200px;
-    overflow: hidden;
-    border: 1px solid #222327;
-    transition: all 0.2s ease;
-}
-
-.connection-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-.connection-header {
-    background-color: #202225;
-    padding: 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-weight: 600;
-}
-
-.connection-header i {
-    font-size: 1.2rem;
-}
-
-.connection-body {
-    padding: 12px;
-    display: flex;
-    justify-content: center;
-}
-
-.connect-btn {
-    background-color: #5865f2;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.connect-btn:hover {
-    background-color: #4752c4;
-}
-
-.connection-toggle {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 24px;
-    cursor: pointer;
-}
-
-.toggle-checkbox {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-
-.toggle-switch {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #36393f;
-    border-radius: 34px;
-    transition: 0.4s;
-}
-
-.toggle-switch:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #72767d;
-    border-radius: 50%;
-    transition: 0.4s;
-}
-
-.toggle-checkbox:checked + .toggle-switch {
-    background-color: #5865f2;
-}
-
-.toggle-checkbox:focus + .toggle-switch {
-    box-shadow: 0 0 1px #5865f2;
-}
-
-.toggle-checkbox:checked + .toggle-switch:before {
-    transform: translateX(20px);
-    background-color: white;
 }
 
 /* Voice & Video Settings Styles */
@@ -1763,7 +2035,7 @@ button:active {
     }
     
     .p-10 {
-        padding: var(--spacing-md);
+        padding: var(--discord-spacing-md);
     }
     
     .close-button {
@@ -2481,6 +2753,127 @@ button:hover::before {
   #delete-account-modal .flex.space-x-3 > * {
     margin: 0;
   }
+}
+
+/* Server ownership transfer styles in delete modal */
+#owned-servers-section {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+#owned-servers-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+#owned-servers-section::-webkit-scrollbar-thumb {
+    background-color: rgba(79, 84, 92, 0.6);
+    border-radius: 3px;
+}
+
+#owned-servers-section::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+/* Improve dropdown visibility */
+.members-dropdown {
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    background-color: #2f3136; /* Solid background color */
+    border: 1px solid #40444b; /* Stronger border */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Add shadow for depth */
+    z-index: 50;
+    width: 100%;
+}
+
+.members-dropdown::-webkit-scrollbar {
+    width: 4px;
+}
+
+.members-dropdown::-webkit-scrollbar-thumb {
+    background-color: rgba(79, 84, 92, 0.6);
+    border-radius: 2px;
+}
+
+.members-dropdown .flex {
+    padding: 8px; /* More padding for dropdown items */
+    border-bottom: 1px solid #40444b; /* Separator between items */
+}
+
+.members-dropdown .flex:last-child {
+    border-bottom: none;
+}
+
+.members-dropdown .flex:hover {
+    background-color: #36393f; /* Darker hover background */
+}
+
+.member-search-input:focus {
+    outline: none;
+    border-color: var(--discord-blurple);
+    box-shadow: 0 0 0 1px var(--discord-blurple);
+}
+
+/* Loading animation */
+.fetch-members-btn .fa-spinner,
+.transfer-btn .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Server element transition */
+#owned-servers-list > div {
+    transition: opacity 0.3s ease, border-color 0.3s ease;
+    margin-bottom: 10px; /* Add spacing between server items */
+    padding: 12px; /* More padding for server items */
+}
+
+/* Wider delete account modal */
+#delete-account-modal .max-w-md {
+    max-width: 48rem; /* Increase from 32rem to 48rem for much wider modal */
+}
+
+/* Two-column layout for servers */
+#owned-servers-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 4px;
+}
+
+/* Make each server card take full width on small screens */
+@media (max-width: 768px) {
+    #owned-servers-list {
+        grid-template-columns: 1fr;
+    }
+    
+    #delete-account-modal .max-w-md {
+        max-width: 90%;
+    }
+}
+
+/* Make selected member more visible */
+.selected-member {
+    background-color: #2f3136;
+    border: 1px solid #40444b;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+/* Fix dropdown positioning in grid layout */
+.server-transfer-section {
+    position: relative;
+}
+
+/* Ensure dropdown doesn't get cut off */
+.relative {
+    position: relative;
+    z-index: 10;
 }
 
 

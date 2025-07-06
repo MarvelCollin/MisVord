@@ -237,6 +237,13 @@ class UserServerMembershipRepository extends Repository {
                 ->orderBy('u.username', 'ASC')
                 ->get();
             
+            // Make sure avatar URLs are properly formatted
+            foreach ($results as &$user) {
+                if (!empty($user['avatar_url']) && !str_starts_with($user['avatar_url'], 'http')) {
+                    $user['avatar_url'] = '/storage/' . $user['avatar_url'];
+                }
+            }
+            
             return $results;
         } catch (Exception $e) {
             error_log("Error getting eligible new owners: " . $e->getMessage());

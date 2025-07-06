@@ -342,4 +342,24 @@ class ServerRepository extends Repository {
             ->where('is_public', 1)
             ->count();
     }
+    
+    /**
+     * Get servers owned by a specific user
+     * 
+     * @param int $ownerId The user ID of the owner
+     * @return array Array of server objects
+     */
+    public function getServersByOwnerId($ownerId) {
+        $query = new Query();
+        $results = $query->table('servers s')
+            ->join('user_server_memberships usm', 's.id', '=', 'usm.server_id')
+            ->where('usm.user_id', $ownerId)
+            ->where('usm.role', 'owner')
+            ->select('s.*')
+            ->get();
+        
+        return array_map(function($row) {
+            return is_array($row) ? $row : (array) $row;
+        }, $results);
+    }
 }

@@ -68,10 +68,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 <i class="fas fa-user-circle"></i>
                 My Account
             </a>
-            <a href="?section=connections" class="sidebar-item <?php echo $section === 'connections' ? 'active' : ''; ?>">
-                <i class="fas fa-link"></i>
-                Connections
-            </a>
             
             <div class="sidebar-category">
                 <span>APP SETTINGS</span>
@@ -272,34 +268,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
 
-        <?php elseif ($section === 'connections'): ?>
-            <div class="p-10">
-                <div class="max-w-[740px]">
-                    <div class="mb-8">
-                        <h1>Connections</h1>
-                        <p>Connect your accounts and control how your activity is displayed</p>
-                    </div>
-                    
-
-                    
-                    <div class="bg-discord-darker rounded-lg p-6">
-                        <h3 class="text-lg font-medium mb-4">Activity Settings</h3>
-                        
-                        <div class="space-y-4">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <h4 class="font-medium">Display activity status</h4>
-                                    <p class="text-discord-lighter text-sm">Allow others to see what you're currently doing</p>
-                                </div>
-                                <label class="connection-toggle">
-                                    <input type="checkbox" id="toggle-activity" class="toggle-checkbox">
-                                    <span class="toggle-switch"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         <?php elseif ($section === 'voice'): ?>
             <div class="p-10">
                 <div class="max-w-[740px]">
@@ -628,45 +596,49 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <!-- Delete Account Modal -->
-<div id="delete-account-modal" class="fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-70 hidden">
+<div id="delete-account-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md mx-4">
         <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-red-600">
-            <div class="p-6">
+            <div class="p-8">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-semibold text-red-400">Delete Account</h2>
+                    <h2 class="text-2xl font-semibold text-red-400">Delete Account</h2>
                     <button id="close-delete-modal" class="text-gray-400 hover:text-white transition-colors">
                         <i class="fas fa-times text-lg"></i>
                     </button>
                 </div>
                 
-                <div class="text-center mb-6">
-                    <div class="w-16 h-16 mx-auto mb-4 bg-red-500 bg-opacity-20 rounded-full flex items-center justify-center">
-                        <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                <div class="text-center mb-8">
+                    <div class="w-20 h-20 mx-auto mb-4 bg-red-600 rounded-full flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-white text-4xl"></i>
                     </div>
-                    <h3 class="text-lg font-medium text-white mb-2">Are you absolutely sure?</h3>
-                    <p class="text-gray-400 text-sm">This action cannot be undone. This will permanently delete your account and remove all your data from our servers.</p>
+                    <h3 class="text-xl font-medium text-white mb-2">Are you sure you want to delete your account?</h3>
+                    <p class="text-gray-400 text-sm">This action cannot be undone.</p>
                 </div>
                 
-                <div class="space-y-3 mb-6">
-                    <label class="block text-sm font-medium text-gray-300">
-                        Please type <strong class="text-white"><?php echo htmlspecialchars($user->username ?? ''); ?></strong> to confirm
+                <!-- Servers that require ownership transfer -->
+                <div id="owned-servers-section" class="mb-8 bg-discord-bg-tertiary/50 rounded-md p-6">
+                    <div class="text-center py-4">
+                        <i class="fas fa-spinner fa-spin text-discord-blurple"></i> Checking for owned servers...
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="username-confirmation-input" class="block text-gray-300 text-sm font-medium mb-2">
+                        To confirm, enter your username
                     </label>
                     <input type="text" id="username-confirmation-input" 
-                           class="w-full bg-discord-dark border border-red-600 rounded-md px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
-                           placeholder="Enter your username">
-                    <div id="delete-account-error" class="text-red-400 text-sm mt-1 hidden"></div>
+                        class="w-full bg-discord-bg-tertiary border border-gray-700 rounded-md px-4 py-3 text-white 
+                        placeholder-discord-interactive-muted focus:outline-none focus:ring-2 focus:ring-discord-blurple focus:border-transparent"
+                        placeholder="Enter username">
+                    <div id="delete-account-error" class="text-red-500 text-sm mt-2 hidden"></div>
                 </div>
                 
-                <div class="pt-4 flex space-x-3">
-                    <button type="button" id="cancel-delete-account" 
-                            class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-md transition-colors">
+                <div class="flex justify-end space-x-4">
+                    <button id="cancel-delete-account" class="px-6 py-3 rounded-md bg-discord-bg-tertiary hover:bg-discord-bg-hover text-white font-medium">
                         Cancel
                     </button>
-                    <button type="button" id="confirm-delete-account" 
-                            class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 rounded-md transition-colors opacity-50 cursor-not-allowed"
-                            disabled>
-                        <i class="fas fa-trash-alt mr-2"></i>
-                        Delete Account
+                    <button id="confirm-delete-account" class="px-6 py-3 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium opacity-50 cursor-not-allowed" disabled>
+                        <i class="fas fa-trash-alt mr-2"></i>Delete Account
                     </button>
                 </div>
             </div>

@@ -529,6 +529,11 @@ Route::post('/api/users/profile', function() {
     $controller->updateUserProfile();
 });
 
+Route::get('/api/users/owned-servers', function() {
+    $controller = new UserController();
+    $controller->getUserOwnedServers();
+});
+
 Route::get('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {
     $controller = new ChatController();
     $controller->getMessages($type, $id);
@@ -1627,14 +1632,14 @@ Route::post('/api/servers/leave', function() {
     $controller->leaveServer();
 });
 
-Route::get('/api/servers/([0-9]+)/eligible-owners', function($serverId) {
+Route::get('/api/servers/([0-9]+)/eligible-new-owners', function($serverId) {
     $controller = new ServerController();
     $controller->getEligibleNewOwners($serverId);
 });
 
-Route::post('/api/servers/transfer-ownership', function() {
+Route::post('/api/servers/([0-9]+)/transfer-ownership', function($serverId) {
     $controller = new ServerController();
-    $controller->transferOwnershipAndLeave();
+    $controller->transferOwnership($serverId);
 });
 
 Route::delete('/api/messages/([0-9]+)', function($messageId) {

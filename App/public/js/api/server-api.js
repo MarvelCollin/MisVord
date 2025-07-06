@@ -406,7 +406,7 @@ const serverAPI = {
     },
     
     getEligibleNewOwners: function(serverId) {
-        return fetch(`/api/servers/${serverId}/eligible-owners`, {
+        return fetch(`/api/servers/${serverId}/eligible-new-owners`, {
             method: 'GET',
             credentials: 'include',
             headers: {
@@ -445,11 +445,6 @@ const serverAPI = {
     },
     
     transferOwnership: function(serverId, newOwnerId) {
-        const body = { 
-            server_id: serverId,
-            new_owner_id: newOwnerId 
-        };
-        
         return fetch(`/api/servers/${serverId}/transfer-ownership`, {
             method: 'POST',
             credentials: 'include',
@@ -457,7 +452,9 @@ const serverAPI = {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(body)
+            body: JSON.stringify({
+                new_owner_id: newOwnerId
+            })
         })
         .then(response => {
             if (!response.ok) {

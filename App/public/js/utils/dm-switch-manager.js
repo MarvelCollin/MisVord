@@ -18,6 +18,26 @@ class SimpleDMSwitcher {
         this.initFromURL();
         this.highlightInitialActiveDM();
     }
+
+    /**
+     * Ensure the correct main section is displayed for DM views.
+     * Mirrors the behaviour in SimpleChannelSwitcher.showSection()
+     * so that the chat pane is visible and any voice pane is hidden.
+     */
+    showChatSection() {
+        const chatSection  = document.querySelector('.chat-section');
+        const voiceSection = document.querySelector('.voice-section');
+
+        if (voiceSection) {
+            voiceSection.classList.add('hidden');
+            voiceSection.style.display = 'none';
+        }
+        if (chatSection) {
+            chatSection.classList.remove('hidden');
+            chatSection.style.display = 'flex';
+            chatSection.setAttribute('data-channel-id', this.currentDMId || '');
+        }
+    }
     
     setupDMClicks() {
         document.addEventListener('click', (e) => {
@@ -57,6 +77,7 @@ class SimpleDMSwitcher {
             const dmId = dmMatch[1];
             this.currentDMId = dmId;
             this.highlightActiveDM(dmId);
+            this.showChatSection();
         }
     }
     
@@ -68,6 +89,7 @@ class SimpleDMSwitcher {
             const dmId = dmMatch[1];
 
             this.highlightActiveDM(dmId);
+            this.showChatSection();
         }
     }
     
@@ -85,6 +107,7 @@ class SimpleDMSwitcher {
         this.updateURL(dmId);
         this.updateMetaTags(dmId, roomType);
         this.updatePageTitle(username, roomType);
+        this.showChatSection();
         
         if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
 
@@ -165,6 +188,7 @@ class SimpleDMSwitcher {
             item.classList.remove('bg-discord-light');
             item.classList.add('hover:bg-discord-light');
         });
+        this.showChatSection();
     }
     
     updateURL(dmId) {

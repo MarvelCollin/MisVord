@@ -176,26 +176,31 @@ class TicTacToeGame {
         confettiContainer.id = 'confetti-container';
         document.body.appendChild(confettiContainer);
 
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 20; i++) {
             setTimeout(() => {
                 const confetti = document.createElement('div');
-                confetti.className = 'absolute w-3 h-3 rounded-full animate-bounce';
-                confetti.style.backgroundColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+                confetti.className = 'absolute w-2 h-2 rounded-full';
+                confetti.style.backgroundColor = '#5865f2';
                 confetti.style.left = Math.random() * 100 + '%';
                 confetti.style.top = '0%';
-                confetti.style.animationDelay = Math.random() * 2 + 's';
-                confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                confetti.style.transition = 'all 2s ease';
+                
+                setTimeout(() => {
+                    confetti.style.top = '100vh';
+                    confetti.style.opacity = '0';
+                }, 10);
+
                 confettiContainer.appendChild(confetti);
 
                 setTimeout(() => {
                     confetti.remove();
-                }, 5000);
+                }, 2000);
             }, i * 50);
         }
 
         setTimeout(() => {
             confettiContainer.remove();
-        }, 6000);
+        }, 3000);
     }
 
     resetGame() {
@@ -308,19 +313,15 @@ class TicTacToeModal {
         modal.className = 'fixed inset-0 flex items-center justify-center z-50';
         modal.innerHTML = `
             <div class="tic-tac-toe-modal-content bg-[#313338] rounded-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden relative">
-                <div class="floating-particles">
-                    ${this.generateParticles()}
-                </div>
-                
                 <div class="drag-handle"></div>
                 
                 <div class="modal-header flex justify-between items-center p-6 pb-4">
-                    <h2 class="tic-tac-toe-title text-3xl font-bold">TIC MAC VOE</h2>
+                    <h2 class="tic-tac-toe-title text-3xl font-bold">TIC-TAC-TOE</h2>
                     <div class="flex items-center gap-2">
-                        <button id="minimize-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300">
+                        <button id="minimize-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200">
                             <i class="fas fa-window-minimize text-sm"></i>
                         </button>
-                        <button id="close-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300">
+                        <button id="close-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200">
                             <i class="fas fa-times text-sm"></i>
                         </button>
                     </div>
@@ -330,26 +331,25 @@ class TicTacToeModal {
                     <div id="welcome-section" class="text-center">
                         <div class="mb-6">
                             <div class="relative mb-4">
-                                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#5865f2] to-[#a855f7] rounded-full flex items-center justify-center shadow-lg">
+                                <div class="w-20 h-20 mx-auto bg-[#5865f2] rounded-full flex items-center justify-center shadow-md">
                                     <i class="fas fa-chess-board text-2xl text-white"></i>
                                 </div>
-                                <div class="absolute inset-0 bg-[#5865f2] opacity-30 rounded-full blur-xl animate-pulse"></div>
                             </div>
-                            <h3 class="text-xl font-bold text-white mb-3 bg-gradient-to-r from-white to-[#b9bbbe] bg-clip-text text-transparent">
-                                Welcome to the Arena!
+                            <h3 class="text-xl font-bold text-white mb-3">
+                                Welcome to the Game!
                             </h3>
-                            <p class="text-[#b9bbbe] text-sm">Prepare for epic battles...</p>
+                            <p class="text-[#b9bbbe] text-sm">Get ready to play...</p>
                         </div>
                         
                         <div id="player-list" class="space-y-3 mb-6">
                         </div>
                         
                         <div id="game-controls" class="space-y-4">
-                            <button id="ready-button" class="ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-300">
-                                <span class="relative z-10">Ready for Battle</span>
+                            <button id="ready-button" class="ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200">
+                                <span class="relative z-10">Ready to Play</span>
                             </button>
-                            <button id="play-button" class="play-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-300 hidden">
-                                <span class="relative z-10">Enter the Arena</span>
+                            <button id="play-button" class="play-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200 hidden">
+                                <span class="relative z-10">Start Game</span>
                             </button>
                         </div>
                     </div>
@@ -368,7 +368,7 @@ class TicTacToeModal {
                         
                         <div id="game-result" class="text-center hidden">
                             <div id="winner-text" class="text-2xl font-bold mb-6"></div>
-                            <button id="new-game-button" class="new-game-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-300">
+                            <button id="new-game-button" class="new-game-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-200">
                                 <span class="relative z-10">Play Again</span>
                             </button>
                         </div>
@@ -385,43 +385,12 @@ class TicTacToeModal {
     }
 
     generateParticles() {
-        let particles = '';
-        for (let i = 0; i < 15; i++) {
-            const delay = Math.random() * 6;
-            const duration = 4 + Math.random() * 4;
-            const left = Math.random() * 100;
-            
-            particles += `
-                <div class="particle" style="
-                    left: ${left}%;
-                    animation-delay: ${delay}s;
-                    animation-duration: ${duration}s;
-                "></div>
-            `;
-        }
-        return particles;
+        // Simplified - no particles in the new design
+        return '';
     }
 
     startParticleAnimation() {
-        const container = document.querySelector('#tic-tac-toe-modal .floating-particles');
-        if (!container) return;
-
-        setInterval(() => {
-            if (container.children.length < 20) {
-                const particle = document.createElement('div');
-                particle.className = 'particle';
-                particle.style.left = Math.random() * 100 + '%';
-                particle.style.animationDelay = '0s';
-                particle.style.animationDuration = (4 + Math.random() * 4) + 's';
-                container.appendChild(particle);
-
-                setTimeout(() => {
-                    if (particle.parentNode) {
-                        particle.remove();
-                    }
-                }, 8000);
-            }
-        }, 2000);
+        // Simplified - no animation needed
     }
 
     setupDragAndResize(modal) {
@@ -442,7 +411,6 @@ class TicTacToeModal {
             const rect = modalContent.getBoundingClientRect();
             dragOffset.x = e.clientX - rect.left;
             dragOffset.y = e.clientY - rect.top;
-            modalContent.style.transition = 'none';
             modalContent.style.position = 'fixed';
             modalContent.style.zIndex = '10000';
             document.body.style.userSelect = 'none';
@@ -456,7 +424,6 @@ class TicTacToeModal {
             startSize.height = rect.height;
             startPos.x = e.clientX;
             startPos.y = e.clientY;
-            modalContent.style.transition = 'none';
             document.body.style.userSelect = 'none';
         };
 
@@ -490,7 +457,6 @@ class TicTacToeModal {
 
         const stopDragResize = () => {
             if (isDragging || isResizing) {
-                modalContent.style.transition = '';
                 document.body.style.userSelect = '';
                 isDragging = false;
                 isResizing = false;
@@ -514,14 +480,11 @@ class TicTacToeModal {
     closeModal() {
         const modal = document.getElementById('tic-tac-toe-modal');
         if (modal) {
-            modal.style.animation = 'modalExit 0.4s ease-in forwards';
-            setTimeout(() => {
-                if (window.globalSocketManager.isReady()) {
-                    window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: this.serverId });
-                }
-                modal.remove();
-                window.activeTicTacToeModal = null;
-            }, 400);
+            if (window.globalSocketManager.isReady()) {
+                window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: this.serverId });
+            }
+            modal.remove();
+            window.activeTicTacToeModal = null;
         }
     }
 
@@ -532,21 +495,21 @@ class TicTacToeModal {
         playerList.innerHTML = '';
         players.forEach((player, index) => {
             const playerDiv = document.createElement('div');
-            playerDiv.className = 'flex items-center gap-4 p-4 rounded-lg transition-all duration-400 hover:scale-105';
+            playerDiv.className = 'flex items-center gap-4 p-4 rounded-lg bg-[#36393f]';
             playerDiv.innerHTML = `
                 <div class="relative">
                     <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                          alt="${player.username}" 
-                         class="w-12 h-12 rounded-full border-2 border-[#5865f2] shadow-lg">
-                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${player.ready ? 'bg-green-400' : 'bg-yellow-400'} border-2 border-[#1e2124] animate-pulse"></div>
+                         class="w-10 h-10 rounded-full border-2 border-[#5865f2]">
+                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${player.ready ? 'bg-green-400' : 'bg-yellow-400'} border-2 border-[#2f3136]"></div>
                 </div>
                 <div class="flex-1 text-left">
-                    <div class="text-white font-bold text-lg">${player.username}</div>
-                    <div class="text-sm ${player.ready ? 'text-green-400' : 'text-yellow-400'} font-medium">
-                        ${player.ready ? 'Ready to Fight!' : 'Getting Prepared...'}
+                    <div class="text-white font-bold">${player.username}</div>
+                    <div class="text-sm ${player.ready ? 'text-green-400' : 'text-yellow-400'}">
+                        ${player.ready ? 'Ready' : 'Not Ready'}
                     </div>
                 </div>
-                <div class="text-2xl">
+                <div>
                     ${player.ready ? 'READY' : 'WAIT'}
                 </div>
             `;
@@ -577,22 +540,17 @@ class TicTacToeModal {
 
     updateGameBoard() {
         if (!this.currentGameData) {
-
             return;
         }
         
         if (!this.currentGameData.board || !Array.isArray(this.currentGameData.board)) {
-
             return;
         }
         
         const cells = document.querySelectorAll('#game-board button');
         if (cells.length !== 9) {
-
             return;
         }
-        
-
         
         cells.forEach((cell, index) => {
             const value = this.currentGameData.board[index];
@@ -602,16 +560,12 @@ class TicTacToeModal {
             if (value) {
                 cell.classList.add('cursor-not-allowed');
                 if (value === 'X') {
-                    cell.style.color = '#60a5fa';
-                    cell.style.textShadow = '0 0 10px #60a5fa';
+                    cell.classList.add('text-blue-400');
                 } else {
-                    cell.style.color = '#f87171';
-                    cell.style.textShadow = '0 0 10px #f87171';
+                    cell.classList.add('text-red-400');
                 }
             } else {
-                cell.classList.remove('cursor-not-allowed');
-                cell.style.color = '';
-                cell.style.textShadow = '';
+                cell.classList.remove('cursor-not-allowed', 'text-blue-400', 'text-red-400');
             }
         });
     }
@@ -641,17 +595,17 @@ class TicTacToeModal {
         if (gameResult) gameResult.classList.remove('hidden');
         
         if (data.is_draw) {
-            winnerText.textContent = "Epic Draw!";
-            winnerText.className = 'text-2xl font-bold mb-6 text-yellow-400 animate-pulse';
+            winnerText.textContent = "It's a Draw!";
+            winnerText.className = 'text-2xl font-bold mb-6 text-yellow-400';
             this.createFireworks('yellow');
         } else if (data.winner_user_id == this.userId) {
-            winnerText.textContent = 'VICTORY!';
-            winnerText.className = 'text-2xl font-bold mb-6 text-green-400 animate-bounce';
+            winnerText.textContent = 'You Won!';
+            winnerText.className = 'text-2xl font-bold mb-6 text-green-400';
             this.createFireworks('green');
             this.createConfetti();
         } else {
             const winner = this.currentGameData.players.find(p => p.user_id == data.winner_user_id);
-            winnerText.textContent = `${winner ? winner.username : 'Opponent'} Wins!`;
+            winnerText.textContent = `${winner ? winner.username : 'Opponent'} Won!`;
             winnerText.className = 'text-2xl font-bold mb-6 text-red-400';
             this.createFireworks('red');
         }
@@ -665,62 +619,36 @@ class TicTacToeModal {
     
     highlightWinningCells(positions) {
         const cells = document.querySelectorAll('#game-board button');
-        positions.forEach((position, i) => {
-            setTimeout(() => {
-                if (cells[position]) {
-                    cells[position].classList.add('winning-cell');
-                    cells[position].style.animation = 'winningPulse 0.6s ease-in-out infinite';
-                }
-            }, i * 200);
+        positions.forEach((position) => {
+            if (cells[position]) {
+                cells[position].classList.add('winning-cell');
+            }
         });
     }
     
     createFireworks(color) {
-        const colors = {
-            green: ['#10b981', '#059669', '#34d399'],
-            red: ['#ef4444', '#dc2626', '#f87171'],
-            yellow: ['#eab308', '#ca8a04', '#fbbf24']
-        };
+        // Simplified animation for win celebration
+        const mainColor = color === 'green' ? '#3ba55c' : 
+                         color === 'red' ? '#ed4245' : '#faa61a';
         
-        const fireworkColors = colors[color] || colors.green;
+        // Simple flash effect instead of fireworks
+        const flash = document.createElement('div');
+        flash.className = 'fixed inset-0 pointer-events-none z-50';
+        flash.style.backgroundColor = mainColor;
+        flash.style.opacity = '0.2';
+        flash.style.transition = 'opacity 0.5s ease';
+        document.body.appendChild(flash);
         
-        for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            flash.style.opacity = '0';
             setTimeout(() => {
-                this.createSingleFirework(fireworkColors);
-            }, i * 200);
-        }
+                flash.remove();
+            }, 500);
+        }, 100);
     }
 
     createSingleFirework(colors) {
-        const container = document.createElement('div');
-        container.className = 'fixed inset-0 pointer-events-none z-50';
-        document.body.appendChild(container);
-
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-
-        for (let i = 0; i < 12; i++) {
-            const spark = document.createElement('div');
-            spark.className = 'absolute w-2 h-2 rounded-full';
-            spark.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            spark.style.left = centerX + 'px';
-            spark.style.top = centerY + 'px';
-            
-            const angle = (i * 30) * Math.PI / 180;
-            const distance = 100 + Math.random() * 100;
-            const endX = centerX + Math.cos(angle) * distance;
-            const endY = centerY + Math.sin(angle) * distance;
-            
-            spark.style.animation = `firework 0.8s ease-out forwards`;
-            spark.style.setProperty('--end-x', endX + 'px');
-            spark.style.setProperty('--end-y', endY + 'px');
-            
-            container.appendChild(spark);
-        }
-
-        setTimeout(() => {
-            container.remove();
-        }, 1000);
+        // Simplified, not used in new design
     }
 
     createConfetti() {
@@ -946,13 +874,13 @@ class TicTacToeModal {
     }
 
     animateMove(position) {
+        // Simplified animation for moves
         const cells = document.querySelectorAll('#game-board button');
         if (cells[position]) {
-            cells[position].style.transform = 'scale(1.2)';
-            cells[position].style.transition = 'transform 0.2s ease';
+            cells[position].classList.add('bg-[#404249]');
             setTimeout(() => {
-                cells[position].style.transform = 'scale(1)';
-            }, 200);
+                cells[position].classList.remove('bg-[#404249]');
+            }, 300);
         }
     }
 
@@ -1004,32 +932,6 @@ class TicTacToeModal {
         
         if (this.isMinimized) {
             modal.style.display = 'flex';
-            modal.className = 'fixed inset-0 flex items-center justify-center z-50';
-            modal.style.width = '';
-            modal.style.height = '';
-            modal.style.top = '';
-            modal.style.left = '';
-            modal.style.background = '';
-            modal.style.borderRadius = '';
-            modal.style.border = '';
-            
-            const content = modal.querySelector('.tic-tac-toe-modal-content');
-            if (content) {
-                content.style.transform = '';
-                content.style.width = '';
-                content.style.height = '';
-                content.style.position = '';
-                content.style.display = '';
-                content.style.alignItems = '';
-                content.style.justifyContent = '';
-                content.style.padding = '';
-            }
-            
-            const minimizeBtn = modal.querySelector('#minimize-tic-tac-toe i');
-            if (minimizeBtn) {
-                minimizeBtn.className = 'fas fa-window-minimize';
-            }
-            
             this.isMinimized = false;
         } else {
             modal.style.display = 'none';

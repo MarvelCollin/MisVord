@@ -1215,5 +1215,47 @@ class UserController extends BaseController
             return $this->serverError('An error occurred while deleting account: ' . $e->getMessage());
         }
     }
-
+    
+    /**
+     * Get servers owned by the current user
+     */
+    public function getUserOwnedServers()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+        
+        try {
+            // Get server repository
+            require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+            $serverRepository = new ServerRepository();
+            
+            // Get servers owned by the user
+            $servers = $serverRepository->getServersByOwnerId($userId);
+            
+            // Get member counts for each server
+            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+            $membershipRepository = new UserServerMembershipRepository();
+            
+            foreach ($servers as &$server) {
+                $server['member_count'] = $membershipRepository->getMemberCount($server['id']);
+            }
+            
+            $this->logActivity('user_owned_servers_retrieved', [
+                'user_id' => $userId,
+                'server_count' => count($servers)
+            ]);
+            
+            return $this->success([
+                'servers' => $servers
+            ]);
+            
+        } catch (Exception $e) {
+            $this->logActivity('user_owned_servers_error', [
+                'user_id' => $userId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return $this->serverError('Failed to retrieve owned servers: ' . $e->getMessage());
+        }
+    }
 } 

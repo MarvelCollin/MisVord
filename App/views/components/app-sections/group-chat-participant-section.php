@@ -40,119 +40,377 @@ foreach ($participants as $participant) {
 }
 
 $participantCount = count($formattedParticipants);
-$onlineCount = 0;
-$offlineParticipants = [];
-$onlineParticipants = [];
-
-foreach ($formattedParticipants as $participant) {
-    if ($participant['status'] === 'online' || $participant['status'] === 'active') {
-        $onlineParticipants[] = $participant;
-        $onlineCount++;
-    } else {
-        $offlineParticipants[] = $participant;
-    }
-}
 ?>
 
 <div class="w-60 bg-discord-dark flex flex-col h-full overflow-hidden">
     <div class="px-4 py-3 border-b border-discord-light">
         <h3 class="text-white font-semibold text-sm">
-            Group Members — <?php echo $participantCount; ?>
+            Group Members — <span id="group-member-count"><?php echo $participantCount; ?></span>
         </h3>
     </div>
 
-    <div class="flex-1 overflow-y-auto px-2 py-2">
-        <?php if ($onlineCount > 0): ?>
-            <div class="mb-4">
-                <h4 class="text-discord-lighter font-semibold text-xs uppercase tracking-wider px-2 mb-2">
-                    Online — <?php echo $onlineCount; ?>
-                </h4>
-                <?php foreach ($onlineParticipants as $participant): ?>
-                    <div class="flex items-center px-2 py-1.5 rounded hover:bg-discord-light cursor-pointer group transition-colors">
-                        <div class="relative mr-3">
-                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="<?php echo htmlspecialchars($participant['avatar_url']); ?>" 
-                                     alt="Avatar" class="w-full h-full object-cover">
+    <div class="flex-1 overflow-y-auto px-2 py-2" id="group-members-container">
+        <div id="group-skeleton-loading" class="px-2">
+            <div class="mb-4 role-group-skeleton">
+                <div class="h-3 bg-gray-700 rounded" style="width: 40%;"></div>
+                <div class="space-y-0.5 members-list-skeleton mt-2">
+                    <?php for ($i = 0; $i < 3; $i++): ?>
+                        <div class="flex items-center px-2 py-1">
+                            <div class="relative mr-2">
+                                <div class="w-8 h-8 rounded-full bg-gray-700"></div>
                             </div>
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-discord-green"></span>
+                            <div class="flex-1 min-w-0">
+                                <div class="h-4 bg-gray-700 rounded" style="width: 70%;"></div>
+                            </div>
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <span class="text-white font-medium text-sm user-profile-trigger" data-user-id="<?php echo $participant['user_id']; ?>">
-                                <?php echo htmlspecialchars($participant['display_name']); ?>
-                                <?php if ($participant['is_current_user']): ?>
-                                    <span class="text-discord-lighter text-xs">(You)</span>
-                                <?php endif; ?>
-                            </span>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                    <?php endfor; ?>
+                </div>
             </div>
-        <?php endif; ?>
+            <div class="mb-4 role-group-skeleton">
+                <div class="h-3 bg-gray-700 rounded" style="width: 35%;"></div>
+                <div class="space-y-0.5 members-list-skeleton mt-2">
+                    <?php for ($i = 0; $i < 2; $i++): ?>
+                        <div class="flex items-center px-2 py-1">
+                            <div class="relative mr-2">
+                                <div class="w-8 h-8 rounded-full bg-gray-700"></div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="h-4 bg-gray-700 rounded" style="width: 60%;"></div>
+                            </div>
+                        </div>
+                    <?php endfor; ?>
+                </div>
+            </div>
+        </div>
+        
+        <div id="group-members-list" style="display: none;">
+            <div id="online-members-section" class="mb-4">
+                <h4 class="text-discord-lighter font-semibold text-xs uppercase tracking-wider px-2 mb-2">
+                    Online — <span id="online-count">0</span>
+                </h4>
+                <div id="online-members-list"></div>
+            </div>
 
-        <?php if (!empty($offlineParticipants)): ?>
-            <div>
+            <div id="offline-members-section">
                 <h4 class="text-discord-lighter font-semibold text-xs uppercase tracking-wider px-2 mb-2">
-                    Offline — <?php echo count($offlineParticipants); ?>
+                    Offline — <span id="offline-count">0</span>
                 </h4>
-                <?php foreach ($offlineParticipants as $participant): ?>
-                    <div class="flex items-center px-2 py-1.5 rounded hover:bg-discord-light cursor-pointer group transition-colors">
-                        <div class="relative mr-3">
-                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                <img src="<?php echo htmlspecialchars($participant['avatar_url']); ?>" 
-                                     alt="Avatar" class="w-full h-full object-cover">
-                            </div>
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500"></span>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <span class="text-discord-lighter font-medium text-sm user-profile-trigger" data-user-id="<?php echo $participant['user_id']; ?>">
-                                <?php echo htmlspecialchars($participant['display_name']); ?>
-                                <?php if ($participant['is_current_user']): ?>
-                                    <span class="text-discord-lighter text-xs">(You)</span>
-                                <?php endif; ?>
-                            </span>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
+                <div id="offline-members-list"></div>
             </div>
-        <?php endif; ?>
+        </div>
     </div>
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    function updateParticipantStatus(userId, isOnline) {
-        const statusIndicator = document.querySelector(`[data-user-id="${userId}"] .w-3.h-3`);
-        if (statusIndicator) {
-            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${isOnline ? 'bg-discord-green' : 'bg-gray-500'}`;
-        }
-    }
+// Store all participants for processing
+const groupParticipants = <?php echo json_encode($formattedParticipants); ?>;
+let onlineUsers = {};
+let updateTimer = null;
 
-    function setupSocketListeners() {
+document.addEventListener('DOMContentLoaded', function() {
+    initializeGroupParticipants();
+    
+    // Setup integration with global presence system
+    setupFriendsManagerIntegration();
+    
+    // Setup socket listeners for real-time updates
+    setupSocketListeners();
+});
+
+function initializeGroupParticipants() {
+    // Initial rendering without presence data
+    updateParticipantDisplay();
+    
+    // Show after a short delay to allow for skeleton animation
+    setTimeout(() => {
+        document.getElementById('group-skeleton-loading').style.display = 'none';
+        document.getElementById('group-members-list').style.display = 'block';
+    }, 800);
+}
+
+function setupFriendsManagerIntegration() {
+    if (window.FriendsManager) {
+        const friendsManager = window.FriendsManager.getInstance();
+        
+        friendsManager.subscribe((type, data) => {
+            switch (type) {
+                case 'user-online':
+                case 'user-offline':
+                case 'user-presence-update':
+                case 'online-users-updated':
+                    onlineUsers = friendsManager.cache.onlineUsers || {};
+                    scheduleUpdate();
+                    break;
+            }
+        });
+        
+        // Get initial online users
+        onlineUsers = friendsManager.cache.onlineUsers || {};
+        
+        // If cache is empty, request online users
+        if (Object.keys(onlineUsers).length === 0) {
+            friendsManager.getOnlineUsers(true);
+            
+            setTimeout(() => {
+                onlineUsers = friendsManager.cache.onlineUsers || {};
+                scheduleUpdate();
+            }, 1000);
+        } else {
+            scheduleUpdate();
+        }
+    } else {
+        console.warn('⚠️ [GROUP-PARTICIPANTS] FriendsManager not available, retrying in 500ms');
+        setTimeout(setupFriendsManagerIntegration, 500);
+    }
+}
+
+function setupSocketListeners() {
+    function setupListeners() {
         if (window.globalSocketManager && window.globalSocketManager.io && window.globalSocketManager.isReady()) {
             window.globalSocketManager.io.on('user-online', (data) => {
                 if (data.user_id) {
-                    updateParticipantStatus(data.user_id, true);
+                    const participant = groupParticipants.find(p => p.user_id == data.user_id);
+                    if (participant) {
+                        participant.status = 'online';
+                        scheduleUpdate();
+                    }
                 }
             });
             
             window.globalSocketManager.io.on('user-offline', (data) => {
                 if (data.user_id) {
-                    updateParticipantStatus(data.user_id, false);
+                    const participant = groupParticipants.find(p => p.user_id == data.user_id);
+                    if (participant) {
+                        participant.status = 'offline';
+                        scheduleUpdate();
+                    }
                 }
             });
             
             window.globalSocketManager.io.on('user-presence-update', (data) => {
                 if (data.user_id) {
-                    const isOnline = data.status === 'online' || data.status === 'active';
-                    updateParticipantStatus(data.user_id, isOnline);
+                    const participant = groupParticipants.find(p => p.user_id == data.user_id);
+                    if (participant) {
+                        participant.status = data.status;
+                        scheduleUpdate();
+                    }
                 }
             });
+            
+            return true;
         }
+        return false;
     }
 
-    window.addEventListener('globalSocketReady', setupSocketListeners);
-    window.addEventListener('socketAuthenticated', setupSocketListeners);
+    if (!setupListeners()) {
+        window.addEventListener('globalSocketReady', setupListeners);
+        window.addEventListener('socketAuthenticated', setupListeners);
+        
+        setTimeout(setupListeners, 1000);
+    }
+}
+
+function scheduleUpdate() {
+    if (updateTimer) {
+        clearTimeout(updateTimer);
+    }
     
-    setTimeout(setupSocketListeners, 500);
-});
-</script> 
+    updateTimer = setTimeout(() => {
+        updateParticipantDisplay();
+    }, 50);
+}
+
+function getStatusClass(status, activityDetails) {
+    // Check if user is in voice call from activity details
+    const isInVoice = activityDetails?.type && 
+                     (activityDetails.type === 'In Voice Call' || 
+                      activityDetails.type.startsWith('In Voice'));
+    
+    if (isInVoice) {
+        return 'bg-discord-green';
+    }
+    
+    switch (status) {
+        case 'online':
+        case 'appear':
+        case 'active':
+            return 'bg-discord-green';
+        case 'afk':
+            return 'bg-yellow-500';
+        case 'do_not_disturb':
+            return 'bg-discord-red';
+        case 'invisible':
+        case 'offline':
+        default:
+            return 'bg-[#747f8d]';
+    }
+}
+
+function getActivityText(activityDetails, status) {
+    if (status === 'offline' || status === 'invisible') {
+        return '';
+    }
+    
+    if (!activityDetails || !activityDetails.type) {
+        return status === 'afk' ? 'Away' : '';
+    }
+    
+    switch (activityDetails.type) {
+        case 'playing Tic Tac Toe': 
+            return 'Playing Tic Tac Toe';
+        case 'In Voice Call':
+            return 'In Voice';
+        case 'afk': 
+            return 'Away';
+        default: 
+            if (activityDetails.type && activityDetails.type.startsWith('In Voice - ')) {
+                return 'In Voice';
+            }
+            return status === 'afk' ? 'Away' : '';
+    }
+}
+
+function updateParticipantDisplay() {
+    const onlineMembersList = document.getElementById('online-members-list');
+    const offlineMembersList = document.getElementById('offline-members-list');
+    const onlineCountEl = document.getElementById('online-count');
+    const offlineCountEl = document.getElementById('offline-count');
+    
+    if (!onlineMembersList || !offlineMembersList) return;
+    
+    // Clear previous content
+    onlineMembersList.innerHTML = '';
+    offlineMembersList.innerHTML = '';
+    
+    const currentUserId = window.globalSocketManager?.userId;
+    let onlineCount = 0;
+    let offlineCount = 0;
+    
+    // Process each participant
+    groupParticipants.forEach(participant => {
+        // Get real-time status from online users cache
+        let userData = onlineUsers[participant.user_id];
+        
+        // For current user, use their actual status from socket manager
+        if (String(participant.user_id) === String(currentUserId)) {
+            const currentUserStatus = window.globalSocketManager?.currentPresenceStatus || 'online';
+            const currentActivityDetails = window.globalSocketManager?.currentActivityDetails || { type: 'idle' };
+            
+            userData = {
+                user_id: currentUserId,
+                username: window.globalSocketManager?.username || participant.username,
+                status: currentUserStatus,
+                activity_details: currentActivityDetails
+            };
+        }
+        
+        // Determine if user is online based on status or activity
+        const status = (userData?.status || participant.status || 'offline').toLowerCase();
+        const activityDetails = userData?.activity_details || null;
+        const isInVoice = activityDetails?.type && (
+            activityDetails.type === 'In Voice Call' || activityDetails.type.startsWith('In Voice')
+        );
+
+        const allowedOnline = ['online', 'appear', 'afk', 'do_not_disturb'];
+        const isActuallyOffline = status === 'offline' || status === 'invisible';
+        const hasGreyStatus = !allowedOnline.includes(status);
+        const shouldShowAsOffline = (isActuallyOffline || hasGreyStatus) && !isInVoice;
+        const isOnline = !shouldShowAsOffline;
+        
+        // Determine status indicator color
+        let statusColor = getStatusClass(status, activityDetails);
+        if (shouldShowAsOffline) {
+            statusColor = 'bg-[#747f8d]';
+        }
+        const activityText = getActivityText(activityDetails, status);
+        
+        // Create participant element
+        const memberEl = document.createElement('div');
+        memberEl.className = 'flex items-center px-2 py-1.5 rounded hover:bg-discord-light cursor-pointer group transition-colors';
+        memberEl.setAttribute('data-user-id', participant.user_id);
+        
+        memberEl.innerHTML = `
+            <div class="relative mr-3">
+                <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
+                    <img src="${participant.avatar_url}" 
+                         alt="${participant.display_name}" 
+                         class="w-full h-full object-cover ${isOnline || isInVoice ? '' : 'opacity-70'}"
+                         onerror="this.src='/public/assets/common/default-profile-picture.png'">
+                </div>
+                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator"
+                      data-user-id="${participant.user_id}"></span>
+            </div>
+            <div class="flex-1 min-w-0">
+                <span class="text-${shouldShowAsOffline ? 'discord-lighter' : 'white'} font-medium text-sm truncate user-profile-trigger">
+                    ${participant.display_name}
+                    ${participant.is_current_user ? '<span class="text-discord-lighter text-xs">(You)</span>' : ''}
+                </span>
+                ${activityText ? `<div class="text-xs text-gray-400 truncate user-presence-text">${activityText}</div>` : ''}
+            </div>
+        `;
+        
+        // Add to appropriate list using shouldShowAsOffline flag
+        if (shouldShowAsOffline) {
+            offlineMembersList.appendChild(memberEl);
+            offlineCount++;
+        } else {
+            onlineMembersList.appendChild(memberEl);
+            onlineCount++;
+        }
+    });
+    
+    // Update counters
+    onlineCountEl.textContent = onlineCount;
+    offlineCountEl.textContent = offlineCount;
+    document.getElementById('group-member-count').textContent = groupParticipants.length;
+    
+    // Show/hide sections based on counts
+    document.getElementById('online-members-section').style.display = onlineCount > 0 ? 'block' : 'none';
+    document.getElementById('offline-members-section').style.display = offlineCount > 0 ? 'block' : 'none';
+}
+
+// Make function available globally for testing
+window.updateGroupParticipants = updateParticipantDisplay;
+</script>
+
+<style>
+/* Skeleton loading animation */
+#group-skeleton-loading .role-group-skeleton {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0.3; }
+    to { opacity: 1; }
+}
+
+#group-skeleton-loading .bg-gray-700 {
+    position: relative;
+    overflow: hidden;
+}
+
+#group-skeleton-loading .bg-gray-700::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+    100% { transform: translateX(100%); }
+}
+
+.user-presence-text {
+    line-height: 1.2;
+    margin-top: 1px;
+}
+
+.user-presence-text:empty {
+    display: none;
+}
+</style> 
