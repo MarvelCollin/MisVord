@@ -841,69 +841,17 @@ function handleDisconnect(io, client) {
         }
         
         const allVoiceMeetings = roomManager.getAllVoiceMeetings();
-        let voiceMeetingsUpdated = [];
-        
         for (const meeting of allVoiceMeetings) {
             if (meeting.participants.has(client.id)) {
 
-                
+                // Skip automatic removal; rely on explicit leave action
+                /*
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
-                
-                if (user_id) {
-                    VoiceConnectionTracker.removeUserFromVoice(user_id);
-                    
-                    const currentPresence = userService.getPresence(user_id);
-                    if (currentPresence && currentPresence.activity_details?.type && currentPresence.activity_details.type.startsWith('In Voice - ')) {
-                        userService.updatePresence(user_id, 'online', { type: 'idle' }, username);
-                        io.emit('user-presence-update', {
-                            user_id: user_id,
-                            username: username,
-                            status: 'online',
-                            activity_details: { type: 'idle' }
-                        });
-
-                    }
-                    
-                    client.leave(`voice-channel-${meeting.channel_id}`);
-
-                    
-                    const titiBotId = BotHandler.getTitiBotId();
-                    if (titiBotId && result.participant_count === 0) {
-                        BotHandler.removeBotFromVoiceChannel(io, titiBotId, meeting.channel_id);
-
-                    }
-                    
-                    // voiceMeetingsUpdated.push({
-                    //     channel_id: meeting.channel_id,
-                    //     meeting_id: meeting.meeting_id,
-                    //     participant_count: result.participant_count,
-                    //     user_id: user_id,
-                    //     username: username
-                    // });
-                    
-
-                }
+                // ... remainder of cleanup code commented ...
+                */
             }
         }
-        
-        // voiceMeetingsUpdated.forEach(update => {
-
-            
-
-        //     io.emit('voice-meeting-update', {
-        //         channel_id: update.channel_id,
-        //         meeting_id: update.meeting_id,
-        //         participant_count: update.participant_count,
-        //         action: 'leave',
-        //         user_id: update.user_id,
-        //         username: update.username,
-        //         timestamp: Date.now()
-        //     });
-        // });
-        
-        if (voiceMeetingsUpdated.length > 0) {
-
-        }
+        // Automatic broadcast removed; explicit leave covers removals
     } else {
 
     }
@@ -1014,39 +962,13 @@ function setupStaleConnectionChecker(io) {
             
             staleParticipants.forEach(socketId => {
 
-                
+                // Skip automatic cleanup; rely on explicit leave
+                /*
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, socketId);
-                
-                const socket = io.sockets.sockets.get(socketId);
-                const user_id = socket?.data?.user_id;
-                const username = socket?.data?.username;
-                
-                if (user_id) {
-                    VoiceConnectionTracker.removeUserFromVoice(user_id);
-                    
-                    const currentPresence = userService.getPresence(user_id);
-                    if (currentPresence && currentPresence.activity_details?.type && currentPresence.activity_details.type.startsWith('In Voice - ')) {
-                        userService.updatePresence(user_id, 'online', { type: 'idle' });
-                        
-                        io.emit('user-presence-update', {
-                            user_id: user_id,
-                            username: username,
-                            status: 'online',
-                            activity_details: { type: 'idle' }
-                        });
-                    }
-                    
-                    io.emit('voice-meeting-update', {
-                        channel_id: meeting.channel_id,
-                        meeting_id: meeting.meeting_id,
-                        participant_count: result.participant_count,
-                        action: 'leave',
-                        user_id: user_id,
-                        username: username || 'Unknown'
-                    });
-                    
-                    cleanedConnections++;
-                }
+                ...
+                io.emit('voice-meeting-update', {...});
+                cleanedConnections++;
+                */
             });
         }
         
