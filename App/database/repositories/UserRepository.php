@@ -493,7 +493,8 @@ class UserRepository extends Repository {
             $serverObj = new \stdClass();
             $serverObj->id = $server['id'];
             $serverObj->name = $server['name'];
-            $serverObj->icon_url = $server['icon_url'];
+            $serverObj->icon_url = isset($server['icon_url']) && $server['icon_url'] !== null ? $server['icon_url'] : ($server['image_url'] ?? null);
+            $serverObj->image_url = $server['image_url'] ?? $serverObj->icon_url;
             
             
             $query4 = new Query();

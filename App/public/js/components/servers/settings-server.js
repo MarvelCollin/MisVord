@@ -1791,7 +1791,7 @@ function initDeleteServerTab() {
                 <div class="flex-grow">
                     <div class="flex items-center">
                         <div class="text-white mr-2">${member.display_name || member.username}</div>
-                        <span class="px-1.5 py-0.5 text-xs rounded ${roleBadgeClass} text-white">${roleName}</span>
+                        <span class="${roleBadgeClass}">${roleName}</span>
                     </div>
                     <div class="text-discord-lighter text-xs">
                         ${member.status ? member.status : 'offline'}
@@ -1817,42 +1817,11 @@ function initDeleteServerTab() {
             selectedUserAvatar.innerHTML = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
         }
         
-        // Format role name with proper capitalization
-        const roleName = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+        selectedUserName.textContent = member.display_name || member.username;
+        selectedUserRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
         
-        // Apply role badge styling based on role
-        let roleBadgeClass = '';
-        if (member.role === 'admin') {
-            roleBadgeClass = 'bg-red-500';
-        } else if (member.role === 'moderator') {
-            roleBadgeClass = 'bg-blue-500';
-        } else {
-            roleBadgeClass = 'bg-discord-dark-input';
-        }
-        
-        // Enhanced HTML structure for selected user
-        selectedUserName.innerHTML = `
-            <span class="text-white font-medium">${member.display_name || member.username}</span>
-            <span class="ml-2 px-1.5 py-0.5 text-xs rounded ${roleBadgeClass} text-white">${roleName}</span>
-        `;
-        
-        // Show status information
-        selectedUserRole.innerHTML = `
-            <span class="text-discord-lighter">
-                <i class="fas fa-circle mr-1 ${member.status === 'online' ? 'text-green-500' : 'text-gray-500'}" style="font-size: 8px;"></i>
-                ${member.status || 'offline'}
-            </span>
-        `;
-        
-        // Show selected user section with animation
+        // Show selected user section
         selectedUserContainer.classList.remove('hidden');
-        selectedUserContainer.style.opacity = '0';
-        selectedUserContainer.style.transform = 'translateY(10px)';
-        setTimeout(() => {
-            selectedUserContainer.style.transition = 'all 0.3s ease';
-            selectedUserContainer.style.opacity = '1';
-            selectedUserContainer.style.transform = 'translateY(0)';
-        }, 10);
         
         // Hide search results
         usersContainer.classList.add('hidden');
@@ -1862,13 +1831,9 @@ function initDeleteServerTab() {
             userSearchInput.value = '';
         }
         
-        // Enable and highlight transfer button
+        // Enable transfer button
         confirmTransferBtn.disabled = false;
         confirmTransferBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        confirmTransferBtn.classList.add('animate-pulse-light');
-        setTimeout(() => {
-            confirmTransferBtn.classList.remove('animate-pulse-light');
-        }, 1000);
     }
     
     // This function is no longer needed since we removed the name confirmation
