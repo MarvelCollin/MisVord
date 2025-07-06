@@ -339,7 +339,7 @@ async function showLeaveServerConfirmation() {
 
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
-
+    
     const userRole = await getUserRole(serverId);
     const memberView = document.getElementById('leave-server-member-view');
     const ownerView = document.getElementById('leave-server-owner-view');
@@ -377,6 +377,12 @@ function setupOwnerLeaveFlow(serverId) {
     const usersLoading = document.getElementById('owner-transfer-users-loading');
     const selectedUserContainer = document.getElementById('owner-transfer-selected-user-container');
     const confirmTransferBtn = document.getElementById('confirm-owner-transfer');
+    const memberListSkeleton = document.getElementById('owner-transfer-skeleton');
+
+    // Show skeleton loading immediately
+    if (memberListSkeleton) {
+        memberListSkeleton.classList.remove('hidden');
+    }
 
     const closeButtons = [
         document.getElementById('close-leave-server-modal'),
@@ -387,27 +393,148 @@ function setupOwnerLeaveFlow(serverId) {
 
     const loadEligibleMembers = async () => {
         try {
+            // Show skeleton loading
+            if (memberListSkeleton) {
+                memberListSkeleton.classList.remove('hidden');
+            }
+            
             await waitForServerAPI();
             if (!window.serverAPI) throw new Error('serverAPI not available');
 
             const response = await window.serverAPI.getEligibleNewOwners(serverId);
             console.log('Eligible members response:', response);
             
-            // Check if we have members to transfer to
-            if (response && response.success && Array.isArray(response.members) && response.members.length > 0) {
+            // Add detailed debugging information
+            if (response) {
+                console.log('Response details:', {
+                    hasSuccess: !!response.success,
+                    hasMembers: !!response.members,
+                    membersIsArray: Array.isArray(response.members),
+                    membersLength: response.members ? response.members.length : 0,
+                    responseData: response.data
+                });
+            }
+            
+            // Check if we have members to transfer to - look in both formats
+            // Some API responses put the members in response.members, others in response.data.members
+            const hasMembers = (
+                (response && response.success && Array.isArray(response.members) && response.members.length > 0) ||
+                (response && response.success && response.data && Array.isArray(response.data.members) && response.data.members.length > 0)
+            );
+            
+            // Hide skeleton loading
+            if (memberListSkeleton) {
+                memberListSkeleton.classList.add('hidden');
+            }
+            
+            if (hasMembers) {
+                console.log('Found eligible members, showing transfer view');
+                // Populate member list for transfer view if available
+                const members = response.members || (response.data && response.data.members) || [];
+                if (members.length > 0) {
+                    populateEligibleMembersList(members);
+                }
                 transferView.classList.remove('hidden');
                 deleteView.classList.add('hidden');
             } else {
+                console.log('No eligible members found, showing delete view');
+                // Try a fallback to make sure - query for server members if the API failed
+                try {
+                    if (response && response.success === false) {
+                        const membersResponse = await window.serverAPI.getServerMembers(serverId);
+                        if (membersResponse && membersResponse.success && membersResponse.members && 
+                            membersResponse.members.length > 1) {
+                            // There are other members in the server, we should show transfer view
+                            console.log('Found members through fallback method');
+                            // Populate member list for transfer view
+                            populateEligibleMembersList(membersResponse.members.filter(m => m.id !== getCurrentUserId()));
+                            transferView.classList.remove('hidden');
+                            deleteView.classList.add('hidden');
+                            return;
+                        }
+                    }
+                } catch (fallbackError) {
+                    console.error('Fallback member check failed:', fallbackError);
+                }
+                
                 // No eligible members, show delete view
                 transferView.classList.add('hidden');
                 deleteView.classList.remove('hidden');
             }
         } catch (error) {
             console.error('Error loading eligible members:', error);
-            showToast('Could not load members for transfer.', 'error');
-            closeModal('leave-server-modal');
+            
+            // Hide skeleton loading on error
+            if (memberListSkeleton) {
+                memberListSkeleton.classList.add('hidden');
+            }
+            
+            // Even if the API fails, try to fallback to server members
+            try {
+                const membersResponse = await window.serverAPI.getServerMembers(serverId);
+                if (membersResponse && membersResponse.success && membersResponse.members && 
+                    membersResponse.members.length > 1) {
+                    // There are other members in the server, we should show transfer view
+                    console.log('API error occurred but found members through fallback');
+                    // Populate member list for transfer view
+                    populateEligibleMembersList(membersResponse.members.filter(m => m.id !== getCurrentUserId()));
+                    transferView.classList.remove('hidden');
+                    deleteView.classList.add('hidden');
+                    return;
+                }
+            } catch (fallbackError) {
+                console.error('Fallback check after API error failed:', fallbackError);
+            }
+            
+            // If we can't determine members, default to showing transfer view for safety
+            console.log('Defaulting to transfer view after error');
+            transferView.classList.remove('hidden');
+            deleteView.classList.add('hidden');
+            
+            showToast('Could not load members for transfer. Please try again.', 'error');
         }
     };
+    
+    // Function to populate the eligible members list
+    function populateEligibleMembersList(members) {
+        const eligibleMembersList = document.getElementById('eligible-members-list');
+        if (!eligibleMembersList) return;
+        
+        // Clear any previous content
+        eligibleMembersList.innerHTML = '';
+        
+        if (members && members.length > 0) {
+            const memberItems = members.map(member => `
+                <div class="user-item p-2 flex items-center hover:bg-discord-dark-input cursor-pointer" 
+                     data-user-id="${member.id}" 
+                     data-user-name="${member.username}" 
+                     data-user-avatar="${member.avatar_url || ''}">
+                    <img src="${member.avatar_url || '/assets/common/default-profile-picture.png'}" class="w-8 h-8 rounded-full mr-2">
+                    <span>${member.username}</span>
+                </div>
+            `).join('');
+            
+            eligibleMembersList.innerHTML = memberItems;
+            
+            // Add click event listeners to the member items
+            eligibleMembersList.querySelectorAll('.user-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    selectedUserId = item.dataset.userId;
+                    document.getElementById('owner-transfer-selected-user-name').textContent = item.dataset.userName;
+                    document.getElementById('owner-transfer-selected-user-avatar').src = item.dataset.userAvatar || '/assets/common/default-profile-picture.png';
+                    selectedUserContainer.classList.remove('hidden');
+                    confirmTransferBtn.disabled = false;
+                    confirmTransferBtn.classList.remove('cursor-not-allowed', 'opacity-50');
+                });
+            });
+            
+            // Show the eligible members list
+            eligibleMembersList.parentElement.classList.remove('hidden');
+        } else {
+            eligibleMembersList.innerHTML = '<p class="p-2 text-discord-lighter">No eligible members found.</p>';
+            eligibleMembersList.parentElement.classList.remove('hidden');
+        }
+    }
     
     const searchUsers = debounce(async (query) => {
         if (query.length < 2) {
@@ -428,15 +555,35 @@ function setupOwnerLeaveFlow(serverId) {
                 // fallback: fetch all members and filter client-side
                 const all = await window.serverAPI.getServerMembers(serverId);
                 if (all.success && all.members) {
-                    const filtered = all.members.filter(u => (u.username || '').toLowerCase().includes(query.toLowerCase()) || (u.display_name || '').toLowerCase().includes(query.toLowerCase()));
+                    const filtered = all.members.filter(u => 
+                        (u.username || '').toLowerCase().includes(query.toLowerCase()) || 
+                        (u.display_name || '').toLowerCase().includes(query.toLowerCase())
+                    );
+                    result = { success: true, data: filtered };
+                } else if (all.success && all.data && Array.isArray(all.data.members)) {
+                    // Alternative response format
+                    const filtered = all.data.members.filter(u => 
+                        (u.username || '').toLowerCase().includes(query.toLowerCase()) || 
+                        (u.display_name || '').toLowerCase().includes(query.toLowerCase())
+                    );
                     result = { success: true, data: filtered };
                 } else {
                     result = { success: false, data: [] };
                 }
             }
+            
             usersLoading.classList.add('hidden');
-            if (result.success && result.data.length > 0) {
-                usersContainer.innerHTML = result.data.map(user => `
+            
+            // Normalize result format
+            let userData = [];
+            if (result.success && result.data && result.data.length > 0) {
+                userData = result.data;
+            } else if (result.success && result.members && result.members.length > 0) {
+                userData = result.members;
+            }
+            
+            if (userData.length > 0) {
+                usersContainer.innerHTML = userData.map(user => `
                     <div class="user-item p-2 flex items-center hover:bg-discord-dark-input cursor-pointer" data-user-id="${user.id}" data-user-name="${user.username}" data-user-avatar="${user.avatar_url || ''}">
                         <img src="${user.avatar_url || '/assets/common/default-profile-picture.png'}" class="w-8 h-8 rounded-full mr-2">
                         <span>${user.username}</span>
@@ -451,8 +598,33 @@ function setupOwnerLeaveFlow(serverId) {
             console.error('Error searching users:', error);
             showToast('Failed to search for users.', 'error');
             usersLoading.classList.add('hidden');
+            
+            // Show error message in container
+            usersContainer.innerHTML = '<p class="p-2 text-discord-red">Error searching for users. Please try again.</p>';
+            usersContainer.classList.remove('hidden');
         }
     }, 300);
+    
+    // Get current user ID
+    function getCurrentUserId() {
+        try {
+            // Try to get it from global variable if available
+            if (window.currentUser && window.currentUser.id) {
+                return window.currentUser.id;
+            }
+            
+            // Try to get from page data if available
+            const userElement = document.querySelector('[data-user-id]');
+            if (userElement && userElement.dataset.userId) {
+                return userElement.dataset.userId;
+            }
+            
+            return null;
+        } catch (e) {
+            console.error('Error getting current user ID:', e);
+            return null;
+        }
+    }
 
     searchInput.addEventListener('input', (e) => searchUsers(e.target.value));
 
@@ -485,14 +657,60 @@ function setupOwnerLeaveFlow(serverId) {
 
 async function transferOwnershipAndLeave(serverId, newOwnerId) {
     try {
+        if (!serverId || !newOwnerId) {
+            showToast('Missing required information for ownership transfer.', 'error');
+            return;
+        }
+
+        // Show a loading state
+        const confirmBtn = document.getElementById('confirm-owner-transfer');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Transferring...';
+            confirmBtn.classList.add('opacity-50');
+        }
+
         const response = await window.serverAPI.transferOwnership(serverId, newOwnerId);
-        if (response.success) {
+        console.log('Transfer ownership response:', response);
+        
+        if (response && response.success) {
             showToast('Ownership transferred successfully. You can now leave the server.', 'success');
-            await leaveServer(serverId, false);
+            
+            try {
+                await leaveServer(serverId, false);
+            } catch (leaveError) {
+                console.error('Error leaving server after transfer:', leaveError);
+                showToast('Ownership transferred, but could not leave server automatically. Please try leaving manually.', 'warning');
+                
+                // Close the modal
+                closeModal('leave-server-modal');
+                
+                // Reload the page to reflect new ownership
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            }
         } else {
-            showToast(response.message || 'Failed to transfer ownership.', 'error');
+            // Reset the button
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Transfer Ownership & Leave';
+                confirmBtn.classList.remove('opacity-50');
+            }
+            
+            showToast(response?.message || 'Failed to transfer ownership.', 'error');
         }
     } catch (error) {
+        console.error('Transfer ownership error:', error);
+        
+        // Reset the button
+        const confirmBtn = document.getElementById('confirm-owner-transfer');
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Transfer Ownership & Leave';
+            confirmBtn.classList.remove('opacity-50');
+        }
+        
         showToast(error.message || 'An error occurred during ownership transfer.', 'error');
     }
 }
@@ -645,27 +863,64 @@ async function generateNewInvite(serverId, expirationValue = null) {
 async function leaveServer(serverId, isDeleting = false) {
     try {
         if (!serverId) throw new Error('Server ID is required');
+        
+        // Disable the confirm button to prevent multiple clicks
+        const confirmBtn = isDeleting 
+            ? document.getElementById('confirm-delete-leave')
+            : document.getElementById('confirm-leave-server');
+            
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = isDeleting ? 'Deleting...' : 'Leaving...';
+            confirmBtn.classList.add('opacity-50');
+        }
+        
         await waitForServerAPI();
         if (!window.serverAPI) throw new Error('serverAPI not available');
-
-        const data = await window.serverAPI.leaveServer(serverId);
         
-        if (data.success) {
+        console.log(`Attempting to leave server ${serverId}, isDeleting=${isDeleting}`);
+        const data = await window.serverAPI.leaveServer(serverId);
+        console.log('Leave server response:', data);
+        
+        if (data && data.success) {
             let message = 'Successfully left server';
             if (isDeleting || (data.data && data.data.server_deleted)) {
                 message = 'Server deleted successfully';
             }
             showToast(data.message || message, 'success');
             closeModal('leave-server-modal');
+            
+            // Add a slight delay to show the success message before redirecting
             setTimeout(() => {
-                window.location.href = data.redirect || data.data?.redirect || '/home';
+                const redirectUrl = data.redirect || (data.data && data.data.redirect) || '/home';
+                console.log(`Redirecting to: ${redirectUrl}`);
+                window.location.href = redirectUrl;
             }, 1000);
         } else {
-            throw new Error(data.message || 'Failed to leave server');
+            // Re-enable the button if there was an error
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = isDeleting ? 'Delete Server & Leave' : 'Leave Server';
+                confirmBtn.classList.remove('opacity-50');
+            }
+            
+            throw new Error(data && data.message ? data.message : 'Failed to leave server');
         }
     } catch (error) {
         console.error('Error leaving server:', error);
-        showToast('Failed to leave server: ' + error.message, 'error');
+        
+        // Re-enable the button if there was an error
+        const confirmBtn = isDeleting 
+            ? document.getElementById('confirm-delete-leave')
+            : document.getElementById('confirm-leave-server');
+            
+        if (confirmBtn) {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = isDeleting ? 'Delete Server & Leave' : 'Leave Server';
+            confirmBtn.classList.remove('opacity-50');
+        }
+        
+        showToast(`Failed to leave server: ${error.message || 'Unknown error'}`, 'error');
     }
 }
 

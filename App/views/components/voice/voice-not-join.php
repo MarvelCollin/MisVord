@@ -284,13 +284,42 @@ async function joinVoiceChannel() {
             throw new Error('VideoSDK manager not available');
         }
         
-        const meetingId = window.voiceManager.currentMeetingId;
         const channelId = document.querySelector('meta[name="channel-id"]')?.content;
         const userName = document.querySelector('meta[name="username"]')?.content || 'Anonymous';
         const userId = document.querySelector('meta[name="user-id"]')?.content || window.currentUserId || '';
         const channelName = document.querySelector('h2')?.textContent || 'Voice Channel';
         
         const participantName = userId ? `${userName}_${userId}` : userName;
+        
+        // Get meeting ID with fallbacks
+        let meetingId = window.voiceManager.currentMeetingId;
+        
+        // Fallback 1: Check session storage
+        if (!meetingId) {
+            console.log('[VOICE-JOIN] Meeting ID not found in voiceManager, checking session storage');
+            const storedChannelId = sessionStorage.getItem('voiceChannelId');
+            const storedMeetingId = sessionStorage.getItem('voiceMeetingId');
+            
+            if (storedChannelId === channelId && storedMeetingId) {
+                meetingId = storedMeetingId;
+                console.log('[VOICE-JOIN] Using meeting ID from session storage:', meetingId);
+                
+                // Update voice manager
+                window.voiceManager.currentMeetingId = meetingId;
+            }
+        }
+        
+        // Fallback 2: Generate a meeting ID if still not available
+        if (!meetingId) {
+            console.log('[VOICE-JOIN] Meeting ID still not available, generating one');
+            meetingId = `voice_channel_${channelId}_${Date.now()}`;
+            console.log('[VOICE-JOIN] Generated meeting ID:', meetingId);
+            
+            // Update voice manager and session storage
+            window.voiceManager.currentMeetingId = meetingId;
+            sessionStorage.setItem('voiceMeetingId', meetingId);
+            sessionStorage.setItem('voiceChannelId', channelId);
+        }
         
         if (!meetingId) {
             throw new Error('Meeting ID not available from voice manager');
@@ -320,6 +349,30 @@ async function joinVoiceChannel() {
             await window.waitForVideoSDKReady();
         }
         await waitForVoiceCallSectionReady();
+        
+        // Force refresh global voice participant indicators
+        if (window.globalSocketManager?.isReady() && channelId) {
+            console.log('[VOICE-JOIN] Requesting global participant refresh');
+            
+            // First request immediate check for this channel
+            window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            
+            // Then trigger a full participant refresh
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                if (instance) {
+                    setTimeout(() => {
+                        instance.requestAllVoiceChannelUpdates();
+                        instance.forceRefreshAllContainers();
+                        
+                        // Broadcast to force other clients to refresh too
+                        window.globalSocketManager.io.emit('force-refresh-voice-participants', {
+                            channel_id: channelId
+                        });
+                    }, 1000);
+                }
+            }
+        }
         
     } catch (error) {
         console.error('[VOICE] Error joining voice:', error);
@@ -516,6 +569,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Listen for voiceDisconnect event to reset join button state
+    window.addEventListener('voiceDisconnect', function() {
+        console.log('[VOICE-NOT-JOIN] Voice disconnect detected, resetting join state');
+        setTimeout(resetJoinState, 500);
+    });
     
     window.dispatchEvent(new CustomEvent('voiceUIReady'));
 });

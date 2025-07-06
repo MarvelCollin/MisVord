@@ -30,7 +30,7 @@ if (!function_exists('renderChannel')) {
         $position = $channel['position'] ?? 0;
         $categoryId = $channel['category_id'] ?? '';
         
-        echo '<div class="channel-item group flex items-center py-1.5 px-2 rounded-md cursor-pointer mb-0.5 select-none ' . 
+        echo '<div class="channel-item group flex items-center py-1 px-2 rounded-md cursor-pointer mb-0.5 select-none ' . 
              $textClass . ' ' . $bgClass . ' ' . $activeClass . ' transition-all duration-150" 
                   data-channel-id="' . $channel['id'] . '" 
                   data-channel-name="' . htmlspecialchars($channel['name']) . '"
@@ -62,7 +62,7 @@ if (!function_exists('renderChannel')) {
 if (!function_exists('renderChannelSkeleton')) {
     function renderChannelSkeleton($count = 1, $extraClass = '') {
         for ($i = 0; $i < $count; $i++) {
-            echo '<div class="flex items-center py-1.5 px-2 ' . $extraClass . '">';
+            echo '<div class="flex items-center py-1 px-2 ' . $extraClass . '">';
             echo '  <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 flex-shrink-0 simple-pulse"></div>';
             echo '  <div class="h-3.5 bg-gray-700 rounded w-' . rand(16, 32) . ' flex-1 simple-pulse"></div>';
             echo '</div>';
@@ -73,8 +73,8 @@ if (!function_exists('renderChannelSkeleton')) {
 if (!function_exists('renderCategorySkeleton')) {
     function renderCategorySkeleton($count = 1) {
         for ($i = 0; $i < $count; $i++) {
-            echo '<div class="mb-3">';
-            echo '  <div class="flex items-center px-2 py-1 mb-1">';
+            echo '<div class="mb-2">';
+            echo '  <div class="flex items-center px-2 py-1 mb-0.5">';
             echo '    <div class="h-3.5 bg-gray-700 rounded w-24 flex-1 simple-pulse"></div>';
             echo '    <div class="ml-2 h-2.5 w-2.5 bg-gray-700 rounded-sm flex-shrink-0 simple-pulse"></div>';
             echo '  </div>';

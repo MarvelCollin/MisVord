@@ -45,6 +45,39 @@
                         <p class="text-discord-lighter">You must transfer ownership to another member before you can leave.</p>
                     </div>
                     
+                    <!-- Skeleton loading for member list -->
+                    <div id="owner-transfer-skeleton" class="mb-5">
+                        <div class="text-sm font-medium text-discord-lighter mb-1 uppercase">Eligible Members</div>
+                        <div class="bg-discord-dark-hover rounded p-1">
+                            <div class="p-2 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
+                                <div class="flex-grow">
+                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
+                                </div>
+                            </div>
+                            <div class="p-2 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
+                                <div class="flex-grow">
+                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
+                                </div>
+                            </div>
+                            <div class="p-2 flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
+                                <div class="flex-grow">
+                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- List of eligible members -->
+                    <div class="mb-5 hidden">
+                        <div class="text-sm font-medium text-discord-lighter mb-1 uppercase">Eligible Members</div>
+                        <div id="eligible-members-list" class="bg-discord-dark-hover rounded max-h-36 overflow-y-auto">
+                            <!-- Members will be populated here by JS -->
+                        </div>
+                    </div>
+                    
                     <div class="mb-5">
                         <label for="owner-transfer-user-search" class="block text-sm font-medium text-discord-lighter mb-1 uppercase">Search for a member</label>
                         <div class="relative">

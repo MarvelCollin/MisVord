@@ -354,19 +354,19 @@ class UserProfileVoiceControls {
         try {
             let wasToggled = false;
             
-
+            // Use unified state manager if available
             if (window.unifiedVoiceStateManager) {
                 wasToggled = window.unifiedVoiceStateManager.toggleMute();
             } else if (window.localStorageManager) {
                 wasToggled = window.localStorageManager.toggleVoiceMute();
             }
             
-
+            // Handle VideoSDK if available
             if (window.videoSDKManager?.isReady()) {
                 window.videoSDKManager.toggleMic();
             }
             
-
+            // Play sound effect if available
             if (window.MusicLoaderStatic) {
                 if (wasToggled) {
                     window.MusicLoaderStatic.playDiscordMuteSound();
@@ -375,18 +375,19 @@ class UserProfileVoiceControls {
                 }
             }
             
-
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: {
-                    type: 'mic',
-                    state: !wasToggled,
-                    source: 'user-profile'
-                }
-            }));
+            // Dispatch event with source information to prevent loops - use small timeout
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: {
+                        type: 'mic',
+                        state: !wasToggled,
+                        source: 'user-profile'
+                    }
+                }));
+            }, 10);
             
-
+            // Update UI
             this.updateControls();
-            setTimeout(() => this.updateControls(), 100);
             
         } catch (error) {
             console.error('Error in user profile mic click handler:', error);
@@ -398,63 +399,62 @@ class UserProfileVoiceControls {
             let wasToggled = false;
             let currentState = null;
             
-
+            // Get current state first
             if (window.unifiedVoiceStateManager) {
                 currentState = window.unifiedVoiceStateManager.getState();
                 wasToggled = window.unifiedVoiceStateManager.toggleDeafen();
                 
-
-                if (wasToggled && !currentState.isMuted) {
-                    window.unifiedVoiceStateManager.setMute(true);
-                }
+                // UnifiedVoiceStateManager already handles muting when deafening in its toggleDeafen method
+                // so we don't need to explicitly set mute here, preventing infinite loops
             } else if (window.localStorageManager) {
                 currentState = window.localStorageManager.getVoiceState();
                 wasToggled = window.localStorageManager.toggleVoiceDeafen();
                 
-
-                if (wasToggled && !currentState.isMuted) {
+                // Ensure mic is muted when deafened
+                if (wasToggled) {
                     window.localStorageManager.setVoiceMute(true);
                 }
             }
             
-
+            // Handle VideoSDK if available
             if (window.videoSDKManager?.isReady()) {
                 window.videoSDKManager.toggleDeafen();
                 
-
-                if (wasToggled && currentState && !currentState.isMuted) {
+                // Ensure mic is muted when deafened
+                if (wasToggled) {
                     window.videoSDKManager.toggleMic(false); // Force mute
                 }
             }
             
-
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: {
-                    type: 'deafen',
-                    state: wasToggled,
-                    source: 'user-profile'
-                }
-            }));
-            
-
-            if (wasToggled && currentState && !currentState.isMuted) {
+            // Dispatch voice state change event - use a small timeout to prevent event loops
+            setTimeout(() => {
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: {
-                        type: 'mic',
-                        state: false,
+                        type: 'deafen',
+                        state: wasToggled,
                         source: 'user-profile'
                     }
                 }));
                 
-
-                if (window.MusicLoaderStatic) {
-                    window.MusicLoaderStatic.playDiscordMuteSound();
+                // Only dispatch additional mic event if we're deafening AND mic wasn't already muted
+                if (wasToggled && currentState && !currentState.isMuted) {
+                    window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                        detail: {
+                            type: 'mic',
+                            state: false,
+                            source: 'user-profile'
+                        }
+                    }));
+                    
+                    // Play mute sound if available
+                    if (window.MusicLoaderStatic) {
+                        window.MusicLoaderStatic.playDiscordMuteSound();
+                    }
                 }
-            }
+            }, 10);
             
-
+            // Update UI
             this.updateControls();
-            setTimeout(() => this.updateControls(), 100);
             
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);

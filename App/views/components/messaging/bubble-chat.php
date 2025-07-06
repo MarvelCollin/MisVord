@@ -13,6 +13,16 @@ $reactions = $messageData['reactions'] ?? [];
 $replyMessageId = $messageData['reply_message_id'] ?? null;
 $replyData = $messageData['reply_data'] ?? null;
 
+// Get shouldGroup in multiple ways to ensure we have it
+$shouldGroup = $GLOBALS['shouldGroup'] ?? false;
+$shouldGroupFromData = $messageData['shouldGroup'] ?? false;
+// Use either source, preferring the one directly in messageData
+$shouldGroup = $shouldGroupFromData || $shouldGroup;
+
+// Add debugging
+if ($shouldGroup) {
+    error_log("Message ID: $messageId is being grouped. shouldGroup: $shouldGroup, shouldGroupFromData: $shouldGroupFromData");
+}
 
 if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
     error_log("❌ [BUBBLE-CHAT] Invalid message data - ID: '$messageId', Content: '$content', Attachments: " . count($attachments));
@@ -26,17 +36,42 @@ if (!function_exists('formatBubbleTimestamp')) {
     function formatBubbleTimestamp($sentAt) {
         if (empty($sentAt)) return '';
         
+        // Set Indonesia timezone (Jakarta)
         $timezone = new DateTimeZone('Asia/Jakarta');
-        $date = new DateTime($sentAt, $timezone);
-        $now = new DateTime('now', $timezone);
-        $diffDays = $now->diff($date)->days;
         
-        if ($diffDays === 0) {
-            return 'Today at ' . $date->format('g:i A');
-        } elseif ($diffDays === 1) {
-            return 'Yesterday at ' . $date->format('g:i A');
-        } else {
-            return $date->format('M j, Y g:i A');
+        // Parse and format the sent date with proper timezone
+        try {
+            // If the date string already has timezone info, DateTime will use it
+            // Otherwise, we'll interpret it as UTC and convert to Asia/Jakarta
+            $date = new DateTime($sentAt);
+            $date->setTimezone($timezone);
+            
+            // Get current time in Indonesia
+            $now = new DateTime('now', $timezone);
+            
+            // Format the date based on how long ago it was
+            $diffDays = $now->diff($date)->days;
+            $sameDay = ($date->format('Y-m-d') === $now->format('Y-m-d'));
+            $yesterdayDate = clone $now;
+            $yesterdayDate->modify('-1 day');
+            $isYesterday = ($date->format('Y-m-d') === $yesterdayDate->format('Y-m-d'));
+            
+            if ($sameDay) {
+                // Today: "Today at 15:30"
+                return 'Today at ' . $date->format('H:i');
+            } elseif ($isYesterday) {
+                // Yesterday: "Yesterday at 15:30"
+                return 'Yesterday at ' . $date->format('H:i');
+            } elseif ($diffDays < 7) {
+                // This week: "Monday at 15:30"
+                return $date->format('l') . ' at ' . $date->format('H:i');
+            } else {
+                // Older: "Jul 25, 2025 15:30"
+                return $date->format('M j, Y H:i');
+            }
+        } catch (Exception $e) {
+            error_log("Error formatting timestamp: " . $e->getMessage());
+            return $sentAt; // Return the original as fallback
         }
     }
 }
@@ -135,6 +170,30 @@ if (!function_exists('isBubbleVideoFile')) {
     padding: 2px 16px;
     margin-top: 17px;
     transition: background-color 0.1s ease;
+}
+
+/* Grouped message styles - inline to ensure they're applied */
+.bubble-message-group.grouped {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.bubble-message-group.grouped .bubble-avatar,
+.bubble-message-group.grouped .bubble-header {
+    display: none !important;
+}
+
+.bubble-message-group.grouped .bubble-content-wrapper {
+    padding-left: 56px !important;
+}
+
+.bubble-message-group.grouped .bubble-message-content {
+    padding-top: 0 !important;
+    margin-top: 2px !important;
+}
+
+.bubble-message-group.grouped .bubble-message-actions {
+    top: -8px !important;
 }
 
 .bubble-message-group:hover {
@@ -435,7 +494,7 @@ if (!function_exists('isBubbleVideoFile')) {
 }
 </style>
 
-<div class="bubble-message-group" data-user-id="<?= htmlspecialchars($userId) ?>" data-timestamp="<?= strtotime($sentAt) * 1000 ?>">
+<div class="bubble-message-group <?php echo $shouldGroup ? 'grouped' : ''; ?>" data-user-id="<?= htmlspecialchars($userId) ?>" data-timestamp="<?= strtotime($sentAt) * 1000 ?>" data-should-group="<?= $shouldGroup ? '1' : '0' ?>">
     <!-- Avatar -->
     <div class="bubble-avatar">
         <img src="<?= htmlspecialchars($avatarUrl) ?>" 
@@ -722,4 +781,23 @@ function showUserDetailFromMention(userId, triggerElement) {
         triggerElement: triggerElement
     });
 }
+
+// Add JavaScript to ensure the grouped class is applied and styling works correctly
+document.addEventListener('DOMContentLoaded', function() {
+    const groupedMessages = document.querySelectorAll('.bubble-message-group[data-should-group="1"]');
+    groupedMessages.forEach(message => {
+        message.classList.add('grouped');
+        
+        // Make avatar and header hidden 
+        const avatar = message.querySelector('.bubble-avatar');
+        const header = message.querySelector('.bubble-header');
+        
+        if (avatar) avatar.style.display = 'none';
+        if (header) header.style.display = 'none';
+        
+        // Add padding to content wrapper
+        const contentWrapper = message.querySelector('.bubble-content-wrapper');
+        if (contentWrapper) contentWrapper.style.paddingLeft = '56px';
+    });
+});
 </script>

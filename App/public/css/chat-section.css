@@ -1190,3 +1190,42 @@ button {
     opacity: 0;
     transform: translateY(-10px);
 }
+
+/* Message grouping styles - very specific selectors with !important to ensure they're applied */
+.messages-container .bubble-message-group.grouped {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+.messages-container .bubble-message-group.grouped .bubble-avatar,
+.messages-container .bubble-message-group.grouped .bubble-header {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.messages-container .bubble-message-group.grouped .bubble-content-wrapper {
+    padding-left: 56px !important;
+    margin-left: 0 !important;
+}
+
+.messages-container .bubble-message-group.grouped .bubble-message-content {
+    padding-top: 0 !important;
+    margin-top: 2px !important;
+}
+
+.messages-container .bubble-message-group.grouped .bubble-message-actions {
+    top: -8px !important;
+}
+
+.messages-container .bubble-message-group.grouped:hover {
+    background-color: rgba(6, 6, 7, 0.02) !important;
+}
+
+.messages-container .bubble-message-group + .bubble-message-group:not(.grouped) {
+    margin-top: 17px !important;
+}

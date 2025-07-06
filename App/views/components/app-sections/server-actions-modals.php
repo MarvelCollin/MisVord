@@ -31,48 +31,48 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 <div id="create-channel-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-white text-xl font-bold">Create Channel</h2>
-                    <button id="close-create-channel-modal" class="text-gray-400 hover:text-white">
-                        <i class="fas fa-times"></i>
-                    </button>
+        <div class="p-6">
+            <div class="flex justify-between items-center">
+                <h2 class="text-white text-xl font-bold">Create Channel</h2>
+                <button id="close-create-channel-modal" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <p class="text-gray-400 mt-2 mb-6">Create a new channel for your server</p>
+
+            <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="space-y-4">
+                <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
+                <input type="hidden" name="position" id="channel-position" value="">
+
+                
+                <div class="mb-4">
+                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Type</label>
+                    <div class="relative">
+                        <select id="channel-type" name="type" 
+                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
+                            <option value="text">Text</option>
+                            <option value="voice">Voice</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
                 </div>
                 
-                <p class="text-gray-400 mt-2 mb-6">Create a new channel for your server</p>
-
-                <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="space-y-4">
-                    <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
-                    <input type="hidden" name="position" id="channel-position" value="">
-
-                    
-                    <div class="mb-4">
-                        <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Type</label>
-                        <div class="relative">
-                            <select id="channel-type" name="type" 
-                                    class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
-                                <option value="text">Text</option>
-                                <option value="voice">Voice</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                                <i class="fas fa-chevron-down text-xs"></i>
-                            </div>
-                        </div>
+                <div class="mb-4">
+                    <label for="channel-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Name</label>
+                    <div class="relative flex items-center bg-[#1e1f22] rounded border border-[#1e1f22]">
+                        <span class="text-gray-400 pl-3">#</span>
+                        <input type="text" id="channel-name" name="name" 
+                              class="bg-transparent border-none text-white w-full px-2 py-2 focus:outline-none" 
+                              placeholder="new-channel" required>
                     </div>
-                    
-                    <div class="mb-4">
-                        <label for="channel-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Name</label>
-                        <div class="relative flex items-center bg-[#1e1f22] rounded border border-[#1e1f22]">
-                            <span class="text-gray-400 pl-3">#</span>
-                            <input type="text" id="channel-name" name="name" 
-                                  class="bg-transparent border-none text-white w-full px-2 py-2 focus:outline-none" 
-                                  placeholder="new-channel" required>
-                        </div>
-                        <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
-                    </div>
-                    
-                </form>
-            </div>
+                    <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
+                </div>
+                
+            </form>
+        </div>
         </div>
     </div>
 </div>
@@ -184,7 +184,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
         <div>
             <input type="text" id="bot-search-input" placeholder="Search for a bot" class="w-full p-2 rounded bg-discord-dark text-white mb-4">
             <div id="bot-list" class="space-y-2 max-h-60 overflow-y-auto">
-                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -766,13 +766,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.testModalDirectly = function() {
         console.clear();
-
+        
         const modal = document.getElementById('create-channel-modal');
         if (!modal) {
             console.error('❌ Modal not found!');
             return;
         }
-        
+
         console.log('🎨 Modal initial styles:', {
             display: getComputedStyle(modal).display,
             visibility: getComputedStyle(modal).visibility,

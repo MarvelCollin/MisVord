@@ -220,6 +220,18 @@ class VoiceManager {
         
         this.currentChannelId = channelId;
         
+        // Check if we have a stored meeting ID for this channel
+        const storedChannelId = sessionStorage.getItem('voiceChannelId');
+        const storedMeetingId = sessionStorage.getItem('voiceMeetingId');
+        
+        if (storedChannelId === channelId && storedMeetingId) {
+            console.log('🔄 [VOICE-MANAGER] Found stored meeting ID for channel:', {
+                channelId,
+                meetingId: storedMeetingId
+            });
+            this.currentMeetingId = storedMeetingId;
+        }
+        
         const channelNameElements = document.querySelectorAll('.voice-ind-title, .voice-channel-title, .voice-section .channel-name');
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
@@ -233,13 +245,15 @@ class VoiceManager {
                 console.log('🔄 [VOICE-MANAGER] Updating unified voice state for voice setup:', {
                     channelId,
                     channelName,
-                    previousChannelId: currentState.channelId
+                    previousChannelId: currentState.channelId,
+                    meetingId: this.currentMeetingId
                 });
                 
                 window.unifiedVoiceStateManager.setState({
                     ...currentState,
                     channelId: channelId,
-                    channelName: channelName
+                    channelName: channelName,
+                    meetingId: this.currentMeetingId
                 });
             }
         }
@@ -327,30 +341,43 @@ class VoiceManager {
             // Check if this is a rejoin after page reload
             const wasInVoiceCall = sessionStorage.getItem('wasInVoiceCall');
             const previousChannelId = sessionStorage.getItem('voiceChannelId');
+            const previousMeetingId = sessionStorage.getItem('voiceMeetingId');
             const isRejoinAfterReload = wasInVoiceCall && previousChannelId === targetChannelId;
             
             if (isRejoinAfterReload) {
                 console.log('🔄 [VOICE-MANAGER] Detected rejoin after page reload:', {
                     previousChannelId,
-                    targetChannelId
+                    targetChannelId,
+                    previousMeetingId
                 });
+                
+                // If we have a previous meeting ID from session storage, use it
+                if (previousMeetingId) {
+                    this.currentMeetingId = previousMeetingId;
+                    console.log('🔄 [VOICE-MANAGER] Using previous meeting ID from session storage:', previousMeetingId);
+                }
             }
 
             const existingMeeting = await this.checkExistingMeeting(targetChannelId);
             
             let meetingId;
             if (existingMeeting && existingMeeting.meeting_id) {
-
                 meetingId = existingMeeting.meeting_id;
+                console.log('🔄 [VOICE-MANAGER] Using existing meeting ID:', meetingId);
             } else {
-
                 const customMeetingId = `voice_channel_${targetChannelId}`;
                 meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
                 if (!meetingId) {
                     throw new Error('Failed to create meeting room');
                 }
-
+                console.log('🔄 [VOICE-MANAGER] Created new meeting ID:', meetingId);
             }
+
+            // IMPORTANT: Set the current meeting ID property
+            this.currentMeetingId = meetingId;
+            this.currentChannelId = targetChannelId;
+            
+            console.log('🔄 [VOICE-MANAGER] Set currentMeetingId to:', this.currentMeetingId);
 
             // Store current voice state in session storage for potential page reloads
             sessionStorage.setItem('wasInVoiceCall', 'true');
@@ -364,7 +391,8 @@ class VoiceManager {
                 channelId: targetChannelId,
                 wasExistingMeeting: !!existingMeeting,
                 action: existingMeeting ? 'PREPARED_EXISTING' : 'PREPARED_NEW',
-                isRejoinAfterReload
+                isRejoinAfterReload,
+                currentMeetingId: this.currentMeetingId
             });
 
             // Register with socket server with broadcast flag if this is a rejoin

@@ -47,29 +47,29 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 
     <div class="channel-wrapper flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent hover:scrollbar-thumb-gray-700">
-        <div id="channel-skeleton-loading" class="channel-skeleton-container p-2 space-y-6">
-            <div class="space-y-1">
+        <div id="channel-skeleton-loading" class="channel-skeleton-container p-2 space-y-4">
+            <div class="space-y-0.5">
                 <div class="flex items-center px-2 py-1">
                     <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 simple-pulse"></div>
                     <div class="h-3.5 bg-gray-700 rounded w-24 simple-pulse"></div>
                 </div>
-                <div class="ml-2 space-y-1">
+                <div class="ml-2 space-y-0.5">
                     <?php for ($i = 0; $i < 3; $i++): ?>
-                        <div class="flex items-center py-1.5 px-2">
+                        <div class="flex items-center py-1 px-2">
                             <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 flex-shrink-0 simple-pulse"></div>
                             <div class="h-3.5 bg-gray-700 rounded w-24 flex-1 simple-pulse"></div>
                         </div>
                     <?php endfor; ?>
                 </div>
             </div>
-            <div class="space-y-1">
+            <div class="space-y-0.5">
                 <div class="flex items-center px-2 py-1">
                     <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 simple-pulse"></div>
                     <div class="h-3.5 bg-gray-700 rounded w-32 simple-pulse"></div>
                 </div>
-                <div class="ml-2 space-y-1">
+                <div class="ml-2 space-y-0.5">
                     <?php for ($i = 0; $i < 4; $i++): ?>
-                        <div class="flex items-center py-1.5 px-2">
+                        <div class="flex items-center py-1 px-2">
                             <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 flex-shrink-0 simple-pulse"></div>
                             <div class="h-3.5 bg-gray-700 rounded w-28 flex-1 simple-pulse"></div>
                         </div>
@@ -78,7 +78,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             </div>
         </div>
         
-        <div class="channel-list p-2 space-y-4" data-server-id="<?php echo $currentServerId; ?>" id="channel-real-content" style="display: none;">
+        <div class="channel-list p-2 space-y-2" data-server-id="<?php echo $currentServerId; ?>" id="channel-real-content" style="display: none;">
             <input type="hidden" id="current-server-id" value="<?php echo $currentServerId; ?>">
             <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
             
@@ -286,6 +286,10 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
 .category-channels.collapsed {
     max-height: 0 !important;
+}
+
+.voice-channels-section {
+    margin-top: 0 !important;
 }
 
 .voice-participants {

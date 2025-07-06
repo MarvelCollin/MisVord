@@ -197,8 +197,16 @@ class VoiceCallSection {
         try {
           const newState = window.videoSDKManager.toggleMic();
           this.updateMicButton(newState);
+          
+          // Dispatch event with source information to prevent loops
+          window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: {
+              type: 'mic',
+              state: newState,
+              source: 'voice-call-section'
+            }
+          }));
         } catch (error) {}
-      } else {
       }
     });
   }
@@ -217,8 +225,16 @@ class VoiceCallSection {
         try {
           const newState = await window.videoSDKManager.toggleWebcam();
           this.updateVideoButton(newState);
+          
+          // Dispatch event with source information
+          window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: {
+              type: 'video',
+              state: newState,
+              source: 'voice-call-section'
+            }
+          }));
         } catch (error) {}
-      } else {
       }
     });
   }
@@ -234,9 +250,29 @@ class VoiceCallSection {
         window.videoSDKManager &&
         typeof window.videoSDKManager.toggleDeafen === "function"
       ) {
-        const newState = window.videoSDKManager.toggleDeafen();
-        this.updateDeafenButton(newState);
-      } else {
+        try {
+          const newState = window.videoSDKManager.toggleDeafen();
+          this.updateDeafenButton(newState);
+          
+          // If deafening, ensure mic is also muted
+          if (newState) {
+            // Check current mic state
+            const micState = window.videoSDKManager.getMicState();
+            if (micState) {
+              // If mic is not muted, mute it
+              window.videoSDKManager.toggleMic(false);
+              this.updateMicButton(false);
+            }
+          }
+        } catch (error) {}
+      } else if (window.unifiedVoiceStateManager) {
+        try {
+          const newState = window.unifiedVoiceStateManager.toggleDeafen();
+          this.updateDeafenButton(newState);
+          
+          // No need to explicitly mute here as unifiedVoiceStateManager handles this
+          // and we'll receive the state update via the voiceStateChanged event
+        } catch (error) {}
       }
     });
   }
@@ -255,8 +291,16 @@ class VoiceCallSection {
         try {
           const newState = await window.videoSDKManager.toggleScreenShare();
           this.updateScreenButton(newState);
+          
+          // Dispatch event with source information
+          window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: {
+              type: 'screen',
+              state: newState,
+              source: 'voice-call-section'
+            }
+          }));
         } catch (error) {}
-      } else {
       }
     });
   }
@@ -348,14 +392,20 @@ class VoiceCallSection {
   }
 
   handleVoiceStateChanged(e) {
-    const { type, state } = e.detail;
+    const { type, state, source } = e.detail;
+
+    // Skip self-generated events to prevent loops
+    // Only process events from other sources
+    if (source === 'voice-call-section') {
+      return;
+    }
 
     switch (type) {
       case "mic":
         this.updateMicButton(state);
-
         this.updateLocalParticipantIndicator("mic", state);
         break;
+        
       case "video":
         this.updateVideoButton(state);
         if (window.videoSDKManager?.meeting?.localParticipant) {
@@ -379,7 +429,6 @@ class VoiceCallSection {
 
               if (webcamStream) {
                 this.updateParticipantStream(localId, webcamStream, "video");
-              } else {
               }
             }
           } else {
@@ -387,11 +436,17 @@ class VoiceCallSection {
           }
         }
         break;
+        
       case "deafen":
         this.updateDeafenButton(state);
-
         this.updateLocalParticipantIndicator("mic", !state);
+        
+        // If deafening, ensure mic button UI is updated too
+        if (state) {
+          this.updateMicButton(false);
+        }
         break;
+        
       case "screen":
         this.updateScreenButton(state);
 
@@ -416,7 +471,6 @@ class VoiceCallSection {
 
               if (shareStream) {
                 this.updateParticipantStream(localId, shareStream, "share");
-              } else {
               }
             }
           } else {

@@ -474,17 +474,21 @@
     font-weight: 500;
 }
 
-/* Skeleton loading without blue effect */
-@keyframes subtle-pulse {
-    0%, 100% {
-        opacity: 0.7;
+/* Skeleton loading animation */
+@keyframes skeleton-pulse {
+    0% {
+        opacity: 0.6;
     }
     50% {
-        opacity: 0.4;
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 0.6;
     }
 }
 
 .skeleton-item {
-    animation: subtle-pulse 1.5s ease-in-out infinite;
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    border-radius: 4px;
     background-color: #36393f;
 }

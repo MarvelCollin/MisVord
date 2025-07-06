@@ -157,6 +157,29 @@ if (!function_exists('renderMessage')) {
         $GLOBALS['messageData'] = $messageData;
         $GLOBALS['currentUserId'] = $_SESSION['user_id'] ?? 0;
         
+        // Check if this message should be grouped with the previous one
+        $shouldGroup = false;
+        $currentUserId = is_array($currentMessage) ? ($currentMessage['user_id'] ?? 0) : ($currentMessage->user_id ?? 0);
+        $currentTimestamp = strtotime(is_array($currentMessage) ? ($currentMessage['sent_at'] ?? '') : ($currentMessage->sent_at ?? ''));
+        
+        if ($startIndex > 0 && isset($messages[$startIndex - 1])) {
+            $prevMessage = $messages[$startIndex - 1];
+            $prevUserId = is_array($prevMessage) ? ($prevMessage['user_id'] ?? 0) : ($prevMessage->user_id ?? 0);
+            $prevTimestamp = strtotime(is_array($prevMessage) ? ($prevMessage['sent_at'] ?? '') : ($prevMessage->sent_at ?? ''));
+            
+            // Check if the messages are from the same user and within 2 hours
+            if ($currentUserId == $prevUserId && $currentTimestamp - $prevTimestamp <= 7200) {
+                $shouldGroup = true;
+                // Debug info
+                error_log("Grouping messages: ID $messageId with previous message. Same user: " . ($currentUserId == $prevUserId ? 'Yes' : 'No') . 
+                          ", Time diff: " . ($currentTimestamp - $prevTimestamp) . " seconds");
+            }
+        }
+        
+        $GLOBALS['shouldGroup'] = $shouldGroup;
+        $messageData['shouldGroup'] = $shouldGroup; // Add directly to messageData too
+        $GLOBALS['messageData'] = $messageData; // Update with new info
+        
         include __DIR__ . '/../messaging/bubble-chat.php';
         
         return $startIndex;
@@ -895,6 +918,85 @@ if (!function_exists('renderMessage')) {
 <script src="<?php echo js('components/messaging/emoji'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('test/mention-overlay-test'); ?>?v=<?php echo time(); ?>"></script>
 <script>
+// Format timestamps in Indonesian time (24-hour format)
+function formatIndonesianTime() {
+    // Function to format a timestamp in Indonesian format
+    function formatTimestamp(timestampElement) {
+        if (!timestampElement) return;
+        
+        // Get the original text
+        const originalText = timestampElement.textContent.trim();
+        
+        // Check if it's already in 24-hour format
+        if (originalText.match(/\d{1,2}:\d{2}$/)) return;
+        
+        // Convert timestamps like "Today at 4:54 PM" to "Today at 16:54"
+        if (originalText.match(/Today at \d{1,2}:\d{2} [AP]M/)) {
+            const timeStr = originalText.replace("Today at ", "");
+            const [time, ampm] = timeStr.split(' ');
+            const [hours, minutes] = time.split(':');
+            
+            let hour = parseInt(hours);
+            if (ampm === "PM" && hour < 12) hour += 12;
+            if (ampm === "AM" && hour === 12) hour = 0;
+            
+            timestampElement.textContent = `Today at ${hour.toString().padStart(2, '0')}:${minutes}`;
+        } 
+        // Convert timestamps like "Yesterday at 4:54 PM" to "Yesterday at 16:54"
+        else if (originalText.match(/Yesterday at \d{1,2}:\d{2} [AP]M/)) {
+            const timeStr = originalText.replace("Yesterday at ", "");
+            const [time, ampm] = timeStr.split(' ');
+            const [hours, minutes] = time.split(':');
+            
+            let hour = parseInt(hours);
+            if (ampm === "PM" && hour < 12) hour += 12;
+            if (ampm === "AM" && hour === 12) hour = 0;
+            
+            timestampElement.textContent = `Yesterday at ${hour.toString().padStart(2, '0')}:${minutes}`;
+        }
+        // Convert timestamps like "Jul 25, 2025 4:54 PM" to "Jul 25, 2025 16:54"
+        else if (originalText.match(/[A-Za-z]+ \d{1,2}, \d{4} \d{1,2}:\d{2} [AP]M/)) {
+            const datePart = originalText.substring(0, originalText.lastIndexOf(" ") - 5);
+            const timePart = originalText.substring(originalText.lastIndexOf(" ") - 5);
+            
+            const [time, ampm] = timePart.trim().split(' ');
+            const [hours, minutes] = time.split(':');
+            
+            let hour = parseInt(hours);
+            if (ampm === "PM" && hour < 12) hour += 12;
+            if (ampm === "AM" && hour === 12) hour = 0;
+            
+            timestampElement.textContent = `${datePart} ${hour.toString().padStart(2, '0')}:${minutes}`;
+        }
+    }
+    
+    // Format all timestamps in the page
+    document.querySelectorAll('.bubble-timestamp').forEach(formatTimestamp);
+    
+    // Set up an observer to format new timestamps as they are added
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    // Look for new timestamps in added nodes
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === 1) { // Element node
+                            const timestamps = node.querySelectorAll('.bubble-timestamp');
+                            timestamps.forEach(formatTimestamp);
+                        }
+                    });
+                }
+            });
+        });
+        
+        observer.observe(messagesContainer, { 
+            childList: true,
+            subtree: true
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const serverData = <?php echo json_encode($GLOBALS['currentServer'] ?? null); ?>;
     
@@ -908,17 +1010,106 @@ document.addEventListener('DOMContentLoaded', function() {
             channelName: '<?php echo addslashes($chatTitle); ?>'
         }
     }));
+    
+    // Format timestamps in Indonesian format
+    formatIndonesianTime();
+    
+    // Handle hover effect for grouped messages
+    document.querySelectorAll('.bubble-message-group').forEach(group => {
+        group.addEventListener('mouseover', function() {
+            if (this.classList.contains('grouped')) {
+                const actionsMenu = this.querySelector('.bubble-message-actions');
+                if (actionsMenu) {
+                    actionsMenu.style.opacity = '1';
+                    actionsMenu.style.visibility = 'visible';
+                }
+            }
+        });
+        
+        group.addEventListener('mouseout', function() {
+            if (this.classList.contains('grouped')) {
+                const actionsMenu = this.querySelector('.bubble-message-actions');
+                if (actionsMenu) {
+                    actionsMenu.style.opacity = '0';
+                    actionsMenu.style.visibility = 'hidden';
+                }
+            }
+        });
+    });
+    
+    // Process existing messages for grouping
+    function processBubbleGrouping() {
+        const messages = document.querySelectorAll('.bubble-message-group');
+        let prevUserId = null;
+        let prevTimestamp = null;
+        
+        messages.forEach((message, index) => {
+            // Skip the first message
+            if (index === 0) {
+                prevUserId = message.getAttribute('data-user-id');
+                prevTimestamp = parseInt(message.getAttribute('data-timestamp'));
+                return;
+            }
+            
+            const currentUserId = message.getAttribute('data-user-id');
+            const currentTimestamp = parseInt(message.getAttribute('data-timestamp'));
+            
+            // Check if should group (same user and < 2 hours)
+            if (currentUserId === prevUserId && 
+                currentTimestamp - prevTimestamp <= 7200000) { // 7200000 ms = 2 hours
+                
+                message.classList.add('grouped');
+                
+                // Apply styling directly
+                message.style.marginTop = '0';
+                message.style.paddingTop = '0';
+                
+                const avatar = message.querySelector('.bubble-avatar');
+                const header = message.querySelector('.bubble-header');
+                
+                if (avatar) avatar.style.display = 'none';
+                if (header) header.style.display = 'none';
+                
+                const contentWrapper = message.querySelector('.bubble-content-wrapper');
+                if (contentWrapper) contentWrapper.style.paddingLeft = '56px';
+                
+                const messageContent = message.querySelector('.bubble-message-content');
+                if (messageContent) {
+                    messageContent.style.paddingTop = '0';
+                    messageContent.style.marginTop = '2px';
+                }
+                
+                const actionsMenu = message.querySelector('.bubble-message-actions');
+                if (actionsMenu) actionsMenu.style.top = '-8px';
+            }
+            
+            prevUserId = currentUserId;
+            prevTimestamp = currentTimestamp;
+        });
+    }
+    
+    // Run once on page load
+    processBubbleGrouping();
+    
+    // Re-run when new messages are added
+    const messagesContainer = document.querySelector('.messages-container');
+    if (messagesContainer) {
+        const observer = new MutationObserver(function(mutations) {
+            processBubbleGrouping();
+            // Also format any new timestamps
+            document.querySelectorAll('.bubble-timestamp').forEach(timestampElement => {
+                if (typeof formatTimestamp === 'function') {
+                    formatTimestamp(timestampElement);
+                }
+            });
+        });
+        
+        observer.observe(messagesContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
 });
-
-if (document.readyState === 'complete') {
-
-    setTimeout(() => {
-        if (typeof window.initializeChatSection === 'function') {
-
-            window.initializeChatSection();
-        }
-    }, 50);
-}
 
 function downloadAttachment(url, filename) {
     const link = document.createElement('a');
@@ -927,5 +1118,138 @@ function downloadAttachment(url, filename) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+</script>
+
+<script id="processBubbleGroupingFunc" type="text/javascript">
+function processBubbleGrouping() {
+    const messages = document.querySelectorAll('.bubble-message-group');
+    let prevUserId = null;
+    let prevTimestamp = null;
+    
+    messages.forEach((message, index) => {
+        // Skip the first message
+        if (index === 0) {
+            prevUserId = message.getAttribute('data-user-id');
+            prevTimestamp = parseInt(message.getAttribute('data-timestamp'));
+            return;
+        }
+        
+        const currentUserId = message.getAttribute('data-user-id');
+        const currentTimestamp = parseInt(message.getAttribute('data-timestamp'));
+        
+        // Check if should group (same user and < 2 hours)
+        if (currentUserId === prevUserId && 
+            currentTimestamp - prevTimestamp <= 7200000) { // 7200000 ms = 2 hours
+            
+            message.classList.add('grouped');
+            
+            // Apply styling directly
+            message.style.marginTop = '0';
+            message.style.paddingTop = '0';
+            
+            const avatar = message.querySelector('.bubble-avatar');
+            const header = message.querySelector('.bubble-header');
+            
+            if (avatar) avatar.style.display = 'none';
+            if (header) header.style.display = 'none';
+            
+            const contentWrapper = message.querySelector('.bubble-content-wrapper');
+            if (contentWrapper) contentWrapper.style.paddingLeft = '56px';
+            
+            const messageContent = message.querySelector('.bubble-message-content');
+            if (messageContent) {
+                messageContent.style.paddingTop = '0';
+                messageContent.style.marginTop = '2px';
+            }
+            
+            const actionsMenu = message.querySelector('.bubble-message-actions');
+            if (actionsMenu) actionsMenu.style.top = '-8px';
+        }
+        
+        prevUserId = currentUserId;
+        prevTimestamp = currentTimestamp;
+    });
+}
+
+// Run immediately
+processBubbleGrouping();
+</script>
+
+<script type="text/javascript">
+// Immediate script to ensure message grouping
+(function() {
+    function applyGroupingToMessages() {
+        console.log("Applying message grouping immediately");
+        const messages = document.querySelectorAll('.bubble-message-group');
+        let prevUserId = null;
+        let prevTimestamp = null;
+        let groupedCount = 0;
+        
+        messages.forEach((message, index) => {
+            if (index === 0) {
+                prevUserId = message.getAttribute('data-user-id');
+                prevTimestamp = parseInt(message.getAttribute('data-timestamp'));
+                return;
+            }
+            
+            const currentUserId = message.getAttribute('data-user-id');
+            const currentTimestamp = parseInt(message.getAttribute('data-timestamp'));
+            
+            if (currentUserId === prevUserId && 
+                currentTimestamp - prevTimestamp <= 7200000) { // 7200000 ms = 2 hours
+                
+                // Apply class and inline styles
+                message.classList.add('grouped');
+                message.style.marginTop = '0';
+                message.style.paddingTop = '0';
+                
+                const avatar = message.querySelector('.bubble-avatar');
+                if (avatar) avatar.style.display = 'none';
+                
+                const header = message.querySelector('.bubble-header');
+                if (header) header.style.display = 'none';
+                
+                const contentWrapper = message.querySelector('.bubble-content-wrapper');
+                if (contentWrapper) contentWrapper.style.paddingLeft = '56px';
+                
+                groupedCount++;
+                console.log(`Grouped message ID: ${message.querySelector('.bubble-message-content')?.getAttribute('data-message-id')}`);
+            }
+            
+            prevUserId = currentUserId;
+            prevTimestamp = currentTimestamp;
+        });
+        
+        console.log(`Grouped ${groupedCount} messages out of ${messages.length}`);
+    }
+    
+    // Run immediately
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        applyGroupingToMessages();
+    } else {
+        document.addEventListener('DOMContentLoaded', applyGroupingToMessages);
+    }
+    
+    // Also run after a short delay to catch any late-rendering content
+    setTimeout(applyGroupingToMessages, 500);
+    setTimeout(applyGroupingToMessages, 2000);
+})();
+</script>
+
+<script>
+// Ensure initialization happens even if page is already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(() => {
+        if (typeof formatIndonesianTime === 'function') {
+            formatIndonesianTime();
+        }
+        
+        // Re-run grouping again after initialization
+        const messagesContainer = document.querySelector('.messages-container');
+        if (messagesContainer && typeof processBubbleGrouping === 'function') {
+            processBubbleGrouping();
+        }
+    }, 100);
 }
 </script>

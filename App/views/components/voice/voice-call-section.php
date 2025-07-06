@@ -685,4 +685,96 @@ window.addEventListener("videosdkInitialized", () => {
         window.ensureVoiceCallInitialized();
     }, 500);
 });
+
+// Add test function to verify mic/deafen synchronization
+window.testMicDeafenSync = function() {
+    if (!window.voiceCallSection) {
+        console.error('❌ [TEST] Voice call section not available');
+        return false;
+    }
+
+    const userProfileControls = window.userProfileVoiceControls;
+    if (!userProfileControls) {
+        console.error('❌ [TEST] User profile voice controls not available');
+        return false;
+    }
+
+    try {
+        console.log('🧪 [TEST] Starting mic/deafen synchronization test...');
+        
+        // Get initial states
+        const initialVoiceCallDeafen = window.voiceCallSection.deafenBtn?.classList.contains('deafened');
+        const initialVoiceCallMute = window.voiceCallSection.micBtn?.classList.contains('muted');
+        const userProfileMicBtn = document.querySelector('.user-profile-section .mic-btn i');
+        const userProfileDeafenBtn = document.querySelector('.user-profile-section .deafen-btn i');
+        const initialUserProfileMute = userProfileMicBtn?.className.includes('slash');
+        const initialUserProfileDeafen = userProfileDeafenBtn?.className.includes('xmark');
+        
+        console.log('🧪 [TEST] Initial states:', {
+            'Voice Call Deafen': initialVoiceCallDeafen,
+            'Voice Call Mute': initialVoiceCallMute,
+            'User Profile Mute': initialUserProfileMute,
+            'User Profile Deafen': initialUserProfileDeafen
+        });
+        
+        // Test 1: Toggle deafen from voice call section
+        console.log('🧪 [TEST] Test 1: Toggling deafen from voice call section');
+        if (window.voiceCallSection.deafenBtn) {
+            window.voiceCallSection.deafenBtn.click();
+            
+            // Wait for state to propagate
+            setTimeout(() => {
+                const afterVoiceCallDeafen = window.voiceCallSection.deafenBtn?.classList.contains('deafened');
+                const afterVoiceCallMute = window.voiceCallSection.micBtn?.classList.contains('muted');
+                const afterUserProfileDeafen = document.querySelector('.user-profile-section .deafen-btn i')?.className.includes('xmark');
+                const afterUserProfileMute = document.querySelector('.user-profile-section .mic-btn i')?.className.includes('slash');
+                
+                console.log('🧪 [TEST] After voice call deafen toggle:', {
+                    'Voice Call Deafen': afterVoiceCallDeafen,
+                    'Voice Call Mute': afterVoiceCallMute, 
+                    'User Profile Deafen': afterUserProfileDeafen,
+                    'User Profile Mute': afterUserProfileMute,
+                    'Deafen toggled correctly': afterVoiceCallDeafen !== initialVoiceCallDeafen,
+                    'Mic muted when deafened': afterVoiceCallDeafen ? afterVoiceCallMute : true,
+                    'User Profile synced with Voice Call': afterVoiceCallDeafen === afterUserProfileDeafen && afterVoiceCallMute === afterUserProfileMute
+                });
+                
+                // Test 2: Toggle deafen from user profile
+                console.log('🧪 [TEST] Test 2: Toggling deafen from user profile');
+                const userProfileDeafenBtn = document.querySelector('.user-profile-section .deafen-btn');
+                if (userProfileDeafenBtn) {
+                    userProfileDeafenBtn.click();
+                    
+                    // Wait for state to propagate
+                    setTimeout(() => {
+                        const finalVoiceCallDeafen = window.voiceCallSection.deafenBtn?.classList.contains('deafened');
+                        const finalVoiceCallMute = window.voiceCallSection.micBtn?.classList.contains('muted');
+                        const finalUserProfileDeafen = document.querySelector('.user-profile-section .deafen-btn i')?.className.includes('xmark');
+                        const finalUserProfileMute = document.querySelector('.user-profile-section .mic-btn i')?.className.includes('slash');
+                        
+                        console.log('🧪 [TEST] After user profile deafen toggle:', {
+                            'Voice Call Deafen': finalVoiceCallDeafen,
+                            'Voice Call Mute': finalVoiceCallMute,
+                            'User Profile Deafen': finalUserProfileDeafen,
+                            'User Profile Mute': finalUserProfileMute,
+                            'Deafen toggled correctly': finalUserProfileDeafen !== afterUserProfileDeafen,
+                            'Mic muted when deafened': finalUserProfileDeafen ? finalUserProfileMute : true,
+                            'Voice Call synced with User Profile': finalVoiceCallDeafen === finalUserProfileDeafen && finalVoiceCallMute === finalUserProfileMute
+                        });
+                        
+                        const testPassed = (finalVoiceCallDeafen === finalUserProfileDeafen) && 
+                                         (finalVoiceCallMute === finalUserProfileMute) &&
+                                         (finalUserProfileDeafen ? finalUserProfileMute : true);
+                        
+                        console.log(`🧪 [TEST] Mic/deafen sync test ${testPassed ? 'PASSED ✅' : 'FAILED ❌'}`);
+                        return testPassed;
+                    }, 500);
+                }
+            }, 500);
+        }
+    } catch (error) {
+        console.error('❌ [TEST] Error during mic/deafen sync test:', error);
+        return false;
+    }
+}
 </script>
