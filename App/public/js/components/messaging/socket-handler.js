@@ -124,6 +124,9 @@ class SocketHandler {
                 isTemporary: isTemporaryMessage
             });
             
+            // Make sure empty state is hidden when new messages arrive
+            this.chatSection.hideEmptyState();
+            
             this.chatSection.messageHandler.addMessage({...data, source: 'socket-originated'});
             
             if (!isSender) {
@@ -193,6 +196,9 @@ class SocketHandler {
                 source: data.source,
                 isTemporary: isTemporaryMessage
             });
+            
+            // Make sure empty state is hidden when new messages arrive
+            this.chatSection.hideEmptyState();
             
             this.chatSection.messageHandler.addMessage({...data, source: 'socket-originated'});
             

@@ -1421,6 +1421,16 @@ class ChatSection {
     hideEmptyState() {
         if (this.emptyStateContainer) {
             this.emptyStateContainer.classList.add('hidden');
+            this.emptyStateContainer.style.display = 'none';
+            this.emptyStateContainer.style.visibility = 'hidden';
+        }
+        
+        // Also look for it in DOM if not found in class instance
+        const emptyStateInDOM = document.getElementById('empty-state-container');
+        if (emptyStateInDOM && emptyStateInDOM !== this.emptyStateContainer) {
+            emptyStateInDOM.classList.add('hidden');
+            emptyStateInDOM.style.display = 'none';
+            emptyStateInDOM.style.visibility = 'hidden';
         }
     }
     

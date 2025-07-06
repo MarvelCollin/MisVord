@@ -1611,32 +1611,22 @@ function initDeleteServerTab() {
     const closeDeleteModalBtn = document.getElementById('close-delete-modal');
     const cancelDeleteBtn = document.getElementById('cancel-delete-server');
     const confirmDeleteBtn = document.getElementById('confirm-delete-server');
-    const confirmServerNameInput = document.getElementById('confirm-server-name');
-    const deleteServerNameSpan = document.getElementById('delete-server-name');
     const serverNameToConfirmElements = document.querySelectorAll('.server-name-to-confirm');
     
-    // Transfer ownership elements
-    const showDeleteSectionBtn = document.getElementById('show-delete-section');
-    const showTransferSectionBtn = document.getElementById('show-transfer-section');
-    const deleteServerSection = document.getElementById('delete-server-section');
-    const transferOwnershipSection = document.getElementById('transfer-ownership-section');
+    // No longer using tab navigation as we've combined both sections
     const userSearchInput = document.getElementById('user-search');
     const usersContainer = document.getElementById('users-container');
     const selectedUserContainer = document.getElementById('selected-user-container');
     const selectedUserAvatar = document.getElementById('selected-user-avatar');
     const selectedUserName = document.getElementById('selected-user-name');
     const selectedUserRole = document.getElementById('selected-user-role');
-    const cancelTransferBtn = document.getElementById('cancel-transfer');
+    // We removed the cancel transfer button in the template
     const confirmTransferBtn = document.getElementById('confirm-transfer');
     
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
     const serverName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold')?.textContent;
     
     if (!serverId || !serverName || !openDeleteModalBtn || !deleteServerModal) return;
-    
-    if (deleteServerNameSpan) {
-        deleteServerNameSpan.textContent = serverName;
-    }
     
     serverNameToConfirmElements.forEach(element => {
         element.textContent = serverName;
@@ -1675,15 +1665,11 @@ function initDeleteServerTab() {
         document.addEventListener('keydown', escKeyHandler);
         deleteServerModal.addEventListener('click', backgroundClickHandler);
         
-        // Show delete section by default
-        showDeleteSection();
-        
         // Show modal
         deleteServerModal.classList.remove('hidden');
         setTimeout(() => {
             deleteServerModal.querySelector('.bg-discord-dark').classList.add('scale-100');
             deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-95');
-            confirmServerNameInput.focus();
         }, 10);
         
         // Load members for transfer ownership
@@ -1707,36 +1693,11 @@ function initDeleteServerTab() {
         deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-100');
         setTimeout(() => {
             deleteServerModal.classList.add('hidden');
-            confirmServerNameInput.value = '';
-            updateDeleteButton();
             resetTransferSection();
         }, 200);
     }
     
-    function showDeleteSection() {
-        // Update button styles
-        showDeleteSectionBtn.classList.add('border-b-2', 'border-discord-blurple');
-        showTransferSectionBtn.classList.remove('border-b-2', 'border-discord-blurple');
-        
-        // Show/hide sections
-        deleteServerSection.classList.remove('hidden');
-        transferOwnershipSection.classList.add('hidden');
-    }
-    
-    function showTransferSection() {
-        // Update button styles
-        showTransferSectionBtn.classList.add('border-b-2', 'border-discord-blurple');
-        showDeleteSectionBtn.classList.remove('border-b-2', 'border-discord-blurple');
-        
-        // Show/hide sections
-        transferOwnershipSection.classList.remove('hidden');
-        deleteServerSection.classList.add('hidden');
-        
-        // Focus on search
-        if (userSearchInput) {
-            userSearchInput.focus();
-        }
-    }
+    // These functions are no longer needed since we've combined both sections into a single view
     
     function resetTransferSection() {
         if (userSearchInput) userSearchInput.value = '';
@@ -1842,20 +1803,7 @@ function initDeleteServerTab() {
         confirmTransferBtn.classList.remove('opacity-50', 'cursor-not-allowed');
     }
     
-    function updateDeleteButton() {
-        if (!confirmDeleteBtn || !confirmServerNameInput) return;
-        
-        const inputValue = confirmServerNameInput.value;
-        const isMatch = inputValue === serverName;
-        
-        if (isMatch) {
-            confirmDeleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            confirmDeleteBtn.removeAttribute('disabled');
-        } else {
-            confirmDeleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            confirmDeleteBtn.setAttribute('disabled', 'disabled');
-        }
-    }
+    // This function is no longer needed since we removed the name confirmation
     
     // Set up event listeners
     if (openDeleteModalBtn) {
@@ -1872,20 +1820,9 @@ function initDeleteServerTab() {
         cancelDeleteBtn.removeEventListener('click', closeModal);
         cancelDeleteBtn.addEventListener('click', closeModal);
     }
+    // No longer need to listen for input events on server name confirmation
     
-    if (confirmServerNameInput) {
-        confirmServerNameInput.removeEventListener('input', updateDeleteButton);
-        confirmServerNameInput.addEventListener('input', updateDeleteButton);
-    }
-    
-    // Tab switching
-    if (showDeleteSectionBtn) {
-        showDeleteSectionBtn.addEventListener('click', showDeleteSection);
-    }
-    
-    if (showTransferSectionBtn) {
-        showTransferSectionBtn.addEventListener('click', showTransferSection);
-    }
+    // No longer need tab switching since we've combined both sections
     
     // User search
     if (userSearchInput) {
@@ -1915,10 +1852,7 @@ function initDeleteServerTab() {
         });
     }
     
-    // Transfer ownership actions
-    if (cancelTransferBtn) {
-        cancelTransferBtn.addEventListener('click', closeModal);
-    }
+    // No longer need the cancel transfer button
     
     if (confirmTransferBtn) {
         confirmTransferBtn.addEventListener('click', async function() {
@@ -1964,8 +1898,6 @@ function initDeleteServerTab() {
         }
         
         confirmDeleteBtn.addEventListener('click', async function() {
-            if (confirmServerNameInput.value !== serverName) return;
-            
             try {
                 confirmDeleteBtn.disabled = true;
                 confirmDeleteBtn.innerHTML = `

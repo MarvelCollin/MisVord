@@ -228,7 +228,7 @@ class UserDetailModal {
         if (this.avatarContainer) {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
-                    <img src="/assets/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar" class="opacity-30">
+                    <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar" class="opacity-30">
                     <div class="skeleton-loading skeleton-avatar absolute top-0 left-0 right-0 bottom-0"></div>
                 </div>
             `;
@@ -342,7 +342,7 @@ class UserDetailModal {
 
                     if (mutualData && mutualData.success && mutualData.data) {
                         if (mutualData.data.mutual_servers && mutualData.data.mutual_servers.length > 0) {
-
+                            console.log('Raw mutual servers data from API:', JSON.stringify(mutualData.data.mutual_servers, null, 2));
                         }
                         
                         if (mutualData.data.mutual_friends && mutualData.data.mutual_friends.length > 0) {
@@ -675,23 +675,58 @@ class UserDetailModal {
         
         const servers = this.userData.mutualData.mutual_servers;
         
+        console.log('Mutual servers data:', JSON.stringify(servers, null, 2));
+        
         servers.forEach(server => {
+            console.log('Processing server:', server.name, 'Icon URL:', server.icon_url);
+            
             const serverItem = document.createElement('div');
             serverItem.className = 'mutual-detail-item';
             
             const serverIcon = document.createElement('div');
             serverIcon.className = 'mutual-detail-icon';
             
-            if (server.icon_url) {
+            // Helper function to check and normalize icon URL
+            const normalizeIconUrl = (url) => {
+                if (!url) return null;
+                url = url.trim();
+                if (!url) return null;
+                
+                // Handle relative paths
+                if (url.startsWith('/') && !url.startsWith('//')) {
+                    // Make sure it has the public prefix if needed
+                    if (!url.includes('/public/') && !url.includes('/assets/')) {
+                        return '/public' + url;
+                    }
+                    return url;
+                }
+                
+                // Handle absolute URLs
+                if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) {
+                    return url;
+                }
+                
+                return null;
+            };
+            
+            const iconUrl = normalizeIconUrl(server.icon_url);
+            
+            if (iconUrl) {
+                console.log('Using normalized server icon for', server.name, ':', iconUrl);
                 const img = document.createElement('img');
-                img.src = server.icon_url;
+                img.src = iconUrl;
                 img.alt = server.name || 'Server';
+                img.onerror = function() {
+                    console.log('Error loading server icon for', server.name, 'falling back to default');
+                    this.src = '/public/assets/common/default-profile-picture.png';
+                };
                 serverIcon.appendChild(img);
             } else {
-                const initials = document.createElement('div');
-                initials.className = 'mutual-detail-initials';
-                initials.textContent = (server.name || 'S').charAt(0).toUpperCase();
-                serverIcon.appendChild(initials);
+                console.log('No valid icon found for', server.name, 'using default');
+                const img = document.createElement('img');
+                img.src = '/public/assets/common/default-profile-picture.png';
+                img.alt = server.name || 'Server';
+                serverIcon.appendChild(img);
             }
             
             const serverInfo = document.createElement('div');
