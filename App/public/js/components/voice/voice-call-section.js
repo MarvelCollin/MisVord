@@ -107,6 +107,10 @@ class VoiceCallSection {
       this.retryInitialization();
     }, 1000);
 
+    setTimeout(() => {
+      this.ensureLocalParticipant();
+    }, 1500);
+
     this.startVideoOverlaySafetyMonitor();
   }
 
@@ -126,8 +130,14 @@ class VoiceCallSection {
           this.syncButtonStates();
           this.refreshParticipantGrid();
         } else {
+          const grid = document.getElementById("participantGrid");
+          if (grid && grid.children.length === 0) {
+            this.createFallbackLocalParticipant();
+          }
         }
       }, 2000);
+    } else {
+      this.ensureLocalParticipant();
     }
   }
 
@@ -701,7 +711,25 @@ class VoiceCallSection {
 
   handleParticipantJoined(e) {
     const { participant, participantObj } = e.detail;
-    this.addParticipantToGrid(participant, participantObj);
+    
+    // Immediate local participant detection
+    const isLocalParticipant = participant === window.videoSDKManager?.meeting?.localParticipant?.id;
+    
+    // Add participant with higher priority for local participant
+    if (isLocalParticipant) {
+      console.log('[VOICE-CALL] Local participant joined:', participant);
+      const localParticipantObj = window.videoSDKManager?.meeting?.localParticipant;
+      if (localParticipantObj) {
+        this.addParticipantToGrid(participant, localParticipantObj);
+        // Double check streams with delay to ensure they're properly displayed
+        setTimeout(() => {
+          this.checkParticipantStreams(localParticipantObj);
+        }, 300);
+      }
+    } else {
+      this.addParticipantToGrid(participant, participantObj);
+    }
+    
     this.updateParticipantCount();
     this.updateActivityStatus();
   }
@@ -714,9 +742,27 @@ class VoiceCallSection {
   }
 
   handleMeetingJoined() {
+    console.log('[VOICE-CALL] Meeting joined, refreshing participant grid');
+    
+    // First refresh the entire grid
     this.refreshParticipantGrid();
+    
+    // Ensure local participant is added regardless of meeting state
+    setTimeout(() => {
+      this.ensureLocalParticipant();
+    }, 300);
+    
+    // Update participant count and activity status
     this.updateParticipantCount();
     this.updateActivityStatus();
+    
+    // Add an additional check to ensure participants are correctly added
+    setTimeout(() => {
+      if (document.getElementById("participantGrid")?.children.length === 0) {
+        console.log('[VOICE-CALL] No participants after join, adding fallback local');
+        this.createFallbackLocalParticipant();
+      }
+    }, 1000);
   }
 
   handleStreamEvent(e) {
@@ -765,7 +811,10 @@ class VoiceCallSection {
 
     // Use coordinator to resolve conflicts and prevent duplicates
     const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
-    if (this.coordinator) {
+    
+    // Special case for local participant - bypass coordinator checks
+    const isLocal = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
+    if (!isLocal && this.coordinator) {
       // Check if participant exists and resolve conflicts
       if (this.coordinator.hasParticipant(currentChannelId, participantId)) {
         const existingSystem = this.coordinator.getParticipantSystem(participantId);
@@ -781,15 +830,15 @@ class VoiceCallSection {
     }
 
     const name = participantObj?.displayName || participantObj?.name || "Unknown";
-    const isLocal = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
     
     let userData;
     if (isLocal) {
+      // More robust local participant data fallbacks
       userData = window.userDataHelper?.getCurrentUserData() || {
-        id: window.currentUserId,
-        username: name,
-        display_name: name,
-        avatar_url: window.currentUserAvatarUrl || '/public/assets/common/default-profile-picture.png'
+        id: window.currentUserId || document.querySelector('meta[name="user-id"]')?.content || 'local-user',
+        username: name || document.querySelector('meta[name="username"]')?.content || 'You',
+        display_name: name || document.querySelector('meta[name="username"]')?.content || 'You',
+        avatar_url: window.currentUserAvatarUrl || document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png'
       };
     } else {
       if (!window.userDataHelper) {
@@ -820,13 +869,16 @@ class VoiceCallSection {
       userData
     );
     
-    // Register with coordinator before adding to DOM
-    if (this.coordinator && userData) {
+    // For local participants, skip coordinator check to prevent conflicts
+    if (!isLocal && this.coordinator && userData) {
       const added = this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection');
       if (!added) {
         // Coordinator rejected the addition, likely a duplicate
         return;
       }
+    } else if (isLocal && this.coordinator && userData) {
+      // For local participant, force add to coordinator
+      this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection', true);
     }
     
     grid.appendChild(participantElement);
@@ -841,6 +893,13 @@ class VoiceCallSection {
   removeParticipantFromGrid(participantId) {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
+
+    // Don't remove the local participant unless it's an explicit leave
+    const isLocalParticipant = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
+    if (isLocalParticipant && !this.coordinator?.explicitLeaveRequested) {
+      console.log('[VOICE-CALL] Prevented auto removal of local participant:', participantId);
+      return;
+    }
 
     const element = grid.querySelector(
       `[data-participant-id="${participantId}"]`
@@ -1208,20 +1267,24 @@ class VoiceCallSection {
         delay += 50;
       });
 
+      // Add local participant with higher priority
       const localParticipant = window.videoSDKManager.meeting.localParticipant;
       if (localParticipant) {
+        // Prioritize local participant by adding it first with minimal delay
         setTimeout(() => {
           if (!grid.querySelector(`[data-participant-id="${localParticipant.id}"]`)) {
             this.addParticipantToGrid(localParticipant.id, localParticipant);
             this.checkParticipantStreams(localParticipant);
           }
-        }, delay);
-        delay += 50; // Add delay for local participant
+        }, 50);
+        delay += 50;
       }
     }
 
     setTimeout(() => {
       this.updateParticipantCount();
+      // Check if we need to ensure local participant is shown
+      this.ensureLocalParticipant();
     }, delay + 100);
   }
 
@@ -1809,6 +1872,76 @@ class VoiceCallSection {
     `;
 
     return participantCard;
+  }
+
+  // New method to ensure local participant is always visible
+  ensureLocalParticipant() {
+    if (!window.videoSDKManager?.meeting?.localParticipant) {
+      console.warn("[VOICE-CALL] Local participant not available in VideoSDK");
+      this.createFallbackLocalParticipant();
+      return;
+    }
+    
+    const localParticipant = window.videoSDKManager.meeting.localParticipant;
+    const grid = document.getElementById("participantGrid");
+    
+    if (!grid) return;
+    
+    // Check if local participant exists in grid
+    const existingLocalParticipant = grid.querySelector(`[data-participant-id="${localParticipant.id}"]`);
+    if (!existingLocalParticipant) {
+      console.log("[VOICE-CALL] Adding missing local participant");
+      this.addParticipantToGrid(localParticipant.id, localParticipant);
+      this.checkParticipantStreams(localParticipant);
+      
+      // Setup retry to ensure local participant streams are properly displayed
+      setTimeout(() => {
+        this.checkParticipantStreams(localParticipant);
+      }, 1000);
+    }
+  }
+
+  // Fallback method to create a local participant if VideoSDK fails
+  createFallbackLocalParticipant() {
+    const grid = document.getElementById("participantGrid");
+    if (!grid) return;
+    
+    const localUserId = document.querySelector('meta[name="user-id"]')?.content || 'local-user';
+    const username = document.querySelector('meta[name="username"]')?.content || 'You';
+    const avatar = document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png';
+    
+    // Check if we already have a fallback local participant
+    if (grid.querySelector(`[data-participant-id="fallback-local-${localUserId}"]`)) {
+      return;
+    }
+    
+    const fallbackParticipantObj = {
+      id: `fallback-local-${localUserId}`,
+      displayName: username,
+      name: username
+    };
+    
+    const userData = {
+      id: localUserId,
+      username: username,
+      display_name: username,
+      avatar_url: avatar
+    };
+    
+    const participantElement = this.createParticipantElement(
+      fallbackParticipantObj.id,
+      fallbackParticipantObj,
+      userData
+    );
+    
+    // Add local-participant class to the avatar for styling
+    const avatar_element = participantElement.querySelector(".participant-avatar");
+    if (avatar_element) {
+      avatar_element.classList.add("local-participant");
+    }
+    
+    grid.appendChild(participantElement);
+    this.updateGridLayout();
   }
 }
 

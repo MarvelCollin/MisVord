@@ -63,13 +63,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 5000);
     
-    // Add new drag recovery mechanism
+    // Enhanced drag recovery mechanism
     document.addEventListener('drop', function(e) {
         // Add a safety check to prevent servers from disappearing
         setTimeout(() => {
             validateServerVisibility();
         }, 500);
+        
+        // Add additional recovery check after animations complete
+        setTimeout(() => {
+            validateServerVisibility();
+            recoverMissingServers();
+        }, 1000);
     });
+    
+    // Create a safety net MutationObserver to detect and fix disappearing servers
+    const serverList = document.getElementById('server-list');
+    if (serverList) {
+        const observer = new MutationObserver(mutations => {
+            // Wait a moment for DOM to settle
+            setTimeout(() => {
+                validateServerVisibility();
+            }, 200);
+        });
+        
+        observer.observe(serverList, { 
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class']
+        });
+    }
 });
 
 // Helper function to recover from drag errors
@@ -113,6 +137,79 @@ function validateServerVisibility() {
         if (window.ServerSidebar && window.ServerSidebar.refresh) {
             window.ServerSidebar.refresh();
         }
+    }
+}
+
+// Helper function to recover missing servers
+function recoverMissingServers() {
+    try {
+        // Get server IDs from all sources
+        const allServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
+        const visibleServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]:not([style*="display: none"]):not([style*="visibility: hidden"])');
+        
+        // Get IDs of all servers vs. visible servers
+        const allServerIds = Array.from(allServerElements).map(el => el.getAttribute('data-server-id'));
+        const visibleServerIds = Array.from(visibleServerElements).map(el => el.getAttribute('data-server-id'));
+        
+        // Find missing servers (invisible or detached)
+        const missingServerIds = allServerIds.filter(id => !visibleServerIds.includes(id));
+        
+        // Check local storage groups
+        const groups = window.LocalStorageManager.getServerGroups();
+        const serversInGroups = new Set();
+        groups.forEach(group => group.servers.forEach(id => serversInGroups.add(id)));
+        
+        // Fix each missing server
+        if (missingServerIds.length > 0) {
+            console.log('[Server Drag] Recovering missing servers:', missingServerIds);
+            
+            missingServerIds.forEach(serverId => {
+                // Find the server element
+                const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
+                if (!serverElement) return; // Skip if element truly doesn't exist
+                
+                // Reset the server visibility
+                serverElement.style.display = '';
+                serverElement.style.visibility = '';
+                
+                // Check if the server should be in a group
+                const shouldBeInGroup = serversInGroups.has(serverId);
+                const isInGroup = serverElement.classList.contains('in-group');
+                const isInGroupContainer = !!serverElement.closest('.group-servers');
+                
+                // Handle inconsistent states
+                if (shouldBeInGroup && !isInGroup) {
+                    serverElement.classList.add('in-group');
+                } else if (!shouldBeInGroup && isInGroup) {
+                    serverElement.classList.remove('in-group');
+                    
+                    // Move to main list if not there already
+                    if (isInGroupContainer) {
+                        const mainList = document.getElementById('server-list');
+                        if (mainList) {
+                            const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
+                            
+                            if (serverElement.parentNode) {
+                                serverElement.parentNode.removeChild(serverElement);
+                            }
+                            
+                            if (addButton) {
+                                mainList.insertBefore(serverElement, addButton);
+                            } else {
+                                mainList.appendChild(serverElement);
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // If we had to fix anything, consider refreshing the sidebar
+            if (window.ServerSidebar?.refresh) {
+                window.ServerSidebar.refresh();
+            }
+        }
+    } catch (error) {
+        console.error('[Server Drag] Error in recoverMissingServers:', error);
     }
 }
 

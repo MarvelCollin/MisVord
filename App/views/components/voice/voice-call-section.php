@@ -648,7 +648,41 @@ window.testBotMusic = function(song = 'never gonna give you up') {
     }
 };
 
+// Add initialization helper function to ensure voice call is properly set up
+window.ensureVoiceCallInitialized = function() {
+    if (!window.voiceCallSection) {
+        console.warn('⚠️ [VOICE-CALL] Voice call section not initialized, creating instance');
+        window.voiceCallSection = new VoiceCallSection();
+    }
+    
+    // Force the initialization of local participant
+    if (window.voiceCallSection.initialized) {
+        window.voiceCallSection.ensureLocalParticipant();
+    } else {
+        window.voiceCallSection.init();
+    }
+    
+    // Check if grid is empty and needs a fallback participant
+    const grid = document.getElementById("participantGrid");
+    if (grid && grid.children.length === 0) {
+        console.log('📢 [VOICE-CALL] Participant grid empty, adding fallback local participant');
+        window.voiceCallSection.createFallbackLocalParticipant();
+    }
+    
+    return true;
+}
 
+// Ensure initialization after page load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        window.ensureVoiceCallInitialized();
+    }, 1000);
+});
 
-
+// Check after VideoSDK is known to be initialized
+window.addEventListener("videosdkInitialized", () => {
+    setTimeout(() => {
+        window.ensureVoiceCallInitialized();
+    }, 500);
+});
 </script>

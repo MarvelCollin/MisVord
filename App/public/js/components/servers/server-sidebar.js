@@ -1038,50 +1038,86 @@ function setupDropZones() {
 }
 
 async function handleServerAddToGroup(serverId, groupId, folderElement) {
+    // First, store the server information in LocalStorage
     LocalStorageManager.addServerToGroup(groupId, serverId);
     
+    // Find the server element
     const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
     if (!serverElement) {
+        console.log('[Server Sidebar] Server element not found, performing complete render');
         performCompleteRender();
         return;
     }
     
-    const originalParent = serverElement.parentNode;
-    const originalRect = serverElement.getBoundingClientRect();
+    // Create a clone of the server element to use during the animation
+    // This prevents the original from being lost during DOM operations
+    const clone = serverElement.cloneNode(true);
+    clone.style.position = 'fixed';
+    clone.style.zIndex = '9999';
+    clone.classList.add('server-drag-clone');
+    document.body.appendChild(clone);
     
+    // Get the original position for animation
+    const originalRect = serverElement.getBoundingClientRect();
+    clone.style.top = originalRect.top + 'px';
+    clone.style.left = originalRect.left + 'px';
+    clone.style.width = originalRect.width + 'px';
+    clone.style.height = originalRect.height + 'px';
+    
+    // Get the group's servers container
     const serversContainer = folderElement.querySelector('.group-servers');
-    if (serversContainer) {
-        serverElement.removeAttribute('data-setup');
-        serversContainer.appendChild(serverElement);
-        serverElement.classList.add('in-group');
+    if (!serversContainer) {
+        document.body.removeChild(clone);
+        console.log('[Server Sidebar] Group servers container not found, performing complete render');
+        performCompleteRender();
+        return;
+    }
+    
+    // Temporarily hide the original server
+    serverElement.style.visibility = 'hidden';
+    
+    // Calculate the destination position
+    const folderRect = folderElement.getBoundingClientRect();
+    const targetTop = folderRect.top + 40; // Position in the folder
+    const targetLeft = folderRect.left + (folderRect.width / 2 - originalRect.width / 2);
+    
+    // Animate the clone
+    clone.style.transition = 'all 0.3s ease';
+    clone.style.transform = 'scale(0.9)';
+    clone.style.top = targetTop + 'px';
+    clone.style.left = targetLeft + 'px';
+    
+    try {
+        // Wait for the animation to complete
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        const newRect = serverElement.getBoundingClientRect();
-        const deltaX = originalRect.left - newRect.left;
-        const deltaY = originalRect.top - newRect.top;
+        // Remove the clone
+        clone.style.opacity = '0';
+        setTimeout(() => {
+            if (clone.parentNode) {
+                document.body.removeChild(clone);
+            }
+        }, 200);
         
-        serverElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
-        serverElement.style.transition = 'transform 0.3s ease';
+        // Finally perform a complete render to update the DOM correctly
+        // This happens after the animation is complete
+        performCompleteRender();
         
-        // Make sure the server stays visible during the animation
-        serverElement.style.display = '';
-        
-        // Use a Promise to ensure the animation completes before re-rendering
-        await new Promise(resolve => {
-            requestAnimationFrame(() => {
-                serverElement.style.transform = 'translate(0, 0)';
-                
-                // Wait for animation to complete before re-rendering
-                setTimeout(() => {
-                    serverElement.style.transition = '';
-                    serverElement.style.transform = '';
-                    resolve();
-                    
-                    // Only perform complete render after animation is done
-                    performCompleteRender(); 
-                }, 350); // Slightly longer than animation duration to ensure completion
-            });
-        });
-    } else {
+        // Add a safety check to ensure the server is visible after rendering
+        setTimeout(() => {
+            const newServerElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
+            if (newServerElement) {
+                newServerElement.style.visibility = '';
+                newServerElement.style.display = '';
+            }
+        }, 100);
+    } catch (error) {
+        console.error('[Server Sidebar] Error during server animation:', error);
+        // Clean up in case of error
+        if (clone.parentNode) {
+            document.body.removeChild(clone);
+        }
+        serverElement.style.visibility = '';
         performCompleteRender();
     }
 }
