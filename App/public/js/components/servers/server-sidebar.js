@@ -154,6 +154,58 @@ function performCompleteRender() {
     });
     
     renderFolders();
+    
+    // Add a final safety check after rendering to ensure no servers are lost
+    setTimeout(() => {
+        try {
+            // Get all servers that should be visible somewhere
+            const allServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
+            const allServerIds = Array.from(allServerElements).map(el => el.getAttribute('data-server-id'));
+            
+            // Check which servers are visible either in the main list or in groups
+            const mainListServers = document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]:not([style*="display: none"])');
+            const groupServers = document.querySelectorAll('.server-sidebar-group .server-sidebar-icon[data-server-id]:not([style*="display: none"])');
+            
+            const visibleServerIds = new Set([
+                ...Array.from(mainListServers).map(el => el.getAttribute('data-server-id')),
+                ...Array.from(groupServers).map(el => el.getAttribute('data-server-id'))
+            ]);
+            
+            // Find servers that aren't visible anywhere
+            const missingServerIds = allServerIds.filter(id => !visibleServerIds.has(id));
+            
+            // If any servers are missing, make them visible in the main list
+            if (missingServerIds.length > 0) {
+                console.warn('[Server Sidebar] Found missing servers after render, restoring:', missingServerIds);
+                
+                missingServerIds.forEach(serverId => {
+                    // Find the server element
+                    const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
+                    if (serverElement) {
+                        // Remove from any groups it might be in
+                        LocalStorageManager.removeServerFromAllGroups(serverId);
+                        
+                        // Reset its state
+                        serverElement.classList.remove('in-group');
+                        serverElement.style.display = '';
+                        
+                        // Move it to the main list if it's not already there
+                        const mainList = document.getElementById('server-list');
+                        const addServerButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
+                        
+                        if (mainList && addServerButton && serverElement.parentNode !== mainList) {
+                            if (serverElement.parentNode) {
+                                serverElement.parentNode.removeChild(serverElement);
+                            }
+                            mainList.insertBefore(serverElement, addServerButton);
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('[Server Sidebar] Error in safety check:', error);
+        }
+    }, 200);
 }
 
 function clearAllPreviousState() {
@@ -315,6 +367,7 @@ async function renderFolders() {
                 .map(el => el.getAttribute('data-server-id'))
         );
     
+        // Keep track of modified groups for logging
         let groupsChanged = false;
         groups.forEach(group => {
             const originalServerCount = group.servers.length;
@@ -350,12 +403,15 @@ async function renderFolders() {
         // Update visibility of server icons in the main list
         const currentServerElements = Array.from(document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]'));
         
+        // Ensure existing elements that should be in groups are marked correctly
         currentServerElements.forEach(serverIcon => {
             const serverId = serverIcon.getAttribute('data-server-id');
             if (serversInGroups.has(serverId)) {
+                // Hide server in main list if it's in a group
                 serverIcon.style.display = 'none';
                 serverIcon.classList.add('in-group');
             } else {
+                // Make sure servers that are not in groups are visible
                 serverIcon.style.display = '';
                 serverIcon.classList.remove('in-group');
             }
@@ -384,6 +440,9 @@ async function renderFolders() {
             // Get the servers container inside the folder
             const serversContainer = folderElement.querySelector('.group-servers');
             
+            // Keep track of servers actually moved to the group
+            const movedServerIds = [];
+            
             // Find all server elements belonging to this group
             const serversToMove = group.servers
                 .map(serverId => {
@@ -400,7 +459,7 @@ async function renderFolders() {
             // Move servers into the group container
             serversToMove.forEach(server => {
                 if (serversContainer) {
-                    server.element.style.display = '';
+                    server.element.style.display = '';  // Ensure it's visible when moving to group
                     server.element.classList.add('in-group');
                     
                     // Remove from current parent before appending to new parent
@@ -408,11 +467,18 @@ async function renderFolders() {
                         server.element.parentNode.removeChild(server.element);
                     }
                     serversContainer.appendChild(server.element);
+                    movedServerIds.push(server.id);
                     
                     // Ensure we keep the data-setup attribute for tracking
                     server.element.removeAttribute('data-setup');
                 }
             });
+            
+            // If some servers couldn't be moved, update the group in LocalStorage
+            if (movedServerIds.length !== group.servers.length) {
+                group.servers = movedServerIds;
+                LocalStorageManager.setServerGroups(groups);
+            }
             
             // Create folder preview, update state and set up events
             createFolderPreview(group, folderElement, serverImageData);
@@ -435,39 +501,63 @@ function resetServersToMainList() {
     const mainList = document.getElementById('server-list');
     if (!mainList) return;
     
+    // Get all servers currently in groups
     const serversInGroups = document.querySelectorAll('.server-sidebar-group .group-servers .server-sidebar-icon[data-server-id]');
     
     const serversToReposition = [];
     serversInGroups.forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
-        serverIcon.style.display = '';
+        serverIcon.style.display = '';  // Ensure visibility
+        
+        // Store for later repositioning
         serversToReposition.push({
             element: serverIcon,
             id: serverIcon.getAttribute('data-server-id')
         });
+        
+        // Remove from current parent
         if (serverIcon.parentNode) {
             serverIcon.parentNode.removeChild(serverIcon);
         }
     });
     
+    // Also find any hidden servers in the main list that should be visible
     document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
-        serverIcon.style.display = '';
+        serverIcon.style.display = '';  // Ensure visibility
     });
     
+    // Find insertion points in the main list
     const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
     const divider = mainList.querySelector('.server-sidebar-divider');
+    const exploreButton = mainList.querySelector('.discord-explore-server-button')?.closest('.server-sidebar-icon');
     
+    // Insert all servers back into the main list in their proper positions
     serversToReposition.forEach(serverData => {
         if (addButton) {
+            // Insert before the add server button
             mainList.insertBefore(serverData.element, addButton);
+        } else if (exploreButton) {
+            // Or before the explore button if it exists
+            mainList.insertBefore(serverData.element, exploreButton);
         } else if (divider) {
+            // Or after the divider
             divider.insertAdjacentElement('afterend', serverData.element);
         } else {
+            // Or just append to the list
             mainList.appendChild(serverData.element);
         }
         
+        // Reset state for re-setup
         serverData.element.removeAttribute('data-setup');
+        
+        // Ensure server is visible with a small delay to avoid flicker
+        setTimeout(() => {
+            if (serverData.element) {
+                serverData.element.style.display = '';
+                serverData.element.classList.remove('in-group');
+            }
+        }, 50);
     });
 }
 
@@ -972,15 +1062,24 @@ async function handleServerAddToGroup(serverId, groupId, folderElement) {
         serverElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
         serverElement.style.transition = 'transform 0.3s ease';
         
-        requestAnimationFrame(() => {
-            serverElement.style.transform = 'translate(0, 0)';
-            
-            setTimeout(() => {
-                serverElement.style.transition = '';
-                serverElement.style.transform = '';
+        // Make sure the server stays visible during the animation
+        serverElement.style.display = '';
+        
+        // Use a Promise to ensure the animation completes before re-rendering
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                serverElement.style.transform = 'translate(0, 0)';
                 
-                performCompleteRender(); // Do a full render to ensure consistency
-            }, 300);
+                // Wait for animation to complete before re-rendering
+                setTimeout(() => {
+                    serverElement.style.transition = '';
+                    serverElement.style.transform = '';
+                    resolve();
+                    
+                    // Only perform complete render after animation is done
+                    performCompleteRender(); 
+                }, 350); // Slightly longer than animation duration to ensure completion
+            });
         });
     } else {
         performCompleteRender();
@@ -1350,11 +1449,8 @@ function showServerChannelSection() {
 }
 
 export function refreshServerGroups() {
-    // Reset cache to force a fresh read from local storage
-    serverDataCache = null;
-    cacheExpiry = 0;
+
     
-    // Force a complete re-render
     performCompleteRender();
 }
 

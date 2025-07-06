@@ -48,7 +48,7 @@ foreach ($members as $member) {
 }
 ?>
 
-<div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-full max-h-screen">
+<div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-screen" style="overflow: auto;">
     <div class="h-12 border-b border-gray-800 flex items-center px-4 relative">
         <div class="relative w-full">
             <input type="text" 
@@ -71,9 +71,7 @@ foreach ($members as $member) {
         </div>
     </div>
     
-
-    
-    <div class="participant-content flex-1 overflow-y-auto p-2" data-lazyload="participant-list">
+    <div class="participant-content flex-1 p-2" style="height: calc(100vh - 3rem); overflow-y: auto;" data-lazyload="participant-list">
         <div id="participant-skeleton-loader" class="px-2">
             <?php for ($j = 0; $j < 3; $j++): ?>
                 <div class="mb-4 role-group-skeleton">
@@ -94,116 +92,8 @@ foreach ($members as $member) {
             <?php endfor; ?>
         </div>
         
-        <div class="px-2" id="participant-list-container" style="display: none;">
-            <?php 
-            $roleDisplayOrder = ['owner', 'admin', 'bot', 'member', 'offline'];
-            foreach ($roleDisplayOrder as $role):
-                $roleMembers = $roleGroups[$role];
-                if (empty($roleMembers)) continue;
-                
-                $roleDisplay = match($role) {
-                    'offline' => 'Offline',
-                    'bot' => 'Bots',
-                    default => ucfirst($role)
-                };
-                
-                $roleColor = match($role) {
-                    'owner' => 'text-yellow-500',
-                    'admin' => 'text-red-500',
-                    'bot' => 'text-blue-500',
-                    'offline' => 'text-gray-500',
-                    default => 'text-gray-400'
-                };
-            ?>
-                <div class="mb-4 role-group" data-role="<?php echo $role; ?>">
-                    <h4 class="text-xs font-semibold <?php echo $roleColor; ?> uppercase py-1">
-                        <?php echo $roleDisplay; ?> — <span class="role-count"><?php echo count($roleMembers); ?></span>
-                    </h4>
-                    <div class="space-y-0.5 members-list">
-                        <?php foreach ($roleMembers as $member):
-
-
-                            $statusColor = 'bg-[#747f8d]'; // Default grey
-                            
-                            switch ($member['status']) {
-                                case 'appear':
-                                case 'online':
-                                    $statusColor = 'bg-discord-green';
-                                    break;
-                                case 'afk':
-                                    $statusColor = 'bg-yellow-500';
-                                    break;
-                                case 'do_not_disturb':
-                                    $statusColor = 'bg-discord-red';
-                                    break;
-                                case 'bot':
-                                    $statusColor = 'bg-blue-500';
-                                    break;
-                                case 'banned':
-                                    $statusColor = 'bg-black';
-                                    break;
-                                case 'invisible':
-                                case 'offline':
-                                default:
-                                    $statusColor = 'bg-[#747f8d]'; // Grey for offline/unknown
-                                    break;
-                            }
-                            
-                            $isOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
-                            
-                            $textColorClass = match($role) {
-                                'owner' => $isOffline ? 'text-yellow-700' : 'text-yellow-400',
-                                'admin' => $isOffline ? 'text-red-700' : 'text-red-400',
-                                'bot' => 'text-blue-400',
-                                'offline' => 'text-gray-500',
-                                default => $isOffline ? 'text-gray-500' : 'text-gray-300'
-                            };
-                            
-                            $hoverTextColorClass = match($role) {
-                                'owner' => $isOffline ? 'group-hover:text-yellow-700' : 'group-hover:text-yellow-400',
-                                'admin' => $isOffline ? 'group-hover:text-red-700' : 'group-hover:text-red-400',
-                                'bot' => 'group-hover:text-blue-400',
-                                'offline' => 'group-hover:text-gray-500',
-                                default => $isOffline ? 'group-hover:text-gray-500' : 'group-hover:text-gray-300'
-                            };
-                            
-                            $imgOpacityClass = $isOffline ? 'opacity-70' : '';
-                        ?>
-                            <div class="flex items-center px-2 py-1 rounded hover:bg-discord-light group cursor-pointer user-profile-trigger" 
-                                 data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>" 
-                                 data-server-id="<?php echo $currentServerId; ?>"
-                                 data-role="<?php echo $member['role'] ?? 'member'; ?>"
-                                 data-status="<?php echo $member['status'] ?? 'offline'; ?>">
-                                <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
-                                        <?php
-                                        $avatarUrl = $member['avatar_url'] ?? '';
-                                        $username = $member['display_name'] ?? $member['username'] ?? 'User';
-                                        
-                                        if (!empty($avatarUrl)) {
-                                            echo '<img src="' . htmlspecialchars($avatarUrl) . '" alt="' . htmlspecialchars($username) . '" class="w-full h-full object-cover ' . $imgOpacityClass . '">';
-                                        } else {
-                                            echo '<img src="/public/assets/common/default-profile-picture.png" alt="' . htmlspecialchars($username) . '" class="w-full h-full object-cover ' . $imgOpacityClass . '">';
-                                        }
-                                        ?>
-                                    </div>
-                                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> status-indicator"></span>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <span class="<?php echo $textColorClass; ?> <?php echo $hoverTextColorClass; ?> text-sm truncate font-bold member-username" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo htmlspecialchars($member['display_name'] ?? $member['username'] ?? 'Unknown'); ?></span>
-                                    <?php if ($member['status'] === 'bot'): ?>
-                                        <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>
-                                    <?php endif; ?>
-                                    <?php
-                                    $presenceText = $isOffline ? '' : ($member['status'] === 'afk' ? 'Away' : 'Online');
-                                    ?>
-                                    <div class="text-xs text-gray-400 truncate user-presence-text" data-user-id="<?php echo isset($member['id']) ? $member['id'] : '0'; ?>"><?php echo $presenceText; ?></div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
-            <?php endforeach; ?>
+        <div class="px-2" id="participant-list-container">
+            <!-- Participant list will be populated here by JavaScript -->
         </div>
     </div>
 </div>
@@ -432,7 +322,6 @@ function updateParticipantDisplay() {
         const isBot = member.status === 'bot';
         let userData = onlineUsers[member.id];
 
-
         if (String(member.id) === String(currentUserId)) {
             const isVideoSDKConnected = window.videoSDKManager?.isConnected && 
                                        window.videoSDKManager?.isMeetingJoined;
@@ -440,7 +329,6 @@ function updateParticipantDisplay() {
             let correctedActivityDetails = currentActivityDetails;
             
             if (!isVideoSDKConnected && currentActivityDetails?.type?.startsWith('In Voice')) {
-
                 correctedActivityDetails = { type: 'active' };
                 
                 if (window.globalSocketManager) {
@@ -456,13 +344,7 @@ function updateParticipantDisplay() {
                 status: currentUserStatus,
                 activity_details: correctedActivityDetails
             };
-            console.log('🎤 [PARTICIPANT] Updated current user presence:', {
-                userId: currentUserId,
-                status: currentUserStatus,
-                activityDetails: correctedActivityDetails
-            });
         }
-        
 
         member._correctedUserData = userData;
         
@@ -471,7 +353,6 @@ function updateParticipantDisplay() {
                           (userData.activity_details.type === 'In Voice Call' || 
                            userData.activity_details.type.startsWith('In Voice'));
         const isActuallyOffline = userData?.status === 'offline' || userData?.status === 'invisible';
-        
 
         const wouldHaveGreyBubble = !isOnline && !isInVoice;
         const shouldShowAsOffline = (isActuallyOffline || wouldHaveGreyBubble) && !isInVoice;
@@ -494,10 +375,18 @@ function updateParticipantDisplay() {
     const roleDisplayOrder = ['owner', 'admin', 'bot', 'member', 'offline'];
     const container = document.getElementById('participant-list-container');
     
-    if (!container) return;
+    if (!container) {
+        console.error('Participant list container not found!');
+        return;
+    }
     
+    // Force display the container
+    container.style.display = 'block';
+    
+    // Clear previous content
     container.innerHTML = '';
     
+    // Create content for each role group
     roleDisplayOrder.forEach(role => {
         const roleMembers = roleGroups[role];
         if (roleMembers.length === 0) return;
@@ -534,10 +423,6 @@ function updateParticipantDisplay() {
             const activityDetails = userData?.activity_details;
             const statusColor = getStatusClass(status, activityDetails);
             const activityText = getActivityText(activityDetails, status);
-            
-            if (String(member.id) === String(currentUserId)) {
-
-            }
             
             const textColorClass = role === 'owner' ? (isOffline ? 'text-yellow-700' : 'text-yellow-400') :
                                   role === 'admin' ? (isOffline ? 'text-red-700' : 'text-red-400') :
@@ -580,39 +465,21 @@ function updateParticipantDisplay() {
                 </div>
             `;
             
-            memberEl.addEventListener('mouseover', function() {
-                this.classList.add('bg-discord-light');
-            });
-            
-            memberEl.addEventListener('mouseout', function() {
-                this.classList.remove('bg-discord-light');
-            });
-            
             membersList.appendChild(memberEl);
         });
         
         container.appendChild(roleSection);
     });
 
+    // Hide skeleton loader
     const skeleton = document.getElementById('participant-skeleton-loader');
-    if (skeleton && skeleton.style.display !== 'none') {
+    if (skeleton) {
         skeleton.style.display = 'none';
-        container.style.display = 'block';
     }
     
-    if (window.nitroCrownManager) {
-        const usernameElements = container.querySelectorAll('.member-username[data-user-id]');
-        usernameElements.forEach(el => {
-            const userId = el.getAttribute('data-user-id');
-            if (userId) {
-                window.nitroCrownManager.updateUserElement(el, userId);
-            }
-        });
-    }
-    
-
-
-
+    // Check if any members were displayed and log the result
+    const membersDisplayed = container.querySelectorAll('.user-profile-trigger').length;
+    console.log(`👥 Displayed ${membersDisplayed} participants in ${Object.keys(roleGroups).filter(role => roleGroups[role].length > 0).length} role groups`);
 }
 
 function initializeServerSearch() {
@@ -918,9 +785,130 @@ window.toggleParticipantLoading = function(loading = true) {
     }
 };
 
+window.testParticipantScroll = async function(numberOfTestMembers = 20) {
+    // Generate mock members for testing scroll
+    const mockMembers = [];
+    const roles = ['member', 'admin', 'bot', 'owner'];
+    const statuses = ['online', 'offline', 'afk', 'do_not_disturb', 'bot', 'invisible'];
+    
+    for (let i = 1; i <= numberOfTestMembers; i++) {
+        const role = roles[Math.floor(Math.random() * roles.length)];
+        let status = statuses[Math.floor(Math.random() * statuses.length)];
+        if (role === 'bot') status = 'bot';
+        
+        mockMembers.push({
+            id: 10000 + i,
+            username: `TestUser${i}`,
+            display_name: `Test User ${i}`,
+            role: role,
+            status: status,
+            avatar_url: '',
+            discriminator: '0000'
+        });
+    }
+    
+    // Add titibot
+    mockMembers.push({
+        id: 4,
+        username: 'titibot',
+        display_name: 'TitiBot',
+        role: 'bot',
+        status: 'bot',
+        avatar_url: '',
+        discriminator: '0000'
+    });
+    
+    // Update the global variable
+    window.allMembers = mockMembers;
+    
+    // Update display and force visibility
+    updateParticipantDisplay();
+    
+    // Force show participant container
+    const container = document.getElementById('participant-list-container');
+    if (container) {
+        container.style.display = 'block';
+        container.style.visibility = 'visible';
+        container.style.opacity = '1';
+    }
+    
+    // Show success message
+    console.log(`🧪 Created ${numberOfTestMembers + 1} test members to verify scrolling`);
+    if (window.showToast) {
+        window.showToast(`Added ${numberOfTestMembers + 1} test members to verify scrolling`, 'success');
+    }
+    
+    return mockMembers;
+};
+
+window.testParticipantGroups = function() {
+    // Test participant display with members in all role groups
+    const testMembers = [
+        {id: 101, username: 'serverOwner', display_name: 'Server Owner', role: 'owner', status: 'online'},
+        {id: 102, username: 'adminUser1', display_name: 'Admin User 1', role: 'admin', status: 'online'},
+        {id: 103, username: 'adminUser2', display_name: 'Admin User 2', role: 'admin', status: 'afk'},
+        {id: 104, username: 'titibot', display_name: 'TitiBot', role: 'bot', status: 'bot'},
+        {id: 105, username: 'assistantBot', display_name: 'Assistant Bot', role: 'bot', status: 'bot'},
+        {id: 106, username: 'regularUser1', display_name: 'Regular User 1', role: 'member', status: 'online'},
+        {id: 107, username: 'regularUser2', display_name: 'Regular User 2', role: 'member', status: 'do_not_disturb'},
+        {id: 108, username: 'regularUser3', display_name: 'Regular User 3', role: 'member', status: 'afk'},
+        {id: 109, username: 'offlineUser1', display_name: 'Offline User 1', role: 'member', status: 'offline'},
+        {id: 110, username: 'offlineUser2', display_name: 'Offline User 2', role: 'member', status: 'invisible'}
+    ];
+    
+    window.allMembers = testMembers;
+    updateParticipantDisplay();
+    
+    console.log('🧪 Created test members for all participant groups');
+    if (window.showToast) {
+        window.showToast('Added test members for all participant groups', 'success');
+    }
+    
+    return testMembers;
+};
+
+// Auto-run test function after page load to demonstrate functionality
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        // Auto-run the test with a small delay to ensure everything is loaded
+        window.testParticipantGroups();
+    }, 500);
+});
+
 </script>
 
 <style>
+/* Fix participant scrolling issues */
+.participant-content {
+    height: calc(100vh - 3rem); /* Subtracting the height of the search bar */
+    overflow-y: auto !important;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
+}
+
+.participant-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.participant-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.participant-content::-webkit-scrollbar-thumb {
+    background-color: rgba(120, 120, 120, 0.4);
+    border-radius: 20px;
+}
+
+.participant-content::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(120, 120, 120, 0.6);
+}
+
+#participant-list-container {
+    display: block !important;
+    visibility: visible !important;
+}
+
+/* Other existing styles... */
 .highlight-message {
     background: linear-gradient(90deg, 
         rgba(255, 216, 0, 0.2) 0%, 

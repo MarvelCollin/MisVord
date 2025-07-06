@@ -385,11 +385,46 @@ function debounce(func, wait) {
  * Show toast notification
  */
 function showToast(message, type = 'info') {
-    if (window.showToast) {
-        window.showToast(message, type);
-    } else {
-        alert(message);
+    try {
+        // Try to use the global toast function if available
+        if (typeof window.toast === 'function') {
+            window.toast(message, type);
+        } else {
+            // Fallback to console
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            // Try to create a simple toast if window.toast isn't available
+            const toastContainer = document.getElementById('toast-container') || createToastContainer();
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(() => {
+                if (toastContainer.contains(toast)) {
+                    toastContainer.removeChild(toast);
+                }
+                
+                // Clean up container if empty
+                if (toastContainer.children.length === 0) {
+                    document.body.removeChild(toastContainer);
+                }
+            }, 3000);
+        }
+    } catch (e) {
+        // Last resort
+        console.error(`Toast error: ${e.message}`, { originalMessage: message, type });
     }
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;';
+    document.body.appendChild(container);
+    return container;
 }
 
 /**
@@ -402,6 +437,10 @@ function initMemberManagementTab() {
     const memberFilter = document.getElementById('member-filter');
     const filterOptions = document.querySelectorAll('#filter-dropdown .filter-option');
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const userRole = document.querySelector('meta[name="user-role"]')?.content || 'member';
+    
+    // Set user role on document body for access in other parts of the code
+    document.body.dataset.userRole = userRole;
     
     if (!membersList || !memberTemplate || !serverId) return;
     
@@ -600,21 +639,43 @@ function initMemberManagementTab() {
                     kickBtn.style.display = 'none';
                 }
             } else if (member.role === 'admin') {
-                if (promoteBtn) promoteBtn.disabled = true;
+                if (promoteBtn) {
+                    // Only enable the promote button if we are the owner and can transfer ownership
+                    const currentUserIsOwner = document.body.dataset.userRole === 'owner';
+                    promoteBtn.disabled = !currentUserIsOwner;
+                }
             } else if (member.role === 'member') {
                 if (demoteBtn) demoteBtn.disabled = true;
             }
             
             if (promoteBtn && !promoteBtn.disabled && promoteBtn.style.display !== 'none') {
-                promoteBtn.addEventListener('click', () => showMemberActionModal('promote', member));
+                // Remove any previous event listeners to avoid duplicates
+                promoteBtn.replaceWith(promoteBtn.cloneNode(true));
+                const newPromoteBtn = memberElement.querySelector('.promote-btn');
+                
+                newPromoteBtn.addEventListener('click', () => {
+                    if (member.role === 'admin') {
+                        showMemberActionModal('transfer-ownership', member);
+                    } else {
+                        showMemberActionModal('promote', member);
+                    }
+                });
             }
             
             if (demoteBtn && !demoteBtn.disabled && demoteBtn.style.display !== 'none') {
-                demoteBtn.addEventListener('click', () => showMemberActionModal('demote', member));
+                // Remove any previous event listeners to avoid duplicates
+                demoteBtn.replaceWith(demoteBtn.cloneNode(true));
+                const newDemoteBtn = memberElement.querySelector('.demote-btn');
+                
+                newDemoteBtn.addEventListener('click', () => showMemberActionModal('demote', member));
             }
             
             if (kickBtn && !kickBtn.disabled && kickBtn.style.display !== 'none') {
-                kickBtn.addEventListener('click', () => showMemberActionModal('kick', member));
+                // Remove any previous event listeners to avoid duplicates
+                kickBtn.replaceWith(kickBtn.cloneNode(true));
+                const newKickBtn = memberElement.querySelector('.kick-btn');
+                
+                newKickBtn.addEventListener('click', () => showMemberActionModal('kick', member));
             }
             
             membersList.appendChild(memberElement);
@@ -622,125 +683,274 @@ function initMemberManagementTab() {
     }
     
     function showMemberActionModal(action, member) {
-        const modal = document.getElementById('member-action-modal');
-        const modalIcon = modal.querySelector('.modal-icon i');
-        const modalTitle = modal.querySelector('.modal-title');
-        const memberName = modal.querySelector('.member-name');
-        const memberCurrentRole = modal.querySelector('.member-current-role');
-        const actionMessage = modal.querySelector('.action-message');
-        const roleChangePreview = modal.querySelector('.role-change-preview');
-        const fromRole = modal.querySelector('.from-role');
-        const toRole = modal.querySelector('.to-role');
-        const confirmBtn = modal.querySelector('#modal-confirm-btn');
-        const confirmText = confirmBtn.querySelector('.confirm-text');
-        const cancelBtn = modal.querySelector('#modal-cancel-btn');
-        
-        modalIcon.className = '';
-        confirmBtn.className = 'modal-btn modal-btn-confirm';
-        roleChangePreview.classList.add('hidden');
-        
-        const avatarDiv = modal.querySelector('.member-avatar-small');
-        if (member.avatar_url) {
-            avatarDiv.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
-        } else {
-            avatarDiv.innerHTML = `
-                <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">
-                    ${member.username.charAt(0).toUpperCase()}
-                </div>
-            `;
-        }
-        
-                    memberName.textContent = member.display_name || member.username;
-        memberCurrentRole.textContent = `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`;
-        
-        let actionHandler;
-        
-        switch (action) {
-            case 'promote':
-                modalIcon.className = 'fas fa-arrow-up';
-                modalTitle.textContent = 'Promote Member';
-                actionMessage.textContent = `Are you sure you want to promote ${member.display_name || member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
-                
-                roleChangePreview.classList.remove('hidden');
-                fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                fromRole.className = `role-badge ${member.role}`;
-                toRole.textContent = 'Admin';
-                toRole.className = 'role-badge admin';
-                
-                confirmBtn.classList.add('warning');
-                confirmText.textContent = 'Promote';
-                
-                actionHandler = () => handlePromote(member);
-                break;
-                
-            case 'demote':
-                modalIcon.className = 'fas fa-arrow-down';
-                modalTitle.textContent = 'Demote Member';
-                actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
-                
-                roleChangePreview.classList.remove('hidden');
-                fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                fromRole.className = `role-badge ${member.role}`;
-                toRole.textContent = 'Member';
-                toRole.className = 'role-badge member';
-                
-                confirmBtn.classList.add('warning');
-                confirmText.textContent = 'Demote';
-                
-                actionHandler = () => handleDemote(member);
-                break;
-                
-            case 'kick':
-                modalIcon.className = 'fas fa-user-times';
-                modalTitle.textContent = 'Kick Member';
-                actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
-                
-                confirmBtn.classList.add('danger');
-                confirmText.textContent = 'Kick';
-                
-                actionHandler = () => handleKick(member);
-                break;
-        }
-        
-        const handleConfirm = () => {
-            modal.classList.add('hidden');
-            confirmBtn.removeEventListener('click', handleConfirm);
-            cancelBtn.removeEventListener('click', handleCancel);
-            document.removeEventListener('keydown', handleKeydown);
-            actionHandler();
-        };
-        
-        const handleCancel = () => {
-            modal.classList.add('hidden');
-            confirmBtn.removeEventListener('click', handleConfirm);
-            cancelBtn.removeEventListener('click', handleCancel);
-            document.removeEventListener('keydown', handleKeydown);
-        };
-        
-        const handleKeydown = (e) => {
-            if (e.key === 'Escape') {
-                handleCancel();
+        try {
+            console.log('Opening member action modal for', member, 'with action', action);
+            
+            if (!member) {
+                console.error('No member provided to action modal');
+                showToast('Error: Member data is missing', 'error');
+                return;
             }
-        };
-        
-        confirmBtn.addEventListener('click', handleConfirm);
-        cancelBtn.addEventListener('click', handleCancel);
-        document.addEventListener('keydown', handleKeydown);
-        
-        modal.classList.remove('hidden');
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                handleCancel();
+            
+            const modal = document.getElementById('member-action-modal');
+            if (!modal) {
+                console.error('Member action modal not found in the DOM');
+                showToast('Error: Modal not found', 'error');
+                return;
             }
-        });
-    }
 
+            // Pre-create all the elements we need to avoid null references
+            const modalContainer = modal.querySelector('.modal-container');
+            if (!modalContainer) {
+                console.error('Modal container not found');
+                showToast('Error: Modal structure is incomplete', 'error');
+                return;
+            }
+            
+            // Create a function to safely set content with fallback
+            const safeSetContent = (selector, content, defaultContent = '') => {
+                const element = modal.querySelector(selector);
+                if (element) {
+                    if (typeof content === 'string') {
+                        element.textContent = content;
+                    } else if (typeof content === 'function') {
+                        content(element);
+                    }
+                    return element;
+                }
+                console.warn(`Element not found: ${selector}`);
+                return null;
+            };
+            
+            // Create a function to safely add/remove classes with fallback
+            const safeToggleClass = (selector, className, add = true) => {
+                const element = modal.querySelector(selector);
+                if (element) {
+                    if (add) {
+                        element.classList.add(className);
+                    } else {
+                        element.classList.remove(className);
+                    }
+                    return element;
+                }
+                console.warn(`Element not found for class toggle: ${selector}`);
+                return null;
+            };
+            
+            // Reset modal content and classes
+            safeSetContent('.modal-icon i', icon => {
+                icon.className = '';
+            });
+            
+            safeSetContent('.modal-title', 'Confirm Action');
+            safeSetContent('.member-name', member.display_name || member.username);
+            safeSetContent('.member-current-role', `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`);
+            
+            // Handle avatar
+            const avatarContainer = modal.querySelector('.member-avatar-small');
+            if (avatarContainer) {
+                if (member.avatar_url) {
+                    avatarContainer.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
+                } else {
+                    avatarContainer.innerHTML = `
+                        <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">
+                            ${member.username.charAt(0).toUpperCase()}
+                        </div>
+                    `;
+                }
+            }
+            
+            // Reset role change preview
+            safeToggleClass('.role-change-preview', 'hidden', true);
+            
+            // Reset confirm button
+            const confirmBtn = modal.querySelector('#modal-confirm-btn');
+            if (confirmBtn) {
+                confirmBtn.className = 'modal-btn modal-btn-confirm';
+                
+                // Find or create the confirm text span
+                let confirmText = confirmBtn.querySelector('.confirm-text');
+                if (!confirmText) {
+                    // If the confirm-text span doesn't exist, create it
+                    const checkIcon = confirmBtn.querySelector('i');
+                    if (checkIcon) {
+                        confirmBtn.innerHTML = ''; // Clear the button content
+                        const iconEl = document.createElement('i');
+                        iconEl.className = 'fas fa-check mr-2';
+                        confirmBtn.appendChild(iconEl);
+                    } else {
+                        confirmBtn.innerHTML = '';
+                    }
+                    
+                    confirmText = document.createElement('span');
+                    confirmText.className = 'confirm-text';
+                    confirmBtn.appendChild(confirmText);
+                }
+                
+                confirmText.textContent = 'Confirm';
+            }
+            
+            // Get all the elements needed for action setup
+            const modalIcon = modal.querySelector('.modal-icon i');
+            const modalTitle = modal.querySelector('.modal-title');
+            const actionMessage = modal.querySelector('.action-message');
+            const roleChangePreview = modal.querySelector('.role-change-preview');
+            const fromRole = modal.querySelector('.from-role');
+            const toRole = modal.querySelector('.to-role');
+            const cancelBtn = modal.querySelector('#modal-cancel-btn');
+            
+            // Set up action-specific content
+            let actionHandler;
+            
+            switch (action) {
+                case 'transfer-ownership':
+                    if (modalIcon) modalIcon.className = 'fas fa-crown';
+                    if (modalTitle) modalTitle.textContent = 'Transfer Ownership';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to transfer server ownership to ${member.display_name || member.username}? This will make them the server owner and demote you to admin. This action cannot be undone.`;
+                    
+                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
+                    if (fromRole) {
+                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                        fromRole.className = `role-badge ${member.role}`;
+                    }
+                    if (toRole) {
+                        toRole.textContent = 'Owner';
+                        toRole.className = 'role-badge owner';
+                    }
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('danger');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Transfer Ownership';
+                    }
+                    
+                    actionHandler = () => handleTransferOwnership(member);
+                    break;
+                    
+                case 'promote':
+                    if (modalIcon) modalIcon.className = 'fas fa-arrow-up';
+                    if (modalTitle) modalTitle.textContent = 'Promote Member';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to promote ${member.display_name || member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
+                    
+                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
+                    if (fromRole) {
+                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                        fromRole.className = `role-badge ${member.role}`;
+                    }
+                    if (toRole) {
+                        toRole.textContent = 'Admin';
+                        toRole.className = 'role-badge admin';
+                    }
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('warning');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Promote';
+                    }
+                    
+                    actionHandler = () => handlePromote(member);
+                    break;
+                    
+                case 'demote':
+                    if (modalIcon) modalIcon.className = 'fas fa-arrow-down';
+                    if (modalTitle) modalTitle.textContent = 'Demote Member';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
+                    
+                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
+                    if (fromRole) {
+                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                        fromRole.className = `role-badge ${member.role}`;
+                    }
+                    if (toRole) {
+                        toRole.textContent = 'Member';
+                        toRole.className = 'role-badge member';
+                    }
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('warning');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Demote';
+                    }
+                    
+                    actionHandler = () => handleDemote(member);
+                    break;
+                    
+                case 'kick':
+                    if (modalIcon) modalIcon.className = 'fas fa-user-times';
+                    if (modalTitle) modalTitle.textContent = 'Kick Member';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('danger');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Kick';
+                    }
+                    
+                    actionHandler = () => handleKick(member);
+                    break;
+                    
+                default:
+                    console.error('Unknown action type:', action);
+                    return;
+            }
+            
+            // Clean up any existing event handlers
+            if (confirmBtn) confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+            if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            
+            // Get the fresh button references
+            const newConfirmBtn = modal.querySelector('#modal-confirm-btn');
+            const newCancelBtn = modal.querySelector('#modal-cancel-btn');
+            
+            // Add event handlers
+            if (newConfirmBtn) {
+                newConfirmBtn.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    if (actionHandler) actionHandler();
+                });
+            }
+            
+            if (newCancelBtn) {
+                newCancelBtn.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                });
+            }
+            
+            // Add escape key handler
+            const handleKeydown = (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    document.removeEventListener('keydown', handleKeydown);
+                }
+            };
+            document.addEventListener('keydown', handleKeydown);
+            
+            // Add background click handler
+            const handleBackgroundClick = (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.removeEventListener('click', handleBackgroundClick);
+                }
+            };
+            modal.addEventListener('click', handleBackgroundClick);
+            
+            // Show the modal
+            modal.classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Error showing member action modal:', error);
+            showToast('Error displaying the action modal. Please try again.', 'error');
+        }
+    }
+    
     async function handlePromote(member) {
         try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
             const response = await window.serverAPI.promoteMember(serverId, member.id);
             if (response && response.success) {
-                                    showToast(`${member.display_name || member.username} has been promoted to ${response.new_role}`, 'success');
+                showToast(`${member.display_name || member.username} has been promoted to ${response.new_role}`, 'success');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to promote member');
@@ -753,9 +963,12 @@ function initMemberManagementTab() {
     
     async function handleDemote(member) {
         try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
             const response = await window.serverAPI.demoteMember(serverId, member.id);
             if (response && response.success) {
-                                    showToast(`${member.display_name || member.username} has been demoted to ${response.new_role}`, 'success');
+                showToast(`${member.display_name || member.username} has been demoted to ${response.new_role}`, 'success');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to demote member');
@@ -768,9 +981,12 @@ function initMemberManagementTab() {
     
     async function handleKick(member) {
         try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
             const response = await window.serverAPI.kickMember(serverId, member.id);
             if (response && response.success) {
-                                    showToast(`${member.display_name || member.username} has been kicked from the server`, 'success');
+                showToast(`${member.display_name || member.username} has been kicked from the server`, 'success');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to kick member');
@@ -778,6 +994,24 @@ function initMemberManagementTab() {
         } catch (error) {
             console.error('Error kicking member:', error);
             showToast(error.message || 'Failed to kick member', 'error');
+        }
+    }
+
+    async function handleTransferOwnership(member) {
+        try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
+            const response = await window.serverAPI.transferOwnership(serverId, member.id);
+            if (response && response.success) {
+                showToast(`You have transferred server ownership to ${member.display_name || member.username}`, 'success');
+                loadMembers();
+            } else {
+                throw new Error(response.message || 'Failed to transfer server ownership');
+            }
+        } catch (error) {
+            console.error('Error transferring server ownership:', error);
+            showToast(error.message || 'Failed to transfer server ownership', 'error');
         }
     }
     
@@ -999,110 +1233,235 @@ function initChannelManagementTab() {
     }
     
     function showChannelActionModal(action, channel) {
-        const modal = document.getElementById('channel-action-modal');
-        const modalIcon = modal.querySelector('.channel-modal-icon i');
-        const modalTitle = modal.querySelector('.channel-modal-title');
-        const channelName = modal.querySelector('.channel-modal-name');
-        const actionMessage = modal.querySelector('.action-message');
-        const renameInputContainer = modal.querySelector('.rename-input-container');
-        const confirmBtn = modal.querySelector('#channel-modal-confirm-btn');
-        const confirmText = confirmBtn.querySelector('.confirm-text');
-        const cancelBtn = modal.querySelector('#channel-modal-cancel-btn');
-        
-        modalIcon.className = '';
-        confirmBtn.className = 'channel-modal-btn channel-modal-btn-confirm';
-        renameInputContainer.classList.add('hidden');
-        
-        const channelIconDiv = modal.querySelector('.channel-icon-small i');
-        if (channelIconDiv) {
-            if (channel.type === 'voice') {
-                channelIconDiv.className = 'fas fa-volume-up';
-            } else {
-                channelIconDiv.className = 'fas fa-hashtag';
+        try {
+            console.log('Opening channel action modal for', channel, 'with action', action);
+            
+            if (!channel) {
+                console.error('No channel provided to action modal');
+                showToast('Error: Channel data is missing', 'error');
+                return;
             }
-        }
-        
-        channelName.textContent = channel.name;
-        
-        let actionHandler;
-        
-        switch (action) {
-            case 'rename':
-                modalIcon.className = 'fas fa-edit';
-                modalTitle.textContent = 'Rename Channel';
-                actionMessage.textContent = `Enter the new name for "${channel.name}":`;
+            
+            const modal = document.getElementById('channel-action-modal');
+            if (!modal) {
+                console.error('Channel action modal not found');
+                showToast('Error: Modal not found', 'error');
+                return;
+            }
+            
+            // Pre-create all the elements we need to avoid null references
+            const modalContainer = modal.querySelector('.channel-modal-container');
+            if (!modalContainer) {
+                console.error('Modal container not found');
+                showToast('Error: Modal structure is incomplete', 'error');
+                return;
+            }
+            
+            // Create a function to safely set content with fallback
+            const safeSetContent = (selector, content, defaultContent = '') => {
+                const element = modal.querySelector(selector);
+                if (element) {
+                    if (typeof content === 'string') {
+                        element.textContent = content;
+                    } else if (typeof content === 'function') {
+                        content(element);
+                    }
+                    return element;
+                }
+                console.warn(`Element not found: ${selector}`);
+                return null;
+            };
+            
+            // Create a function to safely add/remove classes with fallback
+            const safeToggleClass = (selector, className, add = true) => {
+                const element = modal.querySelector(selector);
+                if (element) {
+                    if (add) {
+                        element.classList.add(className);
+                    } else {
+                        element.classList.remove(className);
+                    }
+                    return element;
+                }
+                console.warn(`Element not found for class toggle: ${selector}`);
+                return null;
+            };
+            
+            // Reset modal content and classes
+            safeSetContent('.channel-modal-icon i', icon => {
+                if (icon) icon.className = '';
+            });
+            
+            safeToggleClass('.rename-input-container', 'hidden', true);
+            
+            // Setup channel icon
+            const channelIconDiv = modal.querySelector('.channel-icon-small i');
+            if (channelIconDiv) {
+                if (channel.type === 'voice') {
+                    channelIconDiv.className = 'fas fa-volume-up';
+                } else {
+                    channelIconDiv.className = 'fas fa-hashtag';
+                }
+            }
+            
+            // Set channel name
+            safeSetContent('.channel-modal-name', channel.name);
+            
+            // Reset confirm button
+            const confirmBtn = modal.querySelector('#channel-modal-confirm-btn');
+            if (confirmBtn) {
+                confirmBtn.className = 'channel-modal-btn channel-modal-btn-confirm';
                 
-                renameInputContainer.classList.remove('hidden');
-                const nameInput = modal.querySelector('#new-channel-name');
-                nameInput.value = channel.name;
-
-                // Attach listener once to sanitize input (replace spaces with hyphens and remove invalid chars)
-                if (nameInput && !nameInput.dataset.listenerAttached) {
-                    nameInput.addEventListener('input', function() {
-                        let val = this.value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9\-_]/g, '');
-                        this.value = val;
-                    });
-                    nameInput.dataset.listenerAttached = 'true';
+                // Find or create the confirm text span
+                let confirmText = confirmBtn.querySelector('.confirm-text');
+                if (!confirmText) {
+                    confirmBtn.innerHTML = '';
+                    confirmText = document.createElement('span');
+                    confirmText.className = 'confirm-text';
+                    confirmBtn.appendChild(confirmText);
                 }
                 
-                confirmBtn.classList.add('channel-modal-btn-primary');
-                confirmText.textContent = 'Rename';
-                
-                actionHandler = () => {
-                    const newName = nameInput.value.trim();
-                    if (newName && newName !== channel.name) {
-                        handleRenameChannel(channel, newName);
+                confirmText.textContent = 'Confirm';
+            }
+            
+            // Get additional elements
+            const modalTitle = modal.querySelector('.channel-modal-title');
+            const actionMessage = modal.querySelector('.action-message');
+            const renameInputContainer = modal.querySelector('.rename-input-container');
+            const cancelBtn = modal.querySelector('#channel-modal-cancel-btn');
+            
+            // Setup action-specific content
+            let actionHandler;
+            
+            switch (action) {
+                case 'rename':
+                    if (modalTitle) modalTitle.textContent = 'Rename Channel';
+                    if (actionMessage) actionMessage.textContent = `Enter the new name for "${channel.name}":`;
+                    
+                    if (renameInputContainer) renameInputContainer.classList.remove('hidden');
+                    
+                    const nameInput = modal.querySelector('#new-channel-name');
+                    if (nameInput) {
+                        nameInput.value = channel.name;
+                        
+                        // Attach listener once to sanitize input (replace spaces with hyphens and remove invalid chars)
+                        if (!nameInput.dataset.listenerAttached) {
+                            nameInput.addEventListener('input', function() {
+                                let val = this.value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9\-_]/g, '');
+                                this.value = val;
+                            });
+                            nameInput.dataset.listenerAttached = 'true';
+                        }
+                        
+                        // Focus the input after a short delay to ensure the modal is visible
+                        setTimeout(() => {
+                            nameInput.focus();
+                        }, 50);
                     }
-                };
-                break;
-                
-            case 'delete':
-                modalIcon.className = 'fas fa-trash';
-                modalTitle.textContent = 'Delete Channel';
-                actionMessage.textContent = `Are you sure you want to delete "${channel.name}"? This will permanently delete all messages in this channel.`;
-                
-                confirmBtn.classList.add('channel-modal-btn-danger');
-                confirmText.textContent = 'Delete';
-                
-                actionHandler = () => handleDeleteChannel(channel);
-                break;
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('channel-modal-btn-primary');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Rename';
+                    }
+                    
+                    actionHandler = () => {
+                        if (nameInput) {
+                            const newName = nameInput.value.trim();
+                            if (newName && newName !== channel.name) {
+                                handleRenameChannel(channel, newName);
+                            } else {
+                                showToast('Please enter a different name for the channel', 'info');
+                                return false; // Prevent modal from closing
+                            }
+                        }
+                        return true; // Allow modal to close
+                    };
+                    break;
+                    
+                case 'delete':
+                    safeSetContent('.channel-modal-icon i', icon => {
+                        if (icon) icon.className = 'fas fa-trash';
+                    });
+                    if (modalTitle) modalTitle.textContent = 'Delete Channel';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to delete "${channel.name}"? This will permanently delete all messages in this channel.`;
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('channel-modal-btn-danger');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Delete';
+                    }
+                    
+                    actionHandler = () => handleDeleteChannel(channel);
+                    break;
+                    
+                default:
+                    console.error('Unknown channel action:', action);
+                    return;
+            }
+            
+            // Clean up any existing event handlers
+            if (confirmBtn) confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+            if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            
+            // Get the fresh button references
+            const newConfirmBtn = modal.querySelector('#channel-modal-confirm-btn');
+            const newCancelBtn = modal.querySelector('#channel-modal-cancel-btn');
+            
+            // Add event handlers
+            if (newConfirmBtn) {
+                newConfirmBtn.addEventListener('click', () => {
+                    if (actionHandler) {
+                        const shouldClose = actionHandler();
+                        if (shouldClose !== false) {
+                            modal.classList.add('hidden');
+                        }
+                    } else {
+                        modal.classList.add('hidden');
+                    }
+                });
+            }
+            
+            if (newCancelBtn) {
+                newCancelBtn.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                });
+            }
+            
+            // Add escape key handler
+            const handleKeydown = (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    document.removeEventListener('keydown', handleKeydown);
+                }
+            };
+            document.addEventListener('keydown', handleKeydown);
+            
+            // Add background click handler
+            const handleBackgroundClick = (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.removeEventListener('click', handleBackgroundClick);
+                }
+            };
+            modal.addEventListener('click', handleBackgroundClick);
+            
+            // Show the modal
+            modal.classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Error showing channel action modal:', error);
+            showToast('Error displaying the action modal. Please try again.', 'error');
         }
-        
-        const handleConfirm = () => {
-            modal.classList.add('hidden');
-            confirmBtn.removeEventListener('click', handleConfirm);
-            cancelBtn.removeEventListener('click', handleCancel);
-            document.removeEventListener('keydown', handleKeydown);
-            actionHandler();
-        };
-        
-        const handleCancel = () => {
-            modal.classList.add('hidden');
-            confirmBtn.removeEventListener('click', handleConfirm);
-            cancelBtn.removeEventListener('click', handleCancel);
-            document.removeEventListener('keydown', handleKeydown);
-        };
-        
-        const handleKeydown = (e) => {
-            if (e.key === 'Escape') {
-                handleCancel();
-            }
-        };
-        
-        confirmBtn.addEventListener('click', handleConfirm);
-        cancelBtn.addEventListener('click', handleCancel);
-        document.addEventListener('keydown', handleKeydown);
-        
-        modal.classList.remove('hidden');
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                handleCancel();
-            }
-        });
     }
 
     function handleRenameChannel(channel, newName) {
+        const serverId = document.querySelector('meta[name="server-id"]')?.content;
+        if (!serverId) {
+            showToast('Server ID not found', 'error');
+            return;
+        }
+        
         fetch(`/api/channels/${channel.id}`, {
             method: 'PUT',
             headers: {
@@ -1136,6 +1495,12 @@ function initChannelManagementTab() {
     }
     
     function handleDeleteChannel(channel) {
+        const serverId = document.querySelector('meta[name="server-id"]')?.content;
+        if (!serverId) {
+            showToast('Server ID not found', 'error');
+            return;
+        }
+        
         fetch(`/api/channels/${channel.id}`, {
             method: 'DELETE',
             headers: {
@@ -1239,7 +1604,38 @@ function initDeleteServerTab() {
         element.textContent = serverName;
     });
     
+    // Store event handlers for cleanup
+    let escKeyHandler;
+    let backgroundClickHandler;
+    
     function openModal() {
+        // Remove any existing event listeners
+        if (escKeyHandler) {
+            document.removeEventListener('keydown', escKeyHandler);
+        }
+        
+        if (backgroundClickHandler) {
+            deleteServerModal.removeEventListener('click', backgroundClickHandler);
+        }
+        
+        // Create new event handlers
+        escKeyHandler = (e) => {
+            if (e.key === 'Escape' && !deleteServerModal.classList.contains('hidden')) {
+                closeModal();
+            }
+        };
+        
+        backgroundClickHandler = (e) => {
+            if (e.target === deleteServerModal) {
+                closeModal();
+            }
+        };
+        
+        // Add new event listeners
+        document.addEventListener('keydown', escKeyHandler);
+        deleteServerModal.addEventListener('click', backgroundClickHandler);
+        
+        // Show modal
         deleteServerModal.classList.remove('hidden');
         setTimeout(() => {
             deleteServerModal.querySelector('.bg-discord-dark').classList.add('scale-100');
@@ -1249,6 +1645,18 @@ function initDeleteServerTab() {
     }
     
     function closeModal() {
+        // Remove event listeners
+        if (escKeyHandler) {
+            document.removeEventListener('keydown', escKeyHandler);
+            escKeyHandler = null;
+        }
+        
+        if (backgroundClickHandler) {
+            deleteServerModal.removeEventListener('click', backgroundClickHandler);
+            backgroundClickHandler = null;
+        }
+        
+        // Hide modal
         deleteServerModal.querySelector('.bg-discord-dark').classList.add('scale-95');
         deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-100');
         setTimeout(() => {
@@ -1272,35 +1680,58 @@ function initDeleteServerTab() {
     }
     
     if (openDeleteModalBtn) {
+        // Remove any existing event listeners first to prevent duplicates
+        openDeleteModalBtn.removeEventListener('click', openModal);
         openDeleteModalBtn.addEventListener('click', openModal);
     }
     
     if (closeDeleteModalBtn) {
+        closeDeleteModalBtn.removeEventListener('click', closeModal);
         closeDeleteModalBtn.addEventListener('click', closeModal);
     }
     
     if (cancelDeleteBtn) {
+        cancelDeleteBtn.removeEventListener('click', closeModal);
         cancelDeleteBtn.addEventListener('click', closeModal);
     }
     
     if (confirmServerNameInput) {
+        confirmServerNameInput.removeEventListener('input', updateDeleteButton);
         confirmServerNameInput.addEventListener('input', updateDeleteButton);
     }
     
-    deleteServerModal.addEventListener('click', (e) => {
-        if (e.target === deleteServerModal) {
-            closeModal();
-        }
-    });
-    
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !deleteServerModal.classList.contains('hidden')) {
-            closeModal();
-        }
-    });
-    
     if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', async () => {
+        confirmDeleteBtn.removeEventListener('click', async function() {
+            if (confirmServerNameInput.value !== serverName) return;
+            
+            try {
+                confirmDeleteBtn.disabled = true;
+                confirmDeleteBtn.innerHTML = `
+                    <i class="fas fa-spinner fa-spin -ml-1 mr-2 h-4 w-4 text-white inline-block"></i>
+                    Deleting...
+                `;
+                
+                const response = await window.serverAPI.deleteUserServer(serverId);
+                
+                if (response && response.success) {
+                    showToast('Server has been deleted successfully', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/home';
+                    }, 1500);
+                } else {
+                    throw new Error(response.message || 'Failed to delete server');
+                }
+            } catch (error) {
+                console.error('Error deleting server:', error);
+                showToast(error.message || 'Failed to delete server', 'error');
+                
+                confirmDeleteBtn.disabled = false;
+                confirmDeleteBtn.textContent = 'Delete Server';
+            }
+        });
+        
+        confirmDeleteBtn.addEventListener('click', async function() {
             if (confirmServerNameInput.value !== serverName) return;
             
             try {

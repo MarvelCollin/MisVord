@@ -311,6 +311,13 @@ class VoiceCallSection {
       e.preventDefault();
       e.stopPropagation();
 
+      // MODIFIED: Set the explicit leave flag in coordinator before disconnecting
+      if (this.coordinator) {
+        this.coordinator.setExplicitLeaveRequested(true);
+      } else if (window.participantCoordinator) {
+        window.participantCoordinator.setExplicitLeaveRequested(true);
+      }
+
       // Clean up bot participants before leaving voice
       this.handleVoiceDisconnect();
 
@@ -842,14 +849,18 @@ class VoiceCallSection {
       element.remove();
     }
 
-
+    // MODIFIED: Only remove from coordinator if it's an explicit leave
     const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
     if (this.coordinator) {
-      this.coordinator.removeParticipant(currentChannelId, participantId, 'VoiceCallSection');
+      // Only remove if it's from leave button click or if the coordinator says it's okay
+      if (this.coordinator.explicitLeaveRequested) {
+        this.coordinator.removeParticipant(currentChannelId, participantId, 'VoiceCallSection');
+      } else {
+        console.log('[VOICE-CALL] Prevented auto removal of participant:', participantId);
+      }
     }
 
     this.removeScreenShareCard(participantId);
-
     this.updateGridLayout();
   }
 
@@ -1721,6 +1732,13 @@ class VoiceCallSection {
   }
 
   handleVoiceDisconnect() {
+    // MODIFIED: Set explicit leave flag to ensure proper cleanup
+    if (this.coordinator) {
+      this.coordinator.setExplicitLeaveRequested(true);
+    } else if (window.participantCoordinator) {
+      window.participantCoordinator.setExplicitLeaveRequested(true);
+    }
+
     if (window.musicPlayer) {
       try {
         window.musicPlayer.stop();

@@ -779,7 +779,8 @@ async function inviteBotToServer(botId) {
             },
             body: JSON.stringify({
                 bot_id: botId,
-                server_id: serverId
+                server_id: serverId,
+                role: 'bot'  // Set the role to 'bot' instead of the default 'member'
             })
         });
 

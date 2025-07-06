@@ -16,6 +16,7 @@ $settingsData = $settingsController->prepareSettingsData();
 $server = $settingsData['server'];
 $serverId = $settingsData['serverId'];
 $section = $settingsData['section'] ?? 'profile';
+$userRole = $settingsData['userRole'] ?? 'member';
 
 $page_title = 'misvord - Server Settings';
 $body_class = 'bg-discord-dark text-white settings-page';
@@ -29,6 +30,7 @@ ob_start();
 ?>
 
 <meta name="server-id" content="<?php echo $serverId; ?>">
+<meta name="user-role" content="<?php echo $userRole; ?>">
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto mt-10">
     <div class="w-60 bg-discord-light border-r border-discord-dark">
@@ -377,7 +379,7 @@ ob_start();
                     <div class="modal-body">
                         <div class="member-preview">
                             <div class="member-avatar-small">
-                                <img src="" alt="Avatar" class="w-full h-full object-cover">
+                                <!-- This will be filled by JavaScript -->
                             </div>
                             <div class="member-details">
                                 <div class="member-name"></div>

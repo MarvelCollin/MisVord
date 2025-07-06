@@ -2062,6 +2062,68 @@ class ServerController extends BaseController
             return $this->serverError('Failed to delete server: ' . $e->getMessage());
         }
     }
+    
+    public function transferOwnership($serverId) {
+        $this->requireAuth();
+        $currentUserId = $this->getCurrentUserId();
+        
+        $input = $this->getInput();
+        $newOwnerId = $input['new_owner_id'] ?? null;
+        
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+        
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+            
+            if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
+                return $this->forbidden('Only server owner can transfer ownership');
+            }
+            
+            if (!$newOwnerId) {
+                return $this->validationError(['new_owner_id' => 'New owner ID is required']);
+            }
+            
+            if ($newOwnerId == $currentUserId) {
+                return $this->validationError(['new_owner_id' => 'Cannot transfer ownership to yourself']);
+            }
+            
+            $newOwnerMembership = $this->userServerMembershipRepository->findByUserAndServer($newOwnerId, $serverId);
+            if (!$newOwnerMembership) {
+                return $this->validationError(['new_owner_id' => 'Selected user is not a member of this server']);
+            }
+            
+            $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $newOwnerId);
+            if (!$transferSuccess) {
+                return $this->serverError('Failed to transfer ownership');
+            }
+            
+            $this->logActivity('ownership_transferred', [
+                'server_id' => $serverId,
+                'server_name' => $server->name,
+                'old_owner_id' => $currentUserId,
+                'new_owner_id' => $newOwnerId
+            ]);
+            
+            return $this->success([
+                'message' => 'Ownership transferred successfully',
+                'old_owner_id' => $currentUserId,
+                'new_owner_id' => $newOwnerId
+            ]);
+            
+        } catch (Exception $e) {
+            $this->logActivity('transfer_ownership_error', [
+                'server_id' => $serverId,
+                'new_owner_id' => $newOwnerId,
+                'error' => $e->getMessage()
+            ]);
+            return $this->serverError('Failed to transfer ownership: ' . $e->getMessage());
+        }
+    }
 
     public function getServerBundle($serverId) {
         try {

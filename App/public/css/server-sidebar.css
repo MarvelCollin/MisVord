@@ -12,6 +12,16 @@
   --discord-folder-hover: #3f4248;
   --discord-folder-selected: #3f4248;
   --discord-folder-bg: #1e1f22;
+  --animation-duration: 300ms;
+}
+
+/* Add improved transition effects for all elements */
+.server-sidebar-icon,
+.server-sidebar-button,
+.server-sidebar-group,
+.group-servers,
+.group-header {
+  transition: all var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .server-sidebar-list {
@@ -56,8 +66,25 @@
   margin: 2px 0;
   cursor: pointer;
   z-index: 1;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
   transform-origin: center;
+  backface-visibility: hidden; /* Smoother animations */
+}
+
+/* Enhanced animation for server icons */
+.server-sidebar-icon:not(.dragging) {
+  animation: server-appear var(--animation-duration) ease-out;
+}
+
+@keyframes server-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .server-sidebar-icon a, 
@@ -78,7 +105,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   position: relative;
@@ -95,6 +122,23 @@
   flex-direction: column;
   align-items: center;
   margin: 0 0 8px 0;
+  transition: all var(--animation-duration) ease;
+}
+
+/* Animation for new folder group */
+.server-sidebar-group {
+  animation: folder-appear var(--animation-duration) ease-out;
+}
+
+@keyframes folder-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .server-sidebar-group .group-header {
@@ -108,13 +152,27 @@
   cursor: pointer;
   position: relative;
   z-index: 2;
-  transition: all 0.2s ease;
+  transition: all var(--animation-duration) ease;
   overflow: hidden;
 }
 
 .server-sidebar-group .group-header:hover {
   background-color: var(--discord-folder-hover);
   border-radius: 16px;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Enhanced visual feedback for drop targets */
+.server-sidebar-group.drag-over {
+  transform: scale(1.05);
+  background-color: rgba(88, 101, 242, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 0 0 2px var(--discord-primary);
+}
+
+.server-sidebar-group.drag-over .group-header {
+  background-color: var(--discord-folder-hover);
 }
 
 .folder-icon {
@@ -132,6 +190,11 @@
 .folder-icon i {
   color: #95a5a6;
   font-size: 24px;
+  transition: color var(--animation-duration) ease;
+}
+
+.server-sidebar-group.drag-over .folder-icon i {
+  color: var(--discord-primary);
 }
 
 .server-sidebar-group.open .folder-icon {
@@ -174,7 +237,7 @@
 }
 
 .server-sidebar-group .group-header {
-  transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transition: all var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .server-preview-grid {
@@ -233,7 +296,7 @@
   margin-top: -5px;
   width: 48px;
   box-sizing: border-box;
-  transition: all 0.3s ease;
+  transition: all var(--animation-duration) ease;
   z-index: 1;
 }
 
@@ -247,7 +310,7 @@
 
 /* Smooth transitions for folder open/close */
 .server-sidebar-group.open .group-servers {
-  animation: expandGroup 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  animation: expandGroup var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 @keyframes expandGroup {
@@ -261,6 +324,24 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Improved animations for servers being dragged */
+.server-sidebar-icon.dragging {
+  opacity: 0.6;
+  transform: scale(1.1) rotate(5deg);
+  z-index: 1000;
+  transition: none;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.server-sidebar-icon.drop-target {
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from { transform: scale(1); box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.4); }
+  to { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(88, 101, 242, 0); }
 }
 
 .server-sidebar-group .server-sidebar-icon {

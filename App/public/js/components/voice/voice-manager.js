@@ -444,12 +444,10 @@ class VoiceManager {
 
     leaveVoice() {
         if (!this.isConnected) {
-
             return;
         }
         
         if (window.videoSDKJoiningInProgress) {
-
             return;
         }
         
@@ -458,38 +456,38 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
+        // MODIFIED: Set the explicit leave flag in coordinator
+        if (window.participantCoordinator) {
+            window.participantCoordinator.setExplicitLeaveRequested(true);
+        }
 
         this.isConnected = false;
         window.voiceJoinInProgress = false;
         
-
         if (this.currentChannelId && window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
             });
         }
         
-
         if (this.videoSDKManager) {
             this.videoSDKManager.leaveMeeting();
         }
         
-
         const previousChannelId = this.currentChannelId;
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
-
         if (window.unifiedVoiceStateManager) {
             window.unifiedVoiceStateManager.handleDisconnect();
         }
         
-
         if (previousChannelId && window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
             if (currentUserId) {
+                // This removal is now safe because we set the explicitLeaveRequested flag
                 instance.removeParticipant(previousChannelId, currentUserId);
                 instance.updateParticipantContainer(previousChannelId);
             }
@@ -504,14 +502,16 @@ class VoiceManager {
     }
     
     cleanup() {
-
+        // MODIFIED: Set the explicit leave flag in coordinator
+        if (window.participantCoordinator) {
+            window.participantCoordinator.setExplicitLeaveRequested(true);
+        }
         
         if (this.currentChannelId && window.globalSocketManager?.io && window.globalSocketManager.isReady()) {
             try {
                 window.globalSocketManager.io.emit('unregister-voice-meeting', {
                     channel_id: this.currentChannelId
                 });
-
             } catch (error) {
                 console.warn('🧹 [VOICE-MANAGER] Failed to send unregister to socket:', error);
             }
@@ -520,7 +520,6 @@ class VoiceManager {
         if (this.videoSDKManager) {
             try {
                 this.videoSDKManager.leaveMeeting();
-
             } catch (error) {
                 console.warn('🧹 [VOICE-MANAGER] Failed to leave VideoSDK meeting:', error);
             }
@@ -535,13 +534,10 @@ class VoiceManager {
         if (window.unifiedVoiceStateManager) {
             try {
                 window.unifiedVoiceStateManager.handleDisconnect();
-
             } catch (error) {
                 console.warn('🧹 [VOICE-MANAGER] Failed to reset unified voice state:', error);
             }
         }
-        
-
     }
     
     refreshParticipantsUI() {

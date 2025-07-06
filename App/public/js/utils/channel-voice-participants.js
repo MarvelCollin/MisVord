@@ -48,7 +48,9 @@ class ChannelVoiceParticipants {
         
         if (!isVideoSDKConnected && isPresenceInVoice && currentChannelId) {
 
-            this.removeParticipant(currentChannelId, window.currentUserId);
+            // MODIFIED: Don't remove participants just because the connection seems inactive
+            // We'll only remove them when the user explicitly clicks leave
+            // this.removeParticipant(currentChannelId, window.currentUserId);
         }
     }
 
@@ -266,8 +268,14 @@ class ChannelVoiceParticipants {
     removeParticipant(channelId, userId) {
         const normalizedUserId = userId.toString();
         
-
+        // MODIFIED: Check with coordinator if this is an explicit leave action
         if (this.coordinator) {
+            // Only pass this through if it's an explicit leave button action
+            // which will be marked by the coordinator's explicitLeaveRequested flag
+            if (!this.coordinator.explicitLeaveRequested) {
+                console.log('[VOICE-PARTICIPANT] Prevented automatic removal of participant:', normalizedUserId);
+                return false; // Prevent automatic removal
+            }
             this.coordinator.removeParticipant(channelId, normalizedUserId, 'ChannelVoiceParticipants');
         }
         
@@ -292,11 +300,18 @@ class ChannelVoiceParticipants {
     }
 
     clearChannelParticipants(channelId) {
+        // MODIFIED: Only clear if it's an explicit leave action
+        if (this.coordinator && !this.coordinator.explicitLeaveRequested) {
+            console.log('[VOICE-PARTICIPANT] Prevented clearing channel participants:', channelId);
+            return false;
+        }
+        
         if (this.coordinator) {
             this.coordinator.clearChannel(channelId);
         }
         
         this.participants.delete(channelId);
+        return true;
     }
 
     updateParticipantContainer(channelId) {

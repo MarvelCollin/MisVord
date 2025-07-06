@@ -231,7 +231,7 @@ class BotController extends BaseController
         }
     }
 
-    public function joinServer($botId, $serverId)
+    public function joinServer($botId, $serverId, $role = 'member')
     {
         try {
             $bot = $this->userRepository->find($botId);
@@ -244,12 +244,13 @@ class BotController extends BaseController
                 return ['success' => false, 'message' => 'Bot is already a member of this server'];
             }
             
-            $result = $this->userServerMembershipRepository->addMembership($botId, $serverId, 'member');
+            $result = $this->userServerMembershipRepository->addMembership($botId, $serverId, $role);
             
             if ($result) {
                 $this->logActivity('bot_joined_server', [
                     'bot_id' => $botId,
                     'server_id' => $serverId,
+                    'role' => $role,
                     'initiated_by' => $this->getCurrentUserId()
                 ]);
                 
@@ -276,8 +277,9 @@ class BotController extends BaseController
             
             $botId = $input['bot_id'];
             $serverId = $input['server_id'];
+            $role = isset($input['role']) ? $input['role'] : 'member';
             
-            $result = $this->joinServer($botId, $serverId);
+            $result = $this->joinServer($botId, $serverId, $role);
             
             if ($result['success']) {
                 return $this->success([], $result['message']);

@@ -72,7 +72,8 @@ class VideoSDKManager {
     }
 
     forcePresenceReset() {
-
+        // MODIFIED: Only reset presence if it's an explicit leave request or the connection is truly lost
+        const isExplicitLeave = window.participantCoordinator?.explicitLeaveRequested || false;
         
         sessionStorage.removeItem('isInVoiceCall');
         sessionStorage.removeItem('voiceChannelName');
@@ -85,10 +86,13 @@ class VideoSDKManager {
             window.voiceManager.isConnected = false;
         }
         
-        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-        window.dispatchEvent(new CustomEvent('presenceForceReset', { 
-            detail: { reason: 'VideoSDK not connected' } 
-        }));
+        // Only dispatch disconnect if it's an explicit leave or we're absolutely sure connection is lost
+        if (isExplicitLeave) {
+            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+            window.dispatchEvent(new CustomEvent('presenceForceReset', { 
+                detail: { reason: 'VideoSDK not connected' } 
+            }));
+        }
     }
 
     syncPresenceToVoice() {
@@ -765,7 +769,8 @@ class VideoSDKManager {
     }
 
     async leaveMeeting() {
-
+        // MODIFIED: Check if this is an explicit leave request
+        const isExplicitLeave = window.participantCoordinator?.explicitLeaveRequested || false;
 
         try {
             if (this.meeting) {
@@ -783,33 +788,39 @@ class VideoSDKManager {
             console.error('[VideoSDK] Unexpected error while leaving meeting:', err);
         }
 
-        this.cleanupParticipantResources();
+        if (isExplicitLeave) {
+            this.cleanupParticipantResources();
 
-        this.isMeetingJoined = false;
-        this.isConnected = false;
-        this.joiningInProgress = false;
-        this.meeting = null;
-        this.processedParticipants.clear();
+            this.isMeetingJoined = false;
+            this.isConnected = false;
+            this.joiningInProgress = false;
+            this.meeting = null;
+            this.processedParticipants.clear();
 
-        sessionStorage.removeItem('isInVoiceCall');
-        sessionStorage.removeItem('voiceChannelName');
+            sessionStorage.removeItem('isInVoiceCall');
+            sessionStorage.removeItem('voiceChannelName');
 
-        if (window.globalSocketManager) {
-            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-leave');
+            if (window.globalSocketManager) {
+                window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-leave');
+            }
+
+            if (window.voiceManager) {
+                window.voiceManager.isConnected = false;
+            }
+
+            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+            window.dispatchEvent(new CustomEvent('presenceForceReset', { 
+                detail: { reason: 'Meeting left' } 
+            }));
+        } else {
+            // If it's not an explicit leave (like a connection drop), don't clean up participants
+            console.log('[VideoSDK] Non-explicit leave detected, preserving participant UI');
+            this.isMeetingJoined = false;
+            this.isConnected = false;
+            this.joiningInProgress = false;
         }
-
-        if (window.voiceManager) {
-            window.voiceManager.isConnected = false;
-        }
-
-        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-        window.dispatchEvent(new CustomEvent('presenceForceReset', { 
-            detail: { reason: 'Meeting left' } 
-        }));
 
         this.checkAndSyncPresence();
-
-
     }
     
     cleanupParticipantResources() {

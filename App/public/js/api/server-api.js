@@ -443,6 +443,29 @@ const serverAPI = {
             return response.json();
         });
     },
+    
+    transferOwnership: function(serverId, newOwnerId) {
+        const body = { 
+            server_id: serverId,
+            new_owner_id: newOwnerId 
+        };
+        
+        return fetch(`/api/servers/${serverId}/transfer-ownership`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
 
     createChannel: function(serverId, channelData) {
         return fetch(`/api/servers/${serverId}/channels`, {

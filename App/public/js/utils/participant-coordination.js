@@ -13,6 +13,7 @@ class ParticipantCoordinator {
         this.systems = new Set(); // Track which systems have been initialized
         this.processedParticipants = new Set(); // Track processed participants to prevent duplicates
         this.lastUpdate = new Map(); // Track last update time per participant
+        this.explicitLeaveRequested = false; // Flag to track if leave was explicitly requested by leave button
     }
 
     registerSystem(systemName) {
@@ -78,6 +79,8 @@ class ParticipantCoordinator {
         const normalizedChannelId = channelId.toString();
         const participantKey = `${normalizedChannelId}-${normalizedUserId}`;
         
+        // MODIFIED: Only allow removal if explicitly requested through leave button
+        // or if this is the system that added it
         const channelParticipants = this.activeParticipants.get(normalizedChannelId);
         if (!channelParticipants) {
             return false;
@@ -86,8 +89,11 @@ class ParticipantCoordinator {
         // Check if this system has authority to remove
         const existingData = this.participantData.get(normalizedUserId);
         if (existingData && existingData.addedBy !== systemName) {
-            // Only allow removal if it's the same system that added it
-            return false;
+            // Only allow removal if it's an explicit leave request or the same system that added it
+            if (!this.explicitLeaveRequested && systemName !== 'leave-button-action') {
+                console.log(`[PARTICIPANT] Preventing removal of ${normalizedUserId} from ${normalizedChannelId} by ${systemName} - not authorized`);
+                return false;
+            }
         }
         
         const removed = channelParticipants.delete(normalizedUserId);
@@ -105,6 +111,17 @@ class ParticipantCoordinator {
         this.broadcastParticipantUpdate(normalizedChannelId, 'removed', { userId: normalizedUserId });
         
         return removed;
+    }
+
+    // Add a new method to handle explicit leave actions from the leave button
+    setExplicitLeaveRequested(value = true) {
+        this.explicitLeaveRequested = value;
+        // Reset after a short delay to prevent unintended consequences
+        if (value) {
+            setTimeout(() => {
+                this.explicitLeaveRequested = false;
+            }, 2000);
+        }
     }
 
     hasParticipant(channelId, userId) {
@@ -131,6 +148,12 @@ class ParticipantCoordinator {
     }
 
     clearChannel(channelId) {
+        // MODIFIED: Only allow clearing if it's an explicit leave request
+        if (!this.explicitLeaveRequested) {
+            console.log(`[PARTICIPANT] Preventing clearChannel for ${channelId} - not an explicit leave request`);
+            return false;
+        }
+
         const normalizedChannelId = channelId.toString();
         const channelParticipants = this.activeParticipants.get(normalizedChannelId);
         
@@ -145,7 +168,9 @@ class ParticipantCoordinator {
             
             // Clear the channel
             this.activeParticipants.delete(normalizedChannelId);
+            return true;
         }
+        return false;
     }
 
     validateParticipant(channelId, userId, expectedData) {
