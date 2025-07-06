@@ -1619,7 +1619,6 @@ function initDeleteServerTab() {
     const selectedUserContainer = document.getElementById('selected-user-container');
     const selectedUserAvatar = document.getElementById('selected-user-avatar');
     const selectedUserName = document.getElementById('selected-user-name');
-    const selectedUserRole = document.getElementById('selected-user-role');
     // We removed the cancel transfer button in the template
     const confirmTransferBtn = document.getElementById('confirm-transfer');
     
@@ -1791,7 +1790,7 @@ function initDeleteServerTab() {
                 <div class="flex-grow">
                     <div class="flex items-center">
                         <div class="text-white mr-2">${member.display_name || member.username}</div>
-                        <span class="${roleBadgeClass}">${roleName}</span>
+                        <span class="px-1.5 py-0.5 text-xs rounded ${roleBadgeClass} text-white">${roleName}</span>
                     </div>
                     <div class="text-discord-lighter text-xs">
                         ${member.status ? member.status : 'offline'}
@@ -1806,7 +1805,12 @@ function initDeleteServerTab() {
     }
     
     function selectUser(member) {
-        if (!selectedUserContainer || !selectedUserAvatar || !selectedUserName || !selectedUserRole || !confirmTransferBtn || !usersContainer) return;
+        const selectedUserRoleBadge = document.getElementById('selected-user-role-badge');
+        const selectedUserStatus = document.getElementById('selected-user-status');
+        const selectedUserStatusIndicator = document.getElementById('selected-user-status-indicator');
+        
+        if (!selectedUserContainer || !selectedUserAvatar || !selectedUserName || 
+            !selectedUserRoleBadge || !confirmTransferBtn || !usersContainer) return;
         
         selectedUserId = member.id;
         
@@ -1818,10 +1822,50 @@ function initDeleteServerTab() {
         }
         
         selectedUserName.textContent = member.display_name || member.username;
-        selectedUserRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
         
-        // Show selected user section
+        // Style the role badge based on role
+        const roleName = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+        
+        // Set role badge style based on role
+        if (member.role === 'admin') {
+            selectedUserRoleBadge.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-500 text-white';
+        } else {
+            // For regular members
+            selectedUserRoleBadge.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-500 text-white';
+        }
+        selectedUserRoleBadge.textContent = roleName;
+        
+        // Set status indicator
+        if (selectedUserStatus && selectedUserStatusIndicator) {
+            const status = member.status || 'offline';
+            selectedUserStatus.textContent = status;
+            
+            // Set status indicator color
+            switch (status) {
+                case 'online':
+                    selectedUserStatusIndicator.className = 'w-2 h-2 rounded-full mr-1.5 bg-green-500';
+                    break;
+                case 'idle':
+                case 'afk':
+                    selectedUserStatusIndicator.className = 'w-2 h-2 rounded-full mr-1.5 bg-yellow-500';
+                    break;
+                case 'do_not_disturb':
+                    selectedUserStatusIndicator.className = 'w-2 h-2 rounded-full mr-1.5 bg-red-500';
+                    break;
+                default:
+                    selectedUserStatusIndicator.className = 'w-2 h-2 rounded-full mr-1.5 bg-gray-500';
+            }
+        }
+        
+        // Show selected user section with animation
         selectedUserContainer.classList.remove('hidden');
+        selectedUserContainer.style.opacity = '0';
+        selectedUserContainer.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+            selectedUserContainer.style.transition = 'all 0.3s ease';
+            selectedUserContainer.style.opacity = '1';
+            selectedUserContainer.style.transform = 'translateY(0)';
+        }, 10);
         
         // Hide search results
         usersContainer.classList.add('hidden');
@@ -1831,9 +1875,13 @@ function initDeleteServerTab() {
             userSearchInput.value = '';
         }
         
-        // Enable transfer button
+        // Enable transfer button with animation
         confirmTransferBtn.disabled = false;
         confirmTransferBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        confirmTransferBtn.classList.add('animate-pulse-once');
+        setTimeout(() => {
+            confirmTransferBtn.classList.remove('animate-pulse-once');
+        }, 1000);
     }
     
     // This function is no longer needed since we removed the name confirmation

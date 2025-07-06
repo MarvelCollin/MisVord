@@ -28,60 +28,51 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     }
 </style>
 
-<div id="create-channel-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden opacity-0">
-    <div class="bg-[#36393f] rounded-md w-full max-w-md shadow-xl transform scale-95 overflow-hidden">
-        <div class="p-6">
-            <div class="flex justify-between items-center">
-                <h2 class="text-white text-xl font-bold">Create Channel</h2>
-                <button id="close-create-channel-modal" class="text-gray-400 hover:text-white">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            
-            <p class="text-gray-400 mt-2 mb-6">Create a new channel for your server</p>
-
-            <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="space-y-4">
-                <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
-                <input type="hidden" name="position" id="channel-position" value="">
-
+<div id="create-channel-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="w-full max-w-md">
+        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
+            <div class="p-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-white text-xl font-bold">Create Channel</h2>
+                    <button id="close-create-channel-modal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
                 
-                <div class="mb-4">
-                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Type</label>
-                    <div class="relative">
-                        <select id="channel-type" name="type" 
-                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
-                            <option value="text">Text</option>
-                            <option value="voice">Voice</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                            <i class="fas fa-chevron-down text-xs"></i>
+                <p class="text-gray-400 mt-2 mb-6">Create a new channel for your server</p>
+
+                <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="space-y-4">
+                    <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
+                    <input type="hidden" name="position" id="channel-position" value="">
+
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Type</label>
+                        <div class="relative">
+                            <select id="channel-type" name="type" 
+                                    class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
+                                <option value="text">Text</option>
+                                <option value="voice">Voice</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
                         </div>
                     </div>
-                </div>
-                
-                <div class="mb-4">
-                    <label for="channel-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Name</label>
-                    <div class="relative flex items-center bg-[#1e1f22] rounded border border-[#1e1f22]">
-                        <span class="text-gray-400 pl-3">#</span>
-                        <input type="text" id="channel-name" name="name" 
-                              class="bg-transparent border-none text-white w-full px-2 py-2 focus:outline-none" 
-                              placeholder="new-channel" required>
+                    
+                    <div class="mb-4">
+                        <label for="channel-name" class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Channel Name</label>
+                        <div class="relative flex items-center bg-[#1e1f22] rounded border border-[#1e1f22]">
+                            <span class="text-gray-400 pl-3">#</span>
+                            <input type="text" id="channel-name" name="name" 
+                                  class="bg-transparent border-none text-white w-full px-2 py-2 focus:outline-none" 
+                                  placeholder="new-channel" required>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
-                </div>
-                
-            </form>
-        </div>
-        
-        <div class="bg-[#2b2d31] py-4 px-6 flex justify-end gap-3">
-            <button type="button" id="cancel-create-channel" 
-                    class="px-4 py-2 text-sm font-medium text-white hover:underline">
-                Cancel
-            </button>
-            <button type="submit" form="create-channel-form" id="create-channel-btn"
-                    class="bg-discord-blue text-white px-4 py-2 rounded text-sm font-medium hover:bg-opacity-80 transition-colors">
-                Create Channel
-            </button>
+                    
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -198,61 +189,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 </div>
 
-<div id="transfer-ownership-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="w-full max-w-md">
-        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-white">Transfer Ownership</h2>
-                    <button id="close-transfer-ownership-modal" class="text-gray-400 hover:text-white">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div class="space-y-4">
-                    <div class="text-center" id="transfer-content">
-                        <i class="fas fa-crown text-yellow-500 text-4xl mb-4"></i>
-                        <p class="text-white mb-2">You're about to leave your own server!</p>
-                        <p class="text-gray-400 text-sm mb-4">You must transfer ownership to another member before leaving.</p>
-                    </div>
-                    
-                    <div class="text-center hidden" id="delete-content">
-                        <i class="fas fa-trash-alt text-red-500 text-4xl mb-4"></i>
-                        <p class="text-white mb-2">You're about to leave your own server!</p>
-                        <p class="text-gray-400 text-sm mb-4">Since there are no other members, the server will be permanently deleted.</p>
-                        <div class="bg-red-900/20 border border-red-500/50 rounded-lg p-3 mt-4">
-                            <p class="text-red-400 text-sm font-medium">⚠️ This action cannot be undone!</p>
-                            <p class="text-gray-400 text-xs mt-1">All channels, messages, and server data will be lost forever.</p>
-                        </div>
-                    </div>
-                    
-                    <div id="member-selection">
-                        <label class="block text-sm font-medium text-gray-300 mb-2">Select New Owner</label>
-                        <select id="new-owner-select" class="w-full bg-discord-dark border border-gray-700 rounded px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-discord-primary">
-                            <option value="">Loading members...</option>
-                        </select>
-                    </div>
-                    
-                    <div class="pt-4 flex space-x-3">
-                        <button type="button" id="cancel-transfer-ownership" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
-                            Cancel
-                        </button>
-                        <button type="button" id="confirm-transfer-ownership" 
-                                class="flex-1 bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded" disabled>
-                            Transfer & Leave
-                        </button>
-                        <button type="button" id="confirm-delete-server" 
-                                class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded hidden">
-                            Delete Server & Leave
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div id="edit-profile-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md">
         <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
@@ -277,30 +213,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="leave-server-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="bg-discord-darker p-6 rounded-lg shadow-xl w-full max-w-md">
-        <h2 class="text-xl font-bold text-white mb-4">Leave Server</h2>
-        <div class="space-y-4">
-            <div class="text-center">
-                <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                <p class="text-white mb-2">Are you sure you want to leave this server?</p>
-                <p class="text-gray-400 text-sm">You won't be able to rejoin this server unless you are re-invited.</p>
-            </div>
-            
-            <div class="pt-4 flex space-x-3">
-                <button type="button" id="cancel-leave-server" 
-                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
-                    Cancel
-                </button>
-                <button type="button" id="confirm-leave-server" 
-                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
-                    Leave Server
-                </button>
             </div>
         </div>
     </div>
@@ -410,49 +322,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (modal.id === 'create-category-modal') closeCreateCategoryModal();
             if (modal.id === 'invite-people-modal') closeInvitePeopleModal();
             if (modal.id === 'notification-settings-modal') closeNotificationSettingsModal();
-            if (modal.id === 'leave-server-modal') closeLeaveServerModal();
             if (modal.id === 'edit-profile-modal') closeEditProfileModal();
         });
     }
 
     function closeInvitePeopleModal() {
         const modal = document.getElementById('invite-people-modal');
-        if (!modal) return;
-        
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }
-
-    function closeTransferOwnershipModal() {
-        const modal = document.getElementById('transfer-ownership-modal');
-        if (!modal) return;
-        
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-        
-        resetTransferOwnershipModal();
-        
-        const newOwnerSelect = document.getElementById('new-owner-select');
-        if (newOwnerSelect) {
-            newOwnerSelect.innerHTML = '<option value="">Loading members...</option>';
-        }
-    }
-    
-    function resetTransferOwnershipModal() {
-        document.getElementById('transfer-content').classList.remove('hidden');
-        document.getElementById('delete-content').classList.add('hidden');
-        document.getElementById('member-selection').classList.remove('hidden');
-        document.getElementById('confirm-transfer-ownership').classList.remove('hidden');
-        document.getElementById('confirm-delete-server').classList.add('hidden');
-        
-        const confirmTransferBtn = document.getElementById('confirm-transfer-ownership');
-        if (confirmTransferBtn) {
-            confirmTransferBtn.disabled = true;
-        }
-    }
-
-    function closeLeaveServerModal() {
-        const modal = document.getElementById('leave-server-modal');
         if (!modal) return;
         
         modal.classList.add('hidden');
@@ -478,57 +353,6 @@ document.addEventListener('DOMContentLoaded', function() {
         invitePeopleModal.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeInvitePeopleModal();
-            }
-        });
-    }
-
-    const transferOwnershipModal = document.getElementById('transfer-ownership-modal');
-    const closeTransferBtn = document.getElementById('close-transfer-ownership-modal');
-    const cancelTransferBtn = document.getElementById('cancel-transfer-ownership');
-    const confirmTransferBtn = document.getElementById('confirm-transfer-ownership');
-    const newOwnerSelect = document.getElementById('new-owner-select');
-    
-    if (closeTransferBtn) {
-        closeTransferBtn.addEventListener('click', closeTransferOwnershipModal);
-    }
-    
-    if (cancelTransferBtn) {
-        cancelTransferBtn.addEventListener('click', closeTransferOwnershipModal);
-    }
-    
-    if (transferOwnershipModal) {
-        transferOwnershipModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeTransferOwnershipModal();
-            }
-        });
-    }
-
-    if (newOwnerSelect) {
-        newOwnerSelect.addEventListener('change', function() {
-            const confirmBtn = document.getElementById('confirm-transfer-ownership');
-            if (confirmBtn) {
-                confirmBtn.disabled = !this.value;
-            }
-        });
-    }
-
-    const leaveServerModal = document.getElementById('leave-server-modal');
-    const closeLeaveBtn = document.getElementById('close-leave-server-modal');
-    const cancelLeaveBtn = document.getElementById('cancel-leave-server');
-    
-    if (closeLeaveBtn) {
-        closeLeaveBtn.addEventListener('click', closeLeaveServerModal);
-    }
-    
-    if (cancelLeaveBtn) {
-        cancelLeaveBtn.addEventListener('click', closeLeaveServerModal);
-    }
-    
-    if (leaveServerModal) {
-        leaveServerModal.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeLeaveServerModal();
             }
         });
     }
@@ -933,22 +757,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     window.debugModalFunctions = function() {
-
-
-
-
-
-
-
-
-
-
-
-        
-
         try {
             window.showCreateChannelModal();
-
         } catch (error) {
             console.error('❌ Channel modal error:', error);
         }
@@ -957,15 +767,12 @@ document.addEventListener('DOMContentLoaded', function() {
     window.testModalDirectly = function() {
         console.clear();
 
-        
         const modal = document.getElementById('create-channel-modal');
         if (!modal) {
             console.error('❌ Modal not found!');
             return;
         }
         
-
-
         console.log('🎨 Modal initial styles:', {
             display: getComputedStyle(modal).display,
             visibility: getComputedStyle(modal).visibility,
@@ -995,17 +802,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modalContent) {
             modalContent.classList.remove('scale-95');
             modalContent.style.transform = 'scale(1)';
-
         } else {
             console.warn('⚠️ Modal content not found');
-
         }
-        
-
     };
-    
-
-    
-
 });
 </script>

@@ -873,33 +873,33 @@ function handleDisconnect(io, client) {
 
                     }
                     
-                    voiceMeetingsUpdated.push({
-                        channel_id: meeting.channel_id,
-                        meeting_id: meeting.meeting_id,
-                        participant_count: result.participant_count,
-                        user_id: user_id,
-                        username: username
-                    });
+                    // voiceMeetingsUpdated.push({
+                    //     channel_id: meeting.channel_id,
+                    //     meeting_id: meeting.meeting_id,
+                    //     participant_count: result.participant_count,
+                    //     user_id: user_id,
+                    //     username: username
+                    // });
                     
 
                 }
             }
         }
         
-        voiceMeetingsUpdated.forEach(update => {
+        // voiceMeetingsUpdated.forEach(update => {
 
             
 
-            io.emit('voice-meeting-update', {
-                channel_id: update.channel_id,
-                meeting_id: update.meeting_id,
-                participant_count: update.participant_count,
-                action: 'leave',
-                user_id: update.user_id,
-                username: update.username,
-                timestamp: Date.now()
-            });
-        });
+        //     io.emit('voice-meeting-update', {
+        //         channel_id: update.channel_id,
+        //         meeting_id: update.meeting_id,
+        //         participant_count: update.participant_count,
+        //         action: 'leave',
+        //         user_id: update.user_id,
+        //         username: update.username,
+        //         timestamp: Date.now()
+        //     });
+        // });
         
         if (voiceMeetingsUpdated.length > 0) {
 

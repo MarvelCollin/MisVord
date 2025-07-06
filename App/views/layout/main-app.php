@@ -60,6 +60,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <?php if (!isset($data_page) || ($data_page !== 'auth' && $data_page !== 'settings-user')): ?>
         <?php include_once dirname(__DIR__) . '/components/app-sections/create-server-modal.php'; ?>
         <?php include_once dirname(__DIR__) . '/components/app-sections/server-actions-modals.php'; ?>
+        <?php include_once dirname(__DIR__) . '/components/server/leave-server-modal.php'; ?>
         <?php include_once dirname(__DIR__) . '/components/common/user-detail.php'; ?>
         <?php include_once dirname(__DIR__) . '/components/explore/server-detail.php'; ?>
         <script type="module" src="<?php echo js('components/common/user-detail'); ?>"></script>

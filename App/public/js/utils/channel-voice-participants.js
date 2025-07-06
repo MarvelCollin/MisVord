@@ -2,6 +2,7 @@ class ChannelVoiceParticipants {
     constructor() {
         this.participants = new Map();
         this.coordinator = null;
+        this._processingSocketLeaveEvent = false;
         this.init();
     }
 
@@ -107,7 +108,10 @@ class ChannelVoiceParticipants {
                 this.updateParticipantContainer(data.channel_id);
                 this.forceRefreshAllContainers();
             } else if (!data.has_meeting) {
+                // Set flag to bypass explicitLeaveRequested check for socket events
+                this._processingSocketLeaveEvent = true;
                 this.clearChannelParticipants(data.channel_id);
+                this._processingSocketLeaveEvent = false;
                 this.updateParticipantContainer(data.channel_id);
                 this.forceRefreshAllContainers();
             }
@@ -171,18 +175,22 @@ class ChannelVoiceParticipants {
             this.updateChannelCount(channel_id, participant_count);
         }
 
+        // Skip further processing for own join/registered events when VideoSDK manages the local participant.
         const isOwnEvent = user_id === window.currentUserId || user_id === window.globalSocketManager?.userId;
-        if (isOwnEvent && window.videoSDKManager?.isReady()) {
+        if (action !== 'leave' && isOwnEvent && window.videoSDKManager?.isReady()) {
             return;
         }
 
         const channelParticipants = this.participants.get(channel_id);
         const participantExists = channelParticipants && channelParticipants.has(user_id?.toString());
 
-        if (action === 'join' && user_id && !participantExists) {
+        if ((action === 'join' || action === 'already_registered') && user_id && !participantExists) {
             await this.addParticipant(channel_id, user_id, username);
-        } else if (action === 'already_registered' && user_id && !participantExists) {
-            await this.addParticipant(channel_id, user_id, username);
+        } else if (action === 'leave' && user_id) {
+            // Set flag to bypass explicitLeaveRequested check for socket events
+            this._processingSocketLeaveEvent = true;
+            this.removeParticipant(channel_id, user_id);
+            this._processingSocketLeaveEvent = false;
         }
 
         this.updateParticipantContainer(channel_id);
@@ -268,8 +276,11 @@ class ChannelVoiceParticipants {
     removeParticipant(channelId, userId) {
         const normalizedUserId = userId.toString();
         
-        // MODIFIED: Check with coordinator if this is an explicit leave action
-        if (this.coordinator) {
+        // MODIFIED: Only check coordinator flag for direct method calls, not for socket 'leave' events
+        // Socket 'leave' events should always be processed as they come from the server
+        const isSocketLeaveEvent = this._processingSocketLeaveEvent || false;
+        
+        if (this.coordinator && !isSocketLeaveEvent) {
             // Only pass this through if it's an explicit leave button action
             // which will be marked by the coordinator's explicitLeaveRequested flag
             if (!this.coordinator.explicitLeaveRequested) {
@@ -300,8 +311,11 @@ class ChannelVoiceParticipants {
     }
 
     clearChannelParticipants(channelId) {
-        // MODIFIED: Only clear if it's an explicit leave action
-        if (this.coordinator && !this.coordinator.explicitLeaveRequested) {
+        // MODIFIED: Only check coordinator flag for direct method calls, not for socket events
+        // Socket events should always be processed as they come from the server
+        const isSocketEvent = this._processingSocketLeaveEvent || false;
+        
+        if (this.coordinator && !isSocketEvent && !this.coordinator.explicitLeaveRequested) {
             console.log('[VOICE-PARTICIPANT] Prevented clearing channel participants:', channelId);
             return false;
         }

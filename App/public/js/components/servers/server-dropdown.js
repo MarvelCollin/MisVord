@@ -321,17 +321,156 @@ function showCreateChannelModal() {
     }
 }
 
-function showLeaveServerConfirmation() {
+async function showLeaveServerConfirmation() {
     const modal = document.getElementById('leave-server-modal');
     if (!modal) {
         console.error('Leave server modal not found');
         return;
     }
 
+    const serverId = getCurrentServerId();
+    if (!serverId) {
+        showToast('Could not identify the server.', 'error');
+        return;
+    }
+    
+    const serverName = document.querySelector('.server-name')?.textContent || 'this server';
+    modal.querySelectorAll('.server-name-to-confirm').forEach(el => el.textContent = serverName);
+
     modal.classList.remove('hidden');
     modal.style.display = 'flex';
+
+    const userRole = await getUserRole(serverId);
+    const memberView = document.getElementById('leave-server-member-view');
+    const ownerView = document.getElementById('leave-server-owner-view');
+
+    if (userRole === 'owner') {
+        memberView.classList.add('hidden');
+        ownerView.classList.remove('hidden');
+        setupOwnerLeaveFlow(serverId);
+    } else {
+        ownerView.classList.add('hidden');
+        memberView.classList.remove('hidden');
+        setupMemberLeaveFlow(serverId);
+    }
+}
+
+function setupMemberLeaveFlow(serverId) {
+    const confirmBtn = document.getElementById('confirm-leave-server');
+    const cancelBtn = document.getElementById('cancel-leave-server');
+    const closeBtn = document.getElementById('close-leave-server-modal');
+
+    const handleLeave = () => leaveServer(serverId, false);
+
+    confirmBtn.onclick = handleLeave;
+    cancelBtn.onclick = () => closeModal('leave-server-modal');
+    closeBtn.onclick = () => closeModal('leave-server-modal');
+}
+
+function setupOwnerLeaveFlow(serverId) {
+    const transferView = document.getElementById('leave-server-transfer-view');
+    const deleteView = document.getElementById('leave-server-delete-view');
+    let selectedUserId = null;
+
+    const searchInput = document.getElementById('owner-transfer-user-search');
+    const usersContainer = document.getElementById('owner-transfer-users-container');
+    const usersLoading = document.getElementById('owner-transfer-users-loading');
+    const selectedUserContainer = document.getElementById('owner-transfer-selected-user-container');
+    const confirmTransferBtn = document.getElementById('confirm-owner-transfer');
+
+    const closeButtons = [
+        document.getElementById('close-leave-server-modal'),
+        document.getElementById('cancel-owner-leave'),
+        document.getElementById('cancel-delete-leave'),
+    ];
+    closeButtons.forEach(btn => btn.onclick = () => closeModal('leave-server-modal'));
+
+    const loadEligibleMembers = async () => {
+        try {
+            const members = await window.serverAPI.getEligibleNewOwners(serverId);
+            if (members.success && members.members.length > 0) {
+                transferView.classList.remove('hidden');
+                deleteView.classList.add('hidden');
+            } else {
+                transferView.classList.add('hidden');
+                deleteView.classList.remove('hidden');
+            }
+        } catch (error) {
+            showToast('Could not load members for transfer.', 'error');
+            closeModal('leave-server-modal');
+        }
+    };
     
-    setupLeaveServerModalListeners();
+    const searchUsers = debounce(async (query) => {
+        if (query.length < 2) {
+            usersContainer.classList.add('hidden');
+            return;
+        }
+        usersLoading.classList.remove('hidden');
+        usersContainer.innerHTML = '';
+
+        try {
+            const result = await window.serverAPI.searchMembers(serverId, query);
+            usersLoading.classList.add('hidden');
+            if (result.success && result.data.length > 0) {
+                usersContainer.innerHTML = result.data.map(user => `
+                    <div class="p-2 flex items-center hover:bg-discord-dark-input cursor-pointer" data-user-id="${user.id}" data-user-name="${user.username}" data-user-avatar="${user.avatar_url}">
+                        <img src="${user.avatar_url || '/assets/common/default-profile-picture.png'}" class="w-8 h-8 rounded-full mr-2">
+                        <span>${user.username}</span>
+                    </div>
+                `).join('');
+                usersContainer.classList.remove('hidden');
+            } else {
+                usersContainer.innerHTML = '<p class="p-2 text-discord-lighter">No users found.</p>';
+                usersContainer.classList.remove('hidden');
+            }
+        } catch (error) {
+            showToast('Failed to search for users.', 'error');
+            usersLoading.classList.add('hidden');
+        }
+    }, 300);
+
+    searchInput.addEventListener('input', (e) => searchUsers(e.target.value));
+
+    usersContainer.addEventListener('click', (e) => {
+        const userDiv = e.target.closest('[data-user-id]');
+        if (userDiv) {
+            selectedUserId = userDiv.dataset.userId;
+            document.getElementById('owner-transfer-selected-user-name').textContent = userDiv.dataset.userName;
+            document.getElementById('owner-transfer-selected-user-avatar').src = userDiv.dataset.userAvatar || '/assets/common/default-profile-picture.png';
+            selectedUserContainer.classList.remove('hidden');
+            usersContainer.classList.add('hidden');
+            searchInput.value = '';
+            confirmTransferBtn.disabled = false;
+            confirmTransferBtn.classList.remove('cursor-not-allowed', 'opacity-50');
+        }
+    });
+
+    confirmTransferBtn.onclick = async () => {
+        if (!selectedUserId) {
+            showToast('Please select a member to transfer ownership to.', 'error');
+            return;
+        }
+        await transferOwnershipAndLeave(serverId, selectedUserId);
+    };
+
+    document.getElementById('confirm-delete-leave').onclick = () => leaveServer(serverId, true);
+
+    loadEligibleMembers();
+}
+
+async function transferOwnershipAndLeave(serverId, newOwnerId) {
+    try {
+        const response = await window.serverAPI.transferOwnership(serverId, newOwnerId);
+        if (response.success) {
+            showToast('Ownership transferred successfully. You can now leave the server.', 'success');
+            await leaveServer(serverId, false);
+        } else {
+            showToast(response.message || 'Failed to transfer ownership.', 'error');
+        }
+    } catch (error) {
+        showToast(error.message || 'An error occurred during ownership transfer.', 'error');
+    }
 }
 
 function redirectToServerSettings() {
@@ -380,19 +519,7 @@ function setupInviteModalListeners() {
 }
 
 function setupLeaveServerModalListeners() {
-    const confirmBtn = document.getElementById('confirm-leave-server');
-    if (confirmBtn && !confirmBtn.hasAttribute('data-listener')) {
-        confirmBtn.addEventListener('click', () => {
-            const serverId = getCurrentServerId();
-            if (!serverId) {
-                showToast('Unable to leave server: Server ID not found', 'error');
-                closeModal('leave-server-modal');
-                return;
-            }
-            leaveServer(serverId);
-        });
-        confirmBtn.setAttribute('data-listener', 'true');
-    }
+    // This function is now deprecated in favor of the new dynamic setup
 }
 
 async function loadInviteLink(serverId) {
@@ -491,26 +618,20 @@ async function generateNewInvite(serverId, expirationValue = null) {
     }
 }
 
-async function leaveServer(serverId) {
+async function leaveServer(serverId, isDeleting = false) {
     try {
-        if (!serverId) {
-            throw new Error('Server ID is required');
-        }
-        
+        if (!serverId) throw new Error('Server ID is required');
         await waitForServerAPI();
-        
-        if (!window.serverAPI) {
-            throw new Error('serverAPI not available');
-        }
-        
+        if (!window.serverAPI) throw new Error('serverAPI not available');
+
         const data = await window.serverAPI.leaveServer(serverId);
         
         if (data.success) {
-            if (data.data && data.data.server_deleted) {
-                showToast(data.message || 'Server deleted successfully', 'success');
-            } else {
-                showToast(data.message || 'Successfully left server', 'success');
+            let message = 'Successfully left server';
+            if (isDeleting || (data.data && data.data.server_deleted)) {
+                message = 'Server deleted successfully';
             }
+            showToast(data.message || message, 'success');
             closeModal('leave-server-modal');
             setTimeout(() => {
                 window.location.href = data.redirect || data.data?.redirect || '/home';
@@ -520,85 +641,32 @@ async function leaveServer(serverId) {
         }
     } catch (error) {
         console.error('Error leaving server:', error);
-        
-        if (error.message && error.message.includes('ownership')) {
-            showTransferOwnershipModal(serverId);
-            closeModal('leave-server-modal');
-        } else {
-            showToast('Failed to leave server: ' + error.message, 'error');
-        }
+        showToast('Failed to leave server: ' + error.message, 'error');
     }
 }
 
 function showTransferOwnershipModal(serverId) {
-    const modal = document.getElementById('transfer-ownership-modal');
-    if (!modal) {
-        console.error('Transfer ownership modal not found');
-        return;
-    }
-    
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-    
-    loadEligibleOwners(serverId);
+    // This function is deprecated and replaced by the new owner flow
+    // in showLeaveServerConfirmation
+    console.warn('showTransferOwnershipModal is deprecated.');
+    showLeaveServerConfirmation();
 }
 
 async function loadEligibleOwners(serverId) {
-    try {
-        await waitForServerAPI();
-        
-        if (!window.serverAPI) {
-            throw new Error('serverAPI not available');
-        }
-        
-        const data = await window.serverAPI.getEligibleNewOwners(serverId);
-        
-                if (data.success) {
-                    if (data.should_delete_server) {
-                showDeleteServerMode();
-                    } else if (data.members && data.members.length > 0) {
-                        showTransferOwnershipMode();
-                        populateMembersList(data.members);
-                    } else {
-                showDeleteServerMode();
-                    }
-                } else {
-            throw new Error(data.message || 'Failed to load eligible members');
-        }
-    } catch (error) {
-        console.error('Error loading eligible owners:', error);
-        showToast('Failed to load eligible members', 'error');
-    }
+    // This function is deprecated and replaced by the new owner flow
+     console.warn('loadEligibleOwners is deprecated.');
 }
 
 function showTransferOwnershipMode() {
-    document.getElementById('transfer-content').classList.remove('hidden');
-    document.getElementById('delete-content').classList.add('hidden');
-    document.getElementById('member-selection').classList.remove('hidden');
-    document.getElementById('confirm-transfer-ownership').classList.remove('hidden');
-    document.getElementById('confirm-delete-server').classList.add('hidden');
+    // This function is deprecated
 }
 
 function showDeleteServerMode() {
-    document.getElementById('transfer-content').classList.add('hidden');
-    document.getElementById('delete-content').classList.remove('hidden');
-    document.getElementById('member-selection').classList.add('hidden');
-    document.getElementById('confirm-transfer-ownership').classList.add('hidden');
-    document.getElementById('confirm-delete-server').classList.remove('hidden');
+     // This function is deprecated
 }
 
 function populateMembersList(members) {
-    const newOwnerSelect = document.getElementById('new-owner-select');
-    if (!newOwnerSelect) return;
-    
-    newOwnerSelect.innerHTML = '<option value="">Select new owner...</option>';
-    
-    members.forEach(member => {
-        const option = document.createElement('option');
-        option.value = member.id;
-        option.textContent = `${member.display_name || member.username} (${member.role})`;
-        newOwnerSelect.appendChild(option);
-    });
+    // This function is deprecated
 }
 
 function closeModal(modalId) {
@@ -612,6 +680,18 @@ function closeModal(modalId) {
             form.reset();
         }
     }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 window.debugServerDropdown = async function() {

@@ -1,4 +1,14 @@
 <?php if (isset($serverId)): ?>
+<style>
+    @keyframes pulse-once {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    .animate-pulse-once {
+        animation: pulse-once 0.6s ease-in-out;
+    }
+</style>
 <div id="delete-server-modal" class="fixed inset-0 flex items-center justify-center hidden z-50">
     <div class="absolute inset-0 bg-black bg-opacity-70"></div>
     
@@ -62,12 +72,22 @@
                 
                 <div id="selected-user-container" class="mb-5 hidden">
                     <label class="block text-sm font-medium text-discord-lighter mb-1">SELECTED USER</label>
-                    <div class="bg-discord-dark-hover rounded p-2 flex items-center">
-                        <div class="w-10 h-10 rounded-full overflow-hidden mr-2 flex-shrink-0" id="selected-user-avatar"></div>
+                    <div class="bg-discord-dark-hover rounded p-3 flex items-center border border-discord-dark-input">
+                        <div class="w-12 h-12 rounded-full overflow-hidden mr-3 flex-shrink-0" id="selected-user-avatar"></div>
                         <div class="flex-grow">
-                            <div class="text-white font-medium" id="selected-user-name"></div>
-                            <div class="text-discord-lighter text-xs" id="selected-user-role"></div>
+                            <div class="flex items-center mb-1">
+                                <div class="text-white font-medium text-lg mr-2" id="selected-user-name"></div>
+                                <div id="selected-user-role-badge" class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold"></div>
+                            </div>
+                            <div class="text-discord-lighter text-sm flex items-center">
+                                <span class="w-2 h-2 rounded-full mr-1.5" id="selected-user-status-indicator"></span>
+                                <span id="selected-user-status">offline</span>
+                            </div>
                         </div>
+                    </div>
+                    <div class="mt-3 text-sm text-discord-lighter">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        This user will become the new owner of the server.
                     </div>
                 </div>
                 
