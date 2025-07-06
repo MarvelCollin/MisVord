@@ -61,7 +61,7 @@ if (file_exists($tooltipPath)) {
 
     <div class="px-2 mt-1 flex-grow overflow-y-auto" id="dm-list-container">
         <div id="dm-skeleton-loading" class="dm-skeleton-container">
-            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
@@ -70,7 +70,7 @@ if (file_exists($tooltipPath)) {
                     <div class="skeleton-text mb-1"></div>
                 </div>
             </div>
-            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
@@ -79,7 +79,7 @@ if (file_exists($tooltipPath)) {
                     <div class="skeleton-text mb-1"></div>
                 </div>
             </div>
-            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
@@ -88,7 +88,7 @@ if (file_exists($tooltipPath)) {
                     <div class="skeleton-text mb-1"></div>
                 </div>
             </div>
-            <div class="dm-skeleton-item flex items-center p-1.5 rounded animate-pulse">
+            <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
                     <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
@@ -176,20 +176,25 @@ if (file_exists($tooltipPath)) {
     animation-delay: 0.1s;
 }
 
-.dm-skeleton-item:nth-child(1) {
-    animation-delay: 0ms;
+.dm-skeleton-item {
+    opacity: 0;
+    animation: dm-item-appear 0.5s ease forwards;
 }
 
-.dm-skeleton-item:nth-child(2) {
-    animation-delay: 200ms;
-}
+.dm-skeleton-item:nth-child(1) { animation-delay: 0.1s; }
+.dm-skeleton-item:nth-child(2) { animation-delay: 0.2s; }
+.dm-skeleton-item:nth-child(3) { animation-delay: 0.3s; }
+.dm-skeleton-item:nth-child(4) { animation-delay: 0.4s; }
 
-.dm-skeleton-item:nth-child(3) {
-    animation-delay: 400ms;
-}
-
-.dm-skeleton-item:nth-child(4) {
-    animation-delay: 600ms;
+@keyframes dm-item-appear {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .skeleton-avatar {

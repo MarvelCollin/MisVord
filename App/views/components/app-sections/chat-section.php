@@ -657,7 +657,7 @@ if (!function_exists('renderMessage')) {
 
     <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
         <div id="load-more-container" class="hidden p-4 text-center">
-            <div id="load-more-skeleton" class="hidden space-y-4 animate-pulse">
+            <div id="load-more-skeleton" class="hidden space-y-4">
                 <div class="text-xs text-[#b9bbbe] text-center mb-4">
                     <i class="fas fa-spinner fa-spin mr-2"></i>Loading older messages...
                 </div>
@@ -716,7 +716,7 @@ if (!function_exists('renderMessage')) {
         </div>
         
         <div id="chat-skeleton-loading" class="chat-skeleton-container">
-            <div class="chat-skeleton-message animate-pulse">
+            <div class="chat-skeleton-message">
                 <div class="chat-skeleton-avatar"></div>
                 <div class="chat-skeleton-content">
                     <div class="chat-skeleton-header">
@@ -727,7 +727,7 @@ if (!function_exists('renderMessage')) {
                     <div class="chat-skeleton-text medium"></div>
                 </div>
             </div>
-            <div class="chat-skeleton-message animate-pulse">
+            <div class="chat-skeleton-message">
                 <div class="chat-skeleton-avatar"></div>
                 <div class="chat-skeleton-content">
                     <div class="chat-skeleton-header">
@@ -737,7 +737,7 @@ if (!function_exists('renderMessage')) {
                     <div class="chat-skeleton-text short"></div>
                 </div>
             </div>
-            <div class="chat-skeleton-message animate-pulse">
+            <div class="chat-skeleton-message">
                 <div class="chat-skeleton-avatar"></div>
                 <div class="chat-skeleton-content">
                     <div class="chat-skeleton-header">
@@ -748,7 +748,7 @@ if (!function_exists('renderMessage')) {
                     <div class="chat-skeleton-text very-short"></div>
                 </div>
             </div>
-            <div class="chat-skeleton-message animate-pulse">
+            <div class="chat-skeleton-message">
                 <div class="chat-skeleton-avatar"></div>
                 <div class="chat-skeleton-content">
                     <div class="chat-skeleton-header">
@@ -758,7 +758,7 @@ if (!function_exists('renderMessage')) {
                     <div class="chat-skeleton-text long"></div>
                 </div>
             </div>
-            <div class="chat-skeleton-message animate-pulse">
+            <div class="chat-skeleton-message">
                 <div class="chat-skeleton-avatar"></div>
                 <div class="chat-skeleton-content">
                     <div class="chat-skeleton-header">

@@ -106,7 +106,8 @@
 }
 
 .skeleton-loader .animate-pulse {
-    animation: pulse 1.5s ease-in-out infinite;
+    /* animation: none; */
+    opacity: 0.7;
 }
 
 .skeleton-loader .bg-gray-700 {

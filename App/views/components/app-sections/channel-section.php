@@ -49,30 +49,30 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 <div class="channel-wrapper flex-1 overflow-y-auto">
     <div id="channel-skeleton-loading" class="channel-skeleton-container p-2">
         <div class="mb-4">
-            <div class="flex items-center px-3 py-1 mb-1 animate-pulse">
+            <div class="flex items-center px-3 py-1 mb-1">
                 <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
                 <div class="h-4 bg-gray-700 rounded w-24"></div>
             </div>
             <div class="ml-2">
-                <?php renderChannelSkeleton(3, 'animate-pulse'); ?>
+                <?php renderChannelSkeleton(3, ''); ?>
             </div>
         </div>
         <div class="mb-4">
-            <div class="flex items-center px-3 py-1 mb-1 animate-pulse">
+            <div class="flex items-center px-3 py-1 mb-1">
                 <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
                 <div class="h-4 bg-gray-700 rounded w-32"></div>
             </div>
             <div class="ml-2">
-                <?php renderChannelSkeleton(4, 'animate-pulse'); ?>
+                <?php renderChannelSkeleton(4, ''); ?>
             </div>
         </div>
         <div class="mb-4">
-            <div class="flex items-center px-3 py-1 mb-1 animate-pulse">
+            <div class="flex items-center px-3 py-1 mb-1">
                 <div class="h-3 w-3 bg-gray-700 rounded-sm mr-1"></div>
                 <div class="h-4 bg-gray-700 rounded w-28"></div>
             </div>
             <div class="ml-2">
-                <?php renderChannelSkeleton(2, 'animate-pulse'); ?>
+                <?php renderChannelSkeleton(2, ''); ?>
             </div>
         </div>
     </div>
@@ -200,14 +200,30 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
 .channel-skeleton-container > div:nth-child(1) {
     animation-delay: 0ms;
+    animation: simple-slide-in 0.5s ease forwards;
 }
 
 .channel-skeleton-container > div:nth-child(2) {
     animation-delay: 300ms;
+    animation: simple-slide-in 0.5s ease forwards;
+    animation-delay: 100ms;
 }
 
 .channel-skeleton-container > div:nth-child(3) {
     animation-delay: 600ms;
+    animation: simple-slide-in 0.5s ease forwards;
+    animation-delay: 200ms;
+}
+
+@keyframes simple-slide-in {
+    from {
+        transform: translateX(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 .channel-item {
@@ -395,7 +411,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     window.testVoiceParticipants = function() {
-
         
         if (!window.ChannelVoiceParticipants) {
             console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
@@ -409,24 +424,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
-
         
         voiceChannels.forEach((channel, index) => {
             const channelId = channel.getAttribute('data-channel-id');
             const channelName = channel.getAttribute('data-channel-name');
-
             
             const participantContainer = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-
             
             if (participantContainer) {
-
-
             }
         });
         
         if (window.globalSocketManager?.isReady()) {
-
             voiceChannels.forEach(channel => {
                 const channelId = channel.getAttribute('data-channel-id');
                 window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
@@ -434,12 +443,9 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             console.warn('[VOICE-PARTICIPANT] Socket not ready');
         }
-        
-
     };
     
     window.addTestVoiceParticipant = function(channelId, userId, username) {
-
         
         if (!window.ChannelVoiceParticipants) {
             console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
@@ -454,15 +460,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         manager.addParticipant(channelId, userId, username);
         manager.updateParticipantContainer(channelId);
-        
-
     };
     
     window.listVoiceParticipantContainers = function() {
-
         
         const containers = document.querySelectorAll('.voice-participants');
-
         
         containers.forEach((container, index) => {
             const channelId = container.getAttribute('data-channel-id');
@@ -480,7 +482,6 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     window.testVoiceParticipantCount = function(channelId, count) {
-
         
         if (!window.ChannelVoiceParticipants) {
             console.error('[VOICE-PARTICIPANT] ChannelVoiceParticipants not loaded');
@@ -505,17 +506,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-
         manager.updateChannelCount(channelId, count);
-
-
     };
     
     window.verifyVoiceParticipantSystem = function() {
-
         
         const voiceChannels = document.querySelectorAll('[data-channel-type="voice"]');
-
         
         let allGood = true;
         
@@ -525,38 +521,26 @@ document.addEventListener('DOMContentLoaded', function() {
             const countElement = channel.querySelector('.voice-user-count');
             const participantContainer = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
             
-
-            
             if (!countElement) {
                 console.error('[VOICE-PARTICIPANT] Missing voice-user-count element for channel:', channelId);
                 allGood = false;
             } else {
-
             }
             
             if (!participantContainer) {
                 console.error('[VOICE-PARTICIPANT] Missing voice-participants container for channel:', channelId);
                 allGood = false;
             } else {
-
             }
         });
         
         if (allGood) {
-
         } else {
             console.error('[VOICE-PARTICIPANT] System verification found issues');
         }
         
         return allGood;
     };
-    
-
-
-
-
-
-
     
     window.testVoiceParticipantProfiles = function(channelId) {
         if (!window.ChannelVoiceParticipants) {
@@ -591,7 +575,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 function testVideoSDKVoiceParticipants() {
-
     
     const voiceManager = window.voiceManager;
     const videoSDK = window.videoSDKManager;
@@ -609,13 +592,10 @@ function testVideoSDKVoiceParticipants() {
     });
     
     if (videoSDK?.meeting?.participants) {
-
         videoSDK.meeting.participants.forEach((participant, id) => {
-
         });
         
         if (videoSDK.meeting.localParticipant) {
-
         }
     }
     
@@ -628,24 +608,20 @@ function testVideoSDKVoiceParticipants() {
 }
 
 function syncVideoSDKToChannelDisplay() {
-
     
     const participantSystem = window.ChannelVoiceParticipants?.getInstance();
     if (participantSystem && participantSystem.syncVideoSDKParticipants) {
         participantSystem.syncVideoSDKParticipants();
-
     } else {
         console.error('❌ [TEST] Participant system not available or missing sync method');
     }
 }
 
 function testVideoSDKParticipantEvents() {
-
     
     const testParticipantId = 'test-participant-' + Date.now();
     const testParticipantName = 'Test User';
     
-
 
     window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
         detail: {
@@ -660,19 +636,15 @@ function testVideoSDKParticipantEvents() {
     
     setTimeout(() => {
 
-
         window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
             detail: {
                 participant: testParticipantId
             }
         }));
     }, 2000);
-    
-
 }
 
 function getVideoSDKConnectionHealth() {
-
     
     const videoSDK = window.videoSDKManager;
     const voiceManager = window.voiceManager;
@@ -738,7 +710,6 @@ function getVideoSDKConnectionHealth() {
 }
 
 function testGlobalParticipantBroadcast() {
-
     
     const voiceCallManager = window.voiceCallManager;
     const globalSocket = window.globalSocketManager;
@@ -759,8 +730,6 @@ function testGlobalParticipantBroadcast() {
         return false;
     }
     
-
-    
     const testParticipantId = 'test-global-' + Date.now();
     const testParticipantName = 'Test Global User';
     
@@ -768,7 +737,6 @@ function testGlobalParticipantBroadcast() {
     voiceCallManager.broadcastParticipantUpdate('join', testParticipantId, testParticipantName);
     
     setTimeout(() => {
-
         voiceCallManager.broadcastParticipantUpdate('leave', testParticipantId, testParticipantName);
     }, 2000);
     
@@ -777,7 +745,6 @@ function testGlobalParticipantBroadcast() {
 }
 
 function verifyGlobalParticipantSystem() {
-
     
     const results = {
         videoSDKExists: !!window.videoSDKManager,
@@ -793,16 +760,13 @@ function verifyGlobalParticipantSystem() {
 
     if (results.videoSDKExists && results.voiceConnected) {
         const videoSDK = window.videoSDKManager;
-
         
         if (videoSDK.meeting?.participants) {
             videoSDK.meeting.participants.forEach((participant, id) => {
-
             });
         }
         
         if (videoSDK.meeting?.localParticipant) {
-
         }
     }
     
@@ -813,28 +777,23 @@ function verifyGlobalParticipantSystem() {
         
         if (currentChannelId) {
             const channelParticipants = participantSystem.getChannelParticipants(currentChannelId);
-
             channelParticipants.forEach((participant, id) => {
-
             });
         }
     }
     
 
     if (results.voiceCallManagerExists && results.globalSocketReady) {
-
     } else {
         console.warn('⚠️ [TEST] Global broadcast system not ready');
     }
     
     const allSystemsGo = Object.values(results).every(v => v === true);
-
     
     return results;
 }
 
 function testChannelSwitchCompatibility() {
-
     
     const participantSystem = window.ChannelVoiceParticipants?.getInstance();
     if (!participantSystem) {
@@ -854,17 +813,13 @@ function testChannelSwitchCompatibility() {
     const methodResults = {};
     methods.forEach(method => {
         methodResults[method] = typeof participantSystem[method] === 'function';
-
     });
     
     const allMethodsExist = Object.values(methodResults).every(exists => exists);
-
     
     if (allMethodsExist) {
-
         try {
             participantSystem.refreshAllChannelCounts();
-
         } catch (error) {
             console.error('❌ [TEST] refreshAllChannelCounts failed:', error);
         }
@@ -874,7 +829,6 @@ function testChannelSwitchCompatibility() {
 }
 
 function forceRefreshAllVoiceChannels() {
-
     
     const participantSystem = window.ChannelVoiceParticipants?.getInstance();
     if (participantSystem) {
@@ -888,7 +842,6 @@ function forceRefreshAllVoiceChannels() {
                 participantSystem.updateAllParticipantContainers();
             }
         }
-
     } else {
         console.error('❌ [TEST] Participant system not available');
     }
@@ -902,15 +855,5 @@ window.testGlobalParticipantBroadcast = testGlobalParticipantBroadcast;
 window.verifyGlobalParticipantSystem = verifyGlobalParticipantSystem;
 window.testChannelSwitchCompatibility = testChannelSwitchCompatibility;
 window.forceRefreshAllVoiceChannels = forceRefreshAllVoiceChannels;
-
-
-
-
-
-
-
-
-
-
 </script>
 

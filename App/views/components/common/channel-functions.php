@@ -54,8 +54,8 @@ if (!function_exists('renderChannelSkeleton')) {
     function renderChannelSkeleton($count = 1, $extraClass = '') {
         for ($i = 0; $i < $count; $i++) {
             echo '<div class="flex items-center py-2 px-3 ' . $extraClass . '">';
-            echo '  <div class="h-3 w-3 bg-gray-700 rounded-sm mr-3 animate-pulse"></div>';
-            echo '  <div class="h-4 bg-gray-700 rounded w-' . rand(16, 32) . ' animate-pulse"></div>';
+            echo '  <div class="h-3 w-3 bg-gray-700 rounded-sm mr-3"></div>';
+            echo '  <div class="h-4 bg-gray-700 rounded w-' . rand(16, 32) . '"></div>';
             echo '</div>';
         }
     }
@@ -66,8 +66,8 @@ if (!function_exists('renderCategorySkeleton')) {
         for ($i = 0; $i < $count; $i++) {
             echo '<div class="mb-3">';
             echo '  <div class="flex items-center px-3 py-1 mb-1">';
-            echo '    <div class="h-4 bg-gray-700 rounded w-24 animate-pulse"></div>';
-            echo '    <div class="ml-auto h-3 w-3 bg-gray-700 rounded-sm animate-pulse"></div>';
+            echo '    <div class="h-4 bg-gray-700 rounded w-24"></div>';
+            echo '    <div class="ml-auto h-3 w-3 bg-gray-700 rounded-sm"></div>';
             echo '  </div>';
             renderChannelSkeleton(rand(2, 4), 'ml-2');
             echo '</div>';

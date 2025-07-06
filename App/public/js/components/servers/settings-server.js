@@ -1,4 +1,5 @@
 import ImageCutter from '../common/image-cutter.js';
+import { showToast } from '../../core/ui/toast.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     if (document.body.classList.contains('settings-page') && document.querySelector('meta[name="server-id"]')) {
@@ -381,51 +382,7 @@ function debounce(func, wait) {
     };
 }
 
-/**
- * Show toast notification
- */
-function showToast(message, type = 'info') {
-    try {
-        // Try to use the global toast function if available
-        if (typeof window.toast === 'function') {
-            window.toast(message, type);
-        } else {
-            // Fallback to console
-            console.log(`[${type.toUpperCase()}] ${message}`);
-            
-            // Try to create a simple toast if window.toast isn't available
-            const toastContainer = document.getElementById('toast-container') || createToastContainer();
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = message;
-            
-            toastContainer.appendChild(toast);
-            
-            // Auto-remove after 3 seconds
-            setTimeout(() => {
-                if (toastContainer.contains(toast)) {
-                    toastContainer.removeChild(toast);
-                }
-                
-                // Clean up container if empty
-                if (toastContainer.children.length === 0) {
-                    document.body.removeChild(toastContainer);
-                }
-            }, 3000);
-        }
-    } catch (e) {
-        // Last resort
-        console.error(`Toast error: ${e.message}`, { originalMessage: message, type });
-    }
-}
-
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toast-container';
-    container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;';
-    document.body.appendChild(container);
-    return container;
-}
+// Toast functionality is now imported from toast.js
 
 /**
  * Initialize the member management tab functionality
@@ -584,9 +541,7 @@ function initMemberManagementTab() {
                 const avatarDiv = memberElement.querySelector('.member-avatar');
                 if (avatarDiv) {
                     avatarDiv.innerHTML = `
-                        <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">
-                            ${member.username.charAt(0).toUpperCase()}
-                        </div>
+                        <img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">
                     `;
                 }
             }
@@ -667,7 +622,10 @@ function initMemberManagementTab() {
                 demoteBtn.replaceWith(demoteBtn.cloneNode(true));
                 const newDemoteBtn = memberElement.querySelector('.demote-btn');
                 
-                newDemoteBtn.addEventListener('click', () => showMemberActionModal('demote', member));
+                newDemoteBtn.addEventListener('click', () => {
+                    // Make sure we're explicitly setting the action for this specific button
+                    setTimeout(() => showMemberActionModal('demote', member), 0);
+                });
             }
             
             if (kickBtn && !kickBtn.disabled && kickBtn.style.display !== 'none') {
@@ -737,14 +695,30 @@ function initMemberManagementTab() {
                 return null;
             };
             
-            // Reset modal content and classes
+            // IMPORTANT: Reset all modal content completely before setting up for the new action
+            // Reset modal icon
             safeSetContent('.modal-icon i', icon => {
-                icon.className = '';
+                if (icon) icon.className = '';
             });
             
+            // Reset title and text content
             safeSetContent('.modal-title', 'Confirm Action');
             safeSetContent('.member-name', member.display_name || member.username);
             safeSetContent('.member-current-role', `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`);
+            safeSetContent('.action-message', '');
+            
+            // Reset role preview elements
+            safeSetContent('.from-role', '');
+            safeSetContent('.to-role', '');
+            if (modal.querySelector('.from-role')) {
+                modal.querySelector('.from-role').className = 'role-badge from-role';
+            }
+            if (modal.querySelector('.to-role')) {
+                modal.querySelector('.to-role').className = 'role-badge to-role';
+            }
+            
+            // Ensure role change preview is hidden initially
+            safeToggleClass('.role-change-preview', 'hidden', true);
             
             // Handle avatar
             const avatarContainer = modal.querySelector('.member-avatar-small');
@@ -752,16 +726,9 @@ function initMemberManagementTab() {
                 if (member.avatar_url) {
                     avatarContainer.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
                 } else {
-                    avatarContainer.innerHTML = `
-                        <div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">
-                            ${member.username.charAt(0).toUpperCase()}
-                        </div>
-                    `;
+                    avatarContainer.innerHTML = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
                 }
             }
-            
-            // Reset role change preview
-            safeToggleClass('.role-change-preview', 'hidden', true);
             
             // Reset confirm button
             const confirmBtn = modal.querySelector('#modal-confirm-btn');
@@ -802,6 +769,7 @@ function initMemberManagementTab() {
             // Set up action-specific content
             let actionHandler;
             
+            // IMPORTANT: Always use fresh settings for each action type
             switch (action) {
                 case 'transfer-ownership':
                     if (modalIcon) modalIcon.className = 'fas fa-crown';
@@ -856,22 +824,32 @@ function initMemberManagementTab() {
                     if (modalTitle) modalTitle.textContent = 'Demote Member';
                     if (actionMessage) actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
                     
-                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
+                    // Make sure role change preview is visible and reset
+                    if (roleChangePreview) {
+                        roleChangePreview.classList.remove('hidden');
+                    }
+                    
+                    // Set source role (current role)
                     if (fromRole) {
                         fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
                         fromRole.className = `role-badge ${member.role}`;
                     }
+                    
+                    // Set destination role (always Member for demote action)
                     if (toRole) {
-                        toRole.textContent = 'Member';
+                        // Force reset the content and class to ensure it's correct
+                        toRole.innerHTML = 'Member';
                         toRole.className = 'role-badge member';
                     }
                     
+                    // Update confirm button
                     if (confirmBtn) {
                         confirmBtn.classList.add('warning');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
                         if (confirmText) confirmText.textContent = 'Demote';
                     }
                     
+                    // Set action handler
                     actionHandler = () => handleDemote(member);
                     break;
                     
@@ -934,6 +912,9 @@ function initMemberManagementTab() {
             };
             modal.addEventListener('click', handleBackgroundClick);
             
+            // Debug log to verify role values right before showing modal
+            console.log(`Modal values before display - Action: ${action}, From role: ${modal.querySelector('.from-role')?.textContent}, To role: ${modal.querySelector('.to-role')?.textContent}`);
+            
             // Show the modal
             modal.classList.remove('hidden');
             
@@ -948,16 +929,20 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
+            // Show loading toast
+            showToast(`Promoting ${member.display_name || member.username}...`, 'info', 2000);
+            
             const response = await window.serverAPI.promoteMember(serverId, member.id);
             if (response && response.success) {
-                showToast(`${member.display_name || member.username} has been promoted to ${response.new_role}`, 'success');
+                const newRole = response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1);
+                showToast(`${member.display_name || member.username} has been promoted to ${newRole}`, 'success', 5000, 'Member Promoted');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to promote member');
             }
         } catch (error) {
             console.error('Error promoting member:', error);
-            showToast(error.message || 'Failed to promote member', 'error');
+            showToast(error.message || 'Failed to promote member', 'error', 5000, 'Promotion Failed');
         }
     }
     
@@ -966,16 +951,20 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
+            // Show loading toast
+            showToast(`Demoting ${member.display_name || member.username}...`, 'info', 2000);
+            
             const response = await window.serverAPI.demoteMember(serverId, member.id);
             if (response && response.success) {
-                showToast(`${member.display_name || member.username} has been demoted to ${response.new_role}`, 'success');
+                const newRole = response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1);
+                showToast(`${member.display_name || member.username} has been demoted to ${newRole}`, 'success', 5000, 'Member Demoted');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to demote member');
             }
         } catch (error) {
             console.error('Error demoting member:', error);
-            showToast(error.message || 'Failed to demote member', 'error');
+            showToast(error.message || 'Failed to demote member', 'error', 5000, 'Demotion Failed');
         }
     }
     
@@ -984,16 +973,19 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
+            // Show loading toast
+            showToast(`Kicking ${member.display_name || member.username}...`, 'info', 2000);
+            
             const response = await window.serverAPI.kickMember(serverId, member.id);
             if (response && response.success) {
-                showToast(`${member.display_name || member.username} has been kicked from the server`, 'success');
+                showToast(`${member.display_name || member.username} has been kicked from the server`, 'success', 5000, 'Member Kicked');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to kick member');
             }
         } catch (error) {
             console.error('Error kicking member:', error);
-            showToast(error.message || 'Failed to kick member', 'error');
+            showToast(error.message || 'Failed to kick member', 'error', 5000, 'Kick Failed');
         }
     }
 
@@ -1002,16 +994,19 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
+            // Show loading toast
+            showToast(`Transferring ownership to ${member.display_name || member.username}...`, 'info', 2000);
+            
             const response = await window.serverAPI.transferOwnership(serverId, member.id);
             if (response && response.success) {
-                showToast(`You have transferred server ownership to ${member.display_name || member.username}`, 'success');
+                showToast(`You have transferred server ownership to ${member.display_name || member.username}`, 'success', 5000, 'Ownership Transferred');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to transfer server ownership');
             }
         } catch (error) {
             console.error('Error transferring server ownership:', error);
-            showToast(error.message || 'Failed to transfer server ownership', 'error');
+            showToast(error.message || 'Failed to transfer server ownership', 'error', 5000, 'Transfer Failed');
         }
     }
     
@@ -1458,9 +1453,12 @@ function initChannelManagementTab() {
     function handleRenameChannel(channel, newName) {
         const serverId = document.querySelector('meta[name="server-id"]')?.content;
         if (!serverId) {
-            showToast('Server ID not found', 'error');
+            showToast('Server ID not found', 'error', 5000, 'Error');
             return;
         }
+        
+        // Show loading toast
+        showToast(`Renaming channel to "${newName}"...`, 'info', 2000);
         
         fetch(`/api/channels/${channel.id}`, {
             method: 'PUT',
@@ -1482,24 +1480,27 @@ function initChannelManagementTab() {
         })
         .then(response => {
             if (response && response.success) {
-                showToast(`Channel renamed to "${newName}" successfully`, 'success');
+                showToast(`Channel renamed to "${newName}" successfully`, 'success', 5000, 'Channel Renamed');
                 loadChannels();
             } else {
-                showToast(response.message || 'Failed to rename channel', 'error');
+                showToast(response.message || 'Failed to rename channel', 'error', 5000, 'Rename Failed');
             }
         })
         .catch(error => {
             console.error('Error renaming channel:', error);
-            showToast('Failed to rename channel', 'error');
+            showToast('Failed to rename channel', 'error', 5000, 'Rename Failed');
         });
     }
     
     function handleDeleteChannel(channel) {
         const serverId = document.querySelector('meta[name="server-id"]')?.content;
         if (!serverId) {
-            showToast('Server ID not found', 'error');
+            showToast('Server ID not found', 'error', 5000, 'Error');
             return;
         }
+        
+        // Show loading toast
+        showToast(`Deleting channel "${channel.name}"...`, 'warning', 2000);
         
         fetch(`/api/channels/${channel.id}`, {
             method: 'DELETE',
@@ -1519,15 +1520,15 @@ function initChannelManagementTab() {
         })
         .then(response => {
             if (response && response.success) {
-                showToast(`Channel "${channel.name}" deleted successfully`, 'success');
+                showToast(`Channel "${channel.name}" deleted successfully`, 'success', 5000, 'Channel Deleted');
                 loadChannels();
             } else {
-                showToast(response.message || 'Failed to delete channel', 'error');
+                showToast(response.message || 'Failed to delete channel', 'error', 5000, 'Deletion Failed');
             }
         })
         .catch(error => {
             console.error('Error deleting channel:', error);
-            showToast('Failed to delete channel', 'error');
+            showToast('Failed to delete channel', 'error', 5000, 'Deletion Failed');
         });
     }
     
@@ -1591,6 +1592,20 @@ function initDeleteServerTab() {
     const deleteServerNameSpan = document.getElementById('delete-server-name');
     const serverNameToConfirmElements = document.querySelectorAll('.server-name-to-confirm');
     
+    // Transfer ownership elements
+    const showDeleteSectionBtn = document.getElementById('show-delete-section');
+    const showTransferSectionBtn = document.getElementById('show-transfer-section');
+    const deleteServerSection = document.getElementById('delete-server-section');
+    const transferOwnershipSection = document.getElementById('transfer-ownership-section');
+    const userSearchInput = document.getElementById('user-search');
+    const usersContainer = document.getElementById('users-container');
+    const selectedUserContainer = document.getElementById('selected-user-container');
+    const selectedUserAvatar = document.getElementById('selected-user-avatar');
+    const selectedUserName = document.getElementById('selected-user-name');
+    const selectedUserRole = document.getElementById('selected-user-role');
+    const cancelTransferBtn = document.getElementById('cancel-transfer');
+    const confirmTransferBtn = document.getElementById('confirm-transfer');
+    
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
     const serverName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold')?.textContent;
     
@@ -1607,6 +1622,8 @@ function initDeleteServerTab() {
     // Store event handlers for cleanup
     let escKeyHandler;
     let backgroundClickHandler;
+    let allMembers = [];
+    let selectedUserId = null;
     
     function openModal() {
         // Remove any existing event listeners
@@ -1635,6 +1652,9 @@ function initDeleteServerTab() {
         document.addEventListener('keydown', escKeyHandler);
         deleteServerModal.addEventListener('click', backgroundClickHandler);
         
+        // Show delete section by default
+        showDeleteSection();
+        
         // Show modal
         deleteServerModal.classList.remove('hidden');
         setTimeout(() => {
@@ -1642,6 +1662,9 @@ function initDeleteServerTab() {
             deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-95');
             confirmServerNameInput.focus();
         }, 10);
+        
+        // Load members for transfer ownership
+        loadMembersForTransfer();
     }
     
     function closeModal() {
@@ -1663,10 +1686,142 @@ function initDeleteServerTab() {
             deleteServerModal.classList.add('hidden');
             confirmServerNameInput.value = '';
             updateDeleteButton();
+            resetTransferSection();
         }, 200);
     }
     
+    function showDeleteSection() {
+        // Update button styles
+        showDeleteSectionBtn.classList.add('border-b-2', 'border-discord-blurple');
+        showTransferSectionBtn.classList.remove('border-b-2', 'border-discord-blurple');
+        
+        // Show/hide sections
+        deleteServerSection.classList.remove('hidden');
+        transferOwnershipSection.classList.add('hidden');
+    }
+    
+    function showTransferSection() {
+        // Update button styles
+        showTransferSectionBtn.classList.add('border-b-2', 'border-discord-blurple');
+        showDeleteSectionBtn.classList.remove('border-b-2', 'border-discord-blurple');
+        
+        // Show/hide sections
+        transferOwnershipSection.classList.remove('hidden');
+        deleteServerSection.classList.add('hidden');
+        
+        // Focus on search
+        if (userSearchInput) {
+            userSearchInput.focus();
+        }
+    }
+    
+    function resetTransferSection() {
+        if (userSearchInput) userSearchInput.value = '';
+        if (usersContainer) usersContainer.classList.add('hidden');
+        if (selectedUserContainer) selectedUserContainer.classList.add('hidden');
+        if (confirmTransferBtn) {
+            confirmTransferBtn.disabled = true;
+            confirmTransferBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            confirmTransferBtn.textContent = 'Transfer Ownership';
+        }
+        selectedUserId = null;
+    }
+    
+    async function loadMembersForTransfer() {
+        try {
+            const response = await window.serverAPI.getServerMembers(serverId);
+            
+            if (response && response.success && response.data && response.data.members) {
+                // Filter members that are not the current owner
+                allMembers = response.data.members.filter(member => member.role !== 'owner');
+            } else if (response && response.members) {
+                allMembers = response.members.filter(member => member.role !== 'owner');
+            } else {
+                allMembers = [];
+            }
+        } catch (error) {
+            console.error('Error loading members for transfer:', error);
+            showToast('Failed to load server members', 'error');
+            allMembers = [];
+        }
+    }
+    
+    function renderSearchResults(members) {
+        if (!usersContainer) return;
+        
+        if (!members || members.length === 0) {
+            usersContainer.innerHTML = `
+                <div class="p-2 text-discord-lighter text-center">
+                    No members found
+                </div>
+            `;
+            return;
+        }
+        
+        usersContainer.innerHTML = '';
+        
+        members.forEach(member => {
+            const memberElement = document.createElement('div');
+            memberElement.className = 'p-2 hover:bg-discord-dark-input cursor-pointer flex items-center';
+            memberElement.dataset.userId = member.id;
+            
+            let avatarContent;
+            if (member.avatar_url) {
+                avatarContent = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
+            } else {
+                avatarContent = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
+            }
+            
+            memberElement.innerHTML = `
+                <div class="w-8 h-8 rounded-full overflow-hidden mr-2 flex-shrink-0">
+                    ${avatarContent}
+                </div>
+                <div>
+                    <div class="text-white">${member.display_name || member.username}</div>
+                    <div class="text-discord-lighter text-xs">${member.role.charAt(0).toUpperCase() + member.role.slice(1)}</div>
+                </div>
+            `;
+            
+            memberElement.addEventListener('click', () => selectUser(member));
+            
+            usersContainer.appendChild(memberElement);
+        });
+    }
+    
+    function selectUser(member) {
+        if (!selectedUserContainer || !selectedUserAvatar || !selectedUserName || !selectedUserRole || !confirmTransferBtn || !usersContainer) return;
+        
+        selectedUserId = member.id;
+        
+        // Set up selected user display
+        if (member.avatar_url) {
+            selectedUserAvatar.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
+        } else {
+            selectedUserAvatar.innerHTML = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
+        }
+        
+        selectedUserName.textContent = member.display_name || member.username;
+        selectedUserRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+        
+        // Show selected user section
+        selectedUserContainer.classList.remove('hidden');
+        
+        // Hide search results
+        usersContainer.classList.add('hidden');
+        
+        // Clear search input
+        if (userSearchInput) {
+            userSearchInput.value = '';
+        }
+        
+        // Enable transfer button
+        confirmTransferBtn.disabled = false;
+        confirmTransferBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+    
     function updateDeleteButton() {
+        if (!confirmDeleteBtn || !confirmServerNameInput) return;
+        
         const inputValue = confirmServerNameInput.value;
         const isMatch = inputValue === serverName;
         
@@ -1679,8 +1834,8 @@ function initDeleteServerTab() {
         }
     }
     
+    // Set up event listeners
     if (openDeleteModalBtn) {
-        // Remove any existing event listeners first to prevent duplicates
         openDeleteModalBtn.removeEventListener('click', openModal);
         openDeleteModalBtn.addEventListener('click', openModal);
     }
@@ -1700,36 +1855,90 @@ function initDeleteServerTab() {
         confirmServerNameInput.addEventListener('input', updateDeleteButton);
     }
     
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.removeEventListener('click', async function() {
-            if (confirmServerNameInput.value !== serverName) return;
+    // Tab switching
+    if (showDeleteSectionBtn) {
+        showDeleteSectionBtn.addEventListener('click', showDeleteSection);
+    }
+    
+    if (showTransferSectionBtn) {
+        showTransferSectionBtn.addEventListener('click', showTransferSection);
+    }
+    
+    // User search
+    if (userSearchInput) {
+        userSearchInput.addEventListener('input', debounce(function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                usersContainer.classList.add('hidden');
+                return;
+            }
+            
+            const filteredMembers = allMembers.filter(member => {
+                return (
+                    member.username.toLowerCase().includes(searchTerm) ||
+                    (member.display_name && member.display_name.toLowerCase().includes(searchTerm))
+                );
+            });
+            
+            renderSearchResults(filteredMembers);
+            usersContainer.classList.remove('hidden');
+        }, 300));
+        
+        userSearchInput.addEventListener('focus', function() {
+            if (this.value.trim() !== '') {
+                usersContainer.classList.remove('hidden');
+            }
+        });
+    }
+    
+    // Transfer ownership actions
+    if (cancelTransferBtn) {
+        cancelTransferBtn.addEventListener('click', closeModal);
+    }
+    
+    if (confirmTransferBtn) {
+        confirmTransferBtn.addEventListener('click', async function() {
+            if (!selectedUserId) return;
             
             try {
-                confirmDeleteBtn.disabled = true;
-                confirmDeleteBtn.innerHTML = `
+                confirmTransferBtn.disabled = true;
+                confirmTransferBtn.innerHTML = `
                     <i class="fas fa-spinner fa-spin -ml-1 mr-2 h-4 w-4 text-white inline-block"></i>
-                    Deleting...
+                    Transferring...
                 `;
                 
-                const response = await window.serverAPI.deleteUserServer(serverId);
+                // Show loading toast
+                showToast('Transferring server ownership...', 'info', 2000);
+                
+                const response = await window.serverAPI.transferOwnership(serverId, selectedUserId);
                 
                 if (response && response.success) {
-                    showToast('Server has been deleted successfully', 'success');
+                    showToast('Server ownership transferred successfully', 'success', 5000, 'Ownership Transferred');
                     
                     setTimeout(() => {
                         window.location.href = '/home';
                     }, 1500);
                 } else {
-                    throw new Error(response.message || 'Failed to delete server');
+                    throw new Error(response.message || 'Failed to transfer server ownership');
                 }
             } catch (error) {
-                console.error('Error deleting server:', error);
-                showToast(error.message || 'Failed to delete server', 'error');
+                console.error('Error transferring server ownership:', error);
+                showToast(error.message || 'Failed to transfer server ownership', 'error', 5000, 'Transfer Failed');
                 
-                confirmDeleteBtn.disabled = false;
-                confirmDeleteBtn.textContent = 'Delete Server';
+                confirmTransferBtn.disabled = false;
+                confirmTransferBtn.textContent = 'Transfer Ownership';
             }
         });
+    }
+    
+    // Delete server action
+    if (confirmDeleteBtn) {
+        // Remove any old listeners to prevent duplicates
+        const oldListener = confirmDeleteBtn.onclick;
+        if (oldListener) {
+            confirmDeleteBtn.removeEventListener('click', oldListener);
+        }
         
         confirmDeleteBtn.addEventListener('click', async function() {
             if (confirmServerNameInput.value !== serverName) return;
@@ -1741,10 +1950,13 @@ function initDeleteServerTab() {
                     Deleting...
                 `;
                 
+                // Show loading toast
+                showToast('Deleting server...', 'warning', 2000);
+                
                 const response = await window.serverAPI.deleteUserServer(serverId);
                 
                 if (response && response.success) {
-                    showToast('Server has been deleted successfully', 'success');
+                    showToast('Server has been deleted successfully', 'success', 5000, 'Server Deleted');
                     
                     setTimeout(() => {
                         window.location.href = '/home';
@@ -1754,7 +1966,7 @@ function initDeleteServerTab() {
                 }
             } catch (error) {
                 console.error('Error deleting server:', error);
-                showToast(error.message || 'Failed to delete server', 'error');
+                showToast(error.message || 'Failed to delete server', 'error', 5000, 'Deletion Failed');
                 
                 confirmDeleteBtn.disabled = false;
                 confirmDeleteBtn.textContent = 'Delete Server';

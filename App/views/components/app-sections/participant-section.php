@@ -75,15 +75,15 @@ foreach ($members as $member) {
         <div id="participant-skeleton-loader" class="px-2">
             <?php for ($j = 0; $j < 3; $j++): ?>
                 <div class="mb-4 role-group-skeleton">
-                    <div class="h-3 bg-gray-700 rounded animate-pulse" style="width: <?php echo rand(25, 40); ?>%;"></div>
+                    <div class="h-3 bg-gray-700 rounded" style="width: <?php echo rand(25, 40); ?>%;"></div>
                     <div class="space-y-0.5 members-list-skeleton mt-2">
                         <?php for ($i = 0; $i < rand(3, 6); $i++): ?>
                             <div class="flex items-center px-2 py-1">
                                 <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700 animate-pulse"></div>
+                                    <div class="w-8 h-8 rounded-full bg-gray-700"></div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="h-4 bg-gray-700 rounded animate-pulse" style="width: <?php echo rand(50, 80); ?>%;"></div>
+                                    <div class="h-4 bg-gray-700 rounded" style="width: <?php echo rand(50, 80); ?>%;"></div>
                                 </div>
                             </div>
                         <?php endfor; ?>
@@ -866,14 +866,6 @@ window.testParticipantGroups = function() {
     
     return testMembers;
 };
-
-// Auto-run test function after page load to demonstrate functionality
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        // Auto-run the test with a small delay to ensure everything is loaded
-        window.testParticipantGroups();
-    }, 500);
-});
 
 </script>
 

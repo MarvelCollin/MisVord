@@ -79,7 +79,7 @@ function renderFilePreviewCard($file, $index = 0) {
     
     if ($isText) {
         echo '<div class="mt-2 bg-[#1e1f22] rounded-md p-2 text-xs font-mono text-[#dcddde] max-h-20 overflow-hidden" id="' . $previewId . '">';
-        echo '<div class="animate-pulse text-[#72767d]">Loading preview...</div>';
+        echo '<div class="text-[#72767d]">Loading preview...</div>';
         echo '</div>';
     }
     

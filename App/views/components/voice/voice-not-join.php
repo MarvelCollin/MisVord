@@ -90,7 +90,7 @@ $channelName = $activeChannel ? (is_array($activeChannel) ? $activeChannel['name
             <div class="absolute inset-3 bg-gradient-to-br from-[#0a0a0f] via-[#1a1a2e] to-[#16213e] rounded-full"></div>
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-cosmic-scan"></div>
         </div>
-        <p class="text-white text-xl font-light tracking-wide drop-shadow-lg animate-pulse-cosmic">Entering the cosmic void...</p>
+        <p class="text-white text-xl font-light tracking-wide drop-shadow-lg">Entering the cosmic void...</p>
     </div>
 </div>
 

@@ -174,7 +174,8 @@
 }
 
 .skeleton-loader .animate-pulse {
-  animation: enhanced-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* animation: none; */
+  opacity: 0.7;
 }
 
 .skeleton-loader .bg-gray-600 {
@@ -246,17 +247,17 @@
 }
 
 .skeleton-loader > div:nth-child(2) .animate-pulse {
-  animation-delay: 0.1s;
+  /* animation-delay: none; */
 }
 
 .skeleton-loader > div:nth-child(3) .animate-pulse {
-  animation-delay: 0.2s;
+  /* animation-delay: none; */
 }
 
 .skeleton-loader > div:nth-child(4) .animate-pulse {
-  animation-delay: 0.3s;
+  /* animation-delay: none; */
 }
 
 .skeleton-loader > div:nth-child(5) .animate-pulse {
-  animation-delay: 0.4s;
+  /* animation-delay: none; */
 }
