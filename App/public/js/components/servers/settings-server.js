@@ -934,7 +934,11 @@ function initMemberManagementTab() {
             
             const response = await window.serverAPI.promoteMember(serverId, member.id);
             if (response && response.success) {
-                const newRole = response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1);
+                // Safely access new_role property with fallback
+                const newRole = response.new_role ? 
+                    response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
+                    'Admin'; // Default fallback value
+                
                 showToast(`${member.display_name || member.username} has been promoted to ${newRole}`, 'success', 5000, 'Member Promoted');
                 loadMembers();
             } else {
@@ -956,7 +960,11 @@ function initMemberManagementTab() {
             
             const response = await window.serverAPI.demoteMember(serverId, member.id);
             if (response && response.success) {
-                const newRole = response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1);
+                // Safely access new_role property with fallback
+                const newRole = response.new_role ? 
+                    response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
+                    'Member'; // Default fallback value
+                
                 showToast(`${member.display_name || member.username} has been demoted to ${newRole}`, 'success', 5000, 'Member Demoted');
                 loadMembers();
             } else {
