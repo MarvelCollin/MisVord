@@ -634,6 +634,7 @@ Route::post('/api/servers/([0-9]+)/update/name', function($serverId) {
 });
 
 Route::post('/api/servers/([0-9]+)/update/description', function($serverId) {
+    $controller = new ServerController();
     $controller->updateServerDescription($serverId);
 });
 

@@ -43,7 +43,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             <form id="create-channel-form" action="/api/channels" method="POST" onsubmit="return submitChannelForm(event)" class="space-y-4">
                 <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                 <input type="hidden" name="position" id="channel-position" value="">
-                <input type="hidden" name="category_id" id="category-id" value="">
 
                 
                 <div class="mb-4">
@@ -69,22 +68,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                               placeholder="new-channel" required>
                     </div>
                     <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Category</label>
-                    <div class="relative">
-                        <select id="channel-category" name="category_id"
-                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
-                            <option value="">No Category</option>
-                            <?php foreach ($categories as $category): ?>
-                            <option value="<?php echo $category->id; ?>"><?php echo htmlspecialchars($category->name); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                            <i class="fas fa-chevron-down text-xs"></i>
-                        </div>
-                    </div>
                 </div>
                 
             </form>
@@ -670,16 +653,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    window.openCreateChannelModal = function(categoryId = null, position = null) {
+    window.openCreateChannelModal = function(position = null) {
         const modal = document.getElementById('create-channel-modal');
         if (!modal) return;
 
         const form = modal.querySelector('form');
         if (form) {
             form.reset();
-            const categorySelect = form.querySelector('#channel-category');
-            if (categorySelect) categorySelect.value = categoryId || '';
-
             const posInput = form.querySelector('#channel-position');
             if (posInput) posInput.value = position !== null ? position : '';
         }
@@ -1007,17 +987,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(form);
         
         const positionField = document.getElementById('channel-position');
-        const categoryField = document.getElementById('category-id');
         
         if (positionField && (positionField.value === '' || positionField.value === null)) {
             formData.set('position', null);
-        }
-        
-        if (categoryField && (categoryField.value === '' || categoryField.value === null)) {
-            formData.delete('category_id');
-
-        } else {
-
         }
         
         const submitBtn = form.querySelector('[type="submit"]');

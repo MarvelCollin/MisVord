@@ -805,10 +805,56 @@ function setupDropZones() {
         });
     });
     
+    // Enhanced drop zone for ungrouping - covers the entire sidebar area
     const serverList = document.getElementById('server-list');
-    if (!serverList.hasAttribute('data-drop-setup')) {
+    const sidebarContainer = document.querySelector('.w-\\[72px\\]') || document.querySelector('[class*="w-[72px]"]');
+    
+    if (serverList && !serverList.hasAttribute('data-drop-setup')) {
         serverList.setAttribute('data-drop-setup', 'true');
         
+        // Add drop zone to the entire sidebar container for better ungrouping
+        if (sidebarContainer) {
+            sidebarContainer.addEventListener('dragover', e => {
+                // Only handle if not over a specific server or group
+                if (!e.target.closest('.server-sidebar-group') && !e.target.closest('.server-sidebar-icon')) {
+                    e.preventDefault();
+                    sidebarContainer.classList.add('drop-target');
+                    
+                    // Visual feedback for ungrouping
+                    sidebarContainer.style.backgroundColor = 'rgba(88, 101, 242, 0.1)';
+                    sidebarContainer.style.transition = 'background-color 0.2s ease';
+                }
+            });
+            
+            sidebarContainer.addEventListener('dragleave', e => {
+                const rect = sidebarContainer.getBoundingClientRect();
+                if (e.clientX < rect.left || e.clientX > rect.right || 
+                    e.clientY < rect.top || e.clientY > rect.bottom) {
+                    sidebarContainer.classList.remove('drop-target');
+                    sidebarContainer.style.backgroundColor = '';
+                }
+            });
+            
+            sidebarContainer.addEventListener('drop', e => {
+                // Only handle if not over a specific server or group
+                if (!e.target.closest('.server-sidebar-group') && !e.target.closest('.server-sidebar-icon')) {
+                    e.preventDefault();
+                    sidebarContainer.classList.remove('drop-target');
+                    sidebarContainer.style.backgroundColor = '';
+                    
+                    const serverId = e.dataTransfer.getData('text/plain');
+                    if (serverId) {
+                        const wasInGroup = LocalStorageManager.getServerGroup(serverId);
+                        if (wasInGroup) {
+                            LocalStorageManager.removeServerFromAllGroups(serverId);
+                            performCompleteRender();
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Keep the original server list drop handling as backup
         serverList.addEventListener('dragover', e => {
             if (e.target.closest('.server-sidebar-group') || e.target.closest('.server-sidebar-icon')) return;
             e.preventDefault();
