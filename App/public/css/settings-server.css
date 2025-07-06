@@ -788,7 +788,7 @@ a:active {
 }
 
 .member-item:hover {
-  background-color: var(--discord-dark-hover);
+  background-color: rgba(88, 101, 242, 0.18); /* subtle blurple tint */
 }
 
 .member-avatar {
@@ -996,24 +996,28 @@ a:active {
 }
 
 .filter-dropdown {
-  min-width: 220px;
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
-  border-radius: 4px;
-  overflow: hidden;
-  z-index: 100;
-  margin-top: 4px;
-  border: 1px solid #202225;
-  animation: dropdownFadeIn 0.1s ease;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background-color: var(--discord-bg-primary);
+  border: 1px solid rgba(4, 4, 5, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 1000; /* ensure above other elements */
+  overflow: hidden auto;
+  max-height: 260px; /* scroll if too tall */
+  animation: dropdownSlideIn 0.15s ease-out;
 }
 
-@keyframes dropdownFadeIn {
+@keyframes dropdownSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(-8px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -1419,7 +1423,7 @@ input[type="radio"]:checked + .radio-dot:after {
 }
 
 .member-item:hover {
-  background-color: var(--discord-background-modifier-hover);
+  background-color: rgba(88, 101, 242, 0.18); /* subtle blurple tint */
   transform: translateX(2px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -2798,7 +2802,7 @@ textarea.form-input {
 }
 
 .channel-item:hover {
-  background-color: var(--discord-background-modifier-hover);
+  background-color: rgba(88, 101, 242, 0.18); /* subtle blurple tint */
 }
 
 .channel-icon-wrapper {

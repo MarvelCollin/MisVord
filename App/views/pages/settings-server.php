@@ -582,12 +582,6 @@ ob_start();
                 
                 <div class="server-info pt-10 px-4 pb-4">
                     <h3 class="server-name text-white font-bold"><?php echo htmlspecialchars($server->name); ?></h3>
-                    <div class="server-meta flex items-center text-xs text-discord-lighter mt-1">
-                        <span class="online-indicator inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                        <span>Online</span>
-                        <span class="mx-1">•</span>
-                        <span>Members</span>
-                    </div>
                     <?php if ($server->description): ?>
                         <div class="server-description text-xs text-discord-lighter mt-3"><?php echo htmlspecialchars($server->description); ?></div>
                     <?php endif; ?>
