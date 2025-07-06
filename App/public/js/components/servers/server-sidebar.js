@@ -586,9 +586,9 @@ function createFolderPreview(group, folderElement, serverImageData) {
         .map(serverId => (serverDataCache && serverDataCache[serverId]) ? serverDataCache[serverId].name : null)
         .filter(name => name !== null);
         
-    let tooltipContent = `<div style="text-align: center;"><strong>${group.name || 'Folder'}</strong></div>`;
+    let tooltipContent = '';
     if (serverNames.length > 0) {
-        tooltipContent += `<div style="text-align: left; margin-top: 5px; padding-top: 5px; border-top: 1px solid #4f545c;">${serverNames.join('<br>')}</div>`;
+        tooltipContent = serverNames.join('<br>');
     }
     
     header.innerHTML = '';
@@ -699,12 +699,18 @@ function setupFolderEvents(group, folderElement) {
     });
     
     const tooltip = header.querySelector('.tooltip');
+    if (tooltip) {
+        tooltip.style.maxWidth = '250px';
+        tooltip.style.whiteSpace = 'normal';
+        tooltip.style.lineHeight = '1.4';
+    }
+    
     header.addEventListener('mouseenter', () => {
-        tooltip.classList.remove('hidden');
+        if (tooltip) tooltip.classList.remove('hidden');
     });
     
     header.addEventListener('mouseleave', () => {
-        tooltip.classList.add('hidden');
+        if (tooltip) tooltip.classList.add('hidden');
     });
 }
 

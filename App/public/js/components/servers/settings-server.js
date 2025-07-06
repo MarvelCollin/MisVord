@@ -241,7 +241,7 @@ function initServerProfileForm() {
     const form = document.getElementById('server-profile-form');
     const serverNameInput = document.getElementById('server-name');
     const serverDescriptionInput = document.getElementById('server-description');
-    const isPublicCheckbox = document.getElementById('is-public');
+    const isPublicInput = document.getElementById('is-public');
     const serverCategorySelect = document.getElementById('server-category');
     const saveButton = document.getElementById('save-changes-btn');
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
@@ -1328,7 +1328,8 @@ function initServerInputApproveButtons(serverId) {
         checkForChangesCheckbox(isPublicInput, approveIsPublicBtn);
         
         isPublicInput.addEventListener('change', function() {
-            checkForChangesCheckbox(this, approveIsPublicBtn);
+            // Auto-approve the change immediately when checkbox is clicked
+            updateServerPublic(serverId, this.checked);
         });
         
         approveIsPublicBtn.addEventListener('click', function() {
@@ -1507,9 +1508,22 @@ async function updateServerPublic(serverId, isPublic) {
     const approveBtn = document.getElementById('approve-is-public');
     const publicInput = document.getElementById('is-public');
     
-    approveBtn.disabled = true;
-    const originalIcon = approveBtn.innerHTML;
-    approveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    if (!publicInput) {
+        console.error('Public input element not found');
+        return;
+    }
+    
+    const checkboxWrapper = publicInput.nextElementSibling;
+    
+    // Disable the checkbox during the update
+    publicInput.disabled = true;
+    
+    // Store the original checkbox content and show loading indicator
+    let originalCheckboxContent = '';
+    if (checkboxWrapper) {
+        originalCheckboxContent = checkboxWrapper.innerHTML;
+        checkboxWrapper.innerHTML = '<i class="fas fa-spinner fa-spin text-white"></i>';
+    }
     
     try {
         const data = await window.serverAPI.updateServerPublic(serverId, isPublic);
@@ -1519,20 +1533,50 @@ async function updateServerPublic(serverId, isPublic) {
             
             publicInput.dataset.originalValue = isPublic ? '1' : '0';
             
-            approveBtn.classList.remove('show');
-            setTimeout(() => {
-                approveBtn.style.display = 'none';
-                approveBtn.classList.add('hidden');
-            }, 300);
+            // Only manipulate approveBtn if it exists
+            if (approveBtn) {
+                approveBtn.classList.remove('show');
+                setTimeout(() => {
+                    if (approveBtn) {
+                        approveBtn.style.display = 'none';
+                        approveBtn.classList.add('hidden');
+                    }
+                }, 300);
+            }
         } else {
+            // Revert the checkbox state if update failed
+            publicInput.checked = !isPublic;
             throw new Error(data.message || 'Failed to update server visibility');
         }
     } catch (error) {
         console.error('Error updating server visibility:', error);
         showToast(error.message || 'Error updating server visibility', 'error');
     } finally {
-        approveBtn.disabled = false;
-        approveBtn.innerHTML = originalIcon;
+        publicInput.disabled = false;
+        
+        // Restore the original checkbox content
+        if (checkboxWrapper) {
+            checkboxWrapper.innerHTML = originalCheckboxContent;
+            
+            // Update the checkbox appearance based on its current state
+            if (publicInput.checked) {
+                checkboxWrapper.classList.add('bg-discord-blurple');
+                checkboxWrapper.classList.add('border-discord-blurple');
+                const checkElement = checkboxWrapper.querySelector('.checkbox-check');
+                if (checkElement) {
+                    checkElement.style.opacity = '1';
+                    checkElement.style.transform = 'scale(1)';
+                }
+            } else {
+                checkboxWrapper.classList.remove('bg-discord-blurple');
+                checkboxWrapper.classList.remove('border-discord-blurple');
+                const checkElement = checkboxWrapper.querySelector('.checkbox-check');
+                if (checkElement) {
+                    checkElement.style.opacity = '0';
+                    checkElement.style.transform = 'scale(0.5)';
+                }
+            }
+        }
     }
 }
 

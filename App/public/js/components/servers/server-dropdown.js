@@ -250,7 +250,7 @@ function showInvitePeopleModal() {
         return;
     }
 
-        modal.classList.remove('hidden');
+    modal.classList.remove('hidden');
     modal.style.display = 'flex';
     
     const serverId = getCurrentServerId();
@@ -273,7 +273,7 @@ function showInvitePeopleModal() {
         const inviteBotBtn = document.createElement('button');
         inviteBotBtn.id = 'invite-bot-btn';
         inviteBotBtn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-300';
-        inviteBotBtn.innerHTML = '<i class="fas fa-robot mr-2"></i> Invite Bot';
+        inviteBotBtn.innerHTML = '<i class="fas fa-robot mr-2"></i> Invite TitiBot';
         
         botButtonContainer.appendChild(inviteBotBtn);
         separator.appendChild(botButtonContainer);
@@ -282,39 +282,35 @@ function showInvitePeopleModal() {
         inviteBotBtn.addEventListener('click', showInviteBotModal);
     }
     
-    // Create invite bot modal if it doesn't exist
-    if (!document.getElementById('invite-bot-modal')) {
-        const modalHtml = `
-            <div id="invite-bot-modal" class="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-70 hidden">
-                <div class="bg-discord-darker p-6 rounded-lg shadow-xl w-full max-w-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-white">Invite a Bot</h2>
-                        <button id="close-invite-bot-modal" class="text-gray-400 hover:text-white">&times;</button>
-                    </div>
-                    <div>
-                        <input type="text" id="bot-search-input" placeholder="Search for a bot" class="w-full p-2 rounded bg-discord-dark text-white mb-4">
-                        <div id="bot-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
-                    </div>
-                </div>
-            </div>`;
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-    
     setupInviteModalListeners();
 }
 
 function showInviteBotModal() {
-    const modal = document.getElementById('invite-bot-modal');
-    if (!modal) {
-        console.error('Invite bot modal not found');
-        return;
+    // Instead of showing the modal, directly fetch and invite TitiBot
+    fetchAndInviteTitiBot();
+}
+
+async function fetchAndInviteTitiBot() {
+    try {
+        showToast('Searching for TitiBot...', 'info');
+        
+        // Search for TitiBot in the database
+        const response = await fetch('/api/bot/check/titibot');
+        const result = await response.json();
+
+        if (result.success && result.exists && result.is_bot) {
+            // TitiBot exists, invite it to the server
+            showToast('Found TitiBot, adding to server...', 'info');
+            const botId = result.bot.id;
+            await inviteBotToServer(botId);
+        } else {
+            // TitiBot doesn't exist in the database
+            showToast('TitiBot not found in the database. Please contact an administrator.', 'error');
+        }
+    } catch (error) {
+        console.error('Error searching for TitiBot:', error);
+        showToast('Failed to search for TitiBot. Please try again later.', 'error');
     }
-
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
-
-    loadAvailableBots();
-    setupInviteBotModalListeners();
 }
 
 function showCreateChannelModal() {
@@ -349,46 +345,38 @@ function redirectToServerSettings() {
 }
 
 function setupInviteModalListeners() {
-        const copyBtn = document.getElementById('copy-invite-link');
-        const generateBtn = document.getElementById('generate-new-invite');
-        
-        if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
-            copyBtn.addEventListener('click', copyInviteLink);
-            copyBtn.setAttribute('data-listener', 'true');
-        }
-
-        if (generateBtn && !generateBtn.hasAttribute('data-listener')) {
-            generateBtn.addEventListener('click', () => {
-            const serverId = getCurrentServerId();
-            const expirationSelect = document.getElementById('invite-expiration');
-                const expirationValue = expirationSelect ? expirationSelect.value : null;
-                generateNewInvite(serverId, expirationValue);
-            });
-            generateBtn.setAttribute('data-listener', 'true');
-        }
-
-    // This part is now handled dynamically in showInvitePeopleModal
-    // const inviteBotBtn = document.getElementById('invite-bot-btn');
-    // if (inviteBotBtn && !inviteBotBtn.hasAttribute('data-listener')) {
-    //     inviteBotBtn.addEventListener('click', showInviteBotModal);
-    //     inviteBotBtn.setAttribute('data-listener', 'true');
-    // }
-}
-
-function setupInviteBotModalListeners() {
-    const modal = document.getElementById('invite-bot-modal');
-    const closeBtn = document.getElementById('close-invite-bot-modal');
-    const searchInput = document.getElementById('bot-search-input');
-
+    const closeBtn = document.getElementById('close-invite-modal');
     if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
-        closeBtn.addEventListener('click', () => closeModal('invite-bot-modal'));
+        closeBtn.addEventListener('click', () => {
+            const modal = document.getElementById('invite-people-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        });
         closeBtn.setAttribute('data-listener', 'true');
     }
 
-    if (searchInput && !searchInput.hasAttribute('data-listener')) {
-        searchInput.addEventListener('input', (e) => loadAvailableBots(e.target.value));
-        searchInput.setAttribute('data-listener', 'true');
+    const copyBtn = document.getElementById('copy-invite-link');
+    if (copyBtn && !copyBtn.hasAttribute('data-listener')) {
+        copyBtn.addEventListener('click', copyInviteLink);
+        copyBtn.setAttribute('data-listener', 'true');
     }
+
+    const generateBtn = document.getElementById('generate-new-invite');
+    if (generateBtn && !generateBtn.hasAttribute('data-listener')) {
+        generateBtn.addEventListener('click', handleGenerateNewInvite);
+        generateBtn.setAttribute('data-listener', 'true');
+    }
+
+    // Ensure Invite Bot button opens the bot modal
+    const inviteBotBtn = document.getElementById('invite-bot-btn');
+    if (inviteBotBtn && !inviteBotBtn.hasAttribute('data-listener')) {
+        inviteBotBtn.addEventListener('click', showInviteBotModal);
+        inviteBotBtn.setAttribute('data-listener', 'true');
+    }
+
+    setupExpirationOptions();
 }
 
 function setupLeaveServerModalListeners() {
@@ -762,42 +750,24 @@ window.testMembershipAPI = async function() {
     }
 };
 
-async function loadAvailableBots(searchQuery = '') {
-    const botList = document.getElementById('bot-list');
-    if (!botList) return;
-
-    botList.innerHTML = '<span>Loading bots...</span>';
-
-    try {
-        const response = await fetch(`/api/bots?search=${searchQuery}`);
-        const data = await response.json();
-
-        if (data.success && data.bots) {
-            botList.innerHTML = '';
-            data.bots.forEach(bot => {
-                const botItem = document.createElement('div');
-                botItem.className = 'bot-item';
-                botItem.dataset.botId = bot.id;
-                botItem.innerHTML = `
-                    <img src="${bot.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${bot.username}">
-                    <span>${bot.username}</span>
-                `;
-                botItem.addEventListener('click', () => inviteBotToServer(bot.id));
-                botList.appendChild(botItem);
-            });
-        } else {
-            botList.innerHTML = `<span>${data.message || 'No bots found'}</span>`;
-        }
-    } catch (error) {
-        console.error('Error loading available bots:', error);
-        botList.innerHTML = '<span>Error loading bots.</span>';
+function setupExpirationOptions() {
+    const expirationSelect = document.getElementById('invite-expiration');
+    if (expirationSelect && !expirationSelect.hasAttribute('data-listener')) {
+        expirationSelect.addEventListener('change', () => {
+            const label = document.getElementById('expiration-label');
+            if (label) {
+                const selectedOption = expirationSelect.options[expirationSelect.selectedIndex];
+                label.textContent = selectedOption.text;
+            }
+        });
+        expirationSelect.setAttribute('data-listener', 'true');
     }
 }
 
 async function inviteBotToServer(botId) {
     const serverId = getCurrentServerId();
     if (!serverId) {
-        showToast('Could not get server ID.', 'error');
+        showToast('Server ID not found', 'error');
         return;
     }
 
@@ -807,20 +777,37 @@ async function inviteBotToServer(botId) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ bot_id: botId, server_id: serverId }),
+            body: JSON.stringify({
+                bot_id: botId,
+                server_id: serverId
+            })
         });
 
-        const data = await response.json();
-
-        if (data.success) {
-            showToast(data.message || 'Bot invited successfully!', 'success');
-            closeModal('invite-bot-modal');
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('TitiBot has been added to the server!', 'success');
+            // Close any open modal
+            const modal = document.getElementById('invite-bot-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        } else if (result.message && result.message.includes('already a member')) {
+            showToast('TitiBot is already a member of this server', 'info');
         } else {
-            showToast(data.message || 'Failed to invite bot.', 'error');
+            showToast(result.message || 'Failed to add TitiBot to server', 'error');
         }
     } catch (error) {
-        console.error('Error inviting bot to server:', error);
-        showToast('An error occurred while inviting the bot.', 'error');
+        console.error('Error adding TitiBot to server:', error);
+        showToast('Failed to add TitiBot to server. Please try again later.', 'error');
     }
+}
+
+function handleGenerateNewInvite() {
+    const serverId = getCurrentServerId();
+    const expirationSelect = document.getElementById('invite-expiration');
+    const expirationValue = expirationSelect ? expirationSelect.value : null;
+    generateNewInvite(serverId, expirationValue);
 }
 

@@ -308,13 +308,15 @@
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
-  white-space: nowrap;
   z-index: 99999; /* Super high z-index */
   pointer-events: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease;
   display: none; /* Hide by default */
+  transform: translateX(-5px);
+  max-width: 250px;
+  line-height: 1.4;
 }
 
 .tooltip::before {
@@ -331,6 +333,7 @@
 .tooltip:not(.hidden) {
   opacity: 1;
   display: block;
+  transform: translateX(0);
 }
 
 /* Remove any overflow restrictions that might affect tooltips */

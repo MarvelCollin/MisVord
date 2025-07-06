@@ -1726,8 +1726,15 @@ class ServerController extends BaseController
     }
     private function canManageServer($server)
     {
+        $userId = $this->getCurrentUserId();
 
-        if ($server->isOwner($this->getCurrentUserId())) {
+        if ($server->isOwner($userId)) {
+            return true;
+        }
+
+        $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $server->id);
+
+        if ($membership && $membership->role === 'admin') {
             return true;
         }
 

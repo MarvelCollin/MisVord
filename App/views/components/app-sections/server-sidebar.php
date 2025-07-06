@@ -167,9 +167,13 @@ setInterval(() => {
                     const mouseX = window.mouseX || 0;
                     const mouseY = window.mouseY || 0;
                     
-                    // If mouse is over element, don't hide
-                    if (mouseX >= rect.left && mouseX <= rect.right && 
-                        mouseY >= rect.top && mouseY <= rect.bottom) {
+                    // If mouse is over element or tooltip, don't hide
+                    if ((mouseX >= rect.left && mouseX <= rect.right && 
+                        mouseY >= rect.top && mouseY <= rect.bottom) ||
+                        (mouseX >= tooltip.getBoundingClientRect().left && 
+                         mouseX <= tooltip.getBoundingClientRect().right && 
+                         mouseY >= tooltip.getBoundingClientRect().top && 
+                         mouseY <= tooltip.getBoundingClientRect().bottom)) {
                         shouldHide = false;
                     }
                 }

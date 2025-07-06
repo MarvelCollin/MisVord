@@ -261,6 +261,14 @@ body {
 /* Custom Checkbox */
 .custom-checkbox {
   cursor: pointer;
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  margin: 0;
+  z-index: 2;
 }
 
 .custom-checkbox:checked + .checkbox-wrapper {
@@ -275,6 +283,8 @@ body {
 
 .checkbox-wrapper {
   transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .custom-checkbox:focus + .checkbox-wrapper {
