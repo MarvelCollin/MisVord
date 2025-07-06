@@ -347,22 +347,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                     </div>
                     <p class="text-xs text-gray-400 mt-1">Use lowercase letters, numbers, hyphens, and underscores</p>
                 </div>
-                
-                <div class="mb-4">
-                    <label class="block text-gray-400 text-xs font-semibold mb-2 uppercase">Category</label>
-                    <div class="relative">
-                        <select id="edit-channel-category" name="category_id"
-                                class="bg-[#1e1f22] text-white w-full px-3 py-2 rounded appearance-none focus:outline-none focus:ring-2 focus:ring-discord-blue border border-[#1e1f22]">
-                            <option value="">No Category</option>
-                            <?php foreach ($categories as $category): ?>
-                            <option value="<?php echo $category->id; ?>"><?php echo htmlspecialchars($category->name); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-                            <i class="fas fa-chevron-down text-xs"></i>
-                        </div>
-                    </div>
-                </div>
             </form>
         </div>
         
@@ -721,7 +705,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('edit-channel-id').value = channelId;
         document.getElementById('edit-channel-name').value = channelData.name || '';
         document.getElementById('edit-channel-type').value = channelData.type || 'text';
-        document.getElementById('edit-channel-category').value = channelData.category_id || '';
 
         modal.classList.remove('hidden', 'opacity-0');
         modal.style.display = 'flex';
@@ -807,7 +790,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const channelId = document.getElementById('edit-channel-id').value;
         const name = document.getElementById('edit-channel-name').value;
         const type = document.getElementById('edit-channel-type').value;
-        const categoryId = document.getElementById('edit-channel-category').value;
         
         if (!name.trim()) {
             if (typeof showToast === 'function') {
@@ -818,7 +800,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         try {
             const data = { name: name.trim(), type };
-            if (categoryId) data.category_id = categoryId;
             
             const response = await window.channelAPI.updateChannel(channelId, data);
             

@@ -143,7 +143,6 @@ function initServerSidebar() {
     window.__SIDEBAR_INITIALIZED__ = true;
 
     
-    LocalStorageManager.initializeServerOrder();
     performCompleteRender();
 }
 
@@ -244,27 +243,10 @@ function setupServerIcons() {
                     LocalStorageManager.setGroupCollapsed(groupId, false);
                 }
                 
-                updateServerOrderAfterDrop(draggedId, targetId);
                 performCompleteRender();
             }
         });
     });
-}
-
-function updateServerOrderAfterDrop(draggedId, targetId) {
-    const currentOrder = LocalStorageManager.getServerOrder();
-    const draggedIndex = currentOrder.indexOf(draggedId);
-    const targetIndex = currentOrder.indexOf(targetId);
-    
-    if (draggedIndex === -1 || targetIndex === -1) return;
-    
-    const newOrder = [...currentOrder];
-    newOrder.splice(draggedIndex, 1);
-    
-    const newTargetIndex = newOrder.indexOf(targetId);
-    newOrder.splice(newTargetIndex, 0, draggedId);
-    
-    LocalStorageManager.setServerOrder(newOrder);
 }
 
 async function renderFolders() {
@@ -280,6 +262,24 @@ async function renderFolders() {
     serverDataCache = null;
     
     let groups = LocalStorageManager.getServerGroups();
+
+    const allAvailableServerIds = new Set(
+        Array.from(document.querySelectorAll('.server-sidebar-icon[data-server-id]'))
+             .map(el => el.getAttribute('data-server-id'))
+    );
+
+    let groupsChanged = false;
+    groups.forEach(group => {
+        const originalServerCount = group.servers.length;
+        group.servers = group.servers.filter(serverId => allAvailableServerIds.has(serverId));
+        if (group.servers.length !== originalServerCount) {
+            groupsChanged = true;
+        }
+    });
+
+    if (groupsChanged) {
+        LocalStorageManager.setServerGroups(groups);
+    }
     
     // Automatically dissolve groups with one or zero servers.
     const validGroups = groups.filter(group => {
@@ -291,7 +291,6 @@ async function renderFolders() {
     });
     groups = validGroups;
 
-    const serverOrder = LocalStorageManager.getServerOrder();
     
     document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
     
@@ -301,13 +300,6 @@ async function renderFolders() {
     });
     
     const currentServerElements = Array.from(document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]'));
-    const currentServerIds = currentServerElements.map(el => el.getAttribute('data-server-id'));
-    
-    const newServerIds = currentServerIds.filter(id => !serverOrder.includes(id));
-    if (newServerIds.length > 0) {
-        const updatedOrder = [...serverOrder, ...newServerIds];
-        LocalStorageManager.setServerOrder(updatedOrder);
-    }
     
     currentServerElements.forEach(serverIcon => {
         const serverId = serverIcon.getAttribute('data-server-id');
@@ -342,11 +334,9 @@ async function renderFolders() {
         const serversToMove = group.servers
             .map(serverId => ({
                 id: serverId,
-                element: document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`),
-                orderIndex: serverOrder.indexOf(serverId)
+                element: document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`)
             }))
-            .filter(server => server.element)
-            .sort((a, b) => (a.orderIndex === -1 ? Infinity : a.orderIndex) - (b.orderIndex === -1 ? Infinity : b.orderIndex));
+            .filter(server => server.element);
         
         serversToMove.forEach(server => {
             if (serversContainer) {
@@ -375,7 +365,6 @@ function resetServersToMainList() {
     const mainList = document.getElementById('server-list');
     if (!mainList) return;
     
-    const serverOrder = LocalStorageManager.getServerOrder();
     const serversInGroups = document.querySelectorAll('.server-sidebar-group .group-servers .server-sidebar-icon[data-server-id]');
     
     const serversToReposition = [];
@@ -399,44 +388,8 @@ function resetServersToMainList() {
     const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
     const divider = mainList.querySelector('.server-sidebar-divider');
     
-    serversToReposition.sort((a, b) => {
-        const aIndex = serverOrder.indexOf(a.id);
-        const bIndex = serverOrder.indexOf(b.id);
-        return (aIndex === -1 ? Infinity : aIndex) - (bIndex === -1 ? Infinity : bIndex);
-    });
-    
-    const existingServers = mainList.querySelectorAll('.server-sidebar-icon[data-server-id]');
-    const existingServerMap = new Map();
-    existingServers.forEach(server => {
-        const id = server.getAttribute('data-server-id');
-        const index = serverOrder.indexOf(id);
-        existingServerMap.set(index === -1 ? Infinity : index, server);
-    });
-    
     serversToReposition.forEach(serverData => {
-        const targetIndex = serverOrder.indexOf(serverData.id);
-        if (targetIndex === -1) {
-            if (addButton) {
-                mainList.insertBefore(serverData.element, addButton);
-            } else if (divider) {
-                divider.insertAdjacentElement('afterend', serverData.element);
-            } else {
-                mainList.appendChild(serverData.element);
-            }
-            return;
-        }
-        
-        let insertBeforeElement = addButton;
-        for (const [index, element] of existingServerMap.entries()) {
-            if (index > targetIndex) {
-                insertBeforeElement = element;
-                break;
-            }
-        }
-        
-        if (insertBeforeElement && mainList.contains(insertBeforeElement)) {
-            mainList.insertBefore(serverData.element, insertBeforeElement);
-        } else if (addButton) {
+        if (addButton) {
             mainList.insertBefore(serverData.element, addButton);
         } else if (divider) {
             divider.insertAdjacentElement('afterend', serverData.element);
@@ -628,7 +581,12 @@ function createFolderPreview(group, folderElement, serverImageData) {
                 previewItem.style.fontWeight = '700';
             }
         } else {
-            previewItem.textContent = serverId.toString().charAt(0).toUpperCase();
+            const cachedServer = serverDataCache ? serverDataCache[serverId] : null;
+            if (cachedServer && cachedServer.name) {
+                previewItem.textContent = cachedServer.name.charAt(0).toUpperCase();
+            } else {
+                previewItem.textContent = '?';
+            }
             previewItem.style.backgroundColor = '#36393f';
             previewItem.style.color = 'white';
             previewItem.style.fontSize = '8px';
@@ -1293,38 +1251,8 @@ function showServerChannelSection() {
 export function refreshServerGroups() {
 
     
-    const currentServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
-    const currentServerIds = Array.from(currentServerElements).map(el => el.getAttribute('data-server-id'));
-    const savedOrder = LocalStorageManager.getServerOrder();
-    
-    const newServers = currentServerIds.filter(id => !savedOrder.includes(id));
-    const removedServers = savedOrder.filter(id => !currentServerIds.includes(id));
-    
-    if (newServers.length > 0 || removedServers.length > 0) {
-
-        
-        const cleanedOrder = savedOrder.filter(id => currentServerIds.includes(id));
-        const updatedOrder = [...cleanedOrder, ...newServers];
-        LocalStorageManager.setServerOrder(updatedOrder);
-    }
-    
     performCompleteRender();
 }
-
-function testServerPositioning() {
-    const serverOrder = LocalStorageManager.getServerOrder();
-    const currentElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
-    
-
-
-    
-    return {
-        orderLength: serverOrder.length,
-        domLength: currentElements.length,
-        orderConsistent: serverOrder.length === currentElements.length
-    };
-}
-
 
 window.updateActiveServer = updateActiveServer;
 window.handleServerClick = handleServerClick;
