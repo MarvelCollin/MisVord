@@ -351,26 +351,42 @@ window.testBotMusicCommand = async function(songName = 'never gonna give you up'
     }
 };
 
-window.testBotVoiceJoin = function() {
+window.testBotVoiceJoin = async function() {
+    console.log('🎤 [BOT-VOICE-TEST] Attempting to join voice...');
 
-    
-    const mockBotData = {
-        user_id: '4',
-        username: 'titibot',
-        avatar_url: '/public/assets/common/default-profile-picture.png',
-        isBot: true,
-        channelId: document.querySelector('meta[name="channel-id"]')?.content || '1',
-        meetingId: document.querySelector('meta[name="meeting-id"]')?.content || 'voice_channel_1',
-        joinedAt: Date.now()
-    };
-    
+    try {
+        const response = await fetch('/api/bot/check/titibot');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch bot info, status: ${response.status}`);
+        }
+        
+        const result = await response.json();
 
-    
-    if (window.voiceCallSection) {
-        window.voiceCallSection.addBotParticipant(mockBotData);
+        if (result.success && result.is_bot) {
+            const botData = result.bot;
+            
+            const mockBotData = {
+                user_id: botData.id.toString(),
+                username: botData.username,
+                avatar_url: botData.avatar_url || '/public/assets/common/default-profile-picture.png',
+                isBot: true,
+                channelId: document.querySelector('meta[name="channel-id"]')?.content || '1',
+                meetingId: document.querySelector('meta[name="meeting-id"]')?.content || `voice_channel_1`,
+                joinedAt: Date.now()
+            };
 
-    } else {
-        console.error('❌ [BOT-VOICE-TEST] Voice call section not found');
+            if (window.voiceCallSection) {
+                window.voiceCallSection.addBotParticipant(mockBotData);
+                console.log('✅ [BOT-VOICE-TEST] Added bot to voice channel UI:', mockBotData);
+            } else {
+                console.error('❌ [BOT-VOICE-TEST] Voice call section not found');
+            }
+        } else {
+            console.error('❌ [BOT-VOICE-TEST] Failed to get titibot data:', result.message);
+            alert('Could not find titibot. Please create it first using Ctrl+9.');
+        }
+    } catch (error) {
+        console.error('❌ [BOT-VOICE-TEST] Error during voice join test:', error);
     }
 };
 

@@ -262,7 +262,63 @@ function showInvitePeopleModal() {
         loadInviteLink(serverId);
     }
     
+    // Add Invite Bot button if it doesn't exist
+    if (!document.getElementById('invite-bot-btn')) {
+        const invitePeopleModal = document.getElementById('invite-people-modal');
+        const modalContent = invitePeopleModal.querySelector('.bg-discord-background > div');
+        const generateLinkButton = modalContent.querySelector('#generate-new-invite').parentElement;
+
+        const separator = document.createElement('div');
+        separator.className = 'mt-4 pt-4 border-t border-gray-700';
+        
+        const botButtonContainer = document.createElement('div');
+        botButtonContainer.className = 'flex justify-center';
+        
+        const inviteBotBtn = document.createElement('button');
+        inviteBotBtn.id = 'invite-bot-btn';
+        inviteBotBtn.className = 'w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-300';
+        inviteBotBtn.innerHTML = '<i class="fas fa-robot mr-2"></i> Invite Bot';
+        
+        botButtonContainer.appendChild(inviteBotBtn);
+        separator.appendChild(botButtonContainer);
+        generateLinkButton.parentElement.appendChild(separator);
+
+        inviteBotBtn.addEventListener('click', showInviteBotModal);
+    }
+    
+    // Create invite bot modal if it doesn't exist
+    if (!document.getElementById('invite-bot-modal')) {
+        const modalHtml = `
+            <div id="invite-bot-modal" class="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-70 hidden">
+                <div class="bg-discord-darker p-6 rounded-lg shadow-xl w-full max-w-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-white">Invite a Bot</h2>
+                        <button id="close-invite-bot-modal" class="text-gray-400 hover:text-white">&times;</button>
+                    </div>
+                    <div>
+                        <input type="text" id="bot-search-input" placeholder="Search for a bot" class="w-full p-2 rounded bg-discord-dark text-white mb-4">
+                        <div id="bot-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+    
     setupInviteModalListeners();
+}
+
+function showInviteBotModal() {
+    const modal = document.getElementById('invite-bot-modal');
+    if (!modal) {
+        console.error('Invite bot modal not found');
+        return;
+    }
+
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+
+    loadAvailableBots();
+    setupInviteBotModalListeners();
 }
 
 function showCreateChannelModal() {
@@ -322,6 +378,29 @@ function setupInviteModalListeners() {
             });
             generateBtn.setAttribute('data-listener', 'true');
         }
+
+    // This part is now handled dynamically in showInvitePeopleModal
+    // const inviteBotBtn = document.getElementById('invite-bot-btn');
+    // if (inviteBotBtn && !inviteBotBtn.hasAttribute('data-listener')) {
+    //     inviteBotBtn.addEventListener('click', showInviteBotModal);
+    //     inviteBotBtn.setAttribute('data-listener', 'true');
+    // }
+}
+
+function setupInviteBotModalListeners() {
+    const modal = document.getElementById('invite-bot-modal');
+    const closeBtn = document.getElementById('close-invite-bot-modal');
+    const searchInput = document.getElementById('bot-search-input');
+
+    if (closeBtn && !closeBtn.hasAttribute('data-listener')) {
+        closeBtn.addEventListener('click', () => closeModal('invite-bot-modal'));
+        closeBtn.setAttribute('data-listener', 'true');
+    }
+
+    if (searchInput && !searchInput.hasAttribute('data-listener')) {
+        searchInput.addEventListener('input', (e) => loadAvailableBots(e.target.value));
+        searchInput.setAttribute('data-listener', 'true');
+    }
 }
 
 function setupLeaveServerModalListeners() {
@@ -689,4 +768,66 @@ window.testMembershipAPI = async function() {
         return null;
     }
 };
+
+async function loadAvailableBots(searchQuery = '') {
+    const botList = document.getElementById('bot-list');
+    if (!botList) return;
+
+    botList.innerHTML = '<span>Loading bots...</span>';
+
+    try {
+        const response = await fetch(`/api/bots?search=${searchQuery}`);
+        const data = await response.json();
+
+        if (data.success && data.bots) {
+            botList.innerHTML = '';
+            data.bots.forEach(bot => {
+                const botItem = document.createElement('div');
+                botItem.className = 'bot-item';
+                botItem.dataset.botId = bot.id;
+                botItem.innerHTML = `
+                    <img src="${bot.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${bot.username}">
+                    <span>${bot.username}</span>
+                `;
+                botItem.addEventListener('click', () => inviteBotToServer(bot.id));
+                botList.appendChild(botItem);
+            });
+        } else {
+            botList.innerHTML = `<span>${data.message || 'No bots found'}</span>`;
+        }
+    } catch (error) {
+        console.error('Error loading available bots:', error);
+        botList.innerHTML = '<span>Error loading bots.</span>';
+    }
+}
+
+async function inviteBotToServer(botId) {
+    const serverId = getCurrentServerId();
+    if (!serverId) {
+        showToast('Could not get server ID.', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/bot/add-to-server', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ bot_id: botId, server_id: serverId }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(data.message || 'Bot invited successfully!', 'success');
+            closeModal('invite-bot-modal');
+        } else {
+            showToast(data.message || 'Failed to invite bot.', 'error');
+        }
+    } catch (error) {
+        console.error('Error inviting bot to server:', error);
+        showToast('An error occurred while inviting the bot.', 'error');
+    }
+}
 

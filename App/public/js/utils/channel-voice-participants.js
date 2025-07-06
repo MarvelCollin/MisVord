@@ -143,7 +143,11 @@ class ChannelVoiceParticipants {
         window.addEventListener('voiceConnect', (event) => {
             const channelId = event.detail?.channelId;
             if (channelId && !voiceConnectHandled) {
-
+                const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+                if (container) {
+                    container.classList.remove('hidden');
+                    container.style.display = 'block';
+                }
                 voiceConnectHandled = true;
                 
                 setTimeout(() => {
@@ -175,8 +179,6 @@ class ChannelVoiceParticipants {
 
         if (action === 'join' && user_id && !participantExists) {
             await this.addParticipant(channel_id, user_id, username);
-        } else if (action === 'leave' && user_id) {
-            this.removeParticipant(channel_id, user_id);
         } else if (action === 'already_registered' && user_id && !participantExists) {
             await this.addParticipant(channel_id, user_id, username);
         }
@@ -212,8 +214,9 @@ class ChannelVoiceParticipants {
         if (this.coordinator) {
             if (this.coordinator.hasParticipant(channelId, normalizedUserId)) {
                 const existingSystem = this.coordinator.getParticipantSystem(normalizedUserId);
-                if (existingSystem === 'VoiceCallSection') {
-                    // VoiceCallSection has priority, don't add to channel indicators
+                const isCurrentUser = normalizedUserId === window.currentUserId;
+                if (existingSystem === 'VoiceCallSection' && isCurrentUser) {
+                    // VoiceCallSection has priority for the current user, don't add to channel indicators
                     return;
                 }
             }
@@ -305,9 +308,6 @@ class ChannelVoiceParticipants {
         const channelParticipants = this.participants.get(channelId);
         
         if (!channelParticipants || channelParticipants.size === 0) {
-            container.classList.add('hidden');
-            container.style.display = 'none';
-            container.innerHTML = '';
             this.updateChannelCount(channelId, 0);
             return;
         }
@@ -530,11 +530,6 @@ class ChannelVoiceParticipants {
                 const channelParticipants = this.participants.get(channelId);
                 if (channelParticipants && channelParticipants.size > 0) {
                     this.updateParticipantContainer(channelId);
-                } else {
-                    container.classList.add('hidden');
-                    container.style.display = 'none';
-                    container.innerHTML = '';
-                    this.updateChannelCount(channelId, 0);
                 }
             }
         });
@@ -545,6 +540,43 @@ class ChannelVoiceParticipants {
             this.forceRefreshAllContainers();
             this.requestAllVoiceChannelUpdates();
         }, 500);
+    }
+
+    syncParticipantsFromPresence(voiceChannelsData) {
+        if (!voiceChannelsData) return;
+    
+        const newParticipantsState = new Map();
+    
+        for (const channelId in voiceChannelsData) {
+            const channelData = voiceChannelsData[channelId];
+            if (channelData && channelData.participants && channelData.participants.length > 0) {
+                
+                const newChannelParticipantsMap = new Map();
+                const uniqueParticipants = new Map();
+                
+                channelData.participants.forEach(p => {
+                    if (p && p.id && !uniqueParticipants.has(p.id.toString())) {
+                        uniqueParticipants.set(p.id.toString(), p);
+                    }
+                });
+    
+                uniqueParticipants.forEach(participant => {
+                    const participantIdStr = participant.id.toString();
+                    newChannelParticipantsMap.set(participantIdStr, {
+                        id: participantIdStr,
+                        username: participant.username,
+                        display_name: participant.username,
+                        avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png'
+                    });
+                });
+    
+                newParticipantsState.set(channelId.toString(), newChannelParticipantsMap);
+            }
+        }
+    
+        this.participants = newParticipantsState;
+        
+        this.forceRefreshAllContainers();
     }
 }
 
@@ -616,8 +648,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.ChannelVoiceParticipants.prototype.setupCoordinationListeners = function() {
         window.addEventListener('voiceParticipantUpdate', (event) => {
-            const { channelId, action, participant } = event.detail;
-            this.updateParticipantContainer(channelId);
-            this.forceRefreshAllContainers();
+            if (event.detail.voiceParticipants) {
+                this.syncParticipantsFromPresence(event.detail.voiceParticipants);
+            } else if (event.detail.channelId) {
+                this.updateParticipantContainer(event.detail.channelId);
+                this.forceRefreshAllContainers();
+            }
         });
     }

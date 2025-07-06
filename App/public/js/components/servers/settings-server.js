@@ -98,60 +98,86 @@ function createImageUploadHandler(containerId, previewId, placeholderId, type, o
     const container = document.getElementById(containerId);
     const preview = document.getElementById(previewId);
     const placeholder = document.getElementById(placeholderId);
-    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const inputId = type === 'profile' ? 'server-icon-input' : 'server-banner-input';
+    const input = document.getElementById(inputId);
 
-    if (!container || !serverId) return;
-
+    if (!container || !input) {
+        console.warn(`Image upload handler for ${type} could not be initialized.`);
+        return;
+    }
+    
     try {
         const cutter = new ImageCutter({
             container: container,
             type: type,
             modalTitle: `Upload Server ${type === 'profile' ? 'Icon' : 'Banner'}`,
-            aspectRatio: type === 'profile' ? 1 : 16 / 9,
+            aspectRatio: type === 'profile' ? 1 : 16/9,
             onCrop: async (result) => {
                 if (result && result.error) {
-                    showToast(result.message || `Error cropping server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
+                    showToast(result.message || 'An error occurred during cropping.', 'error');
+                    return;
+                }
+                
+                if (!result || !result.dataUrl) {
+                    showToast('Cropping was cancelled or failed.', 'info');
                     return;
                 }
 
-                if (!result || !result.dataUrl) {
-                    showToast(`Failed to get cropped image data.`, 'error');
-                    return;
-                }
+                const serverId = document.querySelector('meta[name="server-id"]').content;
+                const blob = dataURLtoBlob(result.dataUrl);
 
                 try {
-                    const blob = dataURLtoBlob(result.dataUrl);
-
-                    const response = await (type === 'profile'
+                    const response = await (type === 'profile' 
                         ? window.serverAPI.updateServerIcon(serverId, blob)
                         : window.serverAPI.updateServerBanner(serverId, blob));
 
-                    if (response && response.success) {
+                    if (response.success) {
                         if (preview) {
                             preview.src = result.dataUrl;
                             preview.classList.remove('hidden');
-
-                            if (placeholder) placeholder.classList.add('hidden');
+                        }
+                        if (placeholder) {
+                            placeholder.classList.add('hidden');
                         }
 
-                        if (onSuccess) onSuccess(result.dataUrl);
+                        if (onSuccess) {
+                            onSuccess(result.dataUrl);
+                        }
 
                         showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated successfully`, 'success');
                     } else {
-                        throw new Error(response.message || `Failed to update server ${type === 'profile' ? 'icon' : 'banner'}`);
+                        throw new Error(response.message || `Failed to update server ${type}`);
                     }
                 } catch (error) {
                     console.error(`Error updating server ${type}:`, error);
-                    showToast(error.message || `Failed to update server ${type === 'profile' ? 'icon' : 'banner'}`, 'error');
+                    showToast(error.message || 'An error occurred while uploading.', 'error');
                 }
             }
         });
 
-        if (type === 'profile') {
-            window.serverIconCutter = cutter;
-        } else {
-            window.serverBannerCutter = cutter;
-        }
+        container.addEventListener('click', (e) => {
+             e.preventDefault();
+             input.click();
+         });
+ 
+         input.addEventListener('change', (e) => {
+             const file = e.target.files[0];
+             if (!file) return;
+ 
+             const reader = new FileReader();
+             reader.onload = (event) => {
+                 cutter.loadImage(event.target.result);
+             };
+             reader.readAsDataURL(file);
+             
+             e.target.value = '';
+         });
+ 
+         if (type === 'profile') {
+             window.serverIconCutter = cutter;
+         } else {
+             window.serverBannerCutter = cutter;
+         }
     } catch (error) {
         console.error(`Error initializing ${type} cutter:`, error);
         showToast(`Could not initialize image uploader for server ${type}.`, 'error');
@@ -323,17 +349,9 @@ function updateServerNamePreview(newName) {
  * Update server description in preview
  */
 function updateServerDescriptionPreview(newDescription) {
-    let serverDescriptionPreview = document.querySelector('.server-description');
-    
-    if (newDescription) {
-        if (!serverDescriptionPreview) {
-            serverDescriptionPreview = document.createElement('div');
-            serverDescriptionPreview.className = 'server-description text-xs text-discord-lighter mt-3';
-            document.querySelector('.server-info').appendChild(serverDescriptionPreview);
-        }
-        serverDescriptionPreview.textContent = newDescription;
-    } else if (serverDescriptionPreview) {
-        serverDescriptionPreview.remove();
+    const serverDescriptionPreview = document.querySelector('.server-description-preview');
+    if (serverDescriptionPreview) {
+        serverDescriptionPreview.textContent = newDescription || 'Tell people what your server is about...';
     }
 }
 

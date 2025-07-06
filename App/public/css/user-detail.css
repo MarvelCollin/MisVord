@@ -207,7 +207,20 @@
   border-radius: 4px;
   background-color: rgba(255, 255, 255, 0.1);
   color: var(--discord-white);
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-detail-role-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #ffffff;
+}
+
+.user-detail-role-name {
+  font-weight: 500;
 }
 
 .user-detail-role.owner {
@@ -244,50 +257,6 @@
 .user-detail-note:focus {
   outline: none;
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
-}
-
-/* Action buttons */
-.user-detail-actions {
-  display: flex;
-  padding: 12px 16px;
-  background-color: var(--discord-light);
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.user-detail-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 16px;
-  border-radius: 4px;
-  border: none;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.user-detail-action-btn svg {
-  margin-right: 8px;
-}
-
-.user-detail-action-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.message-btn {
-  background-color: var(--discord-primary);
-  color: var(--discord-white);
-}
-
-.message-btn:hover {
-  background-color: #4752c4;
-}
-
-.user-detail-action-separator {
-  width: 1px;
-  margin: 0 8px;
-  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .user-detail-mutual {

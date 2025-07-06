@@ -386,3 +386,29 @@
   outline: none;
   color: #ffffff;
 }
+
+#invite-bot-modal .bot-item {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    background-color: #2f3136;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#invite-bot-modal .bot-item:hover {
+    background-color: #40444b;
+}
+
+#invite-bot-modal .bot-item img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 12px;
+}
+
+#invite-bot-modal .bot-item span {
+    color: #dcddde;
+    font-weight: 500;
+}

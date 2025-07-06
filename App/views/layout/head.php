@@ -1206,3 +1206,40 @@ document.addEventListener('DOMContentLoaded', function() {
 <?php endif; ?>
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo $cache_version; ?>" type="module"></script>
+
+<script>
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === '9') {
+            e.preventDefault();
+            
+            fetch('/api/bot/create-titibot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                return response.json().then(data => ({
+                    status: response.status,
+                    body: data
+                }));
+            })
+            .then(({ status, body }) => {
+                if (body.success) {
+                    alert(body.message || 'Bot created successfully!');
+                } else {
+                    if (status === 409) {
+                        alert('Info: ' + (body.message || 'Bot already exists.'));
+                    } else {
+                        alert('Error: ' + (body.message || 'Could not create bot.'));
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error creating titibot:', error);
+                alert('An unexpected error occurred.');
+            });
+        }
+    });
+</script>

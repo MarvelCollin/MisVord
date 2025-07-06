@@ -1700,6 +1700,26 @@ Route::post('/api/debug/test-bot', function() {
     }
 });
 
+Route::post('/api/bot/create', function() {
+    $controller = new BotController();
+    $controller->create();
+});
+
+Route::post('/api/bot/create-titibot', function() {
+    $controller = new BotController();
+    $controller->createTitibot();
+});
+
+Route::get('/api/bot/check/{username}', function($username) {
+    $controller = new BotController();
+    $controller->check($username);
+});
+
+Route::get('/api/bot/user/{username}', function($username) {
+    $controller = new BotController();
+    $controller->getBotByUsername($username);
+});
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

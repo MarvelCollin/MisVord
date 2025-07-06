@@ -74,7 +74,27 @@ foreach ($members as $member) {
 
     
     <div class="participant-content flex-1 overflow-y-auto p-2" data-lazyload="participant-list">
-        <div class="px-2">
+        <div id="participant-skeleton-loader" class="px-2">
+            <?php for ($j = 0; $j < 3; $j++): ?>
+                <div class="mb-4 role-group-skeleton">
+                    <div class="h-3 bg-gray-700 rounded animate-pulse" style="width: <?php echo rand(25, 40); ?>%;"></div>
+                    <div class="space-y-0.5 members-list-skeleton mt-2">
+                        <?php for ($i = 0; $i < rand(3, 6); $i++): ?>
+                            <div class="flex items-center px-2 py-1">
+                                <div class="relative mr-2">
+                                    <div class="w-8 h-8 rounded-full bg-gray-700 animate-pulse"></div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="h-4 bg-gray-700 rounded animate-pulse" style="width: <?php echo rand(50, 80); ?>%;"></div>
+                                </div>
+                            </div>
+                        <?php endfor; ?>
+                    </div>
+                </div>
+            <?php endfor; ?>
+        </div>
+        
+        <div class="px-2" id="participant-list-container" style="display: none;">
             <?php 
             $roleDisplayOrder = ['owner', 'admin', 'bot', 'member', 'offline'];
             foreach ($roleDisplayOrder as $role):
@@ -163,7 +183,7 @@ foreach ($members as $member) {
                                         if (!empty($avatarUrl)) {
                                             echo '<img src="' . htmlspecialchars($avatarUrl) . '" alt="' . htmlspecialchars($username) . '" class="w-full h-full object-cover ' . $imgOpacityClass . '">';
                                         } else {
-                                            echo '<div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">' . strtoupper(substr($username, 0, 1)) . '</div>';
+                                            echo '<img src="/public/assets/common/default-profile-picture.png" alt="' . htmlspecialchars($username) . '" class="w-full h-full object-cover ' . $imgOpacityClass . '">';
                                         }
                                         ?>
                                     </div>
@@ -472,7 +492,7 @@ function updateParticipantDisplay() {
     });
     
     const roleDisplayOrder = ['owner', 'admin', 'bot', 'member', 'offline'];
-    const container = document.querySelector('.participant-content .px-2');
+    const container = document.getElementById('participant-list-container');
     
     if (!container) return;
     
@@ -548,7 +568,7 @@ function updateParticipantDisplay() {
                     <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                         ${avatarUrl ? 
                             `<img src="${avatarUrl}" alt="${username}" class="w-full h-full object-cover ${imgOpacityClass}">` : 
-                            `<div class="w-full h-full flex items-center justify-center bg-discord-dark text-white font-bold">${username.charAt(0).toUpperCase()}</div>`
+                            `<img src="/public/assets/common/default-profile-picture.png" alt="${username}" class="w-full h-full object-cover ${imgOpacityClass}">`
                         }
                     </div>
                     <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator"></span>
@@ -573,6 +593,12 @@ function updateParticipantDisplay() {
         
         container.appendChild(roleSection);
     });
+
+    const skeleton = document.getElementById('participant-skeleton-loader');
+    if (skeleton && skeleton.style.display !== 'none') {
+        skeleton.style.display = 'none';
+        container.style.display = 'block';
+    }
     
     if (window.nitroCrownManager) {
         const usernameElements = container.querySelectorAll('.member-username[data-user-id]');
@@ -883,7 +909,13 @@ window.initializeParticipantSection = function() {
 };
 
 window.toggleParticipantLoading = function(loading = true) {
+    const skeleton = document.getElementById('participant-skeleton-loader');
+    const container = document.getElementById('participant-list-container');
 
+    if (skeleton && container) {
+        skeleton.style.display = loading ? 'block' : 'none';
+        container.style.display = loading ? 'none' : 'block';
+    }
 };
 
 </script>

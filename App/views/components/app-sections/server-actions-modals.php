@@ -87,28 +87,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                     </div>
                 </div>
                 
-                <div class="flex items-center mb-4">
-                    <label class="flex items-center cursor-pointer">
-                        <input type="checkbox" id="is-private" name="is_private" class="sr-only peer">
-                        <div class="relative w-10 h-5 bg-[#4e5058] rounded-full peer 
-                            peer-focus:outline-none peer-focus:ring-0
-                            peer-checked:bg-discord-green transition-colors duration-300 ease-in-out
-                            before:content-[''] before:absolute before:top-[2px] before:left-[2px] 
-                            before:bg-white before:rounded-full before:h-4 before:w-4 
-                            before:transition-all before:duration-300 
-                            peer-checked:before:translate-x-5">
-                        </div>
-                        <span class="ms-3 text-gray-300 text-sm">Private Channel</span>
-                    </label>
-                    <div class="group relative ml-2">
-                        <span class="text-gray-500 cursor-help">
-                            <i class="fas fa-circle-info text-xs"></i>
-                        </span>
-                        <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 invisible group-hover:visible bg-black text-white text-xs p-2 rounded w-48 z-10">
-                            Only specific members will be able to view this channel
-                        </div>
-                    </div>
-                </div>
             </form>
         </div>
         
@@ -212,8 +190,27 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                             Generate a new link
                         </button>
                     </div>
+                     <div class="mt-4 pt-4 border-t border-gray-700 flex justify-center">
+                        <button id="invite-bot-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition duration-300">
+                            <i class="fas fa-robot mr-2"></i> Invite Bot
+                        </button>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div id="invite-bot-modal" class="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-70 hidden">
+    <div class="bg-discord-darker p-6 rounded-lg shadow-xl w-full max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-white">Invite a Bot</h2>
+            <button id="close-invite-bot-modal" class="text-gray-400 hover:text-white">&times;</button>
+        </div>
+        <div>
+            <input type="text" id="bot-search-input" placeholder="Search for a bot" class="w-full p-2 rounded bg-discord-dark text-white mb-4">
+            <div id="bot-list" class="space-y-2 max-h-60 overflow-y-auto">
+                </div>
         </div>
     </div>
 </div>
@@ -303,34 +300,24 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 </div>
 
 <div id="leave-server-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="w-full max-w-md">
-        <div class="bg-discord-background rounded-lg shadow-lg overflow-hidden">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-xl font-bold text-white">Leave Server</h2>
-                    <button id="close-leave-server-modal" class="text-gray-400 hover:text-white">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div class="space-y-4">
-                    <div class="text-center">
-                        <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
-                        <p class="text-white mb-2">Are you sure you want to leave this server?</p>
-                        <p class="text-gray-400 text-sm">You won't be able to rejoin this server unless you are re-invited.</p>
-                    </div>
-                    
-                    <div class="pt-4 flex space-x-3">
-                        <button type="button" id="cancel-leave-server" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
-                            Cancel
-                        </button>
-                        <button type="button" id="confirm-leave-server" 
-                                class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
-                            Leave Server
-                        </button>
-                    </div>
-                </div>
+    <div class="bg-discord-darker p-6 rounded-lg shadow-xl w-full max-w-md">
+        <h2 class="text-xl font-bold text-white mb-4">Leave Server</h2>
+        <div class="space-y-4">
+            <div class="text-center">
+                <i class="fas fa-exclamation-triangle text-yellow-500 text-4xl mb-4"></i>
+                <p class="text-white mb-2">Are you sure you want to leave this server?</p>
+                <p class="text-gray-400 text-sm">You won't be able to rejoin this server unless you are re-invited.</p>
+            </div>
+            
+            <div class="pt-4 flex space-x-3">
+                <button type="button" id="cancel-leave-server" 
+                        class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded">
+                    Cancel
+                </button>
+                <button type="button" id="confirm-leave-server" 
+                        class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded">
+                    Leave Server
+                </button>
             </div>
         </div>
     </div>

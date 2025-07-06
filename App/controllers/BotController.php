@@ -114,6 +114,45 @@ class BotController extends BaseController
         }
     }
 
+    public function createTitibot()
+    {
+        $this->requireAuth();
+
+        $username = 'titibot';
+        $email = 'titibot@misvord.com';
+
+        $existingUser = $this->userRepository->findByUsername($username);
+        if ($existingUser) {
+            return $this->error('Bot "titibot" already exists.', 409);
+        }
+
+        if ($this->userRepository->findByEmail($email)) {
+            $email = 'titibot.' . uniqid() . '@misvord.com';
+        }
+
+        $botData = [
+            'username' => $username,
+            'email' => $email,
+            'discriminator' => '0000',
+            'display_name' => $username,
+            'bio' => 'The one and only Titibot, created by a special shortcut.'
+        ];
+
+        $bot = $this->userRepository->createBot($botData);
+
+        if (!$bot) {
+            return $this->serverError('Failed to create the Titibot.');
+        }
+
+        $this->logActivity('bot_created_shortcut', [
+            'bot_id' => $bot->id,
+            'bot_username' => $username,
+            'created_by' => $this->getCurrentUserId()
+        ]);
+
+        return $this->success(['bot' => $bot], 'Bot "titibot" created successfully.');
+    }
+
     public function check($username)
     {
         $this->requireAuth();
@@ -433,6 +472,27 @@ class BotController extends BaseController
             }
             error_log('Bot message send error: ' . $e->getMessage());
             return $this->serverError('Failed to send bot message: ' . $e->getMessage());
+        }
+    }
+
+    public function getBotByUsername($username)
+    {
+        $this->requireAuth();
+
+        if (empty($username)) {
+            return $this->error('Bot username is required', 400);
+        }
+
+        try {
+            $bot = $this->userRepository->findByUsername($username);
+
+            if (!$bot || $bot->status !== 'bot') {
+                return $this->error('Bot not found', 404);
+            }
+
+            return $this->success(['bot' => $bot]);
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while retrieving the bot: ' . $e->getMessage());
         }
     }
 }

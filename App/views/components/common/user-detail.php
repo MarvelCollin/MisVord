@@ -34,6 +34,14 @@
                 <div class="user-detail-bio" id="user-detail-bio">
                 </div>
             </div>
+
+            <div id="user-detail-roles-wrapper" style="display: none;">
+                <div class="user-detail-divider"></div>
+                <div class="user-detail-section">
+                    <h3 class="user-detail-section-title">ROLES</h3>
+                    <div class="user-detail-roles" id="user-detail-roles"></div>
+                </div>
+            </div>
             
             <div class="user-detail-divider"></div>
             
@@ -41,13 +49,6 @@
                 <h3 class="user-detail-section-title">MEMBER SINCE</h3>
                 <div class="user-detail-server-info" id="user-detail-server-info">
                 </div>
-            </div>
-            
-            <div class="user-detail-actions">
-                <button class="user-detail-action-btn bg-discord-dark text-white" id="user-detail-add-friend-btn">
-                    <i class="fas fa-user-plus w-4 h-4"></i>
-                    Add Friend
-                </button>
             </div>
         </div>
         

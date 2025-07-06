@@ -182,6 +182,7 @@ ob_start();
                                         <div class="text-white text-sm font-medium">CHANGE</div>
                                     </div>
                                 </div>
+                                <input type="file" id="server-icon-input" class="hidden" accept="image/jpeg,image/png,image/gif">
                             </div>
                             
                             <div class="form-group">
@@ -200,6 +201,7 @@ ob_start();
                                         <div class="text-white text-sm font-medium">CHANGE BANNER</div>
                                     </div>
                                 </div>
+                                <input type="file" id="server-banner-input" class="hidden" accept="image/jpeg,image/png,image/gif">
                             </div>
                         </div>
                     </div>

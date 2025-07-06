@@ -5,6 +5,7 @@ class UserDetailModal {
         this.currentUserId = null;
         this.currentServerId = null;
         this.userData = null;
+        this.initialRoleName = null;
 
         if (this.modal) {
             this.initElements();
@@ -23,7 +24,8 @@ class UserDetailModal {
 
         this.aboutSection = this.modal.querySelector('#user-detail-bio');
         this.memberSinceSection = this.modal.querySelector('#user-detail-server-info');
-        this.rolesSection = this.modal.querySelector('#user-detail-roles'); // May not exist
+        this.rolesSection = this.modal.querySelector('#user-detail-roles');
+        this.rolesWrapper = this.modal.querySelector('#user-detail-roles-wrapper');
 
         this.mutualSection = this.modal.querySelector('.user-detail-mutual');
         this.mutualServersElement = this.modal.querySelector('#user-detail-mutual-servers');
@@ -32,7 +34,6 @@ class UserDetailModal {
         this.mutualFriendsItem = this.modal.querySelector('#mutual-friends-item');
 
         this.messageBtn = this.modal.querySelector('#user-detail-message-btn');
-        this.addFriendBtn = this.modal.querySelector('#user-detail-add-friend-btn');
         
         this.mutualDetailTitle = this.modal.querySelector('#mutual-detail-title');
         this.mutualDetailContent = this.modal.querySelector('#mutual-detail-content');
@@ -64,10 +65,6 @@ class UserDetailModal {
             this.messageBtn.addEventListener('click', () => this.handleMessageClick());
         }
 
-        if (this.addFriendBtn) {
-            this.addFriendBtn.addEventListener('click', () => this.handleAddFriendClick());
-        }
-        
         if (this.mutualServersItem) {
             this.mutualServersItem.addEventListener('click', () => this.showMutualServersDetail());
         }
@@ -90,8 +87,6 @@ class UserDetailModal {
     }
 
     show(options = {}) {
-
-        
         if (!options.userId) {
             console.error('User ID is required to show user detail modal');
             return;
@@ -99,6 +94,11 @@ class UserDetailModal {
         
         this.currentUserId = options.userId;
         this.currentServerId = options.serverId || null;
+        this.initialRoleName = options.role || null;
+
+        if (this.rolesWrapper) {
+            this.rolesWrapper.style.display = this.currentServerId ? 'block' : 'none';
+        }
         
         this.modal.classList.add('active');
         
@@ -165,12 +165,10 @@ class UserDetailModal {
             });
     }
 
-
     hide() {
         this.modal.classList.remove('active');
         this.resetModalPosition();
     }
-
 
     isVisible() {
         return this.modal.classList.contains('active');
@@ -185,7 +183,6 @@ class UserDetailModal {
             container.style.transform = '';
         }
     }
-
 
     showLoadingState() {
         if (this.nameElement) {
@@ -253,7 +250,6 @@ class UserDetailModal {
         });
     }
 
-
     showErrorState(errorMessage = 'User not found') {
         if (this.nameElement) {
             this.nameElement.textContent = errorMessage;
@@ -312,7 +308,6 @@ class UserDetailModal {
         }
     }
 
-
     async fetchUserData() {
         try {
             if (!window.userAPI) {
@@ -320,10 +315,8 @@ class UserDetailModal {
                 throw new Error('User API not available');
             }
             
-
             const userData = await window.userAPI.getUserProfile(this.currentUserId, this.currentServerId);
 
-            
             if (!userData || !userData.success) {
                 const errorMessage = userData?.message || 'Failed to fetch user data';
                 console.error('User profile API error:', errorMessage);
@@ -345,15 +338,9 @@ class UserDetailModal {
             const currentUserId = document.getElementById('app-container')?.dataset.userId;
             if (currentUserId && this.currentUserId !== currentUserId) {
                 try {
-
                     const mutualData = await window.userAPI.getMutualRelations(this.currentUserId);
 
-                    
                     if (mutualData && mutualData.success && mutualData.data) {
-
-
-
-                        
                         if (mutualData.data.mutual_servers && mutualData.data.mutual_servers.length > 0) {
 
                         }
@@ -530,29 +517,48 @@ class UserDetailModal {
                 this.memberSinceSection.classList.add('fade-in');
             }
 
-            if (this.rolesSection && userData.roles) {
+            if (this.rolesSection) {
                 this.rolesSection.innerHTML = '';
-                if (userData.roles.length > 0) {
-                    userData.roles.forEach(role => {
+                let roles = (this.currentServerId && userData.roles) ? [...userData.roles] : [];
+                
+                if (this.currentServerId && roles.length === 0 && this.initialRoleName) {
+                    const roleName = this.initialRoleName.charAt(0).toUpperCase() + this.initialRoleName.slice(1);
+                    const colors = { 'owner': '#f1c40f', 'admin': '#e74c3c', 'moderator': '#3498db' };
+                    roles.push({
+                        name: roleName,
+                        color: colors[this.initialRoleName.toLowerCase()] || '#99aab5'
+                    });
+                }
+
+                if (this.currentServerId && roles.length > 0) {
+                    roles.forEach(role => {
                         const roleElement = document.createElement('div');
                         roleElement.className = 'user-detail-role fade-in';
-                        roleElement.textContent = role.name || 'Unknown Role';
                         
+                        const roleColorDot = document.createElement('span');
+                        roleColorDot.className = 'user-detail-role-color';
                         if (role.color) {
-                            roleElement.style.backgroundColor = role.color;
+                            roleColorDot.style.backgroundColor = role.color;
                         }
+                        
+                        const roleNameSpan = document.createElement('span');
+                        roleNameSpan.className = 'user-detail-role-name';
+                        roleNameSpan.textContent = role.name || 'Unknown Role';
+                        
+                        roleElement.appendChild(roleColorDot);
+                        roleElement.appendChild(roleNameSpan);
                         
                         this.rolesSection.appendChild(roleElement);
                     });
                     this.rolesSection.classList.remove('text-discord-lighter');
-                } else {
+                } else if (this.currentServerId) {
                     this.rolesSection.textContent = 'No roles';
                     this.rolesSection.classList.add('text-discord-lighter', 'fade-in');
                 }
             }
 
-                    this.updateMutualInfo(userData, isSelf);
-        this.updateActionButtons(userData);
+            this.updateMutualInfo(userData, isSelf);
+            this.updateActionButtons(userData);
         }, 200);
     }
 
@@ -616,8 +622,6 @@ class UserDetailModal {
         }
     }
 
-
-
     updateActionButtons(userData) {
         const user = userData.user;
 
@@ -628,33 +632,6 @@ class UserDetailModal {
             } else {
                 this.messageBtn.disabled = false;
                 this.messageBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
-        if (this.addFriendBtn) {
-            if (user.is_self) {
-                this.addFriendBtn.style.display = 'none';
-            } else if (user.is_friend) {
-                this.addFriendBtn.innerHTML = `
-                    <i class="fas fa-user-minus w-4 h-4"></i>
-                    Remove Friend
-                `;
-                this.addFriendBtn.classList.add('bg-discord-red');
-                this.addFriendBtn.classList.remove('bg-discord-dark');
-            } else if (user.friend_request_sent) {
-                this.addFriendBtn.innerHTML = `
-                    <i class="fas fa-clock w-4 h-4"></i>
-                    Pending
-                `;
-                this.addFriendBtn.disabled = true;
-                this.addFriendBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                this.addFriendBtn.innerHTML = `
-                    <i class="fas fa-user-plus w-4 h-4"></i>
-                    Add Friend
-                `;
-                this.addFriendBtn.disabled = false;
-                this.addFriendBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         }
     }
@@ -687,55 +664,6 @@ class UserDetailModal {
             console.error('Error creating DM:', error);
         }
     }
-
-
-    async handleAddFriendClick() {
-        if (!this.currentUserId) return;
-
-        try {
-            const isFriend = this.addFriendBtn.textContent.trim().includes('Remove');
-
-            if (isFriend) {
-                const response = await fetch('/api/friends', {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ user_id: this.currentUserId })
-                });
-
-                if (!response.ok) throw new Error('Failed to remove friend');
-
-                this.addFriendBtn.innerHTML = `
-                    <i class="fas fa-user-plus w-4 h-4"></i>
-                    Add Friend
-                `;
-                this.addFriendBtn.classList.remove('bg-discord-red');
-                this.addFriendBtn.classList.add('bg-discord-dark');
-            } else {
-                const response = await fetch('/api/friends', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ user_id: this.currentUserId })
-                });
-
-                if (!response.ok) throw new Error('Failed to send friend request');
-
-                this.addFriendBtn.innerHTML = `
-                    <i class="fas fa-clock w-4 h-4"></i>
-                    Pending
-                `;
-                this.addFriendBtn.disabled = true;
-                this.addFriendBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        } catch (error) {
-            console.error('Error updating friend status:', error);
-        }
-    }
-
-
 
     showMutualServersDetail() {
         if (!this.userData || !this.userData.mutualData || !this.userData.mutualData.mutual_servers || this.userData.mutualData.mutual_servers.length === 0) {
@@ -802,17 +730,9 @@ class UserDetailModal {
     }
     
     showMutualFriendsDetail() {
-
-
-
-
-        
         if (!this.userData || !this.userData.mutualData || !this.userData.mutualData.mutual_friends || this.userData.mutualData.mutual_friends.length === 0) {
-
             return;
         }
-        
-
         
         this.mutualDetailTitle.textContent = 'Mutual Friends';
         this.mutualDetailContent.innerHTML = '';
@@ -820,7 +740,6 @@ class UserDetailModal {
         const friends = this.userData.mutualData.mutual_friends;
         
         friends.forEach(friend => {
-
             const friendItem = document.createElement('div');
             friendItem.className = 'mutual-detail-item';
             
@@ -904,7 +823,6 @@ class UserDetailModal {
         }
         
         this.mutualDetailModal.classList.add('active');
-
     }
     
     hideMutualDetail() {
@@ -921,29 +839,28 @@ document.addEventListener('click', (e) => {
 
     if (trigger) {
         if (trigger.classList.contains('mention-all') || trigger.classList.contains('bubble-mention-all') || trigger.dataset.mentionType === 'all') {
-
             return;
         }
 
         let userId = trigger.dataset.userId;
         const serverId = trigger.dataset.serverId;
         const username = trigger.dataset.username;
+        const role = trigger.dataset.role;
 
         if (userId && userId !== 'null' && userId !== '') {
             e.preventDefault();
             userDetailModal.show({
                 userId,
                 serverId,
-                triggerElement: trigger
+                triggerElement: trigger,
+                role
             });
         } else if (username && trigger.classList.contains('mention-user')) {
             e.preventDefault();
 
-            
             if (window.chatSection?.mentionHandler?.availableUsers) {
                 const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
                 if (user && user.id) {
-
                     userDetailModal.show({
                         userId: user.id,
                         serverId,
@@ -952,8 +869,6 @@ document.addEventListener('click', (e) => {
                     return;
                 }
             }
-            
-
         }
     }
 });

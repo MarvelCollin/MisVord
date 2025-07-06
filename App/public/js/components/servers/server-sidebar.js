@@ -279,7 +279,18 @@ async function renderFolders() {
     
     serverDataCache = null;
     
-    const groups = LocalStorageManager.getServerGroups();
+    let groups = LocalStorageManager.getServerGroups();
+    
+    // Automatically dissolve groups with one or zero servers.
+    const validGroups = groups.filter(group => {
+        if (group.servers.length <= 1) {
+            LocalStorageManager.removeServerGroup(group.id);
+            return false;
+        }
+        return true;
+    });
+    groups = validGroups;
+
     const serverOrder = LocalStorageManager.getServerOrder();
     
     document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
@@ -314,11 +325,6 @@ async function renderFolders() {
     const addServerButton = serverList.querySelector('.discord-add-server-button')?.parentNode;
     
     for (const group of groups) {
-        if (group.servers.length === 0) {
-            LocalStorageManager.removeServerGroup(group.id);
-            continue;
-        }
-        
         const folderElement = createFolderElement(group);
         if (addServerButton) {
             serverList.insertBefore(folderElement, addServerButton);
