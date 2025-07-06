@@ -1716,10 +1716,25 @@ function initDeleteServerTab() {
             const response = await window.serverAPI.getServerMembers(serverId);
             
             if (response && response.success && response.data && response.data.members) {
-                // Filter members that are not the current owner
-                allMembers = response.data.members.filter(member => member.role !== 'owner');
+                // Filter members: exclude owner and bots
+                allMembers = response.data.members.filter(member => {
+                    // Exclude server owner
+                    if (member.role === 'owner') return false;
+                    
+                    // Exclude bots (by checking username or status)
+                    if (member.username.toLowerCase() === 'titibot') return false;
+                    if (member.status === 'bot') return false;
+                    
+                    return true;
+                });
             } else if (response && response.members) {
-                allMembers = response.members.filter(member => member.role !== 'owner');
+                // Same filtering for alternative response format
+                allMembers = response.members.filter(member => {
+                    if (member.role === 'owner') return false;
+                    if (member.username.toLowerCase() === 'titibot') return false;
+                    if (member.status === 'bot') return false;
+                    return true;
+                });
             } else {
                 allMembers = [];
             }
@@ -1746,7 +1761,7 @@ function initDeleteServerTab() {
         
         members.forEach(member => {
             const memberElement = document.createElement('div');
-            memberElement.className = 'p-2 hover:bg-discord-dark-input cursor-pointer flex items-center';
+            memberElement.className = 'p-2 hover:bg-discord-dark-input cursor-pointer flex items-center result-item';
             memberElement.dataset.userId = member.id;
             
             let avatarContent;
@@ -1756,13 +1771,31 @@ function initDeleteServerTab() {
                 avatarContent = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
             }
             
+            // Format the role with proper capitalization and styling
+            const roleName = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+            
+            // Role badge color based on role
+            let roleBadgeClass = '';
+            if (member.role === 'admin') {
+                roleBadgeClass = 'bg-red-500';
+            } else if (member.role === 'moderator') {
+                roleBadgeClass = 'bg-blue-500';
+            } else {
+                roleBadgeClass = 'bg-discord-dark-input';
+            }
+            
             memberElement.innerHTML = `
                 <div class="w-8 h-8 rounded-full overflow-hidden mr-2 flex-shrink-0">
                     ${avatarContent}
                 </div>
-                <div>
-                    <div class="text-white">${member.display_name || member.username}</div>
-                    <div class="text-discord-lighter text-xs">${member.role.charAt(0).toUpperCase() + member.role.slice(1)}</div>
+                <div class="flex-grow">
+                    <div class="flex items-center">
+                        <div class="text-white mr-2">${member.display_name || member.username}</div>
+                        <span class="px-1.5 py-0.5 text-xs rounded ${roleBadgeClass} text-white">${roleName}</span>
+                    </div>
+                    <div class="text-discord-lighter text-xs">
+                        ${member.status ? member.status : 'offline'}
+                    </div>
                 </div>
             `;
             
@@ -1784,11 +1817,42 @@ function initDeleteServerTab() {
             selectedUserAvatar.innerHTML = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
         }
         
-        selectedUserName.textContent = member.display_name || member.username;
-        selectedUserRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+        // Format role name with proper capitalization
+        const roleName = member.role.charAt(0).toUpperCase() + member.role.slice(1);
         
-        // Show selected user section
+        // Apply role badge styling based on role
+        let roleBadgeClass = '';
+        if (member.role === 'admin') {
+            roleBadgeClass = 'bg-red-500';
+        } else if (member.role === 'moderator') {
+            roleBadgeClass = 'bg-blue-500';
+        } else {
+            roleBadgeClass = 'bg-discord-dark-input';
+        }
+        
+        // Enhanced HTML structure for selected user
+        selectedUserName.innerHTML = `
+            <span class="text-white font-medium">${member.display_name || member.username}</span>
+            <span class="ml-2 px-1.5 py-0.5 text-xs rounded ${roleBadgeClass} text-white">${roleName}</span>
+        `;
+        
+        // Show status information
+        selectedUserRole.innerHTML = `
+            <span class="text-discord-lighter">
+                <i class="fas fa-circle mr-1 ${member.status === 'online' ? 'text-green-500' : 'text-gray-500'}" style="font-size: 8px;"></i>
+                ${member.status || 'offline'}
+            </span>
+        `;
+        
+        // Show selected user section with animation
         selectedUserContainer.classList.remove('hidden');
+        selectedUserContainer.style.opacity = '0';
+        selectedUserContainer.style.transform = 'translateY(10px)';
+        setTimeout(() => {
+            selectedUserContainer.style.transition = 'all 0.3s ease';
+            selectedUserContainer.style.opacity = '1';
+            selectedUserContainer.style.transform = 'translateY(0)';
+        }, 10);
         
         // Hide search results
         usersContainer.classList.add('hidden');
@@ -1798,9 +1862,13 @@ function initDeleteServerTab() {
             userSearchInput.value = '';
         }
         
-        // Enable transfer button
+        // Enable and highlight transfer button
         confirmTransferBtn.disabled = false;
         confirmTransferBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        confirmTransferBtn.classList.add('animate-pulse-light');
+        setTimeout(() => {
+            confirmTransferBtn.classList.remove('animate-pulse-light');
+        }, 1000);
     }
     
     // This function is no longer needed since we removed the name confirmation
@@ -1824,25 +1892,49 @@ function initDeleteServerTab() {
     
     // No longer need tab switching since we've combined both sections
     
-    // User search
+    // User search with loading animation
     if (userSearchInput) {
+        const usersLoading = document.getElementById('users-loading');
+        
         userSearchInput.addEventListener('input', debounce(function() {
             const searchTerm = this.value.toLowerCase().trim();
             
             if (!searchTerm) {
                 usersContainer.classList.add('hidden');
+                usersLoading.classList.add('hidden');
                 return;
             }
             
-            const filteredMembers = allMembers.filter(member => {
-                return (
-                    member.username.toLowerCase().includes(searchTerm) ||
-                    (member.display_name && member.display_name.toLowerCase().includes(searchTerm))
-                );
-            });
+            // Show loading animation and hide results while searching
+            usersLoading.classList.remove('hidden');
+            usersContainer.classList.add('hidden');
             
-            renderSearchResults(filteredMembers);
-            usersContainer.classList.remove('hidden');
+            // Simulate network delay for smoother UI experience
+            setTimeout(() => {
+                const filteredMembers = allMembers.filter(member => {
+                    return (
+                        member.username.toLowerCase().includes(searchTerm) ||
+                        (member.display_name && member.display_name.toLowerCase().includes(searchTerm))
+                    );
+                });
+                
+                // Hide loading animation and show results
+                usersLoading.classList.add('hidden');
+                renderSearchResults(filteredMembers);
+                usersContainer.classList.remove('hidden');
+                
+                // Add entrance animation to results
+                const resultItems = usersContainer.querySelectorAll('.result-item');
+                resultItems.forEach((item, index) => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        item.style.transition = 'all 0.2s ease';
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, index * 50); // Stagger the animation
+                });
+            }, 300);
         }, 300));
         
         userSearchInput.addEventListener('focus', function() {

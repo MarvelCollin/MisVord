@@ -342,7 +342,7 @@ class UserDetailModal {
 
                     if (mutualData && mutualData.success && mutualData.data) {
                         if (mutualData.data.mutual_servers && mutualData.data.mutual_servers.length > 0) {
-                            console.log('Raw mutual servers data from API:', JSON.stringify(mutualData.data.mutual_servers, null, 2));
+                            
                         }
                         
                         if (mutualData.data.mutual_friends && mutualData.data.mutual_friends.length > 0) {
@@ -675,11 +675,7 @@ class UserDetailModal {
         
         const servers = this.userData.mutualData.mutual_servers;
         
-        console.log('Mutual servers data:', JSON.stringify(servers, null, 2));
-        
         servers.forEach(server => {
-            console.log('Processing server:', server.name, 'Icon URL:', server.icon_url);
-            
             const serverItem = document.createElement('div');
             serverItem.className = 'mutual-detail-item';
             
@@ -709,20 +705,19 @@ class UserDetailModal {
                 return null;
             };
             
-            const iconUrl = normalizeIconUrl(server.icon_url);
+            // Check both icon_url and image_url fields
+            const serverIconUrl = server.icon_url || server.image_url;
+            const iconUrl = normalizeIconUrl(serverIconUrl);
             
             if (iconUrl) {
-                console.log('Using normalized server icon for', server.name, ':', iconUrl);
                 const img = document.createElement('img');
                 img.src = iconUrl;
                 img.alt = server.name || 'Server';
                 img.onerror = function() {
-                    console.log('Error loading server icon for', server.name, 'falling back to default');
                     this.src = '/public/assets/common/default-profile-picture.png';
                 };
                 serverIcon.appendChild(img);
             } else {
-                console.log('No valid icon found for', server.name, 'using default');
                 const img = document.createElement('img');
                 img.src = '/public/assets/common/default-profile-picture.png';
                 img.alt = server.name || 'Server';

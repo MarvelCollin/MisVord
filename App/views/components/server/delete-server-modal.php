@@ -33,6 +33,31 @@
                     <div id="users-container" class="bg-discord-dark-hover rounded mt-2 max-h-36 overflow-y-auto hidden">
                         <!-- Users will be populated here -->
                     </div>
+                    <!-- Skeleton loading for search results -->
+                    <div id="users-loading" class="bg-discord-dark-hover rounded mt-2 max-h-36 overflow-y-auto hidden">
+                        <!-- Skeleton loading items -->
+                        <div class="p-2 flex items-center animate-pulse">
+                            <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 flex-shrink-0"></div>
+                            <div class="flex-grow">
+                                <div class="h-4 bg-discord-dark-input rounded w-3/4 mb-1"></div>
+                                <div class="h-3 bg-discord-dark-input rounded w-1/2"></div>
+                            </div>
+                        </div>
+                        <div class="p-2 flex items-center animate-pulse">
+                            <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 flex-shrink-0"></div>
+                            <div class="flex-grow">
+                                <div class="h-4 bg-discord-dark-input rounded w-2/3 mb-1"></div>
+                                <div class="h-3 bg-discord-dark-input rounded w-1/3"></div>
+                            </div>
+                        </div>
+                        <div class="p-2 flex items-center animate-pulse">
+                            <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 flex-shrink-0"></div>
+                            <div class="flex-grow">
+                                <div class="h-4 bg-discord-dark-input rounded w-1/2 mb-1"></div>
+                                <div class="h-3 bg-discord-dark-input rounded w-1/4"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div id="selected-user-container" class="mb-5 hidden">

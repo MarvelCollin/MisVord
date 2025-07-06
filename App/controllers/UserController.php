@@ -823,32 +823,17 @@ class UserController extends BaseController
         try {
             $currentUserId = $this->getCurrentUserId();
             
-            error_log("🔍 Getting mutual relations between user $currentUserId and user $userId");
-            
             if ($userId == $currentUserId) {
-                error_log("❌ Cannot get mutual relations with self");
                 return $this->error('Cannot get mutual relations with self', 400);
             }
             
             $user = $this->userRepository->find($userId);
             if (!$user) {
-                error_log("❌ User not found: $userId");
                 return $this->error('User not found', 404);
             }
             
-            error_log("🔍 Fetching mutual friends and servers");
             $mutualFriends = $this->friendListRepository->getMutualFriends($currentUserId, $userId);
             $mutualServers = $this->userRepository->getMutualServers($currentUserId, $userId);
-            
-            error_log("✅ Found " . count($mutualFriends) . " mutual friends and " . count($mutualServers) . " mutual servers");
-            
-            if (!empty($mutualFriends)) {
-                error_log("🔍 Sample mutual friend: " . json_encode($mutualFriends[0]));
-            }
-            
-            if (!empty($mutualServers)) {
-                error_log("🔍 Sample mutual server: " . json_encode($mutualServers[0]));
-            }
             
             $response = $this->success([
                 'mutual_friend_count' => count($mutualFriends),
@@ -867,18 +852,16 @@ class UserController extends BaseController
                     return [
                         'id' => $server->id,
                         'name' => $server->name,
-                        'icon_url' => $server->icon_url,
+                        'icon_url' => $server->icon_url ?? $server->image_url ?? null,
+                        'image_url' => $server->image_url ?? null,
                         'member_count' => $server->member_count ?? 0
                     ];
                 }, $mutualServers)
             ]);
             
-            error_log("📤 Mutual relations response: " . json_encode($response));
             return $response;
             
         } catch (Exception $e) {
-            error_log("💥 Exception in getMutualRelations: " . $e->getMessage());
-            error_log("💥 Exception trace: " . $e->getTraceAsString());
             return $this->serverError('Failed to retrieve mutual relations: ' . $e->getMessage());
         }
     }
