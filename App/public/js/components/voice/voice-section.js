@@ -26,10 +26,7 @@ class VoiceSection {
         this.isProcessing = false;
         this.autoJoinInProgress = false;
         
-        setTimeout(() => {
-            this.findElements();
-            this.init();
-        }, 300);
+        this.init();
     }
     
     findElements() {
@@ -39,6 +36,16 @@ class VoiceSection {
             connectingView: document.getElementById('connectingView'),
             voiceControls: document.getElementById('voiceControls')
         };
+        
+        if (!this.elements.joinBtn || !this.elements.joinView) {
+            const voiceSection = document.querySelector('.voice-section');
+            if (voiceSection) {
+                this.elements.joinBtn = voiceSection.querySelector('#joinBtn');
+                this.elements.joinView = voiceSection.querySelector('#joinView');
+                this.elements.connectingView = voiceSection.querySelector('#connectingView');
+                this.elements.voiceControls = voiceSection.querySelector('#voiceControls');
+            }
+        }
     }
     
     init() {
@@ -57,6 +64,7 @@ class VoiceSection {
             })
             .catch(error => {
                 console.error('Failed to load voice section dependencies:', error);
+                this.initialized = true;
             });
     }
 
@@ -67,7 +75,13 @@ class VoiceSection {
     }
 
     setupEventListeners() {
+        this.findElements();
+        
         if (!this.elements.joinBtn) {
+            console.warn('Join button not found, retrying in 500ms');
+            setTimeout(() => {
+                this.setupEventListeners();
+            }, 500);
             return;
         }
         
@@ -169,16 +183,10 @@ class VoiceSection {
     }
     
     async handleJoinClick() {
-
-
-
         return;
     }
     
     async connectToVoice() {
-
-
-
         return;
     }
     
@@ -205,6 +213,8 @@ class VoiceSection {
             return false;
         }
         
+        this.findElements();
+        
         if (this.elements.joinBtn) {
             this.autoJoinInProgress = true;
             this.handleJoinClick();
@@ -214,8 +224,6 @@ class VoiceSection {
     }
 
     resetState() {
-
-        
         this.findElements();
         
         if (this.elements.joinView) this.elements.joinView.classList.remove('hidden');
@@ -245,11 +253,11 @@ class VoiceSection {
         this.isProcessing = false;
         this.autoJoinInProgress = false;
         window.voiceJoinInProgress = false;
-
     }
     
     enableJoinButton() {
-
+        this.findElements();
+        
         if (this.elements.joinBtn) {
             const btnText = this.elements.joinBtn.querySelector('#btnText');
             this.elements.joinBtn.disabled = false;
@@ -259,7 +267,9 @@ class VoiceSection {
             
             if (btnText) {
                 const icon = this.elements.joinBtn.querySelector('i');
-                icon.className = 'fas fa-phone-alt text-xl';
+                if (icon) {
+                    icon.className = 'fas fa-phone-alt text-xl';
+                }
                 btnText.textContent = 'Join Voice';
             }
         }
@@ -271,10 +281,9 @@ class VoiceSection {
     }
     
     updateChannelId(channelId, force = false) {
-
-        
         if (!this.initialized && this.initializationAttempts < this.maxInitAttempts) {
             this.initializationAttempts++;
+            this.init();
         }
         
         if (force) {
@@ -286,6 +295,8 @@ class VoiceSection {
         }
         
         this.currentChannelId = channelId;
+        
+        this.findElements();
         
         if (this.elements.joinBtn) {
             this.elements.joinBtn.setAttribute('data-channel-id', channelId);
@@ -310,7 +321,6 @@ class VoiceSection {
             }
         }
         
-
         if (window.unifiedVoiceStateManager) {
             const currentState = window.unifiedVoiceStateManager.getState();
             if (currentState.isConnected) {
@@ -327,14 +337,10 @@ class VoiceSection {
                 });
             }
         }
-        
-
     }
     
     async fetchChannelData(channelId) {
         try {
-
-            
             const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
             const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
                                channelElement?.getAttribute('data-channel-name') || 
@@ -347,15 +353,12 @@ class VoiceSection {
             };
             
             this.updateChannelNames(channelName);
-
         } catch (error) {
             console.error('❌ [VOICE-SECTION] Error setting channel data:', error);
         }
     }
     
     restoreConnectedState() {
-
-        
         this.findElements();
         
         if (this.elements.joinView) {
@@ -367,30 +370,30 @@ class VoiceSection {
         if (this.elements.voiceControls) {
             this.elements.voiceControls.classList.remove('hidden');
         }
-        
-
     }
 }
 
 window.VoiceSection = VoiceSection;
 
-document.addEventListener('DOMContentLoaded', function() {
-    const voiceSection = document.querySelector('.voice-section:not(.hidden)');
-    if (voiceSection || window.location.search.includes('type=voice')) {
-
-        if (!window.voiceSection) {
-            window.voiceSection = new VoiceSection();
-        }
-    }
-});
-
-window.initializeVoiceUI = async function() {
+function initializeVoiceSection() {
     if (!window.voiceSection) {
         window.voiceSection = new VoiceSection();
     } else {
         window.voiceSection.findElements();
-        await window.voiceSection.init();
+        window.voiceSection.init();
     }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeVoiceSection();
+});
+
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initializeVoiceSection();
+}
+
+window.initializeVoiceUI = async function() {
+    initializeVoiceSection();
 };
 
 window.triggerVoiceAutoJoin = function() {

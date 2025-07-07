@@ -1,5 +1,3 @@
-
-
 class SimpleChannelSwitcher {
     constructor() {
         if (window.simpleChannelSwitcher) {
@@ -479,39 +477,57 @@ class SimpleChannelSwitcher {
             }
         }
         
-        if (window.voiceSection && (forceFresh || previousChannelId !== channelId)) {
-            await window.voiceSection.resetState();
-            await window.voiceSection.updateChannelId(channelId, true);
-        } else if (window.voiceSection && previousChannelId === channelId) {
-            if (wasConnected && window.voiceManager && window.voiceManager.isConnected) {
-                if (typeof window.voiceSection.restoreConnectedState === 'function') {
-                    window.voiceSection.restoreConnectedState();
-                } else {
-                    if (window.voiceSection.elements.joinView) {
-                        window.voiceSection.elements.joinView.classList.add('hidden');
-                    }
-                    if (window.voiceSection.elements.connectingView) {
-                        window.voiceSection.elements.connectingView.classList.add('hidden');
-                    }
-                    if (window.voiceSection.elements.voiceControls) {
-                        window.voiceSection.elements.voiceControls.classList.remove('hidden');
-                    }
-                }
-                
-
-                if (typeof window.voiceManager.refreshParticipantsUI === 'function') {
-                    window.voiceManager.refreshParticipantsUI();
+        if (!window.voiceSection) {
+            console.log('[CHANNEL-SWITCH] Initializing voice section...');
+            if (window.VoiceSection) {
+                window.voiceSection = new window.VoiceSection();
+            } else if (typeof window.initializeVoiceUI === 'function') {
+                await window.initializeVoiceUI();
+            }
+            
+            let attempts = 0;
+            while (!window.voiceSection && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+                if (window.VoiceSection && !window.voiceSection) {
+                    window.voiceSection = new window.VoiceSection();
                 }
             }
         }
         
+        if (window.voiceSection) {
+            if (forceFresh || previousChannelId !== channelId) {
+                await window.voiceSection.resetState();
+                await window.voiceSection.updateChannelId(channelId, true);
+            } else if (previousChannelId === channelId) {
+                if (wasConnected && window.voiceManager && window.voiceManager.isConnected) {
+                    if (typeof window.voiceSection.restoreConnectedState === 'function') {
+                        window.voiceSection.restoreConnectedState();
+                    } else {
+                        if (window.voiceSection.elements.joinView) {
+                            window.voiceSection.elements.joinView.classList.add('hidden');
+                        }
+                        if (window.voiceSection.elements.connectingView) {
+                            window.voiceSection.elements.connectingView.classList.add('hidden');
+                        }
+                        if (window.voiceSection.elements.voiceControls) {
+                            window.voiceSection.elements.voiceControls.classList.remove('hidden');
+                        }
+                    }
+                    
+                    if (typeof window.voiceManager.refreshParticipantsUI === 'function') {
+                        window.voiceManager.refreshParticipantsUI();
+                    }
+                }
+            }
+        } else {
+            console.warn('[CHANNEL-SWITCH] Voice section could not be initialized');
+        }
 
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = channelId;
             
-
             if (window.unifiedVoiceStateManager) {
-
                 const currentState = window.unifiedVoiceStateManager.getState();
                 window.unifiedVoiceStateManager.setState({
                     channelId: channelId,
@@ -522,22 +538,16 @@ class SimpleChannelSwitcher {
             }
             
             try {
-
                 if (wasConnected && previousChannelId !== channelId) {
                     window.voiceManager.leaveVoice();
                 }
                 
-
                 await window.voiceManager.setupVoice(channelId);
                 
-
                 if (wasConnected && currentParticipants.length > 0) {
-
-                    
-
                     const participantGrid = document.getElementById('participantGrid');
                     if (participantGrid) {
-                        participantGrid.innerHTML = ''; // Clear existing
+                        participantGrid.innerHTML = '';
                         currentParticipants.forEach(participant => {
                             if (window.voiceManager.addParticipantToGrid) {
                                 window.voiceManager.addParticipantToGrid(participant);
@@ -545,7 +555,6 @@ class SimpleChannelSwitcher {
                         });
                     }
                     
-
                     const participantCount = document.getElementById('voiceParticipantCount');
                     if (participantCount) {
                         participantCount.textContent = currentParticipants.length.toString();
@@ -556,7 +565,6 @@ class SimpleChannelSwitcher {
             }
         }
         
-
         if (window.unifiedVoiceStateManager && wasConnected) {
             const currentState = window.unifiedVoiceStateManager.getState();
             if (currentState.isConnected && previousChannelId !== channelId) {
@@ -579,16 +587,13 @@ class SimpleChannelSwitcher {
             }
         }
         
-
         const voiceCallApp = document.querySelector('.voice-call-app');
         if (voiceCallApp) {
             voiceCallApp.style.display = 'flex';
         }
         
-
         if (previousChannelId === channelId && wasConnected) {
             setTimeout(() => {
-
                 if (window.voiceManager && typeof window.voiceManager.refreshParticipantsUI === 'function') {
                     window.voiceManager.refreshParticipantsUI();
                 } else if (window.videoSDKManager && window.videoSDKManager.refreshExistingParticipants) {
@@ -596,40 +601,124 @@ class SimpleChannelSwitcher {
                 }
             }, 500);
         }
-        
-
     }
     
     showSection(channelType, channelId) {
-        const chatSection = document.querySelector('.chat-section');
-        const voiceSection = document.querySelector('.voice-section');
+        console.log('[DEBUG SHOWSECTION] Starting section switch:', { channelType, channelId });
         
-
+        const allChatSections = document.querySelectorAll('.chat-section');
+        const allVoiceSections = document.querySelectorAll('.voice-section');
+        
+        console.log('[DEBUG SHOWSECTION] Found sections:', {
+            chatSectionsCount: allChatSections.length,
+            voiceSectionsCount: allVoiceSections.length,
+            chatSectionClasses: allChatSections[0]?.className,
+            voiceSectionClasses: allVoiceSections[0]?.className,
+            chatSectionDisplay: allChatSections[0]?.style.display,
+            voiceSectionDisplay: allVoiceSections[0]?.style.display
+        });
         
         if (channelType === 'voice') {
-            if (chatSection) {
-                chatSection.classList.add('hidden');
-                chatSection.style.display = 'none';
+            console.log('[DEBUG SHOWSECTION] Switching to VOICE section');
+            
+            allChatSections.forEach((section, index) => {
+                console.log(`[DEBUG SHOWSECTION] Hiding chat section ${index}`);
+                section.classList.add('hidden');
+                section.style.display = 'none';
+                section.style.visibility = 'hidden';
+                section.style.position = 'absolute';
+                section.style.left = '-9999px';
+                section.style.zIndex = '-1';
+            });
+            
+            allVoiceSections.forEach((section, index) => {
+                console.log(`[DEBUG SHOWSECTION] Showing voice section ${index}`);
+                section.classList.remove('hidden');
+                section.style.display = 'flex';
+                section.style.visibility = 'visible';
+                section.style.position = 'relative';
+                section.style.left = 'auto';
+                section.style.zIndex = '1';
+                section.setAttribute('data-channel-id', channelId);
+                
+                console.log(`[DEBUG SHOWSECTION] Voice section ${index} after changes:`, {
+                    classes: section.className,
+                    display: section.style.display,
+                    visibility: section.style.visibility,
+                    position: section.style.position,
+                    zIndex: section.style.zIndex,
+                    hasVoiceNotJoinContainer: !!section.querySelector('#voice-not-join-container'),
+                    hasJoinBtn: !!section.querySelector('#joinBtn'),
+                    innerHTML: section.innerHTML.substring(0, 200) + '...'
+                });
+                
+                if (!window.voiceSection) {
+                    console.log('[SHOWSECTION] Initializing voice section for display...');
+                    if (window.VoiceSection) {
+                        window.voiceSection = new window.VoiceSection();
+                    } else if (typeof window.initializeVoiceUI === 'function') {
+                        window.initializeVoiceUI();
+                    }
+                }
+            });
+            
+            if (allVoiceSections.length === 0) {
+                console.error('[DEBUG SHOWSECTION] No voice sections found in DOM!');
             }
-            if (voiceSection) {
-                voiceSection.classList.remove('hidden');
-                voiceSection.style.display = 'flex';
-                voiceSection.setAttribute('data-channel-id', channelId);
-            }
-
         } else {
-            if (voiceSection) {
-                voiceSection.classList.add('hidden');
-                voiceSection.style.display = 'none';
-            }
-            if (chatSection) {
-                chatSection.classList.remove('hidden');
-                chatSection.classList.add('dm-chat-visible'); // Add this class for consistency with DM switcher
-                chatSection.style.display = 'flex';
-                chatSection.setAttribute('data-channel-id', channelId);
-            }
-
+            console.log('[DEBUG SHOWSECTION] Switching to TEXT section');
+            
+            allVoiceSections.forEach((section, index) => {
+                console.log(`[DEBUG SHOWSECTION] Hiding voice section ${index}`);
+                section.classList.add('hidden');
+                section.style.display = 'none';
+                section.style.visibility = 'hidden';
+                section.style.position = 'absolute';
+                section.style.left = '-9999px';
+                section.style.zIndex = '-1';
+            });
+            
+            allChatSections.forEach((section, index) => {
+                console.log(`[DEBUG SHOWSECTION] Showing chat section ${index}`);
+                section.classList.remove('hidden');
+                section.classList.add('dm-chat-visible');
+                section.style.display = 'flex';
+                section.style.visibility = 'visible';
+                section.style.position = 'relative';
+                section.style.left = 'auto';
+                section.style.zIndex = '1';
+                section.setAttribute('data-channel-id', channelId);
+            });
         }
+        
+        setTimeout(() => {
+            const finalVisibleChatSections = Array.from(document.querySelectorAll('.chat-section')).filter(section => 
+                window.getComputedStyle(section).display !== 'none' && 
+                !section.classList.contains('hidden')
+            );
+            
+            const finalVisibleVoiceSections = Array.from(document.querySelectorAll('.voice-section')).filter(section => 
+                window.getComputedStyle(section).display !== 'none' && 
+                !section.classList.contains('hidden')
+            );
+            
+            console.log('[DEBUG SHOWSECTION] Final state after 100ms:', {
+                visibleChatSections: finalVisibleChatSections.length,
+                visibleVoiceSections: finalVisibleVoiceSections.length,
+                expectedVisible: channelType === 'voice' ? 'voice' : 'chat',
+                success: channelType === 'voice' ? 
+                    (finalVisibleVoiceSections.length > 0 && finalVisibleChatSections.length === 0) :
+                    (finalVisibleChatSections.length > 0 && finalVisibleVoiceSections.length === 0)
+            });
+            
+            if (channelType === 'voice' && finalVisibleChatSections.length > 0) {
+                console.error('🚨 [SHOWSECTION] Chat sections still visible after voice switch!');
+            }
+            
+            if (channelType === 'voice' && finalVisibleVoiceSections.length === 0) {
+                console.error('🚨 [SHOWSECTION] No voice sections visible after voice switch!');
+            }
+        }, 100);
     }
     
     updateURL(channelId, channelType) {
@@ -905,4 +994,208 @@ window.testVoiceContextAfterSwitch = function() {
     }
 };
 
+window.debugSectionState = function() {
+    const chatSection = document.querySelector('.chat-section');
+    const voiceSection = document.querySelector('.voice-section');
+    const mainContentArea = document.querySelector('.main-content-area');
+    
+    console.log('🔍 [DEBUG] Current Section State:', {
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        urlParams: Object.fromEntries(new URLSearchParams(window.location.search)),
+        
+        chatSection: {
+            exists: !!chatSection,
+            classes: chatSection?.className,
+            display: chatSection?.style.display,
+            hidden: chatSection?.classList.contains('hidden'),
+            hasContent: !!chatSection?.innerHTML.trim(),
+            computedDisplay: chatSection ? window.getComputedStyle(chatSection).display : 'not found'
+        },
+        
+        voiceSection: {
+            exists: !!voiceSection,
+            classes: voiceSection?.className,
+            display: voiceSection?.style.display,
+            hidden: voiceSection?.classList.contains('hidden'),
+            hasContent: !!voiceSection?.innerHTML.trim(),
+            hasVoiceContainer: !!voiceSection?.querySelector('.voice-container'),
+            hasJoinBtn: !!voiceSection?.querySelector('#joinBtn'),
+            computedDisplay: voiceSection ? window.getComputedStyle(voiceSection).display : 'not found'
+        },
+        
+        mainContentArea: {
+            exists: !!mainContentArea,
+            classes: mainContentArea?.className,
+            children: mainContentArea ? Array.from(mainContentArea.children).map(child => ({
+                tagName: child.tagName,
+                classes: child.className,
+                display: child.style.display,
+                hidden: child.classList.contains('hidden')
+            })) : []
+        },
+        
+        voiceComponents: {
+            voiceSection: !!window.voiceSection,
+            voiceManager: !!window.voiceManager,
+            VoiceSection: !!window.VoiceSection
+        }
+    });
+    
+    return {
+        chatSection,
+        voiceSection,
+        mainContentArea
+    };
+};
+
+window.forceSwitchToVoice = function(channelId = '6') {
+    console.log('🔧 [DEBUG] Force switching to voice channel:', channelId);
+    if (window.simpleChannelSwitcher) {
+        window.simpleChannelSwitcher.showSection('voice', channelId);
+        window.simpleChannelSwitcher.updateURL(channelId, 'voice');
+        window.simpleChannelSwitcher.updateMetaTags(channelId, 'voice');
+    } else {
+        console.error('simpleChannelSwitcher not found');
+    }
+};
+
 export default SimpleChannelSwitcher;
+
+window.debugAdvancedSectionState = function() {
+    const allChatSections = document.querySelectorAll('.chat-section');
+    const allVoiceSections = document.querySelectorAll('.voice-section');
+    const mainContentArea = document.querySelector('.main-content-area');
+    
+    console.log('🔍 [ADVANCED DEBUG] Detailed Section Analysis:', {
+        timestamp: new Date().toISOString(),
+        url: window.location.href,
+        
+        multipleSections: {
+            chatSectionsCount: allChatSections.length,
+            voiceSectionsCount: allVoiceSections.length,
+            chatSections: Array.from(allChatSections).map((section, index) => ({
+                index,
+                classes: section.className,
+                display: section.style.display,
+                computedDisplay: window.getComputedStyle(section).display,
+                hidden: section.classList.contains('hidden'),
+                zIndex: window.getComputedStyle(section).zIndex,
+                position: window.getComputedStyle(section).position,
+                visibility: window.getComputedStyle(section).visibility,
+                opacity: window.getComputedStyle(section).opacity,
+                width: section.offsetWidth,
+                height: section.offsetHeight,
+                parent: section.parentElement?.className,
+                boundingRect: section.getBoundingClientRect()
+            })),
+            voiceSections: Array.from(allVoiceSections).map((section, index) => ({
+                index,
+                classes: section.className,
+                display: section.style.display,
+                computedDisplay: window.getComputedStyle(section).display,
+                hidden: section.classList.contains('hidden'),
+                zIndex: window.getComputedStyle(section).zIndex,
+                position: window.getComputedStyle(section).position,
+                visibility: window.getComputedStyle(section).visibility,
+                opacity: window.getComputedStyle(section).opacity,
+                width: section.offsetWidth,
+                height: section.offsetHeight,
+                parent: section.parentElement?.className,
+                boundingRect: section.getBoundingClientRect(),
+                hasVoiceContainer: !!section.querySelector('.voice-container'),
+                hasJoinBtn: !!section.querySelector('#joinBtn'),
+                voiceContainerVisible: section.querySelector('.voice-container') ? 
+                    window.getComputedStyle(section.querySelector('.voice-container')).display !== 'none' : false
+            }))
+        },
+        
+        mainContentAreaInfo: mainContentArea ? {
+            classes: mainContentArea.className,
+            display: window.getComputedStyle(mainContentArea).display,
+            position: window.getComputedStyle(mainContentArea).position,
+            zIndex: window.getComputedStyle(mainContentArea).zIndex,
+            overflow: window.getComputedStyle(mainContentArea).overflow,
+            width: mainContentArea.offsetWidth,
+            height: mainContentArea.offsetHeight,
+            boundingRect: mainContentArea.getBoundingClientRect()
+        } : null,
+        
+        potentialConflicts: {
+            flexDisplayIssues: Array.from(allVoiceSections).some(section => 
+                section.style.display === 'flex' && window.getComputedStyle(section).display !== 'flex'
+            ),
+            hiddenClassIssues: Array.from(allVoiceSections).some(section => 
+                !section.classList.contains('hidden') && window.getComputedStyle(section).display === 'none'
+            ),
+            zIndexConflicts: Array.from(allChatSections).some(section => 
+                parseInt(window.getComputedStyle(section).zIndex) > 
+                parseInt(window.getComputedStyle(allVoiceSections[0] || {}).zIndex || '0')
+            )
+        }
+    });
+    
+    const visibleChatSections = Array.from(allChatSections).filter(section => 
+        window.getComputedStyle(section).display !== 'none' && 
+        !section.classList.contains('hidden')
+    );
+    
+    const visibleVoiceSections = Array.from(allVoiceSections).filter(section => 
+        window.getComputedStyle(section).display !== 'none' && 
+        !section.classList.contains('hidden')
+    );
+    
+    console.log('🎯 [ADVANCED DEBUG] Actually Visible Sections:', {
+        visibleChatSections: visibleChatSections.length,
+        visibleVoiceSections: visibleVoiceSections.length,
+        bothVisible: visibleChatSections.length > 0 && visibleVoiceSections.length > 0
+    });
+    
+    if (visibleChatSections.length > 0 && visibleVoiceSections.length > 0) {
+        console.error('🚨 [CONFLICT DETECTED] Both chat and voice sections are visible!');
+        
+        visibleChatSections.forEach(section => {
+            console.log('🔴 Visible chat section:', section);
+        });
+        
+        visibleVoiceSections.forEach(section => {
+            console.log('🟢 Visible voice section:', section);
+        });
+    }
+    
+    return {
+        allChatSections,
+        allVoiceSections,
+        visibleChatSections,
+        visibleVoiceSections
+    };
+};
+
+window.forceHideAllChatSections = function() {
+    const allChatSections = document.querySelectorAll('.chat-section');
+    console.log('🔧 [FORCE HIDE] Hiding all chat sections:', allChatSections.length);
+    
+    allChatSections.forEach((section, index) => {
+        console.log(`Hiding chat section ${index}:`, section);
+        section.classList.add('hidden');
+        section.style.display = 'none';
+        section.style.visibility = 'hidden';
+        section.style.zIndex = '-1';
+    });
+};
+
+window.forceShowVoiceSection = function() {
+    const allVoiceSections = document.querySelectorAll('.voice-section');
+    console.log('🔧 [FORCE SHOW] Showing all voice sections:', allVoiceSections.length);
+    
+    allVoiceSections.forEach((section, index) => {
+        console.log(`Showing voice section ${index}:`, section);
+        section.classList.remove('hidden');
+        section.style.display = 'flex';
+        section.style.visibility = 'visible';
+        section.style.zIndex = '1';
+        section.style.position = 'relative';
+    });
+};
+
+window.debugAdvancedSectionState = debugAdvancedSectionState;

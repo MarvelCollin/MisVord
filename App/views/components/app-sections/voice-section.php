@@ -2,11 +2,6 @@
 $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
 $activeChannel = $GLOBALS['activeChannel'] ?? null;
 
-if (!$activeChannel) {
-    echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a voice channel</div>';
-    return;
-}
-
 echo '<div class="voice-container flex flex-col h-full w-full bg-[#313338] overflow-hidden">';
 
 echo '<div id="voice-not-join-container" class="flex-1 h-full w-full">';
@@ -52,13 +47,13 @@ echo '<script>
             document.getElementById("voice-call-container")?.classList.add("hidden");
         });
         
-        if (typeof window.initializeVoiceSection === "function") {
-            window.initializeVoiceSection();
+        if (typeof window.initializeVoiceUI === "function") {
+            window.initializeVoiceUI();
         }
         
         setTimeout(() => {
             if (window.voiceManager && typeof window.voiceManager.setupVoice === "function") {
-                const channelId = "' . htmlspecialchars($activeChannelId) . '";
+                const channelId = "' . htmlspecialchars($activeChannelId ?: '') . '";
                 if (channelId) {
                     window.voiceManager.setupVoice(channelId);
                 }
@@ -74,12 +69,12 @@ echo '<script>
         preloadVoiceResources();
         
         setTimeout(() => {
-            if (typeof window.initializeVoiceSection === "function") {
-                window.initializeVoiceSection();
+            if (typeof window.initializeVoiceUI === "function") {
+                window.initializeVoiceUI();
             }
             
             if (window.voiceManager && typeof window.voiceManager.setupVoice === "function") {
-                const channelId = "' . htmlspecialchars($activeChannelId) . '";
+                const channelId = "' . htmlspecialchars($activeChannelId ?: '') . '";
                 if (channelId) {
                     window.voiceManager.setupVoice(channelId);
                 }

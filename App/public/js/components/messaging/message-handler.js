@@ -522,7 +522,9 @@ class MessageHandler {
         
         if (messageData.reply_data || messageData.replyData) {
             const replyContainer = this.createReplyContainer(messageData);
-            content.appendChild(replyContainer);
+            if (replyContainer) {
+                content.appendChild(replyContainer);
+            }
         }
         
         if (messageData.content) {
@@ -540,24 +542,48 @@ class MessageHandler {
         const replyData = messageData.reply_data || messageData.replyData;
         const replyMessageId = messageData.reply_message_id || messageData.replyMessageId;
         
+        if (!replyData || !replyMessageId) {
+            return null;
+        }
+        
         const replyContainer = document.createElement('div');
         replyContainer.className = 'bubble-reply-container';
         replyContainer.dataset.replyMessageId = replyMessageId;
         replyContainer.title = 'Jump to original message';
-        replyContainer.style.cursor = 'pointer';
+        replyContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            background: rgba(79, 84, 92, 0.16);
+            border-left: 4px solid #5865f2;
+            border-radius: 3px;
+            padding: 4px 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #b9bbbe;
+        `;
         
         const replyIcon = document.createElement('div');
         replyIcon.style.marginRight = '4px';
-        replyIcon.innerHTML = '<i class="fas fa-reply"></i>';
+        replyIcon.innerHTML = '<i class="fas fa-reply" style="font-size: 10px; color: #72767d;"></i>';
         
         const replyUsername = document.createElement('span');
         replyUsername.className = 'bubble-reply-username';
         replyUsername.textContent = replyData.username || 'Unknown';
+        replyUsername.style.cssText = `
+            font-weight: 500;
+            color: #5865f2;
+            margin-right: 4px;
+        `;
         
         const replyContent = document.createElement('span');
         replyContent.className = 'bubble-reply-content';
         const content = replyData.content || '';
         replyContent.textContent = content.length > 50 ? content.substring(0, 50) + '...' : content;
+        replyContent.style.cssText = `
+            color: #dcddde;
+            opacity: 0.8;
+        `;
         
         replyContainer.appendChild(replyIcon);
         replyContainer.appendChild(replyUsername);
@@ -565,6 +591,14 @@ class MessageHandler {
         
         replyContainer.addEventListener('click', () => {
             this.jumpToMessage(replyMessageId);
+        });
+        
+        replyContainer.addEventListener('mouseenter', () => {
+            replyContainer.style.backgroundColor = 'rgba(79, 84, 92, 0.3)';
+        });
+        
+        replyContainer.addEventListener('mouseleave', () => {
+            replyContainer.style.backgroundColor = 'rgba(79, 84, 92, 0.16)';
         });
         
         return replyContainer;

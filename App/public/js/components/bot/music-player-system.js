@@ -194,18 +194,31 @@ class MusicPlayerSystem {
     setupImmediateListeners() {
         if (typeof window !== 'undefined') {
             window.addEventListener('bot-music-command', (e) => {
-
                 this.processBotMusicCommand(e.detail);
             });
             
+            // Set up automatic audio unlock on any user interaction
+            const autoUnlockEvents = ['click', 'touch', 'keydown', 'mousedown'];
+            const autoUnlock = () => {
+                if (this._audioContext && this._audioContext.state === 'suspended') {
+                    this._audioContext.resume().then(() => {
+                        console.log('🎵 [MUSIC-PLAYER] Audio context auto-unlocked');
+                        autoUnlockEvents.forEach(event => {
+                            document.removeEventListener(event, autoUnlock);
+                        });
+                    });
+                }
+            };
+            
+            autoUnlockEvents.forEach(event => {
+                document.addEventListener(event, autoUnlock, { once: true });
+            });
+            
             if (window.globalSocketManager?.io) {
-
                 window.globalSocketManager.io.on('bot-music-command', (data) => {
-
                     this.processBotMusicCommand(data);
                 });
             } else {
-
                 setTimeout(() => this.setupImmediateListeners(), 1000);
             }
         }
@@ -244,7 +257,7 @@ class MusicPlayerSystem {
             io.off('bot-music-command');
             
             io.on('bot-music-command', (data) => {
-
+                console.log('🎵 [MUSIC-PLAYER] Received bot-music-command:', data);
                 this.processBotMusicCommand(data);
             });
         };
@@ -253,11 +266,16 @@ class MusicPlayerSystem {
     }
 
     async processBotMusicCommand(data) {
-
+        console.log('🎵 [MUSIC-PLAYER] Processing bot music command:', data);
         
         if (!data || !data.music_data) {
             console.warn('⚠️ [MUSIC-PLAYER] Invalid bot music command data:', data);
             return;
+        }
+        
+        if (!this.initialized) {
+            console.log('🎵 [MUSIC-PLAYER] Not initialized, forcing initialization...');
+            this.forceInitialize();
         }
         
         const { music_data } = data;
@@ -288,13 +306,22 @@ class MusicPlayerSystem {
                             // Make sure any previous audio is stopped
                             await this.stop();
                             
-                            // Try to create a user gesture to help with autoplay restrictions
+                            // Try to create user interactions to overcome autoplay restrictions
                             try {
+                                // Method 1: Simulate click
                                 const tempButton = document.createElement('button');
                                 tempButton.style.display = 'none';
                                 document.body.appendChild(tempButton);
                                 tempButton.click();
                                 document.body.removeChild(tempButton);
+                                
+                                // Method 2: Resume audio context if suspended
+                                if (this._audioContext && this._audioContext.state === 'suspended') {
+                                    await this._audioContext.resume();
+                                }
+                                
+                                // Method 3: Unlock audio with a silent play
+                                this.unlockAudio();
                             } catch (e) {
                                 console.warn('🎵 [MUSIC-PLAYER] Failed to create user gesture:', e);
                             }
@@ -1063,13 +1090,25 @@ class MusicPlayerSystem {
             try {
                 this.audio.src = track.previewUrl;
                 this.audio.load();
-                await this.audio.play();
+                
+                // Create user interaction for autoplay
+                this.unlockAudio();
+                
+                const playPromise = this.audio.play();
+                if (playPromise !== undefined) {
+                    await playPromise;
+                }
+                
                 this.isPlaying = true;
                 this.showNowPlaying(track);
                 console.log('🎵 [MUSIC-PLAYER] Direct playback started successfully');
                 return `🎵 Now playing: **${track.title}** by ${track.artist}`;
             } catch (directPlayError) {
                 console.warn('🎵 [MUSIC-PLAYER] Direct play failed, trying with events:', directPlayError);
+                // If autoplay is blocked, show user-friendly message
+                if (directPlayError.name === 'NotAllowedError') {
+                    this.showStatus('Click anywhere to enable music playback');
+                }
                 // Continue with the promise-based approach if direct play fails
             }
             
@@ -1574,6 +1613,14 @@ class MusicPlayerSystem {
 if (typeof window !== 'undefined' && !window.musicPlayer) {
     window.MusicPlayerSystem = MusicPlayerSystem;
     window.musicPlayer = new MusicPlayerSystem();
+    
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            window.musicPlayer.forceInitialize();
+        });
+    } else {
+        window.musicPlayer.forceInitialize();
+    }
 }
 
 if (typeof module !== 'undefined' && module.exports) {
