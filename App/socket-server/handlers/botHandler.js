@@ -374,7 +374,7 @@ class BotHandler extends EventEmitter {
                         query: parameter,
                         track: {
                             title: parameter,
-                            artist: 'Searching...',
+                            artist: '',
                             previewUrl: null
                         }
                     };
@@ -405,13 +405,13 @@ class BotHandler extends EventEmitter {
                     responseContent = '❌ Udah di bilang formatnya queue {namaLagu} malah ngemeng';
 
                 } else {
-                    responseContent = `➕ Berhasil di tambahin di queue king: "${parameter}" - Searching...`;
+                    responseContent = `➕ Berhasil di tambahin di queue king: "${parameter}"`;
                     musicData = {
                         action: 'queue',
                         query: parameter,
                         track: {
                             title: parameter,
-                            artist: 'Searching...'
+                            artist: ''
                         }
                     };
 

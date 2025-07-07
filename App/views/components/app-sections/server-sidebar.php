@@ -30,7 +30,7 @@ if (file_exists($tooltipPath)) {
 
 <div class="flex h-full">
     <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 transition-all duration-200 h-full">
-        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto w-full h-full" style="max-height: calc(100vh - 24px); overflow-x: visible !important;">
+        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto w-full" style="max-height: calc(100vh - 24px); overflow-x: visible !important;">
             <div class="server-sidebar-icon <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">
                     <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">

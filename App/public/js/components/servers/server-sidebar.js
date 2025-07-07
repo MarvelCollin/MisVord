@@ -15,23 +15,36 @@ function setupScrollBehavior() {
     const serverList = document.getElementById('server-list');
     if (!serverList) return;
     
-
+    // Set height calculation for proper scrolling
     const updateMaxHeight = () => {
         const viewportHeight = window.innerHeight;
-        serverList.style.maxHeight = `${viewportHeight - 24}px`;
+        const sidebarContainer = document.querySelector('.w-\\[72px\\]') || document.querySelector('[class*="w-[72px]"]');
         
-
+        // Calculate any padding or other elements in the sidebar
+        const topPadding = 24;
+        const bottomPadding = 24;
+        
+        // Set max height to ensure scrolling works
+        serverList.style.maxHeight = `${viewportHeight - (topPadding + bottomPadding)}px`;
+        serverList.style.height = 'auto';
+        
+        // Ensure overflow settings are correct
         serverList.style.overflowY = 'auto';
         serverList.style.overflowX = 'visible';
+        
+        // Add smooth scrolling
+        serverList.style.scrollBehavior = 'smooth';
+        
+        // If sidebar container exists, ensure it doesn't block scrolling
+        if (sidebarContainer) {
+            sidebarContainer.style.overflowY = 'hidden';
+        }
     };
     
     updateMaxHeight();
     window.addEventListener('resize', updateMaxHeight);
     
-
-    serverList.style.scrollBehavior = 'smooth';
-    
-
+    // Restore scroll position from local storage if available
     if (localStorage.getItem('server_sidebar_scroll')) {
         try {
             const scrollPos = parseInt(localStorage.getItem('server_sidebar_scroll'));
@@ -43,10 +56,16 @@ function setupScrollBehavior() {
         }
     }
     
-
+    // Save scroll position when scrolling
     serverList.addEventListener('scroll', () => {
         localStorage.setItem('server_sidebar_scroll', serverList.scrollTop);
     });
+    
+    // Force check scroll visibility after content is loaded
+    setTimeout(() => {
+        checkServerVisibility();
+        updateMaxHeight(); // Re-run to ensure correct size after all content is loaded
+    }, 200);
 }
 
 document.addEventListener('DOMContentLoaded', function() {

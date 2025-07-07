@@ -36,11 +36,13 @@
   padding: 8px 0;
   position: relative;
   width: 72px;
-  height: 100%; /* Ensure it takes full height */
+  height: auto;
+  max-height: calc(100vh - 48px);
   overflow-y: auto !important;
   overflow-x: visible !important;
   scrollbar-width: thin;
   scrollbar-color: var(--scrollbar-thumb-color) transparent;
+  scrollbar-gutter: stable;
 }
 
 /* Enhanced scrollbar styles */
@@ -58,10 +60,12 @@
   border-radius: calc(var(--scrollbar-width) / 2);
   border: 2px solid var(--discord-darker);
   min-height: 40px;
+  opacity: 0.7;
 }
 
 .server-sidebar-list::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover-color);
+  opacity: 1;
 }
 
 /* Show scrollbar on hover */
@@ -766,12 +770,14 @@
   opacity: 0.5;
 }
 
-/* Ensure sidebar container has proper height */
+/* Ensure sidebar container has proper height and overflow */
 .w-\[72px\],
 [class*="w-[72px]"] {
   height: 100vh;
   overflow-y: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Make sure scrollbar doesn't take space from content */
