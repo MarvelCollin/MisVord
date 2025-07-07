@@ -46,13 +46,13 @@ class VoiceManager {
     
     async _performInit() {
         try {
-            console.log('[VOICE-MANAGER] Performing initialization...');
+            
             await this.loadVideoSDKScript();
             await this.initVideoSDK();
             this.attachEventListeners();
             this.setupErrorHandling();
             this.initialized = true;
-            console.log('[VOICE-MANAGER] Initialization completed');
+            
         } catch (error) {
             console.error('❌ Failed to initialize voice manager:', error);
             this.initializationPromise = null;
@@ -64,21 +64,21 @@ class VoiceManager {
         if (this.preloadStarted) return;
         
         this.preloadStarted = true;
-        console.log('[VOICE-MANAGER] Starting preload...');
+        
         
         try {
             await this.loadVideoSDKScript();
             
             if (window.videoSDKManager && typeof window.videoSDKManager.preload === 'function') {
-                console.log('[VOICE-MANAGER] Using VideoSDK preload method...');
+                
                 await window.videoSDKManager.preload();
             } else {
-                console.log('[VOICE-MANAGER] Using regular VideoSDK init...');
+                
                 await this.initVideoSDK();
             }
             
             this.preloadComplete = true;
-            console.log('[VOICE-MANAGER] Preload completed');
+            
         } catch (error) {
             console.warn('[VOICE-MANAGER] Voice preload failed:', error);
             this.preloadStarted = false;
@@ -113,12 +113,12 @@ class VoiceManager {
     }
 
     async initVideoSDK() {
-        console.log('[VOICE-MANAGER] Starting VideoSDK initialization...');
+        
         
         await new Promise((resolve) => {
             const checkSDK = () => {
                 if (window.videoSDKManager) {
-                    console.log('[VOICE-MANAGER] VideoSDK manager found');
+                    
                     resolve();
                 } else {
                     console.warn('VideoSDK manager not available, waiting...');
@@ -139,12 +139,12 @@ class VoiceManager {
             
             if (!this.videoSDKManager.initialized) {
                 const config = this.videoSDKManager.getMetaConfig();
-                console.log('[VOICE-MANAGER] Initializing with config:', config);
+                
                 
                 await this.videoSDKManager.init(config.authToken);
-                console.log('[VOICE-MANAGER] VideoSDK initialization completed');
+                
             } else {
-                console.log('[VOICE-MANAGER] VideoSDK already initialized');
+                
             }
 
             return true;
@@ -220,7 +220,7 @@ class VoiceManager {
         
         this.currentChannelId = channelId;
         
-        // Check if we have a stored meeting ID for this channel
+
         const storedChannelId = sessionStorage.getItem('voiceChannelId');
         const storedMeetingId = sessionStorage.getItem('voiceMeetingId');
         
@@ -318,7 +318,7 @@ class VoiceManager {
             });
 
             if (!this.initialized || !this.videoSDKManager) {
-                console.log('[VOICE-MANAGER] Need to initialize...');
+                
                 await this.init();
             }
 
@@ -327,7 +327,7 @@ class VoiceManager {
             }
             
             if (!this.videoSDKManager.initialized) {
-                console.log('[VOICE-MANAGER] VideoSDK manager exists but not initialized, initializing now...');
+                
                 const config = this.videoSDKManager.getMetaConfig();
                 await this.videoSDKManager.init(config.authToken);
             }
@@ -338,7 +338,7 @@ class VoiceManager {
             
             window.videoSDKJoiningInProgress = true;
 
-            // Check if this is a rejoin after page reload
+
             const wasInVoiceCall = sessionStorage.getItem('wasInVoiceCall');
             const previousChannelId = sessionStorage.getItem('voiceChannelId');
             const previousMeetingId = sessionStorage.getItem('voiceMeetingId');
@@ -351,10 +351,10 @@ class VoiceManager {
                     previousMeetingId
                 });
                 
-                // If we have a previous meeting ID from session storage, use it
+
                 if (previousMeetingId) {
                     this.currentMeetingId = previousMeetingId;
-                    console.log('🔄 [VOICE-MANAGER] Using previous meeting ID from session storage:', previousMeetingId);
+                    
                 }
             }
 
@@ -363,23 +363,23 @@ class VoiceManager {
             let meetingId;
             if (existingMeeting && existingMeeting.meeting_id) {
                 meetingId = existingMeeting.meeting_id;
-                console.log('🔄 [VOICE-MANAGER] Using existing meeting ID:', meetingId);
+                
             } else {
                 const customMeetingId = `voice_channel_${targetChannelId}`;
                 meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
                 if (!meetingId) {
                     throw new Error('Failed to create meeting room');
                 }
-                console.log('🔄 [VOICE-MANAGER] Created new meeting ID:', meetingId);
+                
             }
 
-            // IMPORTANT: Set the current meeting ID property
+
             this.currentMeetingId = meetingId;
             this.currentChannelId = targetChannelId;
             
-            console.log('🔄 [VOICE-MANAGER] Set currentMeetingId to:', this.currentMeetingId);
+            
 
-            // Store current voice state in session storage for potential page reloads
+
             sessionStorage.setItem('wasInVoiceCall', 'true');
             sessionStorage.setItem('voiceChannelId', targetChannelId);
             sessionStorage.setItem('voiceMeetingId', meetingId);
@@ -395,16 +395,16 @@ class VoiceManager {
                 currentMeetingId: this.currentMeetingId
             });
 
-            // Register with socket server with broadcast flag if this is a rejoin
+
             await this.registerMeetingWithSocket(targetChannelId, meetingId, isRejoinAfterReload);
 
-            // If this is a rejoin after reload, force refresh all voice participants
+
             if (isRejoinAfterReload && window.globalSocketManager?.io) {
                 window.globalSocketManager.io.emit('force-refresh-voice-participants', {
                     channel_id: targetChannelId
                 });
                 
-                // Also request refresh from ChannelVoiceParticipants
+
                 if (window.ChannelVoiceParticipants) {
                     const instance = window.ChannelVoiceParticipants.getInstance();
                     if (instance) {
@@ -483,18 +483,18 @@ class VoiceManager {
                 }
             };
             
-            // Listen for the server's response
+
             window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
             
-            // Get username from multiple sources to ensure it's available
+
             const username = this.getUsernameFromMultipleSources();
             
-            // Get server ID if available
+
             const serverId = document.querySelector('meta[name="server-id"]')?.content || 
                             document.getElementById('current-server-id')?.value || 
                             null;
             
-            // Emit the registration event with all required data
+
             console.log('🔄 [VOICE-MANAGER] Registering with socket server:', {
                 channelId,
                 meetingId,
@@ -511,11 +511,11 @@ class VoiceManager {
                 broadcast: broadcast // Pass the broadcast flag
             });
             
-            // Set a timeout to resolve the promise if we don't get a response
+
             setTimeout(() => {
                 window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
                 
-                // Try one more time with a broadcast flag to ensure global visibility
+
                 window.globalSocketManager.io.emit('register-voice-meeting', {
                     channel_id: channelId,
                     meeting_id: meetingId,
@@ -543,7 +543,7 @@ class VoiceManager {
             meetingId: this.currentMeetingId
         });
         
-        // Set the explicit leave flag in coordinator
+
         if (window.participantCoordinator) {
             window.participantCoordinator.setExplicitLeaveRequested(true);
         }
@@ -566,7 +566,7 @@ class VoiceManager {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
-        // Clean up session storage
+
         sessionStorage.removeItem('wasInVoiceCall');
         sessionStorage.removeItem('voiceChannelId');
         sessionStorage.removeItem('voiceMeetingId');
@@ -579,7 +579,7 @@ class VoiceManager {
             const instance = window.ChannelVoiceParticipants.getInstance();
             const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
             if (currentUserId) {
-                // This removal is now safe because we set the explicitLeaveRequested flag
+
                 instance.removeParticipant(previousChannelId, currentUserId);
                 instance.updateParticipantContainer(previousChannelId);
             }

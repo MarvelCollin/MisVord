@@ -34,18 +34,18 @@ class ExploreController extends BaseController
             $offset = ($page - 1) * $perPage;
             $currentUserId = $_SESSION['user_id'] ?? 0;
             
-            // Build the query using your existing repository methods
+
             $baseServers = $this->serverRepository->getPublicServersWithMemberCount();
             $userServerIds = $this->getUserServerIds($currentUserId);
             
-            // Convert to array and add membership info
+
             $servers = array_map(function($server) use ($userServerIds) {
                 $serverArray = is_array($server) ? $server : (array) $server;
                 $serverArray['is_member'] = in_array($serverArray['id'], $userServerIds);
                 return $serverArray;
             }, $baseServers);
             
-            // Apply filters
+
             if (!empty($category)) {
                 $servers = array_filter($servers, function($server) use ($category) {
                     return $server['category'] === $category;
@@ -60,7 +60,7 @@ class ExploreController extends BaseController
                 });
             }
             
-            // Apply sorting
+
             switch ($sort) {
                 case 'alphabetical':
                     usort($servers, function($a, $b) {
@@ -98,7 +98,7 @@ class ExploreController extends BaseController
             $paginatedServers = array_slice($servers, $offset, $perPage);
             $hasMore = ($offset + $perPage) < $total;
             
-            // Format server data
+
             $formattedServers = array_map(function($server) {
                 return [
                     'id' => $server['id'],

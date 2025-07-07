@@ -534,7 +534,7 @@ function initInfiniteScroll() {
         if (entries[0].isIntersecting && !isLoading && hasMore) {
             loadMoreServers();
         } else if (entries[0].isIntersecting && !isLoading && !hasMore) {
-            // Loop content
+
             loadMoreServers();
         }
     }, {
@@ -640,13 +640,13 @@ function createServerCardElement(server) {
                 <img src="${server.banner_url || asset('landing-page/background.png')}" alt="${server.name} Banner" class="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105" loading="lazy">
                 <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
             </div>
-            <div class="relative p-4">
-                <div class="absolute -top-12 left-4">
+            <div class="relative p-4 pt-8">
+                <div class="absolute -top-8 left-4 z-10">
                     <div class="explore-server-icon-small server-icon rounded-xl w-16 h-16 bg-discord-dark-2 border-4 border-discord-darker transition-all duration-300 group-hover/card:scale-105 group-hover/card:shadow-lg">
                         <img src="${server.image_url || '/public/assets/common/default-profile-picture.png'}" alt="${server.name} Icon" class="w-full h-full object-cover" loading="lazy">
                     </div>
                 </div>
-                <div class="mt-4 flex justify-between items-start">
+                <div class="mt-8 flex justify-between items-start">
                     <div>
                         <h3 class="server-name text-lg font-bold text-white truncate">${server.name}</h3>
                         <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">${server.category}</p>
@@ -711,12 +711,12 @@ function initLazyLoadingForNewCards(container) {
                     const img = entry.target;
                     const src = img.getAttribute('src');
                     
-                    // Add loading placeholder if not already present
+
                     if (!img.classList.contains('lazy-loading')) {
                         img.classList.add('lazy-loading');
                     }
                     
-                    // Create a new image to preload
+
                     const preloadImg = new Image();
                     preloadImg.onload = () => {
                         img.src = src;
@@ -742,7 +742,7 @@ function initLazyLoadingForNewCards(container) {
             imageObserver.observe(img);
         });
     } else {
-        // Fallback for browsers that don't support IntersectionObserver
+
         lazyImages.forEach(img => {
             img.setAttribute('data-lazy-loaded', 'true');
         });

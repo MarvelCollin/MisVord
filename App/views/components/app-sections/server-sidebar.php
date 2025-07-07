@@ -29,8 +29,8 @@ if (file_exists($tooltipPath)) {
 <div id="tooltip-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 0; z-index: 99999; pointer-events: none;"></div>
 
 <div class="flex h-full">
-    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 transition-all duration-200">
-        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto" style="overflow-x: visible !important;">
+    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 transition-all duration-200 h-full">
+        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto w-full h-full" style="max-height: calc(100vh - 24px); overflow-x: visible !important;">
             <div class="server-sidebar-icon <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">
                     <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
@@ -115,6 +115,19 @@ if (file_exists($tooltipPath)) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    const setServerSidebarHeight = () => {
+        const sidebar = document.querySelector('#server-list');
+        if (sidebar) {
+            const viewportHeight = window.innerHeight;
+            sidebar.style.maxHeight = `${viewportHeight - 24}px`;
+        }
+    };
+    
+
+    setServerSidebarHeight();
+    window.addEventListener('resize', setServerSidebarHeight);
+    
     document.querySelectorAll('.server-link').forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
@@ -137,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add a function to move tooltips to the container
+
     setTimeout(() => {
         const tooltipContainer = document.getElementById('tooltip-container');
         if (tooltipContainer) {
@@ -151,13 +164,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 
-// Add a periodic cleanup for tooltips
+
 setInterval(() => {
     const tooltipContainer = document.getElementById('tooltip-container');
     if (tooltipContainer) {
         const visibleTooltips = tooltipContainer.querySelectorAll('.tooltip:not(.hidden)');
         if (visibleTooltips.length > 0) {
-            // Check if mouse is over the related element
+
             let shouldHide = true;
             visibleTooltips.forEach(tooltip => {
                 const elementId = tooltip.getAttribute('data-for-element');
@@ -167,7 +180,7 @@ setInterval(() => {
                     const mouseX = window.mouseX || 0;
                     const mouseY = window.mouseY || 0;
                     
-                    // If mouse is over element or tooltip, don't hide
+
                     if ((mouseX >= rect.left && mouseX <= rect.right && 
                         mouseY >= rect.top && mouseY <= rect.bottom) ||
                         (mouseX >= tooltip.getBoundingClientRect().left && 
@@ -190,7 +203,7 @@ setInterval(() => {
     }
 }, 2000);
 
-// Track mouse position
+
 window.mouseX = 0;
 window.mouseY = 0;
 document.addEventListener('mousemove', (e) => {
@@ -198,7 +211,7 @@ document.addEventListener('mousemove', (e) => {
     window.mouseY = e.clientY;
 });
 
-// Hide tooltips on page scroll
+
 document.addEventListener('scroll', () => {
     if (window.hideAllTooltips) {
         window.hideAllTooltips();

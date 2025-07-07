@@ -7,18 +7,18 @@
             debug: function(module = 'general', message, ...data) {
 
                 if (arguments.length === 1 && typeof module === 'string') {
-                    console.log(`[DEBUG] [GENERAL] ${module}`);
+                    
                 } else {
-                    console.log(`[DEBUG] [${module.toUpperCase()}] ${message}`, ...data);
+                    
                 }
             },
             
             info: function(module = 'general', message, ...data) {
 
                 if (arguments.length === 1 && typeof module === 'string') {
-                    console.log(`[INFO] [GENERAL] ${module}`);
+                    
                 } else {
-                    console.log(`[INFO] [${module.toUpperCase()}] ${message}`, ...data);
+                    
                 }
             },
             
@@ -71,6 +71,6 @@
             _isFallback: true
         };
         
-        console.log('[FALLBACK LOGGER] Basic logger loaded, will be replaced by full logger');
+        
     }
 })();

@@ -72,7 +72,7 @@ class VideoSDKManager {
     }
 
     forcePresenceReset() {
-        // MODIFIED: Only reset presence if it's an explicit leave request or the connection is truly lost
+
         const isExplicitLeave = window.participantCoordinator?.explicitLeaveRequested || false;
         
         sessionStorage.removeItem('isInVoiceCall');
@@ -86,7 +86,7 @@ class VideoSDKManager {
             window.voiceManager.isConnected = false;
         }
         
-        // Only dispatch disconnect if it's an explicit leave or we're absolutely sure connection is lost
+
         if (isExplicitLeave) {
             window.dispatchEvent(new CustomEvent('voiceDisconnect'));
             window.dispatchEvent(new CustomEvent('presenceForceReset', { 
@@ -122,14 +122,14 @@ class VideoSDKManager {
 
     async init(authToken = null) {
         if (this.initialized) {
-            console.log('[VideoSDK] Already initialized');
+            
             return this;
         }
         
-        console.log('[VideoSDK] Starting initialization...');
+        
         
         if (!authToken) {
-            console.log('[VideoSDK] No auth token provided, getting fallback token...');
+            
             authToken = await this.getAuthToken();
         }
         
@@ -141,12 +141,12 @@ class VideoSDKManager {
             throw new Error("VideoSDK not loaded - make sure the VideoSDK script is included");
         }
         
-        console.log('[VideoSDK] Configuring with token...');
+        
         this.authToken = authToken;
         VideoSDK.config(authToken);
         this.initialized = true;
         
-        console.log('[VideoSDK] Initialization completed successfully');
+        
         return this;
     }
     
@@ -388,12 +388,12 @@ class VideoSDKManager {
     }
     
     handleParticipantJoined(participant) {
-        // Prevent rapid duplicate processing
+
         if (this.processedParticipants.has(participant.id)) {
             return;
         }
         
-        // Check for same user with different participant ID (reconnection)
+
         const existingParticipantName = participant.displayName || participant.name;
         if (existingParticipantName) {
             for (const [processedId] of this.processedParticipants.entries()) {
@@ -402,7 +402,7 @@ class VideoSDKManager {
                     (processedParticipant.displayName === existingParticipantName || 
                      processedParticipant.name === existingParticipantName)) {
                     
-                    // Handle reconnection - remove old participant
+
                     if (processedId !== participant.id) {
                         this.processedParticipants.delete(processedId);
                         this.cleanupParticipantResourcesById(processedId);
@@ -420,7 +420,7 @@ class VideoSDKManager {
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
-        // Dispatch event with minimal delay to reduce race conditions
+
         setTimeout(() => {
             window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                 detail: { participant: participant.id, participantObj: participant }
@@ -443,13 +443,13 @@ class VideoSDKManager {
     setupExistingParticipants() {
         if (!this.meeting || !this.meeting.participants) return;
         
-        // Process existing participants with staggered delays to prevent conflicts
+
         try {
             setTimeout(() => {
                 let delay = 0;
                 this.meeting.participants.forEach((participant, participantId) => {
                     
-                    // Skip if already processed
+
                     if (this.processedParticipants.has(participant.id)) {
                         return;
                     }
@@ -769,7 +769,7 @@ class VideoSDKManager {
     }
 
     async leaveMeeting() {
-        // MODIFIED: Check if this is an explicit leave request
+
         const isExplicitLeave = window.participantCoordinator?.explicitLeaveRequested || false;
 
         try {
@@ -813,8 +813,8 @@ class VideoSDKManager {
                 detail: { reason: 'Meeting left' } 
             }));
         } else {
-            // If it's not an explicit leave (like a connection drop), don't clean up participants
-            console.log('[VideoSDK] Non-explicit leave detected, preserving participant UI');
+
+            
             this.isMeetingJoined = false;
             this.isConnected = false;
             this.joiningInProgress = false;
@@ -1244,16 +1244,16 @@ class VideoSDKManager {
 
     async preload() {
         if (this.initialized) {
-            console.log('[VideoSDK] Already initialized, skipping preload');
+            
             return true;
         }
         
-        console.log('[VideoSDK] Starting preload...');
+        
         
         try {
             const authToken = await this.getAuthToken();
             await this.init(authToken);
-            console.log('[VideoSDK] Preload completed successfully');
+            
             return true;
         } catch (error) {
             console.warn('[VideoSDK] Preload failed:', error);

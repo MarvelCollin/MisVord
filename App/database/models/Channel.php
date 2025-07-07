@@ -15,7 +15,7 @@ class Channel extends Model {
                 ->get();
 
             foreach ($channels as &$channel) {
-                // If type is numeric, convert to string
+
                 if (is_numeric($channel['type'])) {
                     $channel['type'] = match((int)$channel['type']) {
                         2 => 'voice',
@@ -25,7 +25,7 @@ class Channel extends Model {
                         default => 'text'
                     };
                 }
-                // Ensure we have a type_name for backward compatibility
+
                 $channel['type_name'] = $channel['type'];
             }
 
@@ -64,7 +64,7 @@ class Channel extends Model {
                         default => 'text'
                     };
                 } else {
-                    // Ensure type is a valid string value
+
                     $this->attributes['type'] = match(strtolower($type)) {
                         'voice' => 'voice',
                         'category' => 'category',
@@ -236,7 +236,7 @@ class Channel extends Model {
                 ->get();
 
             foreach ($channels as &$channel) {
-                // If type is numeric, convert to string
+
                 if (is_numeric($channel['type'])) {
                     $channel['type'] = match((int)$channel['type']) {
                         2 => 'voice',
@@ -246,7 +246,7 @@ class Channel extends Model {
                         default => 'text'
                     };
                 }
-                // Ensure we have a type_name for backward compatibility
+
                 $channel['type_name'] = $channel['type'];
             }
 
@@ -279,7 +279,7 @@ class Channel extends Model {
                 ->orderBy('name', 'ASC')
                 ->get();
                 
-            // Convert numeric types to string values
+
             foreach ($channels as &$channel) {
                 if (is_numeric($channel['type'])) {
                     $channel['type'] = match((int)$channel['type']) {

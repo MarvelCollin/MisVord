@@ -26,7 +26,7 @@ class RoomManager {
     }
 
     getVoiceChannelRoom(channelId) {
-        // Use underscore naming convention for voice channel rooms to align with rest of system
+
         const normalizedChannelId = channelId.toString().replace('voice_channel_', '');
         const voiceRoom = `voice_channel_${normalizedChannelId}`;
 

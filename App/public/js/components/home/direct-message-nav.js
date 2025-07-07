@@ -74,15 +74,15 @@ class DirectMessageNavigation {
         if (this.dmSwitcher) {
             this.dmSwitcher.switchToDM(dmId, roomType, chatName);
         } else if (window.switchToDMGlobal) {
-            console.log('🔄 [DM-NAV] Using global DM switcher');
+            
             window.switchToDMGlobal(dmId, roomType).then(success => {
                 if (!success) {
-                    console.log('⚠️ [DM-NAV] Global DM switch failed, falling back to page navigation');
+                    
                     window.location.href = `/home/channels/dm/${dmId}`;
                 }
             });
         } else {
-            console.log('⚠️ [DM-NAV] No DM switcher available, using page navigation');
+            
             window.location.href = `/home/channels/dm/${dmId}`;
         }
     }

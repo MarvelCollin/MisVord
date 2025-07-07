@@ -648,45 +648,45 @@ window.testBotMusic = function(song = 'never gonna give you up') {
     }
 };
 
-// Add initialization helper function to ensure voice call is properly set up
+
 window.ensureVoiceCallInitialized = function() {
     if (!window.voiceCallSection) {
         console.warn('⚠️ [VOICE-CALL] Voice call section not initialized, creating instance');
         window.voiceCallSection = new VoiceCallSection();
     }
     
-    // Force the initialization of local participant
+
     if (window.voiceCallSection.initialized) {
         window.voiceCallSection.ensureLocalParticipant();
     } else {
         window.voiceCallSection.init();
     }
     
-    // Check if grid is empty and needs a fallback participant
+
     const grid = document.getElementById("participantGrid");
     if (grid && grid.children.length === 0) {
-        console.log('📢 [VOICE-CALL] Participant grid empty, adding fallback local participant');
+        
         window.voiceCallSection.createFallbackLocalParticipant();
     }
     
     return true;
 }
 
-// Ensure initialization after page load
+
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         window.ensureVoiceCallInitialized();
     }, 1000);
 });
 
-// Check after VideoSDK is known to be initialized
+
 window.addEventListener("videosdkInitialized", () => {
     setTimeout(() => {
         window.ensureVoiceCallInitialized();
     }, 500);
 });
 
-// Add test function to verify mic/deafen synchronization
+
 window.testMicDeafenSync = function() {
     if (!window.voiceCallSection) {
         console.error('❌ [TEST] Voice call section not available');
@@ -700,9 +700,9 @@ window.testMicDeafenSync = function() {
     }
 
     try {
-        console.log('🧪 [TEST] Starting mic/deafen synchronization test...');
         
-        // Get initial states
+        
+
         const initialVoiceCallDeafen = window.voiceCallSection.deafenBtn?.classList.contains('deafened');
         const initialVoiceCallMute = window.voiceCallSection.micBtn?.classList.contains('muted');
         const userProfileMicBtn = document.querySelector('.user-profile-section .mic-btn i');
@@ -717,12 +717,12 @@ window.testMicDeafenSync = function() {
             'User Profile Deafen': initialUserProfileDeafen
         });
         
-        // Test 1: Toggle deafen from voice call section
-        console.log('🧪 [TEST] Test 1: Toggling deafen from voice call section');
+
+        
         if (window.voiceCallSection.deafenBtn) {
             window.voiceCallSection.deafenBtn.click();
             
-            // Wait for state to propagate
+
             setTimeout(() => {
                 const afterVoiceCallDeafen = window.voiceCallSection.deafenBtn?.classList.contains('deafened');
                 const afterVoiceCallMute = window.voiceCallSection.micBtn?.classList.contains('muted');
@@ -739,13 +739,13 @@ window.testMicDeafenSync = function() {
                     'User Profile synced with Voice Call': afterVoiceCallDeafen === afterUserProfileDeafen && afterVoiceCallMute === afterUserProfileMute
                 });
                 
-                // Test 2: Toggle deafen from user profile
-                console.log('🧪 [TEST] Test 2: Toggling deafen from user profile');
+
+                
                 const userProfileDeafenBtn = document.querySelector('.user-profile-section .deafen-btn');
                 if (userProfileDeafenBtn) {
                     userProfileDeafenBtn.click();
                     
-                    // Wait for state to propagate
+
                     setTimeout(() => {
                         const finalVoiceCallDeafen = window.voiceCallSection.deafenBtn?.classList.contains('deafened');
                         const finalVoiceCallMute = window.voiceCallSection.micBtn?.classList.contains('muted');
@@ -766,7 +766,7 @@ window.testMicDeafenSync = function() {
                                          (finalVoiceCallMute === finalUserProfileMute) &&
                                          (finalUserProfileDeafen ? finalUserProfileMute : true);
                         
-                        console.log(`🧪 [TEST] Mic/deafen sync test ${testPassed ? 'PASSED ✅' : 'FAILED ❌'}`);
+                        
                         return testPassed;
                     }, 500);
                 }

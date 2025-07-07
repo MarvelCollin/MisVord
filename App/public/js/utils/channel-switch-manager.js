@@ -478,7 +478,7 @@ class SimpleChannelSwitcher {
         }
         
         if (!window.voiceSection) {
-            console.log('[CHANNEL-SWITCH] Initializing voice section...');
+            
             if (window.VoiceSection) {
                 window.voiceSection = new window.VoiceSection();
             } else if (typeof window.initializeVoiceUI === 'function') {
@@ -604,7 +604,7 @@ class SimpleChannelSwitcher {
     }
     
     showSection(channelType, channelId) {
-        console.log('[DEBUG SHOWSECTION] Starting section switch:', { channelType, channelId });
+        
         
         const allChatSections = document.querySelectorAll('.chat-section');
         const allVoiceSections = document.querySelectorAll('.voice-section');
@@ -619,10 +619,10 @@ class SimpleChannelSwitcher {
         });
         
         if (channelType === 'voice') {
-            console.log('[DEBUG SHOWSECTION] Switching to VOICE section');
+            
             
             allChatSections.forEach((section, index) => {
-                console.log(`[DEBUG SHOWSECTION] Hiding chat section ${index}`);
+                
                 section.classList.add('hidden');
                 section.style.display = 'none';
                 section.style.visibility = 'hidden';
@@ -632,7 +632,7 @@ class SimpleChannelSwitcher {
             });
             
             allVoiceSections.forEach((section, index) => {
-                console.log(`[DEBUG SHOWSECTION] Showing voice section ${index}`);
+                
                 section.classList.remove('hidden');
                 section.style.display = 'flex';
                 section.style.visibility = 'visible';
@@ -653,7 +653,7 @@ class SimpleChannelSwitcher {
                 });
                 
                 if (!window.voiceSection) {
-                    console.log('[SHOWSECTION] Initializing voice section for display...');
+                    
                     if (window.VoiceSection) {
                         window.voiceSection = new window.VoiceSection();
                     } else if (typeof window.initializeVoiceUI === 'function') {
@@ -666,10 +666,10 @@ class SimpleChannelSwitcher {
                 console.error('[DEBUG SHOWSECTION] No voice sections found in DOM!');
             }
         } else {
-            console.log('[DEBUG SHOWSECTION] Switching to TEXT section');
+            
             
             allVoiceSections.forEach((section, index) => {
-                console.log(`[DEBUG SHOWSECTION] Hiding voice section ${index}`);
+                
                 section.classList.add('hidden');
                 section.style.display = 'none';
                 section.style.visibility = 'hidden';
@@ -679,7 +679,7 @@ class SimpleChannelSwitcher {
             });
             
             allChatSections.forEach((section, index) => {
-                console.log(`[DEBUG SHOWSECTION] Showing chat section ${index}`);
+                
                 section.classList.remove('hidden');
                 section.classList.add('dm-chat-visible');
                 section.style.display = 'flex';
@@ -1050,7 +1050,7 @@ window.debugSectionState = function() {
 };
 
 window.forceSwitchToVoice = function(channelId = '6') {
-    console.log('🔧 [DEBUG] Force switching to voice channel:', channelId);
+    
     if (window.simpleChannelSwitcher) {
         window.simpleChannelSwitcher.showSection('voice', channelId);
         window.simpleChannelSwitcher.updateURL(channelId, 'voice');
@@ -1155,11 +1155,11 @@ window.debugAdvancedSectionState = function() {
         console.error('🚨 [CONFLICT DETECTED] Both chat and voice sections are visible!');
         
         visibleChatSections.forEach(section => {
-            console.log('🔴 Visible chat section:', section);
+            
         });
         
         visibleVoiceSections.forEach(section => {
-            console.log('🟢 Visible voice section:', section);
+            
         });
     }
     
@@ -1173,10 +1173,10 @@ window.debugAdvancedSectionState = function() {
 
 window.forceHideAllChatSections = function() {
     const allChatSections = document.querySelectorAll('.chat-section');
-    console.log('🔧 [FORCE HIDE] Hiding all chat sections:', allChatSections.length);
+    
     
     allChatSections.forEach((section, index) => {
-        console.log(`Hiding chat section ${index}:`, section);
+        
         section.classList.add('hidden');
         section.style.display = 'none';
         section.style.visibility = 'hidden';
@@ -1186,10 +1186,10 @@ window.forceHideAllChatSections = function() {
 
 window.forceShowVoiceSection = function() {
     const allVoiceSections = document.querySelectorAll('.voice-section');
-    console.log('🔧 [FORCE SHOW] Showing all voice sections:', allVoiceSections.length);
+    
     
     allVoiceSections.forEach((section, index) => {
-        console.log(`Showing voice section ${index}:`, section);
+        
         section.classList.remove('hidden');
         section.style.display = 'flex';
         section.style.visibility = 'visible';

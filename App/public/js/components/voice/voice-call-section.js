@@ -19,7 +19,7 @@ class VoiceCallSection {
 
     this._pageUnloading = false; // New flag to track page unload
     
-    // Setup page unload listener
+
     this.setupPageUnloadListener();
   }
 
@@ -54,7 +54,7 @@ class VoiceCallSection {
       this.handleBotParticipantLeft(e)
     );
     
-    // Listen for voice disconnect events to clean up bot participants
+
     window.addEventListener("voiceDisconnect", () =>
       this.handleVoiceDisconnect()
     );
@@ -198,7 +198,7 @@ class VoiceCallSection {
           const newState = window.videoSDKManager.toggleMic();
           this.updateMicButton(newState);
           
-          // Dispatch event with source information to prevent loops
+
           window.dispatchEvent(new CustomEvent('voiceStateChanged', {
             detail: {
               type: 'mic',
@@ -226,7 +226,7 @@ class VoiceCallSection {
           const newState = await window.videoSDKManager.toggleWebcam();
           this.updateVideoButton(newState);
           
-          // Dispatch event with source information
+
           window.dispatchEvent(new CustomEvent('voiceStateChanged', {
             detail: {
               type: 'video',
@@ -254,12 +254,12 @@ class VoiceCallSection {
           const newState = window.videoSDKManager.toggleDeafen();
           this.updateDeafenButton(newState);
           
-          // If deafening, ensure mic is also muted
+
           if (newState) {
-            // Check current mic state
+
             const micState = window.videoSDKManager.getMicState();
             if (micState) {
-              // If mic is not muted, mute it
+
               window.videoSDKManager.toggleMic(false);
               this.updateMicButton(false);
             }
@@ -270,8 +270,8 @@ class VoiceCallSection {
           const newState = window.unifiedVoiceStateManager.toggleDeafen();
           this.updateDeafenButton(newState);
           
-          // No need to explicitly mute here as unifiedVoiceStateManager handles this
-          // and we'll receive the state update via the voiceStateChanged event
+
+
         } catch (error) {}
       }
     });
@@ -292,7 +292,7 @@ class VoiceCallSection {
           const newState = await window.videoSDKManager.toggleScreenShare();
           this.updateScreenButton(newState);
           
-          // Dispatch event with source information
+
           window.dispatchEvent(new CustomEvent('voiceStateChanged', {
             detail: {
               type: 'screen',
@@ -370,14 +370,14 @@ class VoiceCallSection {
       e.preventDefault();
       e.stopPropagation();
 
-      // MODIFIED: Set the explicit leave flag in coordinator before disconnecting
+
       if (this.coordinator) {
         this.coordinator.setExplicitLeaveRequested(true);
       } else if (window.participantCoordinator) {
         window.participantCoordinator.setExplicitLeaveRequested(true);
       }
 
-      // Clean up bot participants before leaving voice
+
       this.handleVoiceDisconnect();
 
       if (
@@ -394,8 +394,8 @@ class VoiceCallSection {
   handleVoiceStateChanged(e) {
     const { type, state, source } = e.detail;
 
-    // Skip self-generated events to prevent loops
-    // Only process events from other sources
+
+
     if (source === 'voice-call-section') {
       return;
     }
@@ -441,7 +441,7 @@ class VoiceCallSection {
         this.updateDeafenButton(state);
         this.updateLocalParticipantIndicator("mic", !state);
         
-        // If deafening, ensure mic button UI is updated too
+
         if (state) {
           this.updateMicButton(false);
         }
@@ -594,7 +594,7 @@ class VoiceCallSection {
         this.createScreenShareCard(participantId, stream);
         const participantCard = document.querySelector(`[data-participant-id="${participantId}"]`);
         
-        // Ensure the participant's primary card is not overridden by the screen share stream
+
         if (participantCard) {
           const videoOverlay = participantCard.querySelector(".participant-video-overlay");
           const videoElement = videoOverlay?.querySelector("video");
@@ -785,16 +785,16 @@ class VoiceCallSection {
   handleParticipantJoined(e) {
     const { participant, participantObj } = e.detail;
     
-    // Immediate local participant detection
+
     const isLocalParticipant = participant === window.videoSDKManager?.meeting?.localParticipant?.id;
     
-    // Add participant with higher priority for local participant
+
     if (isLocalParticipant) {
-      console.log('[VOICE-CALL] Local participant joined:', participant);
+      
       const localParticipantObj = window.videoSDKManager?.meeting?.localParticipant;
       if (localParticipantObj) {
         this.addParticipantToGrid(participant, localParticipantObj);
-        // Double check streams with delay to ensure they're properly displayed
+
         setTimeout(() => {
           this.checkParticipantStreams(localParticipantObj);
         }, 300);
@@ -815,24 +815,24 @@ class VoiceCallSection {
   }
 
   handleMeetingJoined() {
-    console.log('[VOICE-CALL] Meeting joined, refreshing participant grid');
     
-    // First refresh the entire grid
+    
+
     this.refreshParticipantGrid();
     
-    // Ensure local participant is added regardless of meeting state
+
     setTimeout(() => {
       this.ensureLocalParticipant();
     }, 300);
     
-    // Update participant count and activity status
+
     this.updateParticipantCount();
     this.updateActivityStatus();
     
-    // Add an additional check to ensure participants are correctly added
+
     setTimeout(() => {
       if (document.getElementById("participantGrid")?.children.length === 0) {
-        console.log('[VOICE-CALL] No participants after join, adding fallback local');
+        
         this.createFallbackLocalParticipant();
       }
     }, 1000);
@@ -877,24 +877,24 @@ class VoiceCallSection {
       return;
     }
 
-    // Check if already exists in DOM
+
     if (grid.querySelector(`[data-participant-id="${participantId}"]`)) {
       return;
     }
 
-    // Use coordinator to resolve conflicts and prevent duplicates
+
     const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
     
-    // Special case for local participant - bypass coordinator checks
+
     const isLocal = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
     if (!isLocal && this.coordinator) {
-      // Check if participant exists and resolve conflicts
+
       if (this.coordinator.hasParticipant(currentChannelId, participantId)) {
         const existingSystem = this.coordinator.getParticipantSystem(participantId);
         if (existingSystem === 'VoiceCallSection') {
           return; // We already manage this participant
         }
-        // Try to take over from other systems (like ChannelVoiceParticipants)
+
         const resolved = this.coordinator.resolveConflict(currentChannelId, participantId, 'VoiceCallSection', null);
         if (!resolved) {
           return;
@@ -906,7 +906,7 @@ class VoiceCallSection {
     
     let userData;
     if (isLocal) {
-      // More robust local participant data fallbacks
+
       userData = window.userDataHelper?.getCurrentUserData() || {
         id: window.currentUserId || document.querySelector('meta[name="user-id"]')?.content || 'local-user',
         username: name || document.querySelector('meta[name="username"]')?.content || 'You',
@@ -942,15 +942,15 @@ class VoiceCallSection {
       userData
     );
     
-    // For local participants, skip coordinator check to prevent conflicts
+
     if (!isLocal && this.coordinator && userData) {
       const added = this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection');
       if (!added) {
-        // Coordinator rejected the addition, likely a duplicate
+
         return;
       }
     } else if (isLocal && this.coordinator && userData) {
-      // For local participant, force add to coordinator
+
       this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection', true);
     }
     
@@ -967,10 +967,10 @@ class VoiceCallSection {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
 
-    // Don't remove the local participant unless it's an explicit leave or page unload
+
     const isLocalParticipant = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
     if (isLocalParticipant && !this.coordinator?.explicitLeaveRequested && !this._pageUnloading) {
-      console.log('[VOICE-CALL] Prevented auto removal of local participant:', participantId);
+      
       return;
     }
 
@@ -981,14 +981,14 @@ class VoiceCallSection {
       element.remove();
     }
 
-    // Only remove from coordinator if it's an explicit leave or page unload
+
     const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
     if (this.coordinator) {
-      // Only remove if it's from leave button click, page unload, or if the coordinator says it's okay
+
       if (this.coordinator.explicitLeaveRequested || this._pageUnloading) {
         this.coordinator.removeParticipant(currentChannelId, participantId, 'VoiceCallSection');
       } else {
-        console.log('[VOICE-CALL] Prevented auto removal of participant:', participantId);
+        
       }
     }
 
@@ -1315,7 +1315,7 @@ class VoiceCallSection {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
 
-    // Clear coordinator data for this channel before rebuilding
+
     const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
     if (this.coordinator) {
       this.coordinator.clearChannel(currentChannelId);
@@ -1323,7 +1323,7 @@ class VoiceCallSection {
 
     grid.innerHTML = "";
 
-    // Initialize delay outside the if block to avoid scope issues
+
     let delay = 0;
 
     if (window.videoSDKManager?.meeting?.participants) {
@@ -1331,7 +1331,7 @@ class VoiceCallSection {
         window.videoSDKManager.meeting.participants.values()
       );
       
-      // Add participants with small delays to prevent race conditions
+
       participants.forEach((participant) => {
         setTimeout(() => {
           this.addParticipantToGrid(participant.id, participant);
@@ -1340,10 +1340,10 @@ class VoiceCallSection {
         delay += 50;
       });
 
-      // Add local participant with higher priority
+
       const localParticipant = window.videoSDKManager.meeting.localParticipant;
       if (localParticipant) {
-        // Prioritize local participant by adding it first with minimal delay
+
         setTimeout(() => {
           if (!grid.querySelector(`[data-participant-id="${localParticipant.id}"]`)) {
             this.addParticipantToGrid(localParticipant.id, localParticipant);
@@ -1356,7 +1356,7 @@ class VoiceCallSection {
 
     setTimeout(() => {
       this.updateParticipantCount();
-      // Check if we need to ensure local participant is shown
+
       this.ensureLocalParticipant();
     }, delay + 100);
   }
@@ -1868,7 +1868,7 @@ class VoiceCallSection {
   }
 
   handleVoiceDisconnect() {
-    // MODIFIED: Set explicit leave flag to ensure proper cleanup
+
     if (this.coordinator) {
       this.coordinator.setExplicitLeaveRequested(true);
     } else if (window.participantCoordinator) {
@@ -1961,7 +1961,7 @@ class VoiceCallSection {
     return participantCard;
   }
 
-  // New method to ensure local participant is always visible
+
   ensureLocalParticipant() {
     if (!window.videoSDKManager?.meeting?.localParticipant) {
       console.warn("[VOICE-CALL] Local participant not available in VideoSDK");
@@ -1974,21 +1974,21 @@ class VoiceCallSection {
     
     if (!grid) return;
     
-    // Check if local participant exists in grid
+
     const existingLocalParticipant = grid.querySelector(`[data-participant-id="${localParticipant.id}"]`);
     if (!existingLocalParticipant) {
-      console.log("[VOICE-CALL] Adding missing local participant");
+      
       this.addParticipantToGrid(localParticipant.id, localParticipant);
       this.checkParticipantStreams(localParticipant);
       
-      // Setup retry to ensure local participant streams are properly displayed
+
       setTimeout(() => {
         this.checkParticipantStreams(localParticipant);
       }, 1000);
     }
   }
 
-  // Fallback method to create a local participant if VideoSDK fails
+
   createFallbackLocalParticipant() {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
@@ -1997,7 +1997,7 @@ class VoiceCallSection {
     const username = document.querySelector('meta[name="username"]')?.content || 'You';
     const avatar = document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png';
     
-    // Check if we already have a fallback local participant
+
     if (grid.querySelector(`[data-participant-id="fallback-local-${localUserId}"]`)) {
       return;
     }
@@ -2021,7 +2021,7 @@ class VoiceCallSection {
       userData
     );
     
-    // Add local-participant class to the avatar for styling
+
     const avatar_element = participantElement.querySelector(".participant-avatar");
     if (avatar_element) {
       avatar_element.classList.add("local-participant");
@@ -2031,22 +2031,22 @@ class VoiceCallSection {
     this.updateGridLayout();
   }
 
-  // Add method to handle page unload
+
   setupPageUnloadListener() {
     window.addEventListener('beforeunload', () => {
       this._pageUnloading = true;
       
-      // When page is reloading, we should allow participant removal
+
       if (this.coordinator) {
         this.coordinator.setExplicitLeaveRequested(true);
       } else if (window.participantCoordinator) {
         window.participantCoordinator.setExplicitLeaveRequested(true);
       }
       
-      // Clean up bot participants before leaving voice (same as leave button)
+
       this.handleVoiceDisconnect();
       
-      // Call leaveVoice on the voice manager (same as leave button)
+
       if (window.voiceManager && typeof window.voiceManager.leaveVoice === "function") {
         window.voiceManager.leaveVoice();
       }

@@ -11,26 +11,64 @@ const CLICK_TIMEOUT = 3000;
 const CLICKS_NEEDED = 16; 
 
 
+function setupScrollBehavior() {
+    const serverList = document.getElementById('server-list');
+    if (!serverList) return;
+    
+
+    const updateMaxHeight = () => {
+        const viewportHeight = window.innerHeight;
+        serverList.style.maxHeight = `${viewportHeight - 24}px`;
+        
+
+        serverList.style.overflowY = 'auto';
+        serverList.style.overflowX = 'visible';
+    };
+    
+    updateMaxHeight();
+    window.addEventListener('resize', updateMaxHeight);
+    
+
+    serverList.style.scrollBehavior = 'smooth';
+    
+
+    if (localStorage.getItem('server_sidebar_scroll')) {
+        try {
+            const scrollPos = parseInt(localStorage.getItem('server_sidebar_scroll'));
+            if (!isNaN(scrollPos)) {
+                serverList.scrollTop = scrollPos;
+            }
+        } catch (e) {
+            console.error('Error restoring scroll position:', e);
+        }
+    }
+    
+
+    serverList.addEventListener('scroll', () => {
+        localStorage.setItem('server_sidebar_scroll', serverList.scrollTop);
+    });
+}
 
 document.addEventListener('DOMContentLoaded', function() {
 
     initServerSidebar();
     initializeHomeIconEasterEgg();
+    setupScrollBehavior();
     
-    // Delay tooltip setup slightly to ensure DOM is fully ready
+
     setTimeout(() => {
         setupAllTooltips();
-        console.log('Tooltips initialized');
+        
     }, 100);
     
-    // Add global click handler to hide stuck tooltips
+
     document.addEventListener('click', function(e) {
         if (!e.target.closest('.server-sidebar-icon') && !e.target.closest('.group-header')) {
             hideAllTooltips();
         }
     });
     
-    // Add mouse move handler to hide tooltips when cursor is far from sidebar
+
     document.addEventListener('mousemove', function(e) {
         const sidebar = document.querySelector('.w-\\[72px\\]');
         if (sidebar) {
@@ -113,6 +151,37 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+
+export function scrollToActiveServer() {
+    const activeServer = document.querySelector('.server-sidebar-icon.active');
+    if (!activeServer) return;
+    
+    const serverList = document.getElementById('server-list');
+    if (!serverList) return;
+    
+    const serverRect = activeServer.getBoundingClientRect();
+    const listRect = serverList.getBoundingClientRect();
+    
+
+    if (serverRect.top < listRect.top || serverRect.bottom > listRect.bottom) {
+        activeServer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+
+function checkServerVisibility() {
+    const serverList = document.getElementById('server-list');
+    if (!serverList) return;
+    
+    const serverIcons = serverList.querySelectorAll('.server-sidebar-icon');
+    if (serverIcons.length <= 5) {
+
+        serverList.classList.add('no-scrollbar');
+    } else {
+        serverList.classList.remove('no-scrollbar');
+    }
+}
+
 function handleEasterEggLogic() {
     const currentTime = Date.now();
     
@@ -137,13 +206,20 @@ function initializeHomeIconEasterEgg() {
 
 function initServerSidebar() {
     if (window.__SIDEBAR_INITIALIZED__) {
-
         return;
     }
     window.__SIDEBAR_INITIALIZED__ = true;
-
     
     performCompleteRender();
+    
+
+    setupScrollBehavior();
+    
+
+    setTimeout(() => {
+        checkServerVisibility();
+        scrollToActiveServer();
+    }, 500);
 }
 
 function performCompleteRender() {
@@ -155,14 +231,14 @@ function performCompleteRender() {
     
     renderFolders();
     
-    // Add a final safety check after rendering to ensure no servers are lost
+
     setTimeout(() => {
         try {
-            // Get all servers that should be visible somewhere
+
             const allServerElements = document.querySelectorAll('.server-sidebar-icon[data-server-id]');
             const allServerIds = Array.from(allServerElements).map(el => el.getAttribute('data-server-id'));
             
-            // Check which servers are visible either in the main list or in groups
+
             const mainListServers = document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]:not([style*="display: none"])');
             const groupServers = document.querySelectorAll('.server-sidebar-group .server-sidebar-icon[data-server-id]:not([style*="display: none"])');
             
@@ -171,25 +247,25 @@ function performCompleteRender() {
                 ...Array.from(groupServers).map(el => el.getAttribute('data-server-id'))
             ]);
             
-            // Find servers that aren't visible anywhere
+
             const missingServerIds = allServerIds.filter(id => !visibleServerIds.has(id));
             
-            // If any servers are missing, make them visible in the main list
+
             if (missingServerIds.length > 0) {
                 console.warn('[Server Sidebar] Found missing servers after render, restoring:', missingServerIds);
                 
                 missingServerIds.forEach(serverId => {
-                    // Find the server element
+
                     const serverElement = document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
                     if (serverElement) {
-                        // Remove from any groups it might be in
+
                         LocalStorageManager.removeServerFromAllGroups(serverId);
                         
-                        // Reset its state
+
                         serverElement.classList.remove('in-group');
                         serverElement.style.display = '';
                         
-                        // Move it to the main list if it's not already there
+
                         const mainList = document.getElementById('server-list');
                         const addServerButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
                         
@@ -216,12 +292,12 @@ function clearAllPreviousState() {
         icon.draggable = false;
         icon.classList.remove('in-group');
         
-        // Ensure server icon is visible if it should be
+
         if (!icon.classList.contains('in-group')) {
             icon.style.display = '';
         }
         
-        // Store original server data for recovery
+
         if (!icon.hasAttribute('data-original-stored')) {
             const img = icon.querySelector('.server-sidebar-button img');
             const span = icon.querySelector('.server-sidebar-button span');
@@ -367,7 +443,7 @@ async function renderFolders() {
                 .map(el => el.getAttribute('data-server-id'))
         );
     
-        // Keep track of modified groups for logging
+
         let groupsChanged = false;
         groups.forEach(group => {
             const originalServerCount = group.servers.length;
@@ -381,7 +457,7 @@ async function renderFolders() {
             LocalStorageManager.setServerGroups(groups);
         }
         
-        // Automatically dissolve groups with one or zero servers.
+
         const validGroups = groups.filter(group => {
             if (group.servers.length <= 1) {
                 LocalStorageManager.removeServerGroup(group.id);
@@ -391,39 +467,39 @@ async function renderFolders() {
         });
         groups = validGroups;
     
-        // Clear existing groups first
+
         document.querySelectorAll('.server-sidebar-group').forEach(el => el.remove());
         
-        // Create a set of all servers that belong to any group
+
         const serversInGroups = new Set();
         groups.forEach(group => {
             group.servers.forEach(serverId => serversInGroups.add(serverId));
         });
         
-        // Update visibility of server icons in the main list
+
         const currentServerElements = Array.from(document.querySelectorAll('#server-list > .server-sidebar-icon[data-server-id]'));
         
-        // Ensure existing elements that should be in groups are marked correctly
+
         currentServerElements.forEach(serverIcon => {
             const serverId = serverIcon.getAttribute('data-server-id');
             if (serversInGroups.has(serverId)) {
-                // Hide server in main list if it's in a group
+
                 serverIcon.style.display = 'none';
                 serverIcon.classList.add('in-group');
             } else {
-                // Make sure servers that are not in groups are visible
+
                 serverIcon.style.display = '';
                 serverIcon.classList.remove('in-group');
             }
         });
         
-        // Build server image data once for all servers
+
         const serverImageData = await buildServerImageData();
         
-        // Find reference for adding server button placement
+
         const addServerButton = serverList.querySelector('.discord-add-server-button')?.parentNode;
         
-        // Create and insert folder elements
+
         for (const group of groups) {
             const folderElement = createFolderElement(group);
             if (addServerButton) {
@@ -437,16 +513,16 @@ async function renderFolders() {
                 }
             }
             
-            // Get the servers container inside the folder
+
             const serversContainer = folderElement.querySelector('.group-servers');
             
-            // Keep track of servers actually moved to the group
+
             const movedServerIds = [];
             
-            // Find all server elements belonging to this group
+
             const serversToMove = group.servers
                 .map(serverId => {
-                    // Look for server element in both the main list and within groups
+
                     let element = document.querySelector(`#server-list > .server-sidebar-icon[data-server-id="${serverId}"]`) || 
                                   document.querySelector(`.server-sidebar-icon[data-server-id="${serverId}"]`);
                     return {
@@ -456,37 +532,37 @@ async function renderFolders() {
                 })
                 .filter(server => server.element);
             
-            // Move servers into the group container
+
             serversToMove.forEach(server => {
                 if (serversContainer) {
                     server.element.style.display = '';  // Ensure it's visible when moving to group
                     server.element.classList.add('in-group');
                     
-                    // Remove from current parent before appending to new parent
+
                     if (server.element.parentNode) {
                         server.element.parentNode.removeChild(server.element);
                     }
                     serversContainer.appendChild(server.element);
                     movedServerIds.push(server.id);
                     
-                    // Ensure we keep the data-setup attribute for tracking
+
                     server.element.removeAttribute('data-setup');
                 }
             });
             
-            // If some servers couldn't be moved, update the group in LocalStorage
+
             if (movedServerIds.length !== group.servers.length) {
                 group.servers = movedServerIds;
                 LocalStorageManager.setServerGroups(groups);
             }
             
-            // Create folder preview, update state and set up events
+
             createFolderPreview(group, folderElement, serverImageData);
             updateFolderState(group, folderElement);
             setupFolderEvents(group, folderElement);
         }
         
-        // Set up event handlers for server icons, drop zones and tooltips
+
         setupServerIcons();
         setupDropZones();
         setupAllTooltips();
@@ -501,7 +577,7 @@ function resetServersToMainList() {
     const mainList = document.getElementById('server-list');
     if (!mainList) return;
     
-    // Get all servers currently in groups
+
     const serversInGroups = document.querySelectorAll('.server-sidebar-group .group-servers .server-sidebar-icon[data-server-id]');
     
     const serversToReposition = [];
@@ -509,49 +585,49 @@ function resetServersToMainList() {
         serverIcon.classList.remove('in-group');
         serverIcon.style.display = '';  // Ensure visibility
         
-        // Store for later repositioning
+
         serversToReposition.push({
             element: serverIcon,
             id: serverIcon.getAttribute('data-server-id')
         });
         
-        // Remove from current parent
+
         if (serverIcon.parentNode) {
             serverIcon.parentNode.removeChild(serverIcon);
         }
     });
     
-    // Also find any hidden servers in the main list that should be visible
+
     document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
         serverIcon.style.display = '';  // Ensure visibility
     });
     
-    // Find insertion points in the main list
+
     const addButton = mainList.querySelector('.discord-add-server-button')?.parentNode;
     const divider = mainList.querySelector('.server-sidebar-divider');
     const exploreButton = mainList.querySelector('.discord-explore-server-button')?.closest('.server-sidebar-icon');
     
-    // Insert all servers back into the main list in their proper positions
+
     serversToReposition.forEach(serverData => {
         if (addButton) {
-            // Insert before the add server button
+
             mainList.insertBefore(serverData.element, addButton);
         } else if (exploreButton) {
-            // Or before the explore button if it exists
+
             mainList.insertBefore(serverData.element, exploreButton);
         } else if (divider) {
-            // Or after the divider
+
             divider.insertAdjacentElement('afterend', serverData.element);
         } else {
-            // Or just append to the list
+
             mainList.appendChild(serverData.element);
         }
         
-        // Reset state for re-setup
+
         serverData.element.removeAttribute('data-setup');
         
-        // Ensure server is visible with a small delay to avoid flicker
+
         setTimeout(() => {
             if (serverData.element) {
                 serverData.element.style.display = '';
@@ -568,7 +644,7 @@ function setupTooltipForElement(element) {
     const tooltipContainer = document.getElementById('tooltip-container');
     if (!tooltipContainer) return;
     
-    // Create a clone of the tooltip in the container
+
     const tooltipId = 'tooltip-' + Math.random().toString(36).substr(2, 9);
     tooltip.id = tooltipId;
     
@@ -576,12 +652,12 @@ function setupTooltipForElement(element) {
     clone.setAttribute('data-for-element', tooltipId);
     tooltipContainer.appendChild(clone);
     
-    // Hide the original tooltip
+
     tooltip.style.display = 'none';
     tooltip.setAttribute('data-has-clone', 'true');
     
     const showTooltip = (e) => {
-        // Hide any other visible tooltips first
+
         hideAllTooltips();
         
         const rect = element.getBoundingClientRect();
@@ -603,17 +679,17 @@ function setupTooltipForElement(element) {
         }, 200);
     };
 
-    // Remove existing listeners
+
     element.removeEventListener('mouseenter', showTooltip);
     element.removeEventListener('mouseleave', hideTooltip);
     
-    // Add new listeners
+
     element.addEventListener('mouseenter', showTooltip);
     element.addEventListener('mouseleave', hideTooltip);
 }
 
 function setupAllTooltips() {
-    console.log('Setting up all tooltips');
+    
     document.querySelectorAll('.server-sidebar-icon, .server-sidebar-group .group-header').forEach(icon => {
         setupTooltipForElement(icon);
     });
@@ -627,7 +703,7 @@ async function buildServerImageData() {
     document.querySelectorAll('.server-sidebar-icon[data-server-id]').forEach(icon => {
         const serverId = icon.getAttribute('data-server-id');
         
-        // Restore server content if needed
+
         restoreServerContent(icon);
         
         const existingImg = icon.querySelector('.server-sidebar-button img');
@@ -672,7 +748,7 @@ function restoreServerContent(icon) {
     const serverButton = icon.querySelector('.server-sidebar-button');
     if (!serverButton) return;
     
-    // Check if we need to restore from stored data
+
     const hasImage = !!serverButton.querySelector('img');
     const hasText = !!serverButton.querySelector('span');
     
@@ -681,7 +757,7 @@ function restoreServerContent(icon) {
         const originalText = icon.getAttribute('data-original-text');
         
         if (originalImg) {
-            // Restore image
+
             const img = document.createElement('img');
             img.src = originalImg;
             img.alt = 'Server';
@@ -689,7 +765,7 @@ function restoreServerContent(icon) {
             serverButton.innerHTML = '';
             serverButton.appendChild(img);
         } else if (originalText) {
-            // Restore text
+
             const span = document.createElement('span');
             span.textContent = originalText.charAt(0).toUpperCase();
             span.className = 'text-white font-bold text-xl';
@@ -725,7 +801,7 @@ function createFolderElement(group) {
 function createFolderPreview(group, folderElement, serverImageData) {
     const header = folderElement.querySelector('.group-header');
     
-    // Build the tooltip content with server names
+
     const serverNames = group.servers
         .map(serverId => (serverDataCache && serverDataCache[serverId]) ? serverDataCache[serverId].name : null)
         .filter(name => name !== null);
@@ -954,22 +1030,22 @@ function setupDropZones() {
         });
     });
     
-    // Enhanced drop zone for ungrouping - covers the entire sidebar area
+
     const serverList = document.getElementById('server-list');
     const sidebarContainer = document.querySelector('.w-\\[72px\\]') || document.querySelector('[class*="w-[72px]"]');
     
     if (serverList && !serverList.hasAttribute('data-drop-setup')) {
         serverList.setAttribute('data-drop-setup', 'true');
         
-        // Add drop zone to the entire sidebar container for better ungrouping
+
         if (sidebarContainer) {
             sidebarContainer.addEventListener('dragover', e => {
-                // Only handle if not over a specific server or group
+
                 if (!e.target.closest('.server-sidebar-group') && !e.target.closest('.server-sidebar-icon')) {
                     e.preventDefault();
                     sidebarContainer.classList.add('drop-target');
                     
-                    // Visual feedback for ungrouping
+
                     sidebarContainer.style.backgroundColor = 'rgba(88, 101, 242, 0.1)';
                     sidebarContainer.style.transition = 'background-color 0.2s ease';
                 }
@@ -985,7 +1061,7 @@ function setupDropZones() {
             });
             
             sidebarContainer.addEventListener('drop', e => {
-                // Only handle if not over a specific server or group
+
                 if (!e.target.closest('.server-sidebar-group') && !e.target.closest('.server-sidebar-icon')) {
                     e.preventDefault();
                     sidebarContainer.classList.remove('drop-target');
@@ -997,14 +1073,14 @@ function setupDropZones() {
                         if (wasInGroup) {
                             LocalStorageManager.removeServerFromAllGroups(serverId);
                         }
-                        // Always render regardless if server was in group or not
+
                         performCompleteRender();
                     }
                 }
             });
         }
         
-        // Keep the original server list drop handling as backup
+
         serverList.addEventListener('dragover', e => {
             if (e.target.closest('.server-sidebar-group') || e.target.closest('.server-sidebar-icon')) return;
             e.preventDefault();
@@ -1030,7 +1106,7 @@ function setupDropZones() {
                 const wasInGroup = LocalStorageManager.getServerGroup(serverId);
                 LocalStorageManager.removeServerFromAllGroups(serverId);
                 
-                // Always render to ensure server is visible
+
                 performCompleteRender();
             }
         });
@@ -1062,21 +1138,21 @@ async function handleServerAddToGroup(serverId, groupId, folderElement) {
         serverElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
         serverElement.style.transition = 'transform 0.3s ease';
         
-        // Make sure the server stays visible during the animation
+
         serverElement.style.display = '';
         
-        // Use a Promise to ensure the animation completes before re-rendering
+
         await new Promise(resolve => {
             requestAnimationFrame(() => {
                 serverElement.style.transform = 'translate(0, 0)';
                 
-                // Wait for animation to complete before re-rendering
+
                 setTimeout(() => {
                     serverElement.style.transition = '';
                     serverElement.style.transform = '';
                     resolve();
                     
-                    // Only perform complete render after animation is done
+
                     performCompleteRender(); 
                 }, 350); // Slightly longer than animation duration to ensure completion
             });
@@ -1462,7 +1538,9 @@ export const ServerSidebar = {
     updateActiveServer,
     handleServerClick,
     renderFolders: () => performCompleteRender(),
-    refresh: () => performCompleteRender()
+    refresh: () => performCompleteRender(),
+    scrollToActiveServer,
+    setupScroll: () => setupScrollBehavior()
 };
 
 function formatTimestamp(timestamp) {
@@ -1526,7 +1604,7 @@ function groupMessagesByUser(messages) {
     return groups;
 }
 
-// Function to hide all tooltips
+
 function hideAllTooltips() {
     const tooltipContainer = document.getElementById('tooltip-container');
     if (tooltipContainer) {
@@ -1539,5 +1617,5 @@ function hideAllTooltips() {
     }
 }
 
-// Expose the function globally
+
 window.hideAllTooltips = hideAllTooltips;

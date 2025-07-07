@@ -462,29 +462,29 @@ function setup(io) {
                     broadcast: !!broadcast
                 });
                 
-                // Always emit to the voice channel room
+
                 io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
 
-                // If broadcast flag is set or this is a fresh join, emit globally to ensure visibility
+
                 if (broadcast || participantCount === 1) {
-                    console.log(`📣 [VOICE-PARTICIPANT] Broadcasting globally for visibility`);
+                    
                     io.emit('voice-meeting-update', updateData);
                     
-                    // Also broadcast to all server channels to ensure visibility
+
                     if (server_id) {
                         const serverRoom = `server_${server_id}`;
                         io.to(serverRoom).emit('voice-meeting-update', updateData);
                     }
                 }
                 
-                // Confirm registration to the client
+
                 client.emit('voice-meeting-update', {
                     ...updateData,
                     action: 'registered',
                     message: 'Successfully registered to voice meeting'
                 });
 
-                // Force refresh all clients to see the updated participant list
+
                 setTimeout(() => {
                     io.emit('force-refresh-voice-participants', {
                         channel_id: channel_id,
@@ -860,14 +860,14 @@ function handleDisconnect(io, client) {
         for (const meeting of allVoiceMeetings) {
             if (meeting.participants.has(client.id)) {
 
-                // Skip automatic removal; rely on explicit leave action
+
                 /*
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
-                // ... remainder of cleanup code commented ...
+
                 */
             }
         }
-        // Automatic broadcast removed; explicit leave covers removals
+
     } else {
 
     }
@@ -978,7 +978,7 @@ function setupStaleConnectionChecker(io) {
             
             staleParticipants.forEach(socketId => {
 
-                // Skip automatic cleanup; rely on explicit leave
+
                 /*
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, socketId);
                 ...

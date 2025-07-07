@@ -24,7 +24,7 @@ class MusicPlayerSystem {
         this._audioSourceNode = null;
         this._audioInitialized = false;
         
-        // Initialize audio properly
+
         this.initializeAudio();
         
         this.setupEventListeners();
@@ -33,30 +33,30 @@ class MusicPlayerSystem {
 
     initializeAudio() {
         try {
-            // Create audio element
+
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
             this.audio.preload = "none";
             this.audio.volume = this.volume;
             
-            // Initialize audio context
+
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
                 this._audioContext = new AudioContext();
                 
-                // Connect audio element to context
+
                 try {
                     this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
                     this._audioSourceNode.connect(this._audioContext.destination);
-                    console.log('🎵 [MUSIC-PLAYER] Audio connected to context on initialization');
+                    
                 } catch (e) {
                     console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context:', e);
                 }
                 
-                console.log('🎵 [MUSIC-PLAYER] Audio context initialized');
+                
             }
             
-            // Set up basic event listeners
+
             this.audio.addEventListener('error', (e) => {
                 console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
                 this.handlePlaybackError();
@@ -66,20 +66,20 @@ class MusicPlayerSystem {
                 this.playNext();
             });
             
-            // Add more comprehensive event listeners for debugging
+
             ['loadstart', 'canplay', 'canplaythrough', 'abort', 'stalled',
              'suspend', 'waiting', 'loadedmetadata', 'loadeddata', 'play',
              'playing', 'pause'].forEach(eventName => {
                 this.audio.addEventListener(eventName, () => {
-                    console.log(`🎵 [MUSIC-PLAYER] Audio event: ${eventName}`);
+                    
                 });
             });
             
             this._audioInitialized = true;
-            console.log('🎵 [MUSIC-PLAYER] Audio system initialized successfully');
+            
         } catch (e) {
             console.error('🎵 [MUSIC-PLAYER] Failed to initialize audio system:', e);
-            // Fallback to basic audio
+
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
         }
@@ -95,25 +95,25 @@ class MusicPlayerSystem {
         
         this.initialized = true;
         
-        // Ensure audio is initialized
+
         if (!this._audioInitialized) {
             this.initializeAudio();
         }
         
-        // Ensure we have a valid audio context
+
         if (!this._audioContext && typeof window !== 'undefined') {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (AudioContext) {
                     this._audioContext = new AudioContext();
-                    console.log('🎵 [MUSIC-PLAYER] Audio context initialized on force init');
                     
-                    // Try to connect audio to context
+                    
+
                     if (this.audio && !this._audioSourceNode) {
                         try {
                             this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
                             this._audioSourceNode.connect(this._audioContext.destination);
-                            console.log('🎵 [MUSIC-PLAYER] Audio connected to context on force init');
+                            
                         } catch (e) {
                             console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
                         }
@@ -124,31 +124,31 @@ class MusicPlayerSystem {
             }
         }
         
-        // Add a test sound to verify audio is working
+
         setTimeout(() => {
             this.playTestSound();
         }, 1000);
     }
     
     playTestSound() {
-        // Create a short silent audio to test the audio system
+
         try {
             const testAudio = new Audio();
             testAudio.volume = 0.1; // Slightly audible for testing
-            // Use a short beep sound instead of silent audio
+
             testAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             
-            // Play and immediately pause to initialize audio system
+
             const playPromise = testAudio.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
                     setTimeout(() => {
                         testAudio.pause();
-                        console.log('🎵 [MUSIC-PLAYER] Audio system test successful');
+                        
                     }, 100);
                 }).catch(e => {
                     console.warn('🎵 [MUSIC-PLAYER] Audio system test failed:', e);
-                    // Try with user gesture simulation
+
                     this.unlockAudio();
                 });
             }
@@ -159,27 +159,27 @@ class MusicPlayerSystem {
     
     unlockAudio() {
         try {
-            // Create a user gesture
+
             const tempButton = document.createElement('button');
             tempButton.style.display = 'none';
             document.body.appendChild(tempButton);
             tempButton.click();
             
-            // Try to resume audio context
+
             if (this._audioContext && this._audioContext.state === 'suspended') {
                 this._audioContext.resume().then(() => {
-                    console.log('🎵 [MUSIC-PLAYER] Audio context unlocked');
+                    
                 }).catch(e => {
                     console.warn('🎵 [MUSIC-PLAYER] Failed to unlock audio context:', e);
                 });
             }
             
-            // Try a short sound
+
             const unlockAudio = new Audio();
             unlockAudio.volume = 0.1;
             unlockAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             unlockAudio.play().then(() => {
-                console.log('🎵 [MUSIC-PLAYER] Audio unlocked successfully');
+                
                 setTimeout(() => unlockAudio.pause(), 100);
             }).catch(e => {
                 console.warn('🎵 [MUSIC-PLAYER] Failed to unlock audio with play:', e);
@@ -197,12 +197,12 @@ class MusicPlayerSystem {
                 this.processBotMusicCommand(e.detail);
             });
             
-            // Set up automatic audio unlock on any user interaction
+
             const autoUnlockEvents = ['click', 'touch', 'keydown', 'mousedown'];
             const autoUnlock = () => {
                 if (this._audioContext && this._audioContext.state === 'suspended') {
                     this._audioContext.resume().then(() => {
-                        console.log('🎵 [MUSIC-PLAYER] Audio context auto-unlocked');
+                        
                         autoUnlockEvents.forEach(event => {
                             document.removeEventListener(event, autoUnlock);
                         });
@@ -257,7 +257,7 @@ class MusicPlayerSystem {
             io.off('bot-music-command');
             
             io.on('bot-music-command', (data) => {
-                console.log('🎵 [MUSIC-PLAYER] Received bot-music-command:', data);
+                
                 this.processBotMusicCommand(data);
             });
         };
@@ -266,7 +266,7 @@ class MusicPlayerSystem {
     }
 
     async processBotMusicCommand(data) {
-        console.log('🎵 [MUSIC-PLAYER] Processing bot music command:', data);
+        
         
         if (!data || !data.music_data) {
             console.warn('⚠️ [MUSIC-PLAYER] Invalid bot music command data:', data);
@@ -274,7 +274,7 @@ class MusicPlayerSystem {
         }
         
         if (!this.initialized) {
-            console.log('🎵 [MUSIC-PLAYER] Not initialized, forcing initialization...');
+            
             this.forceInitialize();
         }
         
@@ -290,7 +290,7 @@ class MusicPlayerSystem {
                     if (query && query.trim()) {
                         this.showStatus(`Searching for: ${query}`);
                         
-                        // Try to wake up audio system first
+
                         if (this._audioContext && this._audioContext.state === 'suspended') {
                             try {
                                 await this._audioContext.resume();
@@ -303,24 +303,24 @@ class MusicPlayerSystem {
                         if (searchResult && searchResult.previewUrl) {
                             this.showStatus(`Found "${searchResult.title}" - preparing playback...`);
                             
-                            // Make sure any previous audio is stopped
+
                             await this.stop();
                             
-                            // Try to create user interactions to overcome autoplay restrictions
+
                             try {
-                                // Method 1: Simulate click
+
                                 const tempButton = document.createElement('button');
                                 tempButton.style.display = 'none';
                                 document.body.appendChild(tempButton);
                                 tempButton.click();
                                 document.body.removeChild(tempButton);
                                 
-                                // Method 2: Resume audio context if suspended
+
                                 if (this._audioContext && this._audioContext.state === 'suspended') {
                                     await this._audioContext.resume();
                                 }
                                 
-                                // Method 3: Unlock audio with a silent play
+
                                 this.unlockAudio();
                             } catch (e) {
                                 console.warn('🎵 [MUSIC-PLAYER] Failed to create user gesture:', e);
@@ -337,7 +337,7 @@ class MusicPlayerSystem {
                     } else if (track && track.previewUrl) {
                         this.showStatus(`Preparing to play "${track.title}"...`);
                         
-                        // Make sure any previous audio is stopped
+
                         await this.stop();
                         
                         await this.playTrack(track);
@@ -802,19 +802,19 @@ class MusicPlayerSystem {
 
     async searchMusic(query) {
         try {
-            // Use a more reliable API endpoint with better CORS support
+
             const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=5&country=us`;
             
-            console.log('🎵 [MUSIC-PLAYER] Searching for:', query);
+            
             
             const response = await fetch(apiUrl);
             const data = await response.json();
             
             if (data.results && data.results.length > 0) {
-                // Find the first track with a valid preview URL
+
                 const track = data.results.find(t => t.previewUrl) || data.results[0];
                 
-                console.log('🎵 [MUSIC-PLAYER] Found track:', track.trackName);
+                
                 
                 return {
                     title: track.trackName,
@@ -831,11 +831,11 @@ class MusicPlayerSystem {
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Music search error:', error);
             
-            // Try an alternative search API if iTunes fails
+
             try {
-                console.log('🎵 [MUSIC-PLAYER] Trying alternative search method');
-                // This is a placeholder - in a real implementation you might use another API
-                // For now we'll just create a mock track for testing
+                
+
+
                 return {
                     title: `Test Track for "${query}"`,
                     artist: "Test Artist",
@@ -870,7 +870,7 @@ class MusicPlayerSystem {
                 this.audio.load();
             });
 
-            // Start playback
+
             await this.audio.play();
             this.isPlaying = true;
             
@@ -890,7 +890,7 @@ class MusicPlayerSystem {
                 this.audio.currentTime = 0;
                 this.isPlaying = false;
                 
-                // Disconnect any audio source nodes if using Web Audio API
+
                 if (this._audioSourceNode) {
                     try {
                         this._audioSourceNode.disconnect();
@@ -900,12 +900,12 @@ class MusicPlayerSystem {
                     }
                 }
                 
-                // Reset the audio element
+
                 this.audio.removeAttribute('src');
                 this.audio.load();
             }
             
-            // Update UI
+
             this.hideNowPlaying();
             this.showStatus('Music stopped');
             
@@ -916,17 +916,17 @@ class MusicPlayerSystem {
         }
     }
     
-    // New method to connect audio to Web Audio API for better control
+
     connectToAudioContext() {
         if (!this._audioContext || !this.audio) return false;
         
         try {
-            // Resume audio context if it's suspended (browser autoplay policy)
+
             if (this._audioContext.state === 'suspended') {
                 this._audioContext.resume();
             }
             
-            // Disconnect any existing connections
+
             if (this._audioSourceNode) {
                 try {
                     this._audioSourceNode.disconnect();
@@ -935,24 +935,24 @@ class MusicPlayerSystem {
                 }
             }
             
-            // Create a new media element source
+
             try {
                 this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-                // Connect to destination (speakers)
+
                 this._audioSourceNode.connect(this._audioContext.destination);
                 
-                console.log('🎵 [MUSIC-PLAYER] Connected to Audio Context');
+                
                 return true;
             } catch (mediaError) {
-                // If we get an error about the media element already being connected
+
                 console.warn('🎵 [MUSIC-PLAYER] Media element connection error:', mediaError);
                 
-                // Try recreating the audio element
+
                 const currentSrc = this.audio.src;
                 const currentTime = this.audio.currentTime;
                 const wasPlaying = !this.audio.paused;
                 
-                // Create new audio element
+
                 const newAudio = new Audio();
                 newAudio.crossOrigin = "anonymous";
                 newAudio.preload = "auto";
@@ -960,15 +960,15 @@ class MusicPlayerSystem {
                 newAudio.src = currentSrc;
                 newAudio.currentTime = currentTime;
                 
-                // Connect new element
+
                 this._audioSourceNode = this._audioContext.createMediaElementSource(newAudio);
                 this._audioSourceNode.connect(this._audioContext.destination);
                 
-                // Replace old element
+
                 const oldAudio = this.audio;
                 this.audio = newAudio;
                 
-                // Set up basic event listeners
+
                 this.audio.addEventListener('error', (e) => {
                     console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e);
                     this.handlePlaybackError();
@@ -978,18 +978,18 @@ class MusicPlayerSystem {
                     this.playNext();
                 });
                 
-                // Resume playback if needed
+
                 if (wasPlaying) {
                     this.audio.play().catch(e => {
                         console.warn('🎵 [MUSIC-PLAYER] Failed to resume playback after recreation:', e);
                     });
                 }
                 
-                // Clean up old element
+
                 oldAudio.pause();
                 oldAudio.src = '';
                 
-                console.log('🎵 [MUSIC-PLAYER] Recreated and connected audio element');
+                
                 return true;
             }
         } catch (e) {
@@ -1055,14 +1055,14 @@ class MusicPlayerSystem {
                 previewUrl: track.previewUrl
             });
             
-            // Make sure audio is initialized
+
             if (!this._audioInitialized) {
                 this.initializeAudio();
             }
             
             await this.stop();
             
-            // Unlock audio system
+
             this.unlockAudio();
             
             this.currentSong = track;
@@ -1070,28 +1070,28 @@ class MusicPlayerSystem {
             this.audio.crossOrigin = "anonymous";
             this.audio.preload = "auto"; // Changed from metadata to auto for more reliable loading
             
-            // Try to wake up the audio context if needed
+
             if (this._audioContext && this._audioContext.state === 'suspended') {
                 try {
                     await this._audioContext.resume();
-                    console.log('🎵 [MUSIC-PLAYER] Audio context resumed');
+                    
                 } catch (e) {
                     console.warn('🎵 [MUSIC-PLAYER] Failed to resume audio context:', e);
                 }
             }
             
-            // Add to queue if not already in it
+
             if (!this.queue.some(t => t.id === track.id)) {
                 this.queue.push(track);
                 this.currentIndex = this.queue.length - 1;
             }
             
-            // Try direct playback first for faster response
+
             try {
                 this.audio.src = track.previewUrl;
                 this.audio.load();
                 
-                // Create user interaction for autoplay
+
                 this.unlockAudio();
                 
                 const playPromise = this.audio.play();
@@ -1101,15 +1101,15 @@ class MusicPlayerSystem {
                 
                 this.isPlaying = true;
                 this.showNowPlaying(track);
-                console.log('🎵 [MUSIC-PLAYER] Direct playback started successfully');
+                
                 return `🎵 Now playing: **${track.title}** by ${track.artist}`;
             } catch (directPlayError) {
                 console.warn('🎵 [MUSIC-PLAYER] Direct play failed, trying with events:', directPlayError);
-                // If autoplay is blocked, show user-friendly message
+
                 if (directPlayError.name === 'NotAllowedError') {
                     this.showStatus('Click anywhere to enable music playback');
                 }
-                // Continue with the promise-based approach if direct play fails
+
             }
             
             return new Promise((resolve, reject) => {
@@ -1119,25 +1119,25 @@ class MusicPlayerSystem {
                     reject(new Error('Audio loading timeout'));
                 }, 20000); // Increase timeout for slower connections
                 
-                // Create a backup timer to force playback attempt if metadata loading is slow
+
                 const backupTimerId = setTimeout(() => {
-                    console.log('🎵 [MUSIC-PLAYER] Backup timer triggered - forcing playback attempt');
+                    
                     this.audio.preload = "auto";
                     if (this.audio.readyState < 2) {
                         this.audio.load(); // Reload with auto preload
                     }
                     
-                    // Try to play directly from the backup timer
+
                     try {
                         this.audio.play().then(() => {
-                            console.log('🎵 [MUSIC-PLAYER] Backup timer play successful');
+                            
                             cleanup();
                             this.isPlaying = true;
                             this.showNowPlaying(track);
                             resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
                         }).catch(e => {
                             console.warn('🎵 [MUSIC-PLAYER] Backup timer play failed:', e);
-                            // Don't reject, let the event handlers try
+
                         });
                     } catch (e) {
                         console.warn('🎵 [MUSIC-PLAYER] Backup timer play error:', e);
@@ -1155,19 +1155,19 @@ class MusicPlayerSystem {
                 };
 
                 const onLoadedMetadata = () => {
-                    console.log('🎵 [MUSIC-PLAYER] Metadata loaded, setting preload to auto');
+                    
                     this.audio.preload = "auto";
                 };
 
                 const onCanPlay = async () => {
                     cleanup();
                     try {
-                        console.log('🎵 [MUSIC-PLAYER] Audio can play, attempting playback');
                         
-                        // Force unmute if browser might have muted audio
+                        
+
                         this.audio.muted = false;
                         
-                        // Try to connect to audio context for better playback
+
                         if (this._audioContext && !this._audioSourceNode) {
                             try {
                                 this.connectToAudioContext();
@@ -1176,30 +1176,30 @@ class MusicPlayerSystem {
                             }
                         }
                         
-                        // Create user gesture simulation to help with autoplay restrictions
+
                         this.unlockAudio();
                         
                         await this.audio.play();
                         this.isPlaying = true;
                         this.showNowPlaying(track);
-                        console.log('🎵 [MUSIC-PLAYER] Playback started successfully');
+                        
 
                         resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
                     } catch (playError) {
                         console.error('🎵 [MUSIC-PLAYER] Play error:', playError);
                         
-                        // Try one more time with user interaction simulation
+
                         try {
-                            console.log('🎵 [MUSIC-PLAYER] Attempting second play with different approach');
                             
-                            // Try to unlock audio context again
+                            
+
                             this.unlockAudio();
                             
                             const playPromise = this.audio.play();
                             if (playPromise !== undefined) {
                                 playPromise
                                     .then(() => {
-                                        console.log('🎵 [MUSIC-PLAYER] Second play attempt succeeded');
+                                        
                                         this.isPlaying = true;
                                         this.showNowPlaying(track);
                                         resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
@@ -1207,7 +1207,7 @@ class MusicPlayerSystem {
                                     .catch(err => {
                                         console.error('🎵 [MUSIC-PLAYER] Second play attempt failed:', err);
                                         
-                                        // Try with a different approach - recreate audio element
+
                                         this.recreateAudioElement(track).then(result => {
                                             resolve(result);
                                         }).catch(finalError => {
@@ -1236,9 +1236,9 @@ class MusicPlayerSystem {
                         currentSrc: this.audio.currentSrc
                     });
                     
-                    // Try with a proxy if direct URL failed (CORS issues)
+
                     if (!this.audio.src.includes('cors-anywhere') && !this._triedProxy) {
-                        console.log('🎵 [MUSIC-PLAYER] Attempting to use CORS proxy');
+                        
                         this._triedProxy = true;
                         const proxyUrl = `https://cors-anywhere.herokuapp.com/${track.previewUrl}`;
                         this.audio.src = proxyUrl;
@@ -1246,7 +1246,7 @@ class MusicPlayerSystem {
                         return; // Don't reject yet, give the proxy a chance
                     }
                     
-                    // Try with a recreated audio element as last resort
+
                     this.recreateAudioElement(track).then(result => {
                         resolve(result);
                     }).catch(finalError => {
@@ -1261,15 +1261,15 @@ class MusicPlayerSystem {
                 this.audio.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
                 this.audio.addEventListener('error', onError, { once: true });
 
-                // Add more event listeners for debugging
+
                 const debugEvents = ['abort', 'stalled', 'suspend', 'waiting'];
                 debugEvents.forEach(event => {
                     this.audio.addEventListener(event, () => {
-                        console.log(`🎵 [MUSIC-PLAYER] Audio event: ${event}`);
+                        
                     }, { once: true });
                 });
 
-                // Set source and load
+
                 if (!this.audio.src || this.audio.src !== track.previewUrl) {
                     this.audio.src = track.previewUrl;
                     this.audio.load();
@@ -1279,7 +1279,7 @@ class MusicPlayerSystem {
             console.error('🎵 [MUSIC-PLAYER] Playback error:', error);
             this.isPlaying = false;
             
-            // Try with recreated audio element as last resort
+
             try {
                 const result = await this.recreateAudioElement(track);
                 return result;
@@ -1297,12 +1297,12 @@ class MusicPlayerSystem {
         }
     }
     
-    // New method to recreate audio element as a last resort
+
     async recreateAudioElement(track) {
-        console.log('🎵 [MUSIC-PLAYER] Attempting to recreate audio element for:', track.title);
+        
         
         try {
-            // Disconnect old audio element
+
             if (this._audioSourceNode) {
                 try {
                     this._audioSourceNode.disconnect();
@@ -1312,14 +1312,14 @@ class MusicPlayerSystem {
                 }
             }
             
-            // Create a fresh audio element
+
             const newAudio = new Audio();
             newAudio.crossOrigin = "anonymous";
             newAudio.preload = "auto";
             newAudio.volume = this.volume;
             newAudio.src = track.previewUrl;
             
-            // Try to connect to audio context
+
             if (this._audioContext) {
                 try {
                     await this._audioContext.resume();
@@ -1330,24 +1330,24 @@ class MusicPlayerSystem {
                 }
             }
             
-            // Create user gesture
+
             const tempButton = document.createElement('button');
             tempButton.style.display = 'none';
             document.body.appendChild(tempButton);
             tempButton.click();
             document.body.removeChild(tempButton);
             
-            // Play the audio
+
             await newAudio.play();
             
-            // Replace the old audio element
+
             if (this.audio) {
                 this.audio.pause();
                 this.audio.src = '';
             }
             this.audio = newAudio;
             
-            // Set up basic event listeners on new audio element
+
             this.audio.addEventListener('error', (e) => {
                 console.error('🎵 [MUSIC-PLAYER] Recreated audio error:', e);
                 this.handlePlaybackError();
@@ -1360,7 +1360,7 @@ class MusicPlayerSystem {
             this.isPlaying = true;
             this.showNowPlaying(track);
             
-            console.log('🎵 [MUSIC-PLAYER] Recreated audio element playing successfully');
+            
             return `🎵 Now playing: **${track.title}** by ${track.artist}`;
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Failed to play with recreated audio:', error);
@@ -1399,7 +1399,7 @@ class MusicPlayerSystem {
     showNowPlaying(track) {
         this.removeExistingPlayer();
         
-        // === NEW: Inject bot participant card into voice grid ===
+
         try {
             if (!this.botParticipantAdded) {
                 const grid = document.getElementById("participantGrid");
@@ -1543,9 +1543,9 @@ class MusicPlayerSystem {
     }
 
     showStatus(message) {
-        console.log(`🎵 [MUSIC-PLAYER] ${message}`);
         
-        // Update bot participant status if available
+        
+
         try {
             const botCard = document.querySelector('[data-participant-id="bot-4"]');
             if (botCard) {
@@ -1558,7 +1558,7 @@ class MusicPlayerSystem {
             console.warn('⚠️ [MUSIC-PLAYER] Failed to update status display:', e);
         }
         
-        // Show toast notification if available
+
         if (window.toast && typeof window.toast.info === 'function') {
             window.toast.info(message);
         }
@@ -1567,7 +1567,7 @@ class MusicPlayerSystem {
     showError(message) {
         console.error(`🎵 [MUSIC-PLAYER] Error: ${message}`);
         
-        // Update bot participant status if available
+
         try {
             const botCard = document.querySelector('[data-participant-id="bot-4"]');
             if (botCard) {
@@ -1580,7 +1580,7 @@ class MusicPlayerSystem {
             console.warn('⚠️ [MUSIC-PLAYER] Failed to update error display:', e);
         }
         
-        // Show toast notification if available
+
         if (window.toast && typeof window.toast.error === 'function') {
             window.toast.error(message);
         }

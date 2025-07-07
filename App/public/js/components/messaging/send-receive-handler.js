@@ -143,7 +143,7 @@ class SendReceiveHandler {
             };
         }
         
-        // Make sure the empty state is hidden when sending a message
+
         this.chatSection.hideEmptyState();
         
         this.chatSection.messageHandler.addMessage(tempMessageData);

@@ -13,13 +13,13 @@ $reactions = $messageData['reactions'] ?? [];
 $replyMessageId = $messageData['reply_message_id'] ?? null;
 $replyData = $messageData['reply_data'] ?? null;
 
-// Get shouldGroup in multiple ways to ensure we have it
+
 $shouldGroup = $GLOBALS['shouldGroup'] ?? false;
 $shouldGroupFromData = $messageData['shouldGroup'] ?? false;
-// Use either source, preferring the one directly in messageData
+
 $shouldGroup = $shouldGroupFromData || $shouldGroup;
 
-// Add debugging
+
 if ($shouldGroup) {
     error_log("Message ID: $messageId is being grouped. shouldGroup: $shouldGroup, shouldGroupFromData: $shouldGroupFromData");
 }
@@ -36,20 +36,20 @@ if (!function_exists('formatBubbleTimestamp')) {
     function formatBubbleTimestamp($sentAt) {
         if (empty($sentAt)) return '';
         
-        // Set Indonesia timezone (Jakarta)
+
         $timezone = new DateTimeZone('Asia/Jakarta');
         
-        // Parse and format the sent date with proper timezone
+
         try {
-            // If the date string already has timezone info, DateTime will use it
-            // Otherwise, we'll interpret it as UTC and convert to Asia/Jakarta
+
+
             $date = new DateTime($sentAt);
             $date->setTimezone($timezone);
             
-            // Get current time in Indonesia
+
             $now = new DateTime('now', $timezone);
             
-            // Format the date based on how long ago it was
+
             $diffDays = $now->diff($date)->days;
             $sameDay = ($date->format('Y-m-d') === $now->format('Y-m-d'));
             $yesterdayDate = clone $now;
@@ -57,16 +57,16 @@ if (!function_exists('formatBubbleTimestamp')) {
             $isYesterday = ($date->format('Y-m-d') === $yesterdayDate->format('Y-m-d'));
             
             if ($sameDay) {
-                // Today: "Today at 15:30"
+
                 return 'Today at ' . $date->format('H:i');
             } elseif ($isYesterday) {
-                // Yesterday: "Yesterday at 15:30"
+
                 return 'Yesterday at ' . $date->format('H:i');
             } elseif ($diffDays < 7) {
-                // This week: "Monday at 15:30"
+
                 return $date->format('l') . ' at ' . $date->format('H:i');
             } else {
-                // Older: "Jul 25, 2025 15:30"
+
                 return $date->format('M j, Y H:i');
             }
         } catch (Exception $e) {
@@ -782,20 +782,20 @@ function showUserDetailFromMention(userId, triggerElement) {
     });
 }
 
-// Add JavaScript to ensure the grouped class is applied and styling works correctly
+
 document.addEventListener('DOMContentLoaded', function() {
     const groupedMessages = document.querySelectorAll('.bubble-message-group[data-should-group="1"]');
     groupedMessages.forEach(message => {
         message.classList.add('grouped');
         
-        // Make avatar and header hidden 
+
         const avatar = message.querySelector('.bubble-avatar');
         const header = message.querySelector('.bubble-header');
         
         if (avatar) avatar.style.display = 'none';
         if (header) header.style.display = 'none';
         
-        // Add padding to content wrapper
+
         const contentWrapper = message.querySelector('.bubble-content-wrapper');
         if (contentWrapper) contentWrapper.style.paddingLeft = '56px';
     });

@@ -111,16 +111,16 @@ class MisVordLogger {
         switch (level) {
             case 'debug':
                 if (data.length > 0) {
-                    console.log(`%c${formattedMessage}`, `color: ${color}`, ...data);
+                    
                 } else {
-                    console.log(`%c${formattedMessage}`, `color: ${color}`);
+                    
                 }
                 break;
             case 'info':
                 if (data.length > 0) {
-                    console.log(`%c${formattedMessage}`, `color: ${color}`, ...data);
+                    
                 } else {
-                    console.log(`%c${formattedMessage}`, `color: ${color}`);
+                    
                 }
                 break;
             case 'warn':
@@ -212,13 +212,13 @@ class MisVordLogger {
     }
 
     printHelp() {
-        console.log('%cMisVord Logger Help', 'font-weight: bold; font-size: 16px;');
-        console.log('Available commands:');
-        console.log('- enableLogging() / disableLogging()');
-        console.log('- toggleModuleLogging(module, enabled)');
-        console.log('- setLoggingConfig(config)');
-        console.log('Available modules:', Object.keys(this.config.modules));
-        console.log('Current config:', this.getConfig());
+        
+        
+        
+        
+        
+        
+        
     }
 }
 
@@ -230,7 +230,7 @@ if (typeof module !== 'undefined' && module.exports) {
 
 if (typeof window !== 'undefined') {
     if (window.logger && window.logger._isFallback) {
-        console.log('[LOGGER] Replacing fallback logger with full implementation');
+        
     }
     window.logger = logger;
 }

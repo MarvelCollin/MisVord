@@ -584,14 +584,14 @@ class ChatSection {
         if (!this.chatType || !this.targetId) {
             this.chatType = this.detectChatType();
             
-            console.log('🔍 [CHAT-SECTION] Detected chat type:', this.chatType);
+            
             
             await this.waitForRequiredElements();
         
             if (!this.targetId) {
                 this.targetId = this.detectTargetId();
                 
-                console.log('🔍 [CHAT-SECTION] Detected target ID:', this.targetId);
+                
                 
                 if (!this.targetId) {
                     await new Promise(resolve => setTimeout(resolve, 500));
@@ -611,7 +611,7 @@ class ChatSection {
             this.setupEventListeners();
             
             if (this.targetId && this.chatType) {
-                console.log('✅ [CHAT-SECTION] Setting up handlers and loading messages');
+                
                 this.setupHandlers();
             
                 if (this.messageHandler) {
@@ -1425,7 +1425,7 @@ class ChatSection {
             this.emptyStateContainer.style.visibility = 'hidden';
         }
         
-        // Also look for it in DOM if not found in class instance
+
         const emptyStateInDOM = document.getElementById('empty-state-container');
         if (emptyStateInDOM && emptyStateInDOM !== this.emptyStateContainer) {
             emptyStateInDOM.classList.add('hidden');
@@ -3813,7 +3813,7 @@ window.testThreeDotsMenuNow = function() {
             });
             
             if (isMenuVisible && menuDisplay !== 'none') {
-                console.log('📋 [CHAT-SECTION] Context menu is visible, checking buttons');
+                
 
                 const copyButton = contextMenu.querySelector('[data-action="copy-text"]');
                 const ttsButton = contextMenu.querySelector('[data-action="text-to-speech"]');

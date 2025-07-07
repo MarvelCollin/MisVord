@@ -1225,14 +1225,14 @@ class UserController extends BaseController
         $userId = $this->getCurrentUserId();
         
         try {
-            // Get server repository
+
             require_once __DIR__ . '/../database/repositories/ServerRepository.php';
             $serverRepository = new ServerRepository();
             
-            // Get servers owned by the user
+
             $servers = $serverRepository->getServersByOwnerId($userId);
             
-            // Get member counts for each server
+
             require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
             $membershipRepository = new UserServerMembershipRepository();
             

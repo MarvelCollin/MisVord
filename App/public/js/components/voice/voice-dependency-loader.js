@@ -15,16 +15,16 @@ class VoiceDependencyLoader {
 
     async loadScript(src) {
         if (this.loadedScripts.has(src)) {
-            console.log(`[VoiceDependencyLoader] Script already loaded: ${src}`);
+            
             return true;
         }
 
         if (this.loadingPromises.has(src)) {
-            console.log(`[VoiceDependencyLoader] Script loading in progress: ${src}`);
+            
             return await this.loadingPromises.get(src);
         }
 
-        console.log(`[VoiceDependencyLoader] Loading script: ${src}`);
+        
         
         const promise = new Promise((resolve, reject) => {
             const script = document.createElement('script');
@@ -32,7 +32,7 @@ class VoiceDependencyLoader {
             script.async = true;
             
             script.onload = () => {
-                console.log(`[VoiceDependencyLoader] Successfully loaded: ${src}`);
+                
                 this.loadedScripts.add(src);
                 resolve(true);
             };

@@ -415,11 +415,6 @@
   transform: scale(1.05);
 }
 
-.explore-server-card:hover .explore-server-icon-small {
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
 .explore-server-icon-small {
   width: 64px !important;
   height: 64px !important;
@@ -432,6 +427,7 @@
   border: 3px solid #36393f;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5), 0 3px 8px rgba(0, 0, 0, 0.3);
   z-index: 10;
+  transform: translateY(0);
 }
 
 .explore-server-icon-small img,
@@ -444,6 +440,11 @@
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.explore-server-card:hover .explore-server-icon-small {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .featured-badge {

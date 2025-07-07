@@ -352,7 +352,7 @@ window.testBotMusicCommand = async function(songName = 'never gonna give you up'
 };
 
 window.testBotVoiceJoin = async function() {
-    console.log('🎤 [BOT-VOICE-TEST] Attempting to join voice...');
+    
 
     try {
         const response = await fetch('/api/bot/check/titibot');
@@ -377,7 +377,7 @@ window.testBotVoiceJoin = async function() {
 
             if (window.voiceCallSection) {
                 window.voiceCallSection.addBotParticipant(mockBotData);
-                console.log('✅ [BOT-VOICE-TEST] Added bot to voice channel UI:', mockBotData);
+                
             } else {
                 console.error('❌ [BOT-VOICE-TEST] Voice call section not found');
             }

@@ -291,31 +291,31 @@ async function joinVoiceChannel() {
         
         const participantName = userId ? `${userName}_${userId}` : userName;
         
-        // Get meeting ID with fallbacks
+
         let meetingId = window.voiceManager.currentMeetingId;
         
-        // Fallback 1: Check session storage
+
         if (!meetingId) {
-            console.log('[VOICE-JOIN] Meeting ID not found in voiceManager, checking session storage');
+            
             const storedChannelId = sessionStorage.getItem('voiceChannelId');
             const storedMeetingId = sessionStorage.getItem('voiceMeetingId');
             
             if (storedChannelId === channelId && storedMeetingId) {
                 meetingId = storedMeetingId;
-                console.log('[VOICE-JOIN] Using meeting ID from session storage:', meetingId);
                 
-                // Update voice manager
+                
+
                 window.voiceManager.currentMeetingId = meetingId;
             }
         }
         
-        // Fallback 2: Generate a meeting ID if still not available
+
         if (!meetingId) {
-            console.log('[VOICE-JOIN] Meeting ID still not available, generating one');
-            meetingId = `voice_channel_${channelId}_${Date.now()}`;
-            console.log('[VOICE-JOIN] Generated meeting ID:', meetingId);
             
-            // Update voice manager and session storage
+            meetingId = `voice_channel_${channelId}_${Date.now()}`;
+            
+            
+
             window.voiceManager.currentMeetingId = meetingId;
             sessionStorage.setItem('voiceMeetingId', meetingId);
             sessionStorage.setItem('voiceChannelId', channelId);
@@ -336,7 +336,7 @@ async function joinVoiceChannel() {
         if (joinView) joinView.classList.add('hidden');
         if (connectingView) connectingView.classList.remove('hidden');
         
-        console.log('[VOICE-JOIN] Firing voiceConnect event to switch UI');
+        
         window.dispatchEvent(new CustomEvent('voiceConnect', {
             detail: { 
                 meetingId: window.voiceManager.currentMeetingId,
@@ -350,14 +350,14 @@ async function joinVoiceChannel() {
         }
         await waitForVoiceCallSectionReady();
         
-        // Force refresh global voice participant indicators
+
         if (window.globalSocketManager?.isReady() && channelId) {
-            console.log('[VOICE-JOIN] Requesting global participant refresh');
             
-            // First request immediate check for this channel
+            
+
             window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
             
-            // Then trigger a full participant refresh
+
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 if (instance) {
@@ -365,7 +365,7 @@ async function joinVoiceChannel() {
                         instance.requestAllVoiceChannelUpdates();
                         instance.forceRefreshAllContainers();
                         
-                        // Broadcast to force other clients to refresh too
+
                         window.globalSocketManager.io.emit('force-refresh-voice-participants', {
                             channel_id: channelId
                         });
@@ -570,9 +570,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Listen for voiceDisconnect event to reset join button state
+
     window.addEventListener('voiceDisconnect', function() {
-        console.log('[VOICE-NOT-JOIN] Voice disconnect detected, resetting join state');
+        
         setTimeout(resetJoinState, 500);
     });
     
@@ -581,10 +581,10 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
-// Debug function to check voice initialization state
+
 window.debugVoiceInitState = function() {
-    console.log('=== Voice Initialization Debug ===');
-    console.log('VideoSDK loaded:', typeof VideoSDK !== 'undefined');
+    
+    
     console.log('VideoSDK Manager:', {
         exists: !!window.videoSDKManager,
         initialized: window.videoSDKManager?.initialized,

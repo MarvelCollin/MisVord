@@ -40,7 +40,7 @@ class MessageHandler {
         
         const existingElement = document.querySelector(`[data-message-id="${messageData.id}"]`);
         if (existingElement) {
-            console.log('⚠️ [MESSAGE-HANDLER] Message element already exists:', messageData.id);
+            
             this.processedMessageIds.add(messageData.id);
             return;
         }

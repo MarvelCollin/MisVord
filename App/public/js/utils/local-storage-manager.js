@@ -417,7 +417,7 @@ class LocalStorageManager {
             if (group.servers.length !== originalLength) {
                 updated = true;
             }
-            // Only keep the group if it still has 2 or more servers
+
             if (group.servers.length >= 2) {
                 remainingGroups.push(group);
             } else {

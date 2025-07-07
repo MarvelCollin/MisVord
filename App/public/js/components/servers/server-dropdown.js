@@ -274,7 +274,7 @@ function showInvitePeopleModal() {
         loadInviteLink(serverId);
     }
     
-    // Add Invite Bot button if it doesn't exist
+
     if (!document.getElementById('invite-bot-btn')) {
         const invitePeopleModal = document.getElementById('invite-people-modal');
         const modalContent = invitePeopleModal.querySelector('.bg-discord-background > div');
@@ -302,7 +302,7 @@ function showInvitePeopleModal() {
 }
 
 function showInviteBotModal() {
-    // Instead of showing the modal, directly fetch and invite TitiBot
+
     fetchAndInviteTitiBot();
 }
 
@@ -310,17 +310,17 @@ async function fetchAndInviteTitiBot() {
     try {
         showToast('Searching for TitiBot...', 'info');
         
-        // Use the public endpoint that doesn't require authentication
+
         const response = await fetch('/api/bots/public-check/titibot');
         const result = await response.json();
 
         if (result.success && result.exists && result.is_bot) {
-            // TitiBot exists, invite it to the server
+
             showToast('Found TitiBot, adding to server...', 'info');
             const botId = result.bot.id;
             await inviteBotToServer(botId);
         } else {
-            // TitiBot doesn't exist in the database
+
             showToast('TitiBot not found in the database. Please contact an administrator.', 'error');
         }
     } catch (error) {
@@ -392,7 +392,7 @@ async function setupOwnerLeaveFlow(serverId) {
     const confirmTransferBtn = document.getElementById('confirm-owner-transfer');
     let selectedUserId = null;
 
-    // Close buttons setup
+
     const closeButtons = [
         document.getElementById('close-leave-server-modal'),
         document.getElementById('cancel-owner-leave'),
@@ -400,7 +400,7 @@ async function setupOwnerLeaveFlow(serverId) {
     ];
     closeButtons.forEach(btn => btn.onclick = () => closeModal('leave-server-modal'));
 
-    // Check if there are other members
+
     try {
         await waitForServerAPI();
         if (!window.serverAPI) throw new Error('serverAPI not available');
@@ -420,13 +420,13 @@ async function setupOwnerLeaveFlow(serverId) {
         }
     } catch (error) {
         console.error('Error checking members:', error);
-        // Default to transfer view for safety
+
         transferView.classList.remove('hidden');
         deleteView.classList.add('hidden');
         showToast('Could not verify member count. Please try again.', 'error');
     }
 
-    // Search functionality
+
     const searchUsers = debounce(async (query) => {
         if (query.length < 2) {
             usersContainer.classList.add('hidden');
@@ -434,13 +434,13 @@ async function setupOwnerLeaveFlow(serverId) {
         }
 
         try {
-            // Get server members with their roles
+
             const response = await window.serverAPI.getServerMembers(serverId);
             const members = response?.members || (response?.data?.members) || [];
             const memberships = response?.memberships || (response?.data?.memberships) || {};
             const currentUserId = getCurrentUserId();
 
-            // Filter members by search query and exclude current user
+
             const filteredMembers = members.filter(member => 
                 member.id !== currentUserId && 
                 (member.username.toLowerCase().includes(query.toLowerCase()) || 
@@ -449,10 +449,10 @@ async function setupOwnerLeaveFlow(serverId) {
 
             if (filteredMembers.length > 0) {
                 usersContainer.innerHTML = filteredMembers.map(user => {
-                    // Get user role from memberships data or default to "Member"
+
                     let role = 'Member';
                     
-                    // Try to find role in different possible response formats
+
                     if (memberships && memberships[user.id]) {
                         role = memberships[user.id].role || role;
                     } else if (user.membership && user.membership.role) {
@@ -461,7 +461,7 @@ async function setupOwnerLeaveFlow(serverId) {
                         role = user.role;
                     }
                     
-                    // Capitalize first letter of role
+
                     role = role.charAt(0).toUpperCase() + role.slice(1);
                     
                     return `
@@ -489,10 +489,10 @@ async function setupOwnerLeaveFlow(serverId) {
         }
     }, 300);
 
-    // Search input handler
+
     searchInput.addEventListener('input', (e) => searchUsers(e.target.value));
 
-    // User selection handler
+
     usersContainer.addEventListener('click', (e) => {
         const userDiv = e.target.closest('[data-user-id]');
         if (userDiv) {
@@ -504,7 +504,7 @@ async function setupOwnerLeaveFlow(serverId) {
             document.getElementById('owner-transfer-selected-user-name').textContent = userName;
             document.getElementById('owner-transfer-selected-user-avatar').src = userAvatar;
             
-            // Update role information in the selected user display
+
             const roleElement = document.getElementById('owner-transfer-selected-user-role');
             if (roleElement) {
                 roleElement.innerHTML = `<span class="text-discord-lighter">Current role: ${userRole}</span> • <span class="text-discord-green">Will become owner</span>`;
@@ -518,7 +518,7 @@ async function setupOwnerLeaveFlow(serverId) {
         }
     });
 
-    // Transfer and delete handlers
+
     confirmTransferBtn.onclick = async () => {
         if (!selectedUserId) {
             showToast('Please select a member to transfer ownership to.', 'error');
@@ -537,7 +537,7 @@ async function transferOwnershipAndLeave(serverId, newOwnerId) {
             return;
         }
 
-        // Show a loading state
+
         const confirmBtn = document.getElementById('confirm-owner-transfer');
         if (confirmBtn) {
             confirmBtn.disabled = true;
@@ -546,7 +546,7 @@ async function transferOwnershipAndLeave(serverId, newOwnerId) {
         }
 
         const response = await window.serverAPI.transferOwnership(serverId, newOwnerId);
-        console.log('Transfer ownership response:', response);
+        
         
         if (response && response.success) {
             showToast('Ownership transferred successfully. You can now leave the server.', 'success');
@@ -557,16 +557,16 @@ async function transferOwnershipAndLeave(serverId, newOwnerId) {
                 console.error('Error leaving server after transfer:', leaveError);
                 showToast('Ownership transferred, but could not leave server automatically. Please try leaving manually.', 'warning');
                 
-                // Close the modal
+
                 closeModal('leave-server-modal');
                 
-                // Reload the page to reflect new ownership
+
                 setTimeout(() => {
                     window.location.reload();
                 }, 2000);
             }
         } else {
-            // Reset the button
+
             if (confirmBtn) {
                 confirmBtn.disabled = false;
                 confirmBtn.textContent = 'Transfer Ownership & Leave';
@@ -578,7 +578,7 @@ async function transferOwnershipAndLeave(serverId, newOwnerId) {
     } catch (error) {
         console.error('Transfer ownership error:', error);
         
-        // Reset the button
+
         const confirmBtn = document.getElementById('confirm-owner-transfer');
         if (confirmBtn) {
             confirmBtn.disabled = false;
@@ -625,7 +625,7 @@ function setupInviteModalListeners() {
         generateBtn.setAttribute('data-listener', 'true');
     }
 
-    // Ensure Invite Bot button opens the bot modal
+
     const inviteBotBtn = document.getElementById('invite-bot-btn');
     if (inviteBotBtn && !inviteBotBtn.hasAttribute('data-listener')) {
         inviteBotBtn.addEventListener('click', showInviteBotModal);
@@ -636,7 +636,7 @@ function setupInviteModalListeners() {
 }
 
 function setupLeaveServerModalListeners() {
-    // This function is now deprecated in favor of the new dynamic setup
+
 }
 
 async function loadInviteLink(serverId) {
@@ -739,7 +739,7 @@ async function leaveServer(serverId, isDeleting = false) {
     try {
         if (!serverId) throw new Error('Server ID is required');
         
-        // Disable the confirm button to prevent multiple clicks
+
         const confirmBtn = isDeleting 
             ? document.getElementById('confirm-delete-leave')
             : document.getElementById('confirm-leave-server');
@@ -753,9 +753,9 @@ async function leaveServer(serverId, isDeleting = false) {
         await waitForServerAPI();
         if (!window.serverAPI) throw new Error('serverAPI not available');
         
-        console.log(`Attempting to leave server ${serverId}, isDeleting=${isDeleting}`);
+        
         const data = await window.serverAPI.leaveServer(serverId);
-        console.log('Leave server response:', data);
+        
         
         if (data && data.success) {
             let message = 'Successfully left server';
@@ -765,14 +765,14 @@ async function leaveServer(serverId, isDeleting = false) {
             showToast(data.message || message, 'success');
             closeModal('leave-server-modal');
             
-            // Add a slight delay to show the success message before redirecting
+
             setTimeout(() => {
                 const redirectUrl = data.redirect || (data.data && data.data.redirect) || '/home';
-                console.log(`Redirecting to: ${redirectUrl}`);
+                
                 window.location.href = redirectUrl;
             }, 1000);
         } else {
-            // Re-enable the button if there was an error
+
             if (confirmBtn) {
                 confirmBtn.disabled = false;
                 confirmBtn.textContent = isDeleting ? 'Delete Server & Leave' : 'Leave Server';
@@ -784,7 +784,7 @@ async function leaveServer(serverId, isDeleting = false) {
     } catch (error) {
         console.error('Error leaving server:', error);
         
-        // Re-enable the button if there was an error
+
         const confirmBtn = isDeleting 
             ? document.getElementById('confirm-delete-leave')
             : document.getElementById('confirm-leave-server');
@@ -800,27 +800,27 @@ async function leaveServer(serverId, isDeleting = false) {
 }
 
 function showTransferOwnershipModal(serverId) {
-    // This function is deprecated and replaced by the new owner flow
-    // in showLeaveServerConfirmation
+
+
     console.warn('showTransferOwnershipModal is deprecated.');
     showLeaveServerConfirmation();
 }
 
 async function loadEligibleOwners(serverId) {
-    // This function is deprecated and replaced by the new owner flow
+
      console.warn('loadEligibleOwners is deprecated.');
 }
 
 function showTransferOwnershipMode() {
-    // This function is deprecated
+
 }
 
 function showDeleteServerMode() {
-     // This function is deprecated
+
 }
 
 function populateMembersList(members) {
-    // This function is deprecated
+
 }
 
 function closeModal(modalId) {
@@ -1022,7 +1022,7 @@ async function inviteBotToServer(botId) {
         
         if (result.success) {
             showToast('TitiBot has been added to the server!', 'success');
-            // Close any open modal
+
             const modal = document.getElementById('invite-bot-modal');
             if (modal) {
                 modal.classList.add('hidden');

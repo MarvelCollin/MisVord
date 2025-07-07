@@ -187,27 +187,27 @@ class UserServerMembershipRepository extends Repository {
             
             $query->getPdo()->beginTransaction();
             
-            // Attempt to update owner_id on the servers table if the column exists.
-            // We purposely do NOT include a where condition on the current owner to avoid
-            // mismatch issues when the column value is NULL or outdated.
-            // If the column does not exist, we simply log the error and continue –
-            // ownership will still be accurately reflected via the memberships table.
+
+
+
+
+
             try {
                 $query->table('servers')
                       ->where('id', $serverId)
                       ->update(['owner_id' => $newOwnerId]);
             } catch (Exception $e) {
-                // Log and continue without failing the whole transaction
+
                 error_log("Warning: Unable to update owner_id on servers table: " . $e->getMessage());
             }
             
-            // Demote current owner to admin
+
             $updateCurrentOwner = $query->table('user_server_memberships')
                 ->where('user_id', $currentOwnerId)
                 ->where('server_id', $serverId)
                 ->update(['role' => 'admin']);
             
-            // Promote new owner
+
             $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
                 ->where('server_id', $serverId)
@@ -243,7 +243,7 @@ class UserServerMembershipRepository extends Repository {
                 ->orderBy('u.username', 'ASC')
                 ->get();
             
-            // Make sure avatar URLs are properly formatted
+
             foreach ($results as &$user) {
                 if (!empty($user['avatar_url']) && !str_starts_with($user['avatar_url'], 'http')) {
                     $user['avatar_url'] = '/storage/' . $user['avatar_url'];

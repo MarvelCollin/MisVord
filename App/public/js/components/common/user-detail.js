@@ -682,22 +682,22 @@ class UserDetailModal {
             const serverIcon = document.createElement('div');
             serverIcon.className = 'mutual-detail-icon';
             
-            // Helper function to check and normalize icon URL
+
             const normalizeIconUrl = (url) => {
                 if (!url) return null;
                 url = url.trim();
                 if (!url) return null;
                 
-                // Handle relative paths
+
                 if (url.startsWith('/') && !url.startsWith('//')) {
-                    // Make sure it has the public prefix if needed
+
                     if (!url.includes('/public/') && !url.includes('/assets/')) {
                         return '/public' + url;
                     }
                     return url;
                 }
                 
-                // Handle absolute URLs
+
                 if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('//')) {
                     return url;
                 }
@@ -705,7 +705,7 @@ class UserDetailModal {
                 return null;
             };
             
-            // Check both icon_url and image_url fields
+
             const serverIconUrl = server.icon_url || server.image_url;
             const iconUrl = normalizeIconUrl(serverIconUrl);
             

@@ -36,13 +36,13 @@ echo '<script>
         preloadVoiceResources();
         
         window.addEventListener("voiceConnect", function() {
-            console.log("[VOICE-SECTION] Switching to call UI");
+            
             document.getElementById("voice-not-join-container")?.classList.add("hidden");
             document.getElementById("voice-call-container")?.classList.remove("hidden");
         });
         
         window.addEventListener("voiceDisconnect", function() {
-            console.log("[VOICE-SECTION] Switching to join UI");
+            
             document.getElementById("voice-not-join-container")?.classList.remove("hidden");
             document.getElementById("voice-call-container")?.classList.add("hidden");
         });

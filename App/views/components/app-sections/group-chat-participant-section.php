@@ -102,7 +102,7 @@ $participantCount = count($formattedParticipants);
 </div>
 
 <script>
-// Store all participants for processing
+
 const groupParticipants = <?php echo json_encode($formattedParticipants); ?>;
 let onlineUsers = {};
 let updateTimer = null;
@@ -110,18 +110,18 @@ let updateTimer = null;
 document.addEventListener('DOMContentLoaded', function() {
     initializeGroupParticipants();
     
-    // Setup integration with global presence system
+
     setupFriendsManagerIntegration();
     
-    // Setup socket listeners for real-time updates
+
     setupSocketListeners();
 });
 
 function initializeGroupParticipants() {
-    // Initial rendering without presence data
+
     updateParticipantDisplay();
     
-    // Show after a short delay to allow for skeleton animation
+
     setTimeout(() => {
         document.getElementById('group-skeleton-loading').style.display = 'none';
         document.getElementById('group-members-list').style.display = 'block';
@@ -144,10 +144,10 @@ function setupFriendsManagerIntegration() {
             }
         });
         
-        // Get initial online users
+
         onlineUsers = friendsManager.cache.onlineUsers || {};
         
-        // If cache is empty, request online users
+
         if (Object.keys(onlineUsers).length === 0) {
             friendsManager.getOnlineUsers(true);
             
@@ -221,7 +221,7 @@ function scheduleUpdate() {
 }
 
 function getStatusClass(status, activityDetails) {
-    // Check if user is in voice call from activity details
+
     const isInVoice = activityDetails?.type && 
                      (activityDetails.type === 'In Voice Call' || 
                       activityDetails.type.startsWith('In Voice'));
@@ -278,7 +278,7 @@ function updateParticipantDisplay() {
     
     if (!onlineMembersList || !offlineMembersList) return;
     
-    // Clear previous content
+
     onlineMembersList.innerHTML = '';
     offlineMembersList.innerHTML = '';
     
@@ -286,12 +286,12 @@ function updateParticipantDisplay() {
     let onlineCount = 0;
     let offlineCount = 0;
     
-    // Process each participant
+
     groupParticipants.forEach(participant => {
-        // Get real-time status from online users cache
+
         let userData = onlineUsers[participant.user_id];
         
-        // For current user, use their actual status from socket manager
+
         if (String(participant.user_id) === String(currentUserId)) {
             const currentUserStatus = window.globalSocketManager?.currentPresenceStatus || 'online';
             const currentActivityDetails = window.globalSocketManager?.currentActivityDetails || { type: 'idle' };
@@ -304,7 +304,7 @@ function updateParticipantDisplay() {
             };
         }
         
-        // Determine if user is online based on status or activity
+
         const status = (userData?.status || participant.status || 'offline').toLowerCase();
         const activityDetails = userData?.activity_details || null;
         const isInVoice = activityDetails?.type && (
@@ -317,18 +317,18 @@ function updateParticipantDisplay() {
         const shouldShowAsOffline = (isActuallyOffline || hasGreyStatus) && !isInVoice;
         const isOnline = !shouldShowAsOffline;
         
-        // Determine status indicator color
+
         let statusColor = getStatusClass(status, activityDetails);
         if (shouldShowAsOffline) {
             statusColor = 'bg-[#747f8d]';
         }
         const activityText = getActivityText(activityDetails, status);
         
-        // Create participant element
+
         const memberEl = document.createElement('div');
         memberEl.className = 'flex items-center px-2 py-1.5 rounded hover:bg-discord-light cursor-pointer group transition-colors';
         memberEl.setAttribute('data-user-id', participant.user_id);
-        // Provide additional data attributes for UserDetailModal integration
+
         memberEl.setAttribute('data-server-id', '');
         memberEl.setAttribute('data-username', participant.username || '');
         memberEl.setAttribute('data-role', 'member');
@@ -354,7 +354,7 @@ function updateParticipantDisplay() {
             </div>
         `;
         
-        // Add to appropriate list using shouldShowAsOffline flag
+
         if (shouldShowAsOffline) {
             offlineMembersList.appendChild(memberEl);
             offlineCount++;
@@ -364,17 +364,17 @@ function updateParticipantDisplay() {
         }
     });
     
-    // Update counters
+
     onlineCountEl.textContent = onlineCount;
     offlineCountEl.textContent = offlineCount;
     document.getElementById('group-member-count').textContent = groupParticipants.length;
     
-    // Show/hide sections based on counts
+
     document.getElementById('online-members-section').style.display = onlineCount > 0 ? 'block' : 'none';
     document.getElementById('offline-members-section').style.display = offlineCount > 0 ? 'block' : 'none';
 }
 
-// Make function available globally for testing
+
 window.updateGroupParticipants = updateParticipantDisplay;
 </script>
 

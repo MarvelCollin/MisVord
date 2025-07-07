@@ -2437,7 +2437,7 @@ class ServerController extends BaseController
                 return $this->forbidden('You do not have permission to update this server');
             }
 
-            // Check for both field names for compatibility
+
             $iconField = null;
             if (isset($_FILES['icon']) && $_FILES['icon']['error'] === UPLOAD_ERR_OK) {
                 $iconField = 'icon';
@@ -2499,7 +2499,7 @@ class ServerController extends BaseController
                 return $this->forbidden('You do not have permission to update this server');
             }
 
-            // Check for both field names for compatibility
+
             $bannerField = null;
             if (isset($_FILES['banner']) && $_FILES['banner']['error'] === UPLOAD_ERR_OK) {
                 $bannerField = 'banner';

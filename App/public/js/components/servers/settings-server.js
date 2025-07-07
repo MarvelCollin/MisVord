@@ -382,7 +382,7 @@ function debounce(func, wait) {
     };
 }
 
-// Toast functionality is now imported from toast.js
+
 
 /**
  * Initialize the member management tab functionality
@@ -396,7 +396,7 @@ function initMemberManagementTab() {
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
     const userRole = document.querySelector('meta[name="user-role"]')?.content || 'member';
     
-    // Set user role on document body for access in other parts of the code
+
     document.body.dataset.userRole = userRole;
     
     if (!membersList || !memberTemplate || !serverId) return;
@@ -584,18 +584,18 @@ function initMemberManagementTab() {
             const kickBtn = memberElement.querySelector('.kick-btn');
             
             if (member.role === 'owner') {
-                // Hide all action buttons for the owner
+
                 if (promoteBtn) promoteBtn.style.display = 'none';
                 if (demoteBtn) demoteBtn.style.display = 'none';
                 if (kickBtn) kickBtn.style.display = 'none';
             } else if (isBot) {
-                // For the bot, hide promote and demote, but allow kick
+
                 if (promoteBtn) promoteBtn.style.display = 'none';
                 if (demoteBtn) demoteBtn.style.display = 'none';
-                // Keep kick button visible for bots
+
             } else if (member.role === 'admin') {
                 if (promoteBtn) {
-                    // Only enable the promote button if we are the owner and can transfer ownership
+
                     const currentUserIsOwner = document.body.dataset.userRole === 'owner';
                     promoteBtn.disabled = !currentUserIsOwner;
                 }
@@ -604,7 +604,7 @@ function initMemberManagementTab() {
             }
             
             if (promoteBtn && !promoteBtn.disabled && promoteBtn.style.display !== 'none') {
-                // Remove any previous event listeners to avoid duplicates
+
                 promoteBtn.replaceWith(promoteBtn.cloneNode(true));
                 const newPromoteBtn = memberElement.querySelector('.promote-btn');
                 
@@ -618,18 +618,18 @@ function initMemberManagementTab() {
             }
             
             if (demoteBtn && !demoteBtn.disabled && demoteBtn.style.display !== 'none') {
-                // Remove any previous event listeners to avoid duplicates
+
                 demoteBtn.replaceWith(demoteBtn.cloneNode(true));
                 const newDemoteBtn = memberElement.querySelector('.demote-btn');
                 
                 newDemoteBtn.addEventListener('click', () => {
-                    // Make sure we're explicitly setting the action for this specific button
+
                     setTimeout(() => showMemberActionModal('demote', member), 0);
                 });
             }
             
             if (kickBtn && !kickBtn.disabled && kickBtn.style.display !== 'none') {
-                // Remove any previous event listeners to avoid duplicates
+
                 kickBtn.replaceWith(kickBtn.cloneNode(true));
                 const newKickBtn = memberElement.querySelector('.kick-btn');
                 
@@ -642,7 +642,7 @@ function initMemberManagementTab() {
     
     function showMemberActionModal(action, member) {
         try {
-            console.log('Opening member action modal for', member, 'with action', action);
+            
             
             if (!member) {
                 console.error('No member provided to action modal');
@@ -657,7 +657,7 @@ function initMemberManagementTab() {
                 return;
             }
 
-            // Pre-create all the elements we need to avoid null references
+
             const modalContainer = modal.querySelector('.modal-container');
             if (!modalContainer) {
                 console.error('Modal container not found');
@@ -665,7 +665,7 @@ function initMemberManagementTab() {
                 return;
             }
             
-            // Create a function to safely set content with fallback
+
             const safeSetContent = (selector, content, defaultContent = '') => {
                 const element = modal.querySelector(selector);
                 if (element) {
@@ -680,7 +680,7 @@ function initMemberManagementTab() {
                 return null;
             };
             
-            // Create a function to safely add/remove classes with fallback
+
             const safeToggleClass = (selector, className, add = true) => {
                 const element = modal.querySelector(selector);
                 if (element) {
@@ -695,19 +695,19 @@ function initMemberManagementTab() {
                 return null;
             };
             
-            // IMPORTANT: Reset all modal content completely before setting up for the new action
-            // Reset modal icon
+
+
             safeSetContent('.modal-icon i', icon => {
                 if (icon) icon.className = '';
             });
             
-            // Reset title and text content
+
             safeSetContent('.modal-title', 'Confirm Action');
             safeSetContent('.member-name', member.display_name || member.username);
             safeSetContent('.member-current-role', `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`);
             safeSetContent('.action-message', '');
             
-            // Reset role preview elements
+
             safeSetContent('.from-role', '');
             safeSetContent('.to-role', '');
             if (modal.querySelector('.from-role')) {
@@ -717,10 +717,10 @@ function initMemberManagementTab() {
                 modal.querySelector('.to-role').className = 'role-badge to-role';
             }
             
-            // Ensure role change preview is hidden initially
+
             safeToggleClass('.role-change-preview', 'hidden', true);
             
-            // Handle avatar
+
             const avatarContainer = modal.querySelector('.member-avatar-small');
             if (avatarContainer) {
                 if (member.avatar_url) {
@@ -730,15 +730,15 @@ function initMemberManagementTab() {
                 }
             }
             
-            // Reset confirm button
+
             const confirmBtn = modal.querySelector('#modal-confirm-btn');
             if (confirmBtn) {
                 confirmBtn.className = 'modal-btn modal-btn-confirm';
                 
-                // Find or create the confirm text span
+
                 let confirmText = confirmBtn.querySelector('.confirm-text');
                 if (!confirmText) {
-                    // If the confirm-text span doesn't exist, create it
+
                     const checkIcon = confirmBtn.querySelector('i');
                     if (checkIcon) {
                         confirmBtn.innerHTML = ''; // Clear the button content
@@ -757,7 +757,7 @@ function initMemberManagementTab() {
                 confirmText.textContent = 'Confirm';
             }
             
-            // Get all the elements needed for action setup
+
             const modalIcon = modal.querySelector('.modal-icon i');
             const modalTitle = modal.querySelector('.modal-title');
             const actionMessage = modal.querySelector('.action-message');
@@ -766,10 +766,10 @@ function initMemberManagementTab() {
             const toRole = modal.querySelector('.to-role');
             const cancelBtn = modal.querySelector('#modal-cancel-btn');
             
-            // Set up action-specific content
+
             let actionHandler;
             
-            // IMPORTANT: Always use fresh settings for each action type
+
             switch (action) {
                 case 'transfer-ownership':
                     if (modalIcon) modalIcon.className = 'fas fa-crown';
@@ -824,32 +824,32 @@ function initMemberManagementTab() {
                     if (modalTitle) modalTitle.textContent = 'Demote Member';
                     if (actionMessage) actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
                     
-                    // Make sure role change preview is visible and reset
+
                     if (roleChangePreview) {
                         roleChangePreview.classList.remove('hidden');
                     }
                     
-                    // Set source role (current role)
+
                     if (fromRole) {
                         fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
                         fromRole.className = `role-badge ${member.role}`;
                     }
                     
-                    // Set destination role (always Member for demote action)
+
                     if (toRole) {
-                        // Force reset the content and class to ensure it's correct
+
                         toRole.innerHTML = 'Member';
                         toRole.className = 'role-badge member';
                     }
                     
-                    // Update confirm button
+
                     if (confirmBtn) {
                         confirmBtn.classList.add('warning');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
                         if (confirmText) confirmText.textContent = 'Demote';
                     }
                     
-                    // Set action handler
+
                     actionHandler = () => handleDemote(member);
                     break;
                     
@@ -880,15 +880,15 @@ function initMemberManagementTab() {
                     return;
             }
             
-            // Clean up any existing event handlers
+
             if (confirmBtn) confirmBtn.replaceWith(confirmBtn.cloneNode(true));
             if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
             
-            // Get the fresh button references
+
             const newConfirmBtn = modal.querySelector('#modal-confirm-btn');
             const newCancelBtn = modal.querySelector('#modal-cancel-btn');
             
-            // Add event handlers
+
             if (newConfirmBtn) {
                 newConfirmBtn.addEventListener('click', () => {
                     modal.classList.add('hidden');
@@ -902,7 +902,7 @@ function initMemberManagementTab() {
                 });
             }
             
-            // Add escape key handler
+
             const handleKeydown = (e) => {
                 if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
                     modal.classList.add('hidden');
@@ -911,7 +911,7 @@ function initMemberManagementTab() {
             };
             document.addEventListener('keydown', handleKeydown);
             
-            // Add background click handler
+
             const handleBackgroundClick = (e) => {
                 if (e.target === modal) {
                     modal.classList.add('hidden');
@@ -920,10 +920,10 @@ function initMemberManagementTab() {
             };
             modal.addEventListener('click', handleBackgroundClick);
             
-            // Debug log to verify role values right before showing modal
-            console.log(`Modal values before display - Action: ${action}, From role: ${modal.querySelector('.from-role')?.textContent}, To role: ${modal.querySelector('.to-role')?.textContent}`);
+
             
-            // Show the modal
+            
+
             modal.classList.remove('hidden');
             
         } catch (error) {
@@ -937,12 +937,12 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
-            // Show loading toast
+
             showToast(`Promoting ${member.display_name || member.username}...`, 'info', 2000);
             
             const response = await window.serverAPI.promoteMember(serverId, member.id);
             if (response && response.success) {
-                // Safely access new_role property with fallback
+
                 const newRole = response.new_role ? 
                     response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
                     'Admin'; // Default fallback value
@@ -963,12 +963,12 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
-            // Show loading toast
+
             showToast(`Demoting ${member.display_name || member.username}...`, 'info', 2000);
             
             const response = await window.serverAPI.demoteMember(serverId, member.id);
             if (response && response.success) {
-                // Safely access new_role property with fallback
+
                 const newRole = response.new_role ? 
                     response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
                     'Member'; // Default fallback value
@@ -991,7 +991,7 @@ function initMemberManagementTab() {
             
             const isBot = member.username.toLowerCase() === 'titibot';
             
-            // Show loading toast with appropriate message
+
             showToast(isBot ? `Removing ${member.display_name || member.username}...` : `Kicking ${member.display_name || member.username}...`, 'info', 2000);
             
             const response = await window.serverAPI.kickMember(serverId, member.id);
@@ -1017,7 +1017,7 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
-            // Show loading toast
+
             showToast(`Transferring ownership to ${member.display_name || member.username}...`, 'info', 2000);
             
             const response = await window.serverAPI.transferOwnership(serverId, member.id);
@@ -1084,7 +1084,7 @@ function initChannelManagementTab() {
         `;
         
         try {
-            // Replace jQuery AJAX with fetch API
+
             fetch(`/api/servers/${serverId}/channels`, {
                 method: 'GET',
                 credentials: 'include',
@@ -1252,7 +1252,7 @@ function initChannelManagementTab() {
     
     function showChannelActionModal(action, channel) {
         try {
-            console.log('Opening channel action modal for', channel, 'with action', action);
+            
             
             if (!channel) {
                 console.error('No channel provided to action modal');
@@ -1267,7 +1267,7 @@ function initChannelManagementTab() {
                 return;
             }
             
-            // Pre-create all the elements we need to avoid null references
+
             const modalContainer = modal.querySelector('.channel-modal-container');
             if (!modalContainer) {
                 console.error('Modal container not found');
@@ -1275,7 +1275,7 @@ function initChannelManagementTab() {
                 return;
             }
             
-            // Create a function to safely set content with fallback
+
             const safeSetContent = (selector, content, defaultContent = '') => {
                 const element = modal.querySelector(selector);
                 if (element) {
@@ -1290,7 +1290,7 @@ function initChannelManagementTab() {
                 return null;
             };
             
-            // Create a function to safely add/remove classes with fallback
+
             const safeToggleClass = (selector, className, add = true) => {
                 const element = modal.querySelector(selector);
                 if (element) {
@@ -1305,14 +1305,14 @@ function initChannelManagementTab() {
                 return null;
             };
             
-            // Reset modal content and classes
+
             safeSetContent('.channel-modal-icon i', icon => {
                 if (icon) icon.className = '';
             });
             
             safeToggleClass('.rename-input-container', 'hidden', true);
             
-            // Setup channel icon
+
             const channelIconDiv = modal.querySelector('.channel-icon-small i');
             if (channelIconDiv) {
                 if (channel.type === 'voice') {
@@ -1322,15 +1322,15 @@ function initChannelManagementTab() {
                 }
             }
             
-            // Set channel name
+
             safeSetContent('.channel-modal-name', channel.name);
             
-            // Reset confirm button
+
             const confirmBtn = modal.querySelector('#channel-modal-confirm-btn');
             if (confirmBtn) {
                 confirmBtn.className = 'channel-modal-btn channel-modal-btn-confirm';
                 
-                // Find or create the confirm text span
+
                 let confirmText = confirmBtn.querySelector('.confirm-text');
                 if (!confirmText) {
                     confirmBtn.innerHTML = '';
@@ -1342,13 +1342,13 @@ function initChannelManagementTab() {
                 confirmText.textContent = 'Confirm';
             }
             
-            // Get additional elements
+
             const modalTitle = modal.querySelector('.channel-modal-title');
             const actionMessage = modal.querySelector('.action-message');
             const renameInputContainer = modal.querySelector('.rename-input-container');
             const cancelBtn = modal.querySelector('#channel-modal-cancel-btn');
             
-            // Setup action-specific content
+
             let actionHandler;
             
             switch (action) {
@@ -1362,7 +1362,7 @@ function initChannelManagementTab() {
                     if (nameInput) {
                         nameInput.value = channel.name;
                         
-                        // Attach listener once to sanitize input (replace spaces with hyphens and remove invalid chars)
+
                         if (!nameInput.dataset.listenerAttached) {
                             nameInput.addEventListener('input', function() {
                                 let val = this.value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9\-_]/g, '');
@@ -1371,7 +1371,7 @@ function initChannelManagementTab() {
                             nameInput.dataset.listenerAttached = 'true';
                         }
                         
-                        // Focus the input after a short delay to ensure the modal is visible
+
                         setTimeout(() => {
                             nameInput.focus();
                         }, 50);
@@ -1418,15 +1418,15 @@ function initChannelManagementTab() {
                     return;
             }
             
-            // Clean up any existing event handlers
+
             if (confirmBtn) confirmBtn.replaceWith(confirmBtn.cloneNode(true));
             if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
             
-            // Get the fresh button references
+
             const newConfirmBtn = modal.querySelector('#channel-modal-confirm-btn');
             const newCancelBtn = modal.querySelector('#channel-modal-cancel-btn');
             
-            // Add event handlers
+
             if (newConfirmBtn) {
                 newConfirmBtn.addEventListener('click', () => {
                     if (actionHandler) {
@@ -1446,7 +1446,7 @@ function initChannelManagementTab() {
                 });
             }
             
-            // Add escape key handler
+
             const handleKeydown = (e) => {
                 if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
                     modal.classList.add('hidden');
@@ -1455,7 +1455,7 @@ function initChannelManagementTab() {
             };
             document.addEventListener('keydown', handleKeydown);
             
-            // Add background click handler
+
             const handleBackgroundClick = (e) => {
                 if (e.target === modal) {
                     modal.classList.add('hidden');
@@ -1464,7 +1464,7 @@ function initChannelManagementTab() {
             };
             modal.addEventListener('click', handleBackgroundClick);
             
-            // Show the modal
+
             modal.classList.remove('hidden');
             
         } catch (error) {
@@ -1480,7 +1480,7 @@ function initChannelManagementTab() {
             return;
         }
         
-        // Show loading toast
+
         showToast(`Renaming channel to "${newName}"...`, 'info', 2000);
         
         fetch(`/api/channels/${channel.id}`, {
@@ -1522,7 +1522,7 @@ function initChannelManagementTab() {
             return;
         }
         
-        // Show loading toast
+
         showToast(`Deleting channel "${channel.name}"...`, 'warning', 2000);
         
         fetch(`/api/channels/${channel.id}`, {
@@ -1613,13 +1613,13 @@ function initDeleteServerTab() {
     const confirmDeleteBtn = document.getElementById('confirm-delete-server');
     const serverNameToConfirmElements = document.querySelectorAll('.server-name-to-confirm');
     
-    // No longer using tab navigation as we've combined both sections
+
     const userSearchInput = document.getElementById('user-search');
     const usersContainer = document.getElementById('users-container');
     const selectedUserContainer = document.getElementById('selected-user-container');
     const selectedUserAvatar = document.getElementById('selected-user-avatar');
     const selectedUserName = document.getElementById('selected-user-name');
-    // We removed the cancel transfer button in the template
+
     const confirmTransferBtn = document.getElementById('confirm-transfer');
     
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
@@ -1631,14 +1631,14 @@ function initDeleteServerTab() {
         element.textContent = serverName;
     });
     
-    // Store event handlers for cleanup
+
     let escKeyHandler;
     let backgroundClickHandler;
     let allMembers = [];
     let selectedUserId = null;
     
     function openModal() {
-        // Remove any existing event listeners
+
         if (escKeyHandler) {
             document.removeEventListener('keydown', escKeyHandler);
         }
@@ -1647,7 +1647,7 @@ function initDeleteServerTab() {
             deleteServerModal.removeEventListener('click', backgroundClickHandler);
         }
         
-        // Create new event handlers
+
         escKeyHandler = (e) => {
             if (e.key === 'Escape' && !deleteServerModal.classList.contains('hidden')) {
                 closeModal();
@@ -1660,23 +1660,23 @@ function initDeleteServerTab() {
             }
         };
         
-        // Add new event listeners
+
         document.addEventListener('keydown', escKeyHandler);
         deleteServerModal.addEventListener('click', backgroundClickHandler);
         
-        // Show modal
+
         deleteServerModal.classList.remove('hidden');
         setTimeout(() => {
             deleteServerModal.querySelector('.bg-discord-dark').classList.add('scale-100');
             deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-95');
         }, 10);
         
-        // Load members for transfer ownership
+
         loadMembersForTransfer();
     }
     
     function closeModal() {
-        // Remove event listeners
+
         if (escKeyHandler) {
             document.removeEventListener('keydown', escKeyHandler);
             escKeyHandler = null;
@@ -1687,7 +1687,7 @@ function initDeleteServerTab() {
             backgroundClickHandler = null;
         }
         
-        // Hide modal
+
         deleteServerModal.querySelector('.bg-discord-dark').classList.add('scale-95');
         deleteServerModal.querySelector('.bg-discord-dark').classList.remove('scale-100');
         setTimeout(() => {
@@ -1696,7 +1696,7 @@ function initDeleteServerTab() {
         }, 200);
     }
     
-    // These functions are no longer needed since we've combined both sections into a single view
+
     
     function resetTransferSection() {
         if (userSearchInput) userSearchInput.value = '';
@@ -1715,19 +1715,19 @@ function initDeleteServerTab() {
             const response = await window.serverAPI.getServerMembers(serverId);
             
             if (response && response.success && response.data && response.data.members) {
-                // Filter members: exclude owner and bots
+
                 allMembers = response.data.members.filter(member => {
-                    // Exclude server owner
+
                     if (member.role === 'owner') return false;
                     
-                    // Exclude bots (by checking username or status)
+
                     if (member.username.toLowerCase() === 'titibot') return false;
                     if (member.status === 'bot') return false;
                     
                     return true;
                 });
             } else if (response && response.members) {
-                // Same filtering for alternative response format
+
                 allMembers = response.members.filter(member => {
                     if (member.role === 'owner') return false;
                     if (member.username.toLowerCase() === 'titibot') return false;
@@ -1770,10 +1770,10 @@ function initDeleteServerTab() {
                 avatarContent = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
             }
             
-            // Format the role with proper capitalization and styling
+
             const roleName = member.role.charAt(0).toUpperCase() + member.role.slice(1);
             
-            // Role badge color based on role
+
             let roleBadgeClass = '';
             if (member.role === 'admin') {
                 roleBadgeClass = 'bg-red-500';
@@ -1814,7 +1814,7 @@ function initDeleteServerTab() {
         
         selectedUserId = member.id;
         
-        // Set up selected user display
+
         if (member.avatar_url) {
             selectedUserAvatar.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
         } else {
@@ -1823,24 +1823,24 @@ function initDeleteServerTab() {
         
         selectedUserName.textContent = member.display_name || member.username;
         
-        // Style the role badge based on role
+
         const roleName = member.role.charAt(0).toUpperCase() + member.role.slice(1);
         
-        // Set role badge style based on role
+
         if (member.role === 'admin') {
             selectedUserRoleBadge.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-red-500 text-white';
         } else {
-            // For regular members
+
             selectedUserRoleBadge.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-gray-500 text-white';
         }
         selectedUserRoleBadge.textContent = roleName;
         
-        // Set status indicator
+
         if (selectedUserStatus && selectedUserStatusIndicator) {
             const status = member.status || 'offline';
             selectedUserStatus.textContent = status;
             
-            // Set status indicator color
+
             switch (status) {
                 case 'online':
                     selectedUserStatusIndicator.className = 'w-2 h-2 rounded-full mr-1.5 bg-green-500';
@@ -1857,7 +1857,7 @@ function initDeleteServerTab() {
             }
         }
         
-        // Show selected user section with animation
+
         selectedUserContainer.classList.remove('hidden');
         selectedUserContainer.style.opacity = '0';
         selectedUserContainer.style.transform = 'translateY(10px)';
@@ -1867,15 +1867,15 @@ function initDeleteServerTab() {
             selectedUserContainer.style.transform = 'translateY(0)';
         }, 10);
         
-        // Hide search results
+
         usersContainer.classList.add('hidden');
         
-        // Clear search input
+
         if (userSearchInput) {
             userSearchInput.value = '';
         }
         
-        // Enable transfer button with animation
+
         confirmTransferBtn.disabled = false;
         confirmTransferBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         confirmTransferBtn.classList.add('animate-pulse-once');
@@ -1884,9 +1884,9 @@ function initDeleteServerTab() {
         }, 1000);
     }
     
-    // This function is no longer needed since we removed the name confirmation
+
     
-    // Set up event listeners
+
     if (openDeleteModalBtn) {
         openDeleteModalBtn.removeEventListener('click', openModal);
         openDeleteModalBtn.addEventListener('click', openModal);
@@ -1901,11 +1901,11 @@ function initDeleteServerTab() {
         cancelDeleteBtn.removeEventListener('click', closeModal);
         cancelDeleteBtn.addEventListener('click', closeModal);
     }
-    // No longer need to listen for input events on server name confirmation
+
     
-    // No longer need tab switching since we've combined both sections
+
     
-    // User search with loading animation
+
     if (userSearchInput) {
         const usersLoading = document.getElementById('users-loading');
         
@@ -1918,11 +1918,11 @@ function initDeleteServerTab() {
                 return;
             }
             
-            // Show loading animation and hide results while searching
+
             usersLoading.classList.remove('hidden');
             usersContainer.classList.add('hidden');
             
-            // Simulate network delay for smoother UI experience
+
             setTimeout(() => {
                 const filteredMembers = allMembers.filter(member => {
                     return (
@@ -1931,12 +1931,12 @@ function initDeleteServerTab() {
                     );
                 });
                 
-                // Hide loading animation and show results
+
                 usersLoading.classList.add('hidden');
                 renderSearchResults(filteredMembers);
                 usersContainer.classList.remove('hidden');
                 
-                // Add entrance animation to results
+
                 const resultItems = usersContainer.querySelectorAll('.result-item');
                 resultItems.forEach((item, index) => {
                     item.style.opacity = '0';
@@ -1957,7 +1957,7 @@ function initDeleteServerTab() {
         });
     }
     
-    // No longer need the cancel transfer button
+
     
     if (confirmTransferBtn) {
         confirmTransferBtn.addEventListener('click', async function() {
@@ -1970,7 +1970,7 @@ function initDeleteServerTab() {
                     Transferring...
                 `;
                 
-                // Show loading toast
+
                 showToast('Transferring server ownership...', 'info', 2000);
                 
                 const response = await window.serverAPI.transferOwnership(serverId, selectedUserId);
@@ -1994,9 +1994,9 @@ function initDeleteServerTab() {
         });
     }
     
-    // Delete server action
+
     if (confirmDeleteBtn) {
-        // Remove any old listeners to prevent duplicates
+
         const oldListener = confirmDeleteBtn.onclick;
         if (oldListener) {
             confirmDeleteBtn.removeEventListener('click', oldListener);
@@ -2010,7 +2010,7 @@ function initDeleteServerTab() {
                     Deleting...
                 `;
                 
-                // Show loading toast
+
                 showToast('Deleting server...', 'warning', 2000);
                 
                 const response = await window.serverAPI.deleteUserServer(serverId);
@@ -2098,7 +2098,7 @@ function initServerInputApproveButtons(serverId) {
         checkForChangesCheckbox(isPublicInput, approveIsPublicBtn);
         
         isPublicInput.addEventListener('change', function() {
-            // Auto-approve the change immediately when checkbox is clicked
+
             updateServerPublic(serverId, this.checked);
         });
         
@@ -2285,10 +2285,10 @@ async function updateServerPublic(serverId, isPublic) {
     
     const checkboxWrapper = publicInput.nextElementSibling;
     
-    // Disable the checkbox during the update
+
     publicInput.disabled = true;
     
-    // Store the original checkbox content and show loading indicator
+
     let originalCheckboxContent = '';
     if (checkboxWrapper) {
         originalCheckboxContent = checkboxWrapper.innerHTML;
@@ -2303,7 +2303,7 @@ async function updateServerPublic(serverId, isPublic) {
             
             publicInput.dataset.originalValue = isPublic ? '1' : '0';
             
-            // Only manipulate approveBtn if it exists
+
             if (approveBtn) {
                 approveBtn.classList.remove('show');
                 setTimeout(() => {
@@ -2314,7 +2314,7 @@ async function updateServerPublic(serverId, isPublic) {
                 }, 300);
             }
         } else {
-            // Revert the checkbox state if update failed
+
             publicInput.checked = !isPublic;
             throw new Error(data.message || 'Failed to update server visibility');
         }
@@ -2324,11 +2324,11 @@ async function updateServerPublic(serverId, isPublic) {
     } finally {
         publicInput.disabled = false;
         
-        // Restore the original checkbox content
+
         if (checkboxWrapper) {
             checkboxWrapper.innerHTML = originalCheckboxContent;
             
-            // Update the checkbox appearance based on its current state
+
             if (publicInput.checked) {
                 checkboxWrapper.classList.add('bg-discord-blurple');
                 checkboxWrapper.classList.add('border-discord-blurple');

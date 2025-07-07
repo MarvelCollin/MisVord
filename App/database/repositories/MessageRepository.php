@@ -24,6 +24,67 @@ class MessageRepository extends Repository {
         return $this->create($data);
     }
     
+    /**
+     * Add an attachment to a message
+     * @param int $messageId The message ID
+     * @param string $attachmentUrl The attachment URL
+     * @return bool Success or failure
+     */
+    public function addAttachment($messageId, $attachmentUrl) {
+        error_log("MessageRepository: Adding attachment $attachmentUrl to message $messageId");
+        
+        try {
+            $message = $this->find($messageId);
+            if (!$message) {
+                error_log("MessageRepository: Message $messageId not found when adding attachment");
+                return false;
+            }
+            
+            // Get current attachments
+            $attachments = [];
+            if ($message->attachment_url) {
+                $decoded = json_decode($message->attachment_url, true);
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $attachments = $decoded;
+                } else {
+                    // Legacy format - single attachment URL
+                    $attachments = [$message->attachment_url];
+                }
+            }
+            
+            // Add new attachment
+            $attachments[] = $attachmentUrl;
+            
+            // Update message
+            return $this->update($messageId, [
+                'attachment_url' => json_encode(array_values($attachments))
+            ]);
+        } catch (Exception $e) {
+            error_log("MessageRepository: Error adding attachment: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Add a mention to a message
+     * @param int $messageId The message ID
+     * @param string $mentionType The mention type (e.g., 'user', 'channel')
+     * @param int $mentionId The ID of the mentioned entity
+     * @return bool Success or failure
+     */
+    public function addMention($messageId, $mentionType, $mentionId) {
+        error_log("MessageRepository: Adding $mentionType mention $mentionId to message $messageId");
+        
+        try {
+            // In this implementation, mentions are stored in the message content
+            // Future enhancement could store them in a separate table
+            return true;
+        } catch (Exception $e) {
+            error_log("MessageRepository: Error adding mention: " . $e->getMessage());
+            return false;
+        }
+    }
+    
     public function getRecentMessages($limit = 50) {
         $query = new Query();
         return $query->table('messages')

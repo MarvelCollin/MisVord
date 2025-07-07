@@ -84,7 +84,7 @@ class NotificationToast {
 
         const config = this.getToastConfig(type);
         
-        // If avatar is provided, create an icon object with avatar property
+
         if (avatar && !icon) {
             icon = { avatar };
         }

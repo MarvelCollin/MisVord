@@ -380,13 +380,13 @@ function updateParticipantDisplay() {
         return;
     }
     
-    // Force display the container
+
     container.style.display = 'block';
     
-    // Clear previous content
+
     container.innerHTML = '';
     
-    // Create content for each role group
+
     roleDisplayOrder.forEach(role => {
         const roleMembers = roleGroups[role];
         if (roleMembers.length === 0) return;
@@ -471,15 +471,15 @@ function updateParticipantDisplay() {
         container.appendChild(roleSection);
     });
 
-    // Hide skeleton loader
+
     const skeleton = document.getElementById('participant-skeleton-loader');
     if (skeleton) {
         skeleton.style.display = 'none';
     }
     
-    // Check if any members were displayed and log the result
+
     const membersDisplayed = container.querySelectorAll('.user-profile-trigger').length;
-    console.log(`👥 Displayed ${membersDisplayed} participants in ${Object.keys(roleGroups).filter(role => roleGroups[role].length > 0).length} role groups`);
+    
 }
 
 function initializeServerSearch() {
@@ -641,51 +641,51 @@ function highlightSearchQuery(content, query) {
 function formatSearchTimestamp(timestamp) {
     if (!timestamp) return '';
     
-    // Create date objects in local timezone
+
     const date = new Date(timestamp);
     const now = new Date();
     
-    // Apply UTC+7 offset for Asia/Jakarta
+
     const jakartaOffsetHours = 7;
     const localOffsetMinutes = date.getTimezoneOffset();
     const jakartaOffsetMinutes = jakartaOffsetHours * 60 * -1;
     const offsetDiffMinutes = jakartaOffsetMinutes - localOffsetMinutes;
     
-    // Adjust the date for Jakarta timezone
+
     const jakartaDate = new Date(date.getTime() + offsetDiffMinutes * 60 * 1000);
     const jakartaNow = new Date(now.getTime() + offsetDiffMinutes * 60 * 1000);
     
-    // Get date strings for comparison
+
     const jakartaDateString = jakartaDate.toISOString().split('T')[0];
     const jakartaNowString = jakartaNow.toISOString().split('T')[0];
     
-    // Calculate yesterday
+
     const jakartaYesterday = new Date(jakartaNow);
     jakartaYesterday.setDate(jakartaYesterday.getDate() - 1);
     const jakartaYesterdayString = jakartaYesterday.toISOString().split('T')[0];
     
-    // Format time
+
     const hours = jakartaDate.getHours().toString().padStart(2, '0');
     const minutes = jakartaDate.getMinutes().toString().padStart(2, '0');
     const timeStr = `${hours}:${minutes}`;
     
-    // Determine how to format based on date difference
+
     if (jakartaDateString === jakartaNowString) {
-        // Today: "Today at 15:30"
+
         return `Today at ${timeStr}`;
     } else if (jakartaDateString === jakartaYesterdayString) {
-        // Yesterday: "Yesterday at 15:30"
+
         return `Yesterday at ${timeStr}`;
     } else {
         const diffDays = Math.floor((jakartaNow - jakartaDate) / (1000 * 60 * 60 * 24));
         
         if (diffDays < 7) {
-            // This week: "Monday at 15:30"
+
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayName = days[jakartaDate.getDay()];
             return `${dayName} at ${timeStr}`;
         } else {
-            // Older: "Jul 25, 2025 15:30"
+
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             const monthName = months[jakartaDate.getMonth()];
             const day = jakartaDate.getDate();
@@ -829,7 +829,7 @@ window.toggleParticipantLoading = function(loading = true) {
 };
 
 window.testParticipantScroll = async function(numberOfTestMembers = 20) {
-    // Generate mock members for testing scroll
+
     const mockMembers = [];
     const roles = ['member', 'admin', 'bot', 'owner'];
     const statuses = ['online', 'offline', 'afk', 'do_not_disturb', 'bot', 'invisible'];
@@ -850,7 +850,7 @@ window.testParticipantScroll = async function(numberOfTestMembers = 20) {
         });
     }
     
-    // Add titibot
+
     mockMembers.push({
         id: 4,
         username: 'titibot',
@@ -861,13 +861,13 @@ window.testParticipantScroll = async function(numberOfTestMembers = 20) {
         discriminator: '0000'
     });
     
-    // Update the global variable
+
     window.allMembers = mockMembers;
     
-    // Update display and force visibility
+
     updateParticipantDisplay();
     
-    // Force show participant container
+
     const container = document.getElementById('participant-list-container');
     if (container) {
         container.style.display = 'block';
@@ -875,8 +875,8 @@ window.testParticipantScroll = async function(numberOfTestMembers = 20) {
         container.style.opacity = '1';
     }
     
-    // Show success message
-    console.log(`🧪 Created ${numberOfTestMembers + 1} test members to verify scrolling`);
+
+    
     if (window.showToast) {
         window.showToast(`Added ${numberOfTestMembers + 1} test members to verify scrolling`, 'success');
     }
@@ -885,7 +885,7 @@ window.testParticipantScroll = async function(numberOfTestMembers = 20) {
 };
 
 window.testParticipantGroups = function() {
-    // Test participant display with members in all role groups
+
     const testMembers = [
         {id: 101, username: 'serverOwner', display_name: 'Server Owner', role: 'owner', status: 'online'},
         {id: 102, username: 'adminUser1', display_name: 'Admin User 1', role: 'admin', status: 'online'},
@@ -902,7 +902,7 @@ window.testParticipantGroups = function() {
     window.allMembers = testMembers;
     updateParticipantDisplay();
     
-    console.log('🧪 Created test members for all participant groups');
+    
     if (window.showToast) {
         window.showToast('Added test members for all participant groups', 'success');
     }

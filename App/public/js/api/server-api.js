@@ -619,7 +619,7 @@ const serverAPI = {
         });
     },
 
-    // ADD THE NEW METHOD HERE, INSIDE THE OBJECT
+
     getExploreServers: function(page = 1, perPage = 6, sort = 'alphabetical', category = '', search = '') {
         return fetch('/api/servers/explore', {
             method: 'POST',

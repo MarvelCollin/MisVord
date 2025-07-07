@@ -51,9 +51,9 @@ class ChannelVoiceParticipants {
         
         if (!isVideoSDKConnected && isPresenceInVoice && currentChannelId) {
 
-            // MODIFIED: Don't remove participants just because the connection seems inactive
-            // We'll only remove them when the user explicitly clicks leave
-            // this.removeParticipant(currentChannelId, window.currentUserId);
+
+
+
         }
     }
 
@@ -76,11 +76,11 @@ class ChannelVoiceParticipants {
     }
 
     setupVideoSDKListeners() {
-        // DISABLED: No longer listen to VideoSDK events to prevent conflicts
-        // VoiceCallSection now handles VideoSDK participants exclusively
-        // This system focuses only on socket-based channel indicators
+
+
+
         
-        // Keep the sync for current user's presence validation only
+
         this.startPresenceSync();
     }
 
@@ -110,7 +110,7 @@ class ChannelVoiceParticipants {
                 this.updateParticipantContainer(data.channel_id);
                 this.forceRefreshAllContainers();
             } else if (!data.has_meeting) {
-                // Set flag to bypass explicitLeaveRequested check for socket events
+
                 this._processingSocketLeaveEvent = true;
                 this.clearChannelParticipants(data.channel_id);
                 this._processingSocketLeaveEvent = false;
@@ -125,19 +125,19 @@ class ChannelVoiceParticipants {
             }
         });
         
-        // Add handler for force-refresh event
+
         socket.on('force-refresh-voice-participants', (data) => {
-            console.log('[VOICE-PARTICIPANT] Received force refresh request:', data);
+            
             
             if (data.channel_id) {
-                // Request updated participant list for this specific channel
+
                 socket.emit('check-voice-meeting', { channel_id: data.channel_id });
             } else {
-                // Request updates for all voice channels
+
                 this.requestAllVoiceChannelUpdates();
             }
             
-            // Force refresh UI after a short delay
+
             setTimeout(() => {
                 this.forceRefreshAllContainers();
             }, 300);
@@ -152,14 +152,14 @@ class ChannelVoiceParticipants {
     }
 
     startPresenceSync() {
-        // Sync only for presence validation, not participant management
+
         setInterval(() => {
             this.validateCurrentUserPresence();
         }, 5000);
     }
 
-    // VideoSDK-specific methods removed to prevent conflicts
-    // VoiceCallSection now handles all VideoSDK participants
+
+
 
     attachVoiceEvents() {
         let voiceConnectHandled = false;
@@ -193,7 +193,7 @@ class ChannelVoiceParticipants {
             this.updateChannelCount(channel_id, participant_count);
         }
 
-        // Skip further processing for own join/registered events when VideoSDK manages the local participant.
+
         const isOwnEvent = user_id === window.currentUserId || user_id === window.globalSocketManager?.userId;
         if (action !== 'leave' && isOwnEvent && window.videoSDKManager?.isReady()) {
             return;
@@ -205,7 +205,7 @@ class ChannelVoiceParticipants {
         if ((action === 'join' || action === 'already_registered') && user_id && !participantExists) {
             await this.addParticipant(channel_id, user_id, username);
         } else if (action === 'leave' && user_id) {
-            // Set flag to bypass explicitLeaveRequested check for socket events
+
             this._processingSocketLeaveEvent = true;
             this.removeParticipant(channel_id, user_id);
             this._processingSocketLeaveEvent = false;
@@ -238,13 +238,13 @@ class ChannelVoiceParticipants {
         const channelParticipants = this.participants.get(channelId);
         const normalizedUserId = userId.toString();
         
-        // Use coordinator to prevent conflicts with VoiceCallSection
+
         if (this.coordinator) {
             if (this.coordinator.hasParticipant(channelId, normalizedUserId)) {
                 const existingSystem = this.coordinator.getParticipantSystem(normalizedUserId);
                 const isCurrentUser = normalizedUserId === window.currentUserId;
                 if (existingSystem === 'VoiceCallSection' && isCurrentUser) {
-                    // VoiceCallSection has priority for the current user, don't add to channel indicators
+
                     return;
                 }
             }
@@ -294,18 +294,18 @@ class ChannelVoiceParticipants {
     removeParticipant(channelId, userId) {
         const normalizedUserId = userId.toString();
         
-        // Allow removal in these cases:
-        // 1. Socket leave event (server-initiated)
-        // 2. Explicit leave button click (coordinator.explicitLeaveRequested)
-        // 3. Page is unloading/reloading (_pageUnloading flag)
+
+
+
+
         const isSocketLeaveEvent = this._processingSocketLeaveEvent || false;
         const isPageUnloading = this._pageUnloading || false;
         
         if (this.coordinator && !isSocketLeaveEvent && !isPageUnloading) {
-            // Only pass this through if it's an explicit leave button action
-            // or if the page is unloading
+
+
             if (!this.coordinator.explicitLeaveRequested) {
-                console.log('[VOICE-PARTICIPANT] Prevented automatic removal of participant:', normalizedUserId);
+                
                 return false; // Prevent automatic removal
             }
             this.coordinator.removeParticipant(channelId, normalizedUserId, 'ChannelVoiceParticipants');
@@ -332,15 +332,15 @@ class ChannelVoiceParticipants {
     }
 
     clearChannelParticipants(channelId) {
-        // Allow clearing in these cases:
-        // 1. Socket event (server-initiated)
-        // 2. Explicit leave button click (coordinator.explicitLeaveRequested)
-        // 3. Page is unloading/reloading (_pageUnloading flag)
+
+
+
+
         const isSocketEvent = this._processingSocketLeaveEvent || false;
         const isPageUnloading = this._pageUnloading || false;
         
         if (this.coordinator && !isSocketEvent && !isPageUnloading && !this.coordinator.explicitLeaveRequested) {
-            console.log('[VOICE-PARTICIPANT] Prevented clearing channel participants:', channelId);
+            
             return false;
         }
         
@@ -633,25 +633,25 @@ class ChannelVoiceParticipants {
     }
 
     setupPageUnloadListeners() {
-        // Set flag when page is about to unload
+
         window.addEventListener('beforeunload', () => {
             this._pageUnloading = true;
             
-            // When page is reloading, we should allow participant removal
-            // This exactly matches what the leave button does
+
+
             if (this.coordinator) {
                 this.coordinator.setExplicitLeaveRequested(true);
             }
             
-            // Current user's ID
+
             const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
             if (!currentUserId) return;
             
-            // Get current channel ID from voice manager
+
             const currentChannelId = window.voiceManager?.currentChannelId;
             if (!currentChannelId) return;
             
-            // Clean up bot participants if music player is active
+
             if (window.musicPlayer) {
                 try {
                     window.musicPlayer.stop();
@@ -660,14 +660,14 @@ class ChannelVoiceParticipants {
                 }
             }
             
-            // Notify server about disconnection
+
             if (window.globalSocketManager?.io) {
                 try {
                     window.globalSocketManager.io.emit('unregister-voice-meeting', {
                         channel_id: currentChannelId
                     });
                     
-                    // Also notify about bot leaving (same as leave button)
+
                     window.globalSocketManager.io.emit('bot-left-voice', {
                         channel_id: currentChannelId,
                         bot_id: '4'
@@ -677,13 +677,13 @@ class ChannelVoiceParticipants {
                 }
             }
             
-            // Remove current user from all voice channels
+
             if (currentChannelId) {
                 this.removeParticipant(currentChannelId, currentUserId);
                 this.updateParticipantContainer(currentChannelId);
             }
             
-            // Dispatch voice disconnect event (same as leave button)
+
             window.dispatchEvent(new CustomEvent('voiceDisconnect'));
         });
     }
@@ -718,23 +718,23 @@ window.updateVoiceChannelCount = function(channelId, count) {
 window.debugVoiceParticipants = function() {
     const instance = window.ChannelVoiceParticipants?.getInstance();
     if (!instance) {
-        console.log('❌ No ChannelVoiceParticipants instance found');
+        
         return;
     }
     
-    console.log('🔍 Voice Participants Debug Info:');
-    console.log('Participants by Channel:', Array.from(instance.participants.entries()));
+    
+    
     
     document.querySelectorAll('.voice-participants').forEach(container => {
         const channelId = container.getAttribute('data-channel-id');
         const isHidden = container.classList.contains('hidden');
         const participantCount = container.children.length;
         
-        console.log(`Channel ${channelId}: Hidden=${isHidden}, Participants=${participantCount}`);
+        
     });
     
     if (window.participantCoordinator) {
-        console.log('Coordinator Active Participants:', Array.from(window.participantCoordinator.activeParticipants.entries()));
+        
     }
     
     instance.forceRefreshAllContainers();
@@ -742,11 +742,11 @@ window.debugVoiceParticipants = function() {
 };
 
 window.testVoiceParticipantSync = function() {
-    console.log('🧪 Testing voice participant synchronization...');
+    
     window.debugVoiceParticipants();
     
     setTimeout(() => {
-        console.log('🔄 Refreshing after 2 seconds...');
+        
         window.refreshAllVoiceParticipants();
     }, 2000);
 };

@@ -385,12 +385,12 @@ class TicTacToeModal {
     }
 
     generateParticles() {
-        // Simplified - no particles in the new design
+
         return '';
     }
 
     startParticleAnimation() {
-        // Simplified - no animation needed
+
     }
 
     setupDragAndResize(modal) {
@@ -627,11 +627,11 @@ class TicTacToeModal {
     }
     
     createFireworks(color) {
-        // Simplified animation for win celebration
+
         const mainColor = color === 'green' ? '#3ba55c' : 
                          color === 'red' ? '#ed4245' : '#faa61a';
         
-        // Simple flash effect instead of fireworks
+
         const flash = document.createElement('div');
         flash.className = 'fixed inset-0 pointer-events-none z-50';
         flash.style.backgroundColor = mainColor;
@@ -648,7 +648,7 @@ class TicTacToeModal {
     }
 
     createSingleFirework(colors) {
-        // Simplified, not used in new design
+
     }
 
     createConfetti() {
@@ -874,7 +874,7 @@ class TicTacToeModal {
     }
 
     animateMove(position) {
-        // Simplified animation for moves
+
         const cells = document.querySelectorAll('#game-board button');
         if (cells[position]) {
             cells[position].classList.add('bg-[#404249]');

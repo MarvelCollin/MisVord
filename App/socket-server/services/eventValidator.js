@@ -17,6 +17,10 @@ class EventValidator {
                 required: ['message_id', 'user_id', 'username', 'target_type', 'target_id', 'source'],
                 optional: ['timestamp']
             },
+            'message_id_updated': {
+                required: ['temp_message_id', 'real_message_id', 'message_data', 'timestamp'],
+                optional: ['user_id', 'username', 'source']
+            },
             'reaction-added': {
                 required: ['message_id', 'user_id', 'username', 'emoji', 'source'],
                 optional: ['target_type', 'target_id', 'action', 'timestamp']

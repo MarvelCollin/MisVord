@@ -353,7 +353,7 @@ class ChatController extends BaseController
         }
     }
 
-    private function sendChannelMessage($channelId, $content, $userId, $messageType = 'text', $attachments = [], $mentions = [], $replyMessageId = null)
+    private function sendChannelMessage($channelId, $content, $userId, $messageType = 'text', $attachments = [], $mentions = [], $replyMessageId = null, $returnArrayOnly = false)
     {
         $channel = $this->channelRepository->find($channelId);
         if (!$channel) {
@@ -377,15 +377,9 @@ class ChatController extends BaseController
                 'attachment_url' => !empty($attachments) ? json_encode(array_values($attachments)) : null,
                 'sent_at' => indonesiaTime(),
                 'created_at' => indonesiaTime(),
-                'updated_at' => indonesiaTime()
+                'updated_at' => indonesiaTime(),
+                'reply_message_id' => $replyMessageId
             ];
-
-            if ($replyMessageId) {
-                $repliedMessage = $this->messageRepository->find($replyMessageId);
-                if ($repliedMessage) {
-                    $messageData['reply_message_id'] = $replyMessageId;
-                }
-            }
 
             $message = $this->messageRepository->create($messageData);
 
@@ -415,6 +409,20 @@ class ChatController extends BaseController
 
                 $query->commit();
 
+                $responsePayload = [
+                    'success' => true,
+                    'message' => 'Message sent successfully',
+                    'data' => [
+                        'message' => $formattedMessage,
+                        'channel_id' => $channelId
+                    ],
+                    'timestamp' => date('Y-m-d H:i:s')
+                ];
+
+                if ($returnArrayOnly) {
+                    return $responsePayload;
+                }
+
                 return $this->internalSuccess([
                     'data' => [
                         'message' => $formattedMessage,
@@ -423,15 +431,23 @@ class ChatController extends BaseController
                 ], 'Message sent successfully');
             } else {
                 $query->rollback();
-                throw new Exception('Failed to save message');
+                $errorPayload = $this->internalServerError('Failed to save message');
+                if ($returnArrayOnly) {
+                    return $errorPayload;
+                }
+                return $errorPayload;
             }
         } catch (Exception $e) {
             $query->rollback();
-            return $this->internalServerError('Failed to send message');
+            $errorPayload = $this->internalServerError('Failed to send message: ' . $e->getMessage());
+            if ($returnArrayOnly) {
+                return $errorPayload;
+            }
+            return $errorPayload;
         }
     }
 
-    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachments = [], $mentions = [], $replyMessageId = null)
+    private function sendDirectMessage($chatRoomId, $content, $userId, $messageType = 'text', $attachments = [], $mentions = [], $replyMessageId = null, $returnArrayOnly = false)
     {
         $chatRoom = $this->chatRoomRepository->find($chatRoomId);
         if (!$chatRoom) {
@@ -452,15 +468,9 @@ class ChatController extends BaseController
                 'attachment_url' => !empty($attachments) ? json_encode(array_values($attachments)) : null,
                 'sent_at' => indonesiaTime(),
                 'created_at' => indonesiaTime(),
-                'updated_at' => indonesiaTime()
+                'updated_at' => indonesiaTime(),
+                'reply_message_id' => $replyMessageId
             ];
-
-            if ($replyMessageId) {
-                $repliedMessage = $this->messageRepository->find($replyMessageId);
-                if ($repliedMessage) {
-                    $messageData['reply_message_id'] = $replyMessageId;
-                }
-            }
 
             $message = $this->messageRepository->create($messageData);
 
@@ -501,6 +511,20 @@ class ChatController extends BaseController
 
                 $query->commit();
 
+                $responsePayload = [
+                    'success' => true,
+                    'message' => 'Message sent successfully',
+                    'data' => [
+                        'message' => $formattedMessage,
+                        'room_id' => $chatRoomId
+                    ],
+                    'timestamp' => date('Y-m-d H:i:s')
+                ];
+
+                if ($returnArrayOnly) {
+                    return $responsePayload;
+                }
+
                 return $this->internalSuccess([
                     'data' => [
                         'message' => $formattedMessage,
@@ -509,11 +533,19 @@ class ChatController extends BaseController
                 ], 'Message sent successfully');
             } else {
                 $query->rollback();
-                throw new Exception('Failed to save message');
+                $errorPayload = $this->internalServerError('Failed to save message');
+                if ($returnArrayOnly) {
+                    return $errorPayload;
+                }
+                return $errorPayload;
             }
         } catch (Exception $e) {
             $query->rollback();
-            return $this->internalServerError('Failed to send message');
+            $errorPayload = $this->internalServerError('Failed to send message: ' . $e->getMessage());
+            if ($returnArrayOnly) {
+                return $errorPayload;
+            }
+            return $errorPayload;
         }
     }
 
@@ -1261,6 +1293,7 @@ class ChatController extends BaseController
             $attachments = $input['attachments'] ?? $input['attachment_url'] ?? null;
             $mentions = $input['mentions'] ?? [];
             $replyMessageId = $input['reply_message_id'] ?? null;
+            $tempMessageId = $input['temp_message_id'] ?? null;
 
             if (is_string($attachments) && !empty($attachments)) {
                 $attachments = [$attachments];
@@ -1290,7 +1323,7 @@ class ChatController extends BaseController
                     }
                 }
 
-                $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+                $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             } else {
                 $chatRoom = $this->chatRoomRepository->find($targetId);
                 if (!$chatRoom) {
@@ -1303,7 +1336,7 @@ class ChatController extends BaseController
                     return $this->forbidden('You are not a participant in this chat');
                 }
 
-                $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+                $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             }
 
             error_log("[ChatController] Send message to target result: " . json_encode($result));
@@ -1322,7 +1355,8 @@ class ChatController extends BaseController
                     'mentions' => $message['mentions'],
                     'reply_message_id' => $message['reply_message_id'],
                     'reply_data' => $message['reply_data'],
-                    'timestamp' => $message['timestamp']
+                    'timestamp' => $message['timestamp'],
+                    'temp_message_id' => $tempMessageId
                 ], 'Message sent successfully');
             } else {
                 error_log("[ChatController] Failed to send message to target: " . json_encode($result));
@@ -1556,9 +1590,9 @@ class ChatController extends BaseController
 
         try {
             if ($input['target_type'] === 'channel') {
-                $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+                $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             } else {
-                $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+                $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             }
 
             error_log("Socket message save result: " . json_encode($result));
@@ -1579,23 +1613,9 @@ class ChatController extends BaseController
                 return $this->success([
                     'message_id' => $messageData['id'],
                     'data' => [
-                        'message' => [
-                            'id' => $messageData['id'],
-                            'user_id' => $messageData['user_id'],
-                            'username' => $messageData['username'],
-                            'avatar_url' => $socketAvatarUrl ?? $messageData['avatar_url'] ?? '/public/assets/common/default-profile-picture.png',
-                            'target_type' => $input['target_type'],
-                            'target_id' => $input['target_id'],
-                            'content' => $messageData['content'],
-                            'message_type' => $messageData['message_type'],
-                            'attachments' => $messageData['attachments'] ?? [],
-                            'mentions' => $messageData['mentions'] ?? [],
-                            'reply_message_id' => $messageData['reply_message_id'] ?? null,
-                            'reply_data' => $messageData['reply_data'] ?? null,
-                            'sent_at' => $messageData['sent_at'],
-                            'timestamp' => $messageData['timestamp'] ?? time()
-                        ]
-                    ]
+                        'message' => $messageData
+                    ],
+                    'temp_message_id' => $tempMessageId
                 ], 'Message saved successfully');
             } else {
                 error_log("Failed to save socket message: " . json_encode($result));
@@ -1650,6 +1670,7 @@ class ChatController extends BaseController
         $attachments = $input['attachments'] ?? [];
         $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
+        $tempMessageId = $input['temp_message_id'] ?? null;
 
         if (is_array($attachments)) {
             $attachments = array_filter($attachments, function ($attachment) {
@@ -1684,7 +1705,7 @@ class ChatController extends BaseController
                     }
                 }
 
-                $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+                $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             } else {
                 $chatRoom = $this->chatRoomRepository->find($targetId);
                 if (!$chatRoom) {
@@ -1695,7 +1716,7 @@ class ChatController extends BaseController
                     return $this->forbidden('Bot is not a participant in this chat');
                 }
 
-                $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId);
+                $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             }
 
             if ($result['success']) {
@@ -1706,12 +1727,18 @@ class ChatController extends BaseController
                 }
 
                 return $this->success([
-                    'message' => $messageData
+                    'message_id' => $messageData['id'],
+                    'data' => [
+                        'message' => $messageData
+                    ],
+                    'temp_message_id' => $tempMessageId
                 ], 'Message saved successfully');
             } else {
                 return $result;
             }
         } catch (Exception $e) {
+            error_log("Error saving bot message: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             return $this->serverError('Failed to save bot message: ' . $e->getMessage());
         }
     }

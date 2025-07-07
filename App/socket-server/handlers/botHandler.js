@@ -22,7 +22,7 @@ class BotHandler extends EventEmitter {
             status: 'active',
             joinedRooms: new Set(),
             lastActivity: Date.now(),
-            avatar_url: '/public/assets/common/default-profile-picture.png'
+            avatar_url: '/public/assets/landing-page/robot.webp'
         });
         
         const avatar = await this.fetchBotAvatar(username);
@@ -52,7 +52,7 @@ class BotHandler extends EventEmitter {
                 username: username,
                 isBot: true,
                 authenticated: true,
-                avatar_url: (this.bots.get(botId)?.avatar_url) || '/public/assets/common/default-profile-picture.png'
+                avatar_url: (this.bots.get(botId)?.avatar_url) || '/public/assets/landing-page/robot.webp'
             },
             emit: (event, data) => {
 
@@ -289,7 +289,7 @@ class BotHandler extends EventEmitter {
             id: `bot-voice-${botId}`,
             user_id: botId.toString(),
             username: username,
-            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/landing-page/robot.webp',
             isBot: true,
             channelId: voiceConnection.channelId,
             meetingId: voiceConnection.meetingId,
@@ -449,7 +449,7 @@ class BotHandler extends EventEmitter {
             id: temp_message_id,
             user_id: parseInt(botId),
             username: username,
-            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/landing-page/robot.webp',
             content: responseContent,
             sent_at: currentTimestamp,
             type: 'text',
@@ -464,7 +464,7 @@ class BotHandler extends EventEmitter {
                 content: originalMessage.content,
                 user_id: originalMessage.user_id,
                 username: originalMessage.username,
-                avatar_url: originalMessage.avatar_url || '/public/assets/common/default-profile-picture.png'
+                avatar_url: originalMessage.avatar_url || '/public/assets/landing-page/robot.webp'
             }
         };
         
@@ -556,7 +556,7 @@ class BotHandler extends EventEmitter {
             temp_message_id: temp_message_id,
             user_id: parseInt(botId),
             username: username,
-            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/landing-page/robot.webp',
             content: responseContent,
             sent_at: currentTimestamp,
             timestamp: Date.parse(currentTimestamp),
@@ -571,7 +571,7 @@ class BotHandler extends EventEmitter {
                 content: originalMessage.content,
                 user_id: originalMessage.user_id,
                 username: originalMessage.username,
-                avatar_url: originalMessage.avatar_url || '/public/assets/common/default-profile-picture.png'
+                avatar_url: originalMessage.avatar_url || '/public/assets/landing-page/robot.webp'
             }
         };
 
@@ -647,11 +647,20 @@ class BotHandler extends EventEmitter {
                             rawResponse: responseData.substring(0, 200) + (responseData.length > 200 ? '...' : '')
                         });
                         
+
+                        if (!responseData || responseData.trim() === '') {
+                            console.error(`❌ [BOT-DEBUG] Empty response received`);
+                            return reject(new Error('Empty response received from server'));
+                        }
+                        
                         try {
                             const result = JSON.parse(responseData);
                             resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, data: result });
                         } catch (parseError) {
-                            console.error(`❌ [BOT-DEBUG] Failed to parse response:`, parseError.message);
+                            console.error(`❌ [BOT-DEBUG] Failed to parse response:`, {
+                                error: parseError.message,
+                                responseData: responseData.substring(0, 500)
+                            });
                             reject(new Error(`Failed to parse response: ${parseError.message}`));
                         }
                     });
@@ -660,6 +669,12 @@ class BotHandler extends EventEmitter {
                 req.on('error', (error) => {
                     console.error(`❌ [BOT-DEBUG] HTTP request error:`, error.message);
                     reject(error);
+                });
+                
+
+                req.setTimeout(10000, () => {
+                    req.abort();
+                    reject(new Error('Request timeout after 10s'));
                 });
                 
                 req.write(postData);
@@ -674,15 +689,22 @@ class BotHandler extends EventEmitter {
                 throw new Error(`HTTP ${response.status}: Bot message save failed`);
             }
             
-            const saveResult = response.data;
+
+            let savedMessageObj = null;
+            if (response.data.data?.message) {
+                savedMessageObj = response.data.data.message;
+            } else if (response.data.data?.data?.message) {
+                savedMessageObj = response.data.data.data.message;
+            }
+            
             console.log(`✅ [BOT-DEBUG] Bot message saved successfully:`, {
-                success: saveResult.success,
-                messageId: saveResult.data?.message?.id || saveResult.message_id,
+                success: response.ok,
+                messageId: savedMessageObj?.id || response.data.message_id,
                 tempId: temp_message_id
             });
             
-            if (saveResult.success && saveResult.data?.message) {
-                const savedMessage = saveResult.data.message;
+            if (response.ok && savedMessageObj) {
+                const savedMessage = savedMessageObj;
                 
                 console.log(`📦 [BOT-DEBUG] Preparing message_id_updated event:`, {
                     realId: savedMessage.id,
@@ -698,7 +720,7 @@ class BotHandler extends EventEmitter {
                         message_id: savedMessage.id,
                         user_id: parseInt(botId),
                         username: username,
-                        avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
+                        avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/landing-page/robot.webp',
                         content: responseContent,
                         sent_at: savedMessage.sent_at || currentTimestamp,
                         created_at: savedMessage.sent_at || currentTimestamp,
@@ -721,7 +743,7 @@ class BotHandler extends EventEmitter {
                             content: originalMessage.content,
                             user_id: originalMessage.user_id,
                             username: originalMessage.username,
-                            avatar_url: originalMessage.avatar_url || '/public/assets/common/default-profile-picture.png'
+                            avatar_url: originalMessage.avatar_url || '/public/assets/landing-page/robot.webp'
                         }
                     },
                     timestamp: Date.now()
@@ -774,8 +796,8 @@ class BotHandler extends EventEmitter {
                     io.emit('bot-music-command', musicCommandData);
                 }
             } else {
-                console.error(`❌ [BOT-DEBUG] Save failed:`, saveResult);
-                throw new Error(`Failed to save bot message: ${saveResult.message || 'Unknown error'}`);
+                console.error(`❌ [BOT-DEBUG] Save failed:`, response.data);
+                throw new Error(`Failed to save bot message: ${response.data.message || 'Unknown error'}`);
             }
             
         } catch (error) {
@@ -869,7 +891,7 @@ class BotHandler extends EventEmitter {
             id: `bot-voice-${botId}`,
             user_id: botId.toString(),
             username: username,
-            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/landing-page/robot.webp',
             isBot: true,
             channelId: channelId,
             meetingId: `voice_channel_${channelId}`,

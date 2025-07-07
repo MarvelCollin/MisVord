@@ -1294,7 +1294,7 @@ function getToastIcon(type) {
     }
 }
 
-// Utility function for debouncing
+
 function debounce(func, wait = 300) {
     let timeout;
     return function executedFunction(...args) {
@@ -2014,7 +2014,7 @@ function initDeleteAccount() {
         hideError();
         usernameInput.focus();
         
-        // Check for owned servers
+
         fetchOwnedServers();
     }
     
@@ -2049,7 +2049,7 @@ function initDeleteAccount() {
         return isValid;
     }
     
-    // Fetch servers owned by the current user
+
     async function fetchOwnedServers() {
         try {
             const serverSection = document.getElementById('owned-servers-section');
@@ -2057,7 +2057,7 @@ function initDeleteAccount() {
             
             serverSection.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-discord-blurple"></i> Loading your servers...</div>';
             
-            // Create custom endpoint to get owned servers
+
             fetch('/api/users/owned-servers')
                 .then(response => response.json())
                 .then(data => {
@@ -2069,7 +2069,7 @@ function initDeleteAccount() {
                             return;
                         }
                         
-                        // Display servers that need ownership transfer
+
                         serverSection.innerHTML = `
                             <div class="mb-3">
                                 <h3 class="text-yellow-400 font-semibold text-lg mb-3">Server Ownership Transfer</h3>
@@ -2123,7 +2123,7 @@ function initDeleteAccount() {
                             `;
                             serversList.appendChild(serverElement);
                             
-                            // Add event listeners
+
                             initServerTransferControls(serverElement, server.id);
                         });
                     } else {
@@ -2139,7 +2139,7 @@ function initDeleteAccount() {
         }
     }
     
-    // Initialize server transfer controls
+
     function initServerTransferControls(serverElement, serverId) {
         const searchInput = serverElement.querySelector('.member-search-input');
         const fetchBtn = serverElement.querySelector('.fetch-members-btn');
@@ -2148,16 +2148,16 @@ function initDeleteAccount() {
         const transferError = serverElement.querySelector('.transfer-error');
         const transferSuccess = serverElement.querySelector('.transfer-success');
         
-        // Store server members data
+
         serverElement.dataset.members = JSON.stringify([]);
         serverElement.dataset.selectedMemberId = '';
         
-        // Event listener for fetch members button
+
         fetchBtn.addEventListener('click', () => {
             loadServerMembers(serverId, serverElement);
         });
         
-        // Event listener for search input
+
         searchInput.addEventListener('input', debounce(() => {
             const members = JSON.parse(serverElement.dataset.members || '[]');
             if (members.length === 0) {
@@ -2168,7 +2168,7 @@ function initDeleteAccount() {
             filterMembers(serverElement);
         }, 300));
         
-        // Event listener for search input focus
+
         searchInput.addEventListener('focus', () => {
             const members = JSON.parse(serverElement.dataset.members || '[]');
             if (members.length === 0) {
@@ -2179,7 +2179,7 @@ function initDeleteAccount() {
             }
         });
         
-        // Hide dropdown when clicking outside
+
         document.addEventListener('click', (e) => {
             if (!serverElement.contains(e.target)) {
                 dropdown.classList.add('hidden');
@@ -2187,7 +2187,7 @@ function initDeleteAccount() {
         });
     }
     
-    // Load server members for ownership transfer
+
     function loadServerMembers(serverId, serverElement) {
         const dropdown = serverElement.querySelector('.members-dropdown');
         const fetchBtn = serverElement.querySelector('.fetch-members-btn');
@@ -2199,7 +2199,7 @@ function initDeleteAccount() {
         dropdown.innerHTML = '<div class="text-center py-3 bg-discord-bg-secondary text-sm text-discord-interactive-normal"><i class="fas fa-spinner fa-spin mr-2"></i>Loading members...</div>';
         dropdown.classList.remove('hidden');
         
-        // Get eligible new owners
+
         window.serverAPI.getEligibleNewOwners(serverId)
             .then(response => {
                 fetchBtn.disabled = false;
@@ -2217,10 +2217,10 @@ function initDeleteAccount() {
                     return;
                 }
                 
-                // Store members data
+
                 serverElement.dataset.members = JSON.stringify(members);
                 
-                // Render members
+
                 renderMembersList(serverElement, members);
             })
             .catch(error => {
@@ -2231,7 +2231,7 @@ function initDeleteAccount() {
             });
     }
     
-    // Render members list in dropdown
+
     function renderMembersList(serverElement, members) {
         const dropdown = serverElement.querySelector('.members-dropdown');
         dropdown.innerHTML = '';
@@ -2265,7 +2265,7 @@ function initDeleteAccount() {
         });
     }
     
-    // Filter members based on search input
+
     function filterMembers(serverElement) {
         const searchInput = serverElement.querySelector('.member-search-input');
         const dropdown = serverElement.querySelector('.members-dropdown');
@@ -2282,7 +2282,7 @@ function initDeleteAccount() {
         dropdown.classList.remove('hidden');
     }
     
-    // Select a member for transfer
+
     function selectMember(serverElement, member) {
         const dropdown = serverElement.querySelector('.members-dropdown');
         const searchInput = serverElement.querySelector('.member-search-input');
@@ -2292,7 +2292,7 @@ function initDeleteAccount() {
         const transferError = serverElement.querySelector('.transfer-error');
         const transferSuccess = serverElement.querySelector('.transfer-success');
         
-        // Update selected member UI
+
         selectedMemberName.textContent = member.display_name || member.username;
         
         if (member.avatar_url) {
@@ -2301,15 +2301,15 @@ function initDeleteAccount() {
             selectedMemberAvatar.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${member.username.charAt(0)}</div>`;
         }
         
-        // Store selected member ID
+
         serverElement.dataset.selectedMemberId = member.id;
         
-        // Update UI
+
         dropdown.classList.add('hidden');
         searchInput.value = member.display_name || member.username;
         selectedMember.classList.remove('hidden');
         
-        // Show loading state
+
         selectedMember.innerHTML = `
             <div class="flex items-center justify-between p-2 rounded-md">
                 <div class="flex items-center">
@@ -2324,7 +2324,7 @@ function initDeleteAccount() {
             </div>
         `;
         
-        // Automatically transfer ownership
+
         const serverId = serverElement.getAttribute('data-server-id');
         
         transferError.classList.add('hidden');
@@ -2335,11 +2335,11 @@ function initDeleteAccount() {
                     selectedMember.classList.add('hidden');
                     transferSuccess.classList.remove('hidden');
                     
-                    // Update the server element
+
                     serverElement.classList.add('opacity-50');
                     serverElement.classList.add('border-green-500');
                     
-                    // Check if all servers have been transferred
+
                     checkAllServersTransferred();
                 } else {
                     throw new Error(result.error || 'Failed to transfer ownership');
@@ -2362,7 +2362,7 @@ function initDeleteAccount() {
             });
     }
     
-    // Check if all servers have been transferred
+
     function checkAllServersTransferred() {
         const serverElements = document.querySelectorAll('#owned-servers-list > div');
         const allTransferred = Array.from(serverElements).every(server => 
@@ -2387,7 +2387,7 @@ function initDeleteAccount() {
             return;
         }
         
-        // Check if user still owns servers
+
         const serverElements = document.querySelectorAll('#owned-servers-list > div');
         const allTransferred = Array.from(serverElements).every(server => 
             server.querySelector('.transfer-success') && 

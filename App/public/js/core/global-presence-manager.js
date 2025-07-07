@@ -390,7 +390,7 @@ class GlobalPresenceManager {
         channelIds.forEach(channelId => {
             const channel = voiceChannels[channelId];
             
-            // Remove duplicates by creating a Map with userId as key
+
             const uniqueParticipants = new Map();
             channel.participants.forEach(participant => {
                 if (!uniqueParticipants.has(participant.id)) {
