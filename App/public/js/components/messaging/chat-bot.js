@@ -328,11 +328,24 @@ class ChatBot {
             window.BotComponent.init();
         }
 
-        const titiBotId = '4';
         const titiBotUsername = 'titibot';
-        
-        if (!window.BotComponent.getBotStatus(titiBotId)) {
 
+        // Attempt to retrieve TitiBot ID from cache first
+        if (!this.titiBotId) {
+            fetch(`/api/bots/public-check/${titiBotUsername}`)
+                .then(res => res.ok ? res.json() : null)
+                .then(json => {
+                    if (json && json.success && json.is_bot && json.bot && json.bot.id) {
+                        this.titiBotId = json.bot.id.toString();
+                    }
+                })
+                .catch(e => console.error('❌ [CHAT-BOT] Failed to fetch titibot info:', e));
+        }
+
+        // Fallback to id "4" if API did not return anything (keeps backward-compat)
+        const titiBotId = this.titiBotId || '4';
+
+        if (!window.BotComponent.getBotStatus(titiBotId)) {
             window.globalSocketManager.io.emit('bot-init', {
                 bot_id: titiBotId,
                 username: titiBotUsername

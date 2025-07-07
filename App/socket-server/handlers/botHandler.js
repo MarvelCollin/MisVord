@@ -539,6 +539,8 @@ class BotHandler extends EventEmitter {
         const indonesiaTime = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
         const currentTimestamp = indonesiaTime.toISOString();
 
+        // Sanitize reply_message_id: only forward numeric IDs to the backend
+        const replyIdForDB = (originalMessage.id && !isNaN(originalMessage.id)) ? parseInt(originalMessage.id) : null;
         const botMessageData = {
             user_id: parseInt(botId),
             target_type: targetType,
@@ -547,7 +549,7 @@ class BotHandler extends EventEmitter {
             message_type: 'text',
             attachments: [],
             mentions: [],
-            reply_message_id: originalMessage.id,
+            reply_message_id: replyIdForDB,
             temp_message_id: temp_message_id
         };
 

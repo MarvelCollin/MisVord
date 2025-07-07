@@ -1579,6 +1579,13 @@ class ChatController extends BaseController
         $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
 
+        // Sanitize reply_message_id: ignore non-numeric (temporary) IDs coming from socket
+        if ($replyMessageId !== null && !ctype_digit((string)$replyMessageId)) {
+            $replyMessageId = null;
+        } elseif ($replyMessageId !== null) {
+            $replyMessageId = intval($replyMessageId);
+        }
+
         if (empty($content) && empty($attachments)) {
             $validationErrors['content'] = 'Message must have either content or an attachment';
         }
