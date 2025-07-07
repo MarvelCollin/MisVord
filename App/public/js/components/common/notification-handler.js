@@ -87,6 +87,7 @@ class GlobalNotificationHandler {
         this.clearExistingNotifications();
         
         const mentionerUsername = data.username;
+        const mentionerAvatar = data.avatar_url || '/public/assets/common/default-profile-picture.png';
         const channelName = data.context.channel_name || 'Channel';
         const serverName = data.context.server_name || 'Server';
         const serverIcon = data.context.server_icon || '/public/assets/common/default-profile-picture.png';
@@ -94,16 +95,13 @@ class GlobalNotificationHandler {
         
         let mentionColor = 'from-blue-500 to-indigo-600';
         let mentionText = 'mention';
-        let mentionIcon = '👤';
         
         if (isAllMention) {
             mentionColor = 'from-orange-500 to-red-500';
             mentionText = 'all';
-            mentionIcon = '📢';
         } else if (isRoleMention) {
             mentionColor = 'from-purple-500 to-pink-500';
             mentionText = 'role';
-            mentionIcon = '👥';
         }
         
         const notificationElement = document.createElement('div');
@@ -116,8 +114,8 @@ class GlobalNotificationHandler {
                 <div class="bg-[#2b2d31] rounded-md p-4 border border-gray-600">
                     <div class="flex items-start space-x-3">
                         <div class="flex-shrink-0">
-                            <div class="w-10 h-10 bg-gradient-to-br ${mentionColor} rounded-full flex items-center justify-center">
-                                <span class="text-white text-lg">${mentionIcon}</span>
+                            <div class="w-10 h-10 bg-gradient-to-br ${mentionColor} rounded-full flex items-center justify-center overflow-hidden">
+                                <img src="${mentionerAvatar}" alt="${mentionerUsername}" class="w-full h-full object-cover">
                             </div>
                         </div>
                         <div class="flex-1 min-w-0">

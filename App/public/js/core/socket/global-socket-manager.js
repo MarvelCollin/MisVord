@@ -1082,18 +1082,27 @@ class GlobalSocketManager {
             
             const channelName = data.channel_name || `Channel ${data.channel_id || data.room_id}`;
             const notificationText = `${data.username} mentioned you with ${mentionType} in ${channelName}`;
+            const avatarUrl = data.avatar_url || '/public/assets/common/default-profile-picture.png';
             
 
             
             if (window.showToast) {
-                window.showToast(notificationText, 'mention', 8000);
+                if (window.notificationToast && typeof window.notificationToast.mention === 'function') {
+                    window.notificationToast.mention(notificationText, {
+                        avatar: avatarUrl,
+                        title: 'New Mention',
+                        duration: 8000
+                    });
+                } else {
+                    window.showToast(notificationText, 'mention', 8000);
+                }
             }
             
             if (document.hidden && 'Notification' in window) {
                 if (Notification.permission === 'granted') {
                     const notification = new Notification('New Mention', {
                         body: notificationText,
-                        icon: '/public/assets/common/default-profile-picture.png',
+                        icon: avatarUrl,
                         tag: `mention-${data.message_id || Date.now()}`,
                         requireInteraction: false
                     });

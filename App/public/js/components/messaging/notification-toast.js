@@ -84,6 +84,10 @@ class NotificationToast {
 
         const config = this.getToastConfig(type);
         
+        // If avatar is provided, create an icon object with avatar property
+        if (avatar && !icon) {
+            icon = { avatar };
+        }
 
         const toastHTML = `
             <div class="relative overflow-hidden rounded-lg shadow-lg ${config.gradientBorder}">
@@ -237,6 +241,15 @@ class NotificationToast {
     }
     
     renderIcon(icon, bgClass) {
+        if (typeof icon === 'object' && icon.avatar) {
+            return `
+                <div class="flex-shrink-0">
+                    <div class="h-10 w-10 rounded-full ${bgClass} flex items-center justify-center text-white overflow-hidden">
+                        <img src="${icon.avatar}" alt="User avatar" class="w-full h-full object-cover">
+                    </div>
+                </div>
+            `;
+        }
         return `
             <div class="flex-shrink-0">
                 <div class="h-10 w-10 rounded-full ${bgClass} flex items-center justify-center text-white">
@@ -286,7 +299,9 @@ class NotificationToast {
     }
     
     mention(message, options = {}) {
-        return this.show({ message, type: 'mention', ...options });
+        const { avatar, ...restOptions } = options;
+        const icon = avatar ? { avatar } : null;
+        return this.show({ message, type: 'mention', icon, ...restOptions });
     }
     
     discord(message, options = {}) {

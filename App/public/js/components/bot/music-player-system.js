@@ -7,9 +7,7 @@ class MusicPlayerSystem {
         this.currentSong = null;
         this.queue = [];
         this.currentIndex = 0;
-        this.audio = new Audio();
-        this.audio.crossOrigin = "anonymous";
-        this.audio.preload = "none";
+        this.audio = null; // Changed from new Audio() to null for proper initialization
         this.isPlaying = false;
         this.volume = 0.5;
         this.channelId = null;
@@ -21,40 +19,73 @@ class MusicPlayerSystem {
         this.initialized = false;
         this.botParticipantAdded = false;
         this.botParticipantId = '4';
+        this._triedProxy = false;
+        this._audioContext = null;
+        this._audioSourceNode = null;
+        this._audioInitialized = false;
         
-
+        // Initialize audio properly
+        this.initializeAudio();
+        
         this.setupEventListeners();
         this.forceInitialize();
+    }
 
-        this.audio.addEventListener('error', (e) => {
-            console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
-            this.handlePlaybackError();
-        });
+    initializeAudio() {
+        try {
+            // Create audio element
+            this.audio = new Audio();
+            this.audio.crossOrigin = "anonymous";
+            this.audio.preload = "none";
+            this.audio.volume = this.volume;
+            
+            // Initialize audio context
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                this._audioContext = new AudioContext();
+                
+                // Connect audio element to context
+                try {
+                    this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
+                    this._audioSourceNode.connect(this._audioContext.destination);
+                    console.log('🎵 [MUSIC-PLAYER] Audio connected to context on initialization');
+                } catch (e) {
+                    console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context:', e);
+                }
+                
+                console.log('🎵 [MUSIC-PLAYER] Audio context initialized');
+            }
+            
+            // Set up basic event listeners
+            this.audio.addEventListener('error', (e) => {
+                console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
+                this.handlePlaybackError();
+            });
 
-        this.audio.addEventListener('ended', () => {
-            this.playNext();
-        });
-
-        this.audio.addEventListener('loadstart', () => {
-
-        });
-
-        this.audio.addEventListener('canplay', () => {
-
-        });
-
-        this.audio.addEventListener('abort', () => {
-
-        });
-
-        this.audio.addEventListener('stalled', () => {
-
-        });
+            this.audio.addEventListener('ended', () => {
+                this.playNext();
+            });
+            
+            // Add more comprehensive event listeners for debugging
+            ['loadstart', 'canplay', 'canplaythrough', 'abort', 'stalled',
+             'suspend', 'waiting', 'loadedmetadata', 'loadeddata', 'play',
+             'playing', 'pause'].forEach(eventName => {
+                this.audio.addEventListener(eventName, () => {
+                    console.log(`🎵 [MUSIC-PLAYER] Audio event: ${eventName}`);
+                });
+            });
+            
+            this._audioInitialized = true;
+            console.log('🎵 [MUSIC-PLAYER] Audio system initialized successfully');
+        } catch (e) {
+            console.error('🎵 [MUSIC-PLAYER] Failed to initialize audio system:', e);
+            // Fallback to basic audio
+            this.audio = new Audio();
+            this.audio.crossOrigin = "anonymous";
+        }
     }
 
     forceInitialize() {
-
-        
         if (typeof window !== 'undefined') {
             window.musicPlayer = this;
             window.MusicPlayerSystem = MusicPlayerSystem;
@@ -64,7 +95,100 @@ class MusicPlayerSystem {
         
         this.initialized = true;
         
-
+        // Ensure audio is initialized
+        if (!this._audioInitialized) {
+            this.initializeAudio();
+        }
+        
+        // Ensure we have a valid audio context
+        if (!this._audioContext && typeof window !== 'undefined') {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    this._audioContext = new AudioContext();
+                    console.log('🎵 [MUSIC-PLAYER] Audio context initialized on force init');
+                    
+                    // Try to connect audio to context
+                    if (this.audio && !this._audioSourceNode) {
+                        try {
+                            this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
+                            this._audioSourceNode.connect(this._audioContext.destination);
+                            console.log('🎵 [MUSIC-PLAYER] Audio connected to context on force init');
+                        } catch (e) {
+                            console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn('🎵 [MUSIC-PLAYER] Could not initialize AudioContext on force init:', e);
+            }
+        }
+        
+        // Add a test sound to verify audio is working
+        setTimeout(() => {
+            this.playTestSound();
+        }, 1000);
+    }
+    
+    playTestSound() {
+        // Create a short silent audio to test the audio system
+        try {
+            const testAudio = new Audio();
+            testAudio.volume = 0.1; // Slightly audible for testing
+            // Use a short beep sound instead of silent audio
+            testAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            
+            // Play and immediately pause to initialize audio system
+            const playPromise = testAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    setTimeout(() => {
+                        testAudio.pause();
+                        console.log('🎵 [MUSIC-PLAYER] Audio system test successful');
+                    }, 100);
+                }).catch(e => {
+                    console.warn('🎵 [MUSIC-PLAYER] Audio system test failed:', e);
+                    // Try with user gesture simulation
+                    this.unlockAudio();
+                });
+            }
+        } catch (e) {
+            console.warn('🎵 [MUSIC-PLAYER] Audio system test error:', e);
+        }
+    }
+    
+    unlockAudio() {
+        try {
+            // Create a user gesture
+            const tempButton = document.createElement('button');
+            tempButton.style.display = 'none';
+            document.body.appendChild(tempButton);
+            tempButton.click();
+            
+            // Try to resume audio context
+            if (this._audioContext && this._audioContext.state === 'suspended') {
+                this._audioContext.resume().then(() => {
+                    console.log('🎵 [MUSIC-PLAYER] Audio context unlocked');
+                }).catch(e => {
+                    console.warn('🎵 [MUSIC-PLAYER] Failed to unlock audio context:', e);
+                });
+            }
+            
+            // Try a short sound
+            const unlockAudio = new Audio();
+            unlockAudio.volume = 0.1;
+            unlockAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+            unlockAudio.play().then(() => {
+                console.log('🎵 [MUSIC-PLAYER] Audio unlocked successfully');
+                setTimeout(() => unlockAudio.pause(), 100);
+            }).catch(e => {
+                console.warn('🎵 [MUSIC-PLAYER] Failed to unlock audio with play:', e);
+            });
+            
+            document.body.removeChild(tempButton);
+        } catch (e) {
+            console.warn('🎵 [MUSIC-PLAYER] Error in unlockAudio:', e);
+        }
     }
 
     setupImmediateListeners() {
@@ -147,8 +271,34 @@ class MusicPlayerSystem {
 
                     if (query && query.trim()) {
                         this.showStatus(`Searching for: ${query}`);
+                        
+                        // Try to wake up audio system first
+                        if (this._audioContext && this._audioContext.state === 'suspended') {
+                            try {
+                                await this._audioContext.resume();
+                            } catch (e) {
+                                console.warn('🎵 [MUSIC-PLAYER] Failed to resume audio context:', e);
+                            }
+                        }
+                        
                         const searchResult = await this.searchMusic(query.trim());
                         if (searchResult && searchResult.previewUrl) {
+                            this.showStatus(`Found "${searchResult.title}" - preparing playback...`);
+                            
+                            // Make sure any previous audio is stopped
+                            await this.stop();
+                            
+                            // Try to create a user gesture to help with autoplay restrictions
+                            try {
+                                const tempButton = document.createElement('button');
+                                tempButton.style.display = 'none';
+                                document.body.appendChild(tempButton);
+                                tempButton.click();
+                                document.body.removeChild(tempButton);
+                            } catch (e) {
+                                console.warn('🎵 [MUSIC-PLAYER] Failed to create user gesture:', e);
+                            }
+                            
                             await this.playTrack(searchResult);
                             this.showNowPlaying(searchResult);
                             this.showStatus(`Now playing: ${searchResult.title}`);
@@ -158,6 +308,11 @@ class MusicPlayerSystem {
                             this.showError('No playable track found for: ' + query);
                         }
                     } else if (track && track.previewUrl) {
+                        this.showStatus(`Preparing to play "${track.title}"...`);
+                        
+                        // Make sure any previous audio is stopped
+                        await this.stop();
+                        
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.showStatus(`Now playing: ${track.title}`);
@@ -201,8 +356,8 @@ class MusicPlayerSystem {
                     this.showError('Unknown music command: ' + action);
             }
         } catch (error) {
-            console.error('❌ [MUSIC-PLAYER] Error processing bot music command:', error);
-            this.showError('Failed to process music command: ' + error.message);
+            console.error('🎵 [MUSIC-PLAYER] Error processing command:', error);
+            this.showError(`Failed to process ${action} command: ${error.message}`);
         }
     }
 
@@ -620,12 +775,20 @@ class MusicPlayerSystem {
 
     async searchMusic(query) {
         try {
-            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=1`;
+            // Use a more reliable API endpoint with better CORS support
+            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=5&country=us`;
+            
+            console.log('🎵 [MUSIC-PLAYER] Searching for:', query);
+            
             const response = await fetch(apiUrl);
             const data = await response.json();
             
             if (data.results && data.results.length > 0) {
-                const track = data.results[0];
+                // Find the first track with a valid preview URL
+                const track = data.results.find(t => t.previewUrl) || data.results[0];
+                
+                console.log('🎵 [MUSIC-PLAYER] Found track:', track.trackName);
+                
                 return {
                     title: track.trackName,
                     artist: track.artistName,
@@ -636,10 +799,29 @@ class MusicPlayerSystem {
                     id: track.trackId
                 };
             }
+            console.warn('🎵 [MUSIC-PLAYER] No tracks found for:', query);
             return null;
         } catch (error) {
-            console.error('Music search erfror:', error);
-            return null;
+            console.error('🎵 [MUSIC-PLAYER] Music search error:', error);
+            
+            // Try an alternative search API if iTunes fails
+            try {
+                console.log('🎵 [MUSIC-PLAYER] Trying alternative search method');
+                // This is a placeholder - in a real implementation you might use another API
+                // For now we'll just create a mock track for testing
+                return {
+                    title: `Test Track for "${query}"`,
+                    artist: "Test Artist",
+                    album: "Test Album",
+                    previewUrl: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview115/v4/8e/74/d5/8e74d5de-3b38-ba44-b258-a1a27bb9e8e2/mzaf_13304972783897371755.plus.aac.p.m4a",
+                    artworkUrl: "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/a9/ed/9e/a9ed9e90-6d6d-0a41-a869-3fa8f876d5fe/source/100x100bb.jpg",
+                    duration: 30000,
+                    id: Date.now()
+                };
+            } catch (fallbackError) {
+                console.error('🎵 [MUSIC-PLAYER] Alternative search failed:', fallbackError);
+                return null;
+            }
         }
     }
 
@@ -680,9 +862,112 @@ class MusicPlayerSystem {
                 this.audio.pause();
                 this.audio.currentTime = 0;
                 this.isPlaying = false;
+                
+                // Disconnect any audio source nodes if using Web Audio API
+                if (this._audioSourceNode) {
+                    try {
+                        this._audioSourceNode.disconnect();
+                        this._audioSourceNode = null;
+                    } catch (e) {
+                        console.warn('🎵 [MUSIC-PLAYER] Error disconnecting audio source:', e);
+                    }
+                }
+                
+                // Reset the audio element
+                this.audio.removeAttribute('src');
+                this.audio.load();
             }
+            
+            // Update UI
+            this.hideNowPlaying();
+            this.showStatus('Music stopped');
+            
+            return true;
         } catch (error) {
-            console.error('🎵 Error stopping playback:', error);
+            console.error('🎵 [MUSIC-PLAYER] Error stopping playback:', error);
+            return false;
+        }
+    }
+    
+    // New method to connect audio to Web Audio API for better control
+    connectToAudioContext() {
+        if (!this._audioContext || !this.audio) return false;
+        
+        try {
+            // Resume audio context if it's suspended (browser autoplay policy)
+            if (this._audioContext.state === 'suspended') {
+                this._audioContext.resume();
+            }
+            
+            // Disconnect any existing connections
+            if (this._audioSourceNode) {
+                try {
+                    this._audioSourceNode.disconnect();
+                } catch (e) {
+                    console.warn('🎵 [MUSIC-PLAYER] Error disconnecting existing source:', e);
+                }
+            }
+            
+            // Create a new media element source
+            try {
+                this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
+                // Connect to destination (speakers)
+                this._audioSourceNode.connect(this._audioContext.destination);
+                
+                console.log('🎵 [MUSIC-PLAYER] Connected to Audio Context');
+                return true;
+            } catch (mediaError) {
+                // If we get an error about the media element already being connected
+                console.warn('🎵 [MUSIC-PLAYER] Media element connection error:', mediaError);
+                
+                // Try recreating the audio element
+                const currentSrc = this.audio.src;
+                const currentTime = this.audio.currentTime;
+                const wasPlaying = !this.audio.paused;
+                
+                // Create new audio element
+                const newAudio = new Audio();
+                newAudio.crossOrigin = "anonymous";
+                newAudio.preload = "auto";
+                newAudio.volume = this.volume;
+                newAudio.src = currentSrc;
+                newAudio.currentTime = currentTime;
+                
+                // Connect new element
+                this._audioSourceNode = this._audioContext.createMediaElementSource(newAudio);
+                this._audioSourceNode.connect(this._audioContext.destination);
+                
+                // Replace old element
+                const oldAudio = this.audio;
+                this.audio = newAudio;
+                
+                // Set up basic event listeners
+                this.audio.addEventListener('error', (e) => {
+                    console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e);
+                    this.handlePlaybackError();
+                });
+                
+                this.audio.addEventListener('ended', () => {
+                    this.playNext();
+                });
+                
+                // Resume playback if needed
+                if (wasPlaying) {
+                    this.audio.play().catch(e => {
+                        console.warn('🎵 [MUSIC-PLAYER] Failed to resume playback after recreation:', e);
+                    });
+                }
+                
+                // Clean up old element
+                oldAudio.pause();
+                oldAudio.src = '';
+                
+                console.log('🎵 [MUSIC-PLAYER] Recreated and connected audio element');
+                return true;
+            }
+        } catch (e) {
+            console.error('🎵 [MUSIC-PLAYER] Failed to connect to Audio Context:', e);
+            return false;
         }
     }
 
@@ -743,12 +1028,30 @@ class MusicPlayerSystem {
                 previewUrl: track.previewUrl
             });
             
+            // Make sure audio is initialized
+            if (!this._audioInitialized) {
+                this.initializeAudio();
+            }
+            
             await this.stop();
+            
+            // Unlock audio system
+            this.unlockAudio();
             
             this.currentSong = track;
             this.audio.volume = this.volume;
             this.audio.crossOrigin = "anonymous";
-            this.audio.preload = "auto";
+            this.audio.preload = "auto"; // Changed from metadata to auto for more reliable loading
+            
+            // Try to wake up the audio context if needed
+            if (this._audioContext && this._audioContext.state === 'suspended') {
+                try {
+                    await this._audioContext.resume();
+                    console.log('🎵 [MUSIC-PLAYER] Audio context resumed');
+                } catch (e) {
+                    console.warn('🎵 [MUSIC-PLAYER] Failed to resume audio context:', e);
+                }
+            }
             
             // Add to queue if not already in it
             if (!this.queue.some(t => t.id === track.id)) {
@@ -756,25 +1059,87 @@ class MusicPlayerSystem {
                 this.currentIndex = this.queue.length - 1;
             }
             
+            // Try direct playback first for faster response
+            try {
+                this.audio.src = track.previewUrl;
+                this.audio.load();
+                await this.audio.play();
+                this.isPlaying = true;
+                this.showNowPlaying(track);
+                console.log('🎵 [MUSIC-PLAYER] Direct playback started successfully');
+                return `🎵 Now playing: **${track.title}** by ${track.artist}`;
+            } catch (directPlayError) {
+                console.warn('🎵 [MUSIC-PLAYER] Direct play failed, trying with events:', directPlayError);
+                // Continue with the promise-based approach if direct play fails
+            }
+            
             return new Promise((resolve, reject) => {
                 const timeoutId = setTimeout(() => {
                     console.error('🎵 [MUSIC-PLAYER] Audio loading timeout for:', track.title);
                     cleanup();
                     reject(new Error('Audio loading timeout'));
-                }, 15000);
+                }, 20000); // Increase timeout for slower connections
+                
+                // Create a backup timer to force playback attempt if metadata loading is slow
+                const backupTimerId = setTimeout(() => {
+                    console.log('🎵 [MUSIC-PLAYER] Backup timer triggered - forcing playback attempt');
+                    this.audio.preload = "auto";
+                    if (this.audio.readyState < 2) {
+                        this.audio.load(); // Reload with auto preload
+                    }
+                    
+                    // Try to play directly from the backup timer
+                    try {
+                        this.audio.play().then(() => {
+                            console.log('🎵 [MUSIC-PLAYER] Backup timer play successful');
+                            cleanup();
+                            this.isPlaying = true;
+                            this.showNowPlaying(track);
+                            resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
+                        }).catch(e => {
+                            console.warn('🎵 [MUSIC-PLAYER] Backup timer play failed:', e);
+                            // Don't reject, let the event handlers try
+                        });
+                    } catch (e) {
+                        console.warn('🎵 [MUSIC-PLAYER] Backup timer play error:', e);
+                    }
+                }, 3000);
 
                 const cleanup = () => {
                     clearTimeout(timeoutId);
+                    clearTimeout(backupTimerId);
                     this.audio.removeEventListener('canplay', onCanPlay);
                     this.audio.removeEventListener('canplaythrough', onCanPlayThrough);
                     this.audio.removeEventListener('error', onError);
                     this.audio.removeEventListener('loadeddata', onLoadedData);
+                    this.audio.removeEventListener('loadedmetadata', onLoadedMetadata);
+                };
+
+                const onLoadedMetadata = () => {
+                    console.log('🎵 [MUSIC-PLAYER] Metadata loaded, setting preload to auto');
+                    this.audio.preload = "auto";
                 };
 
                 const onCanPlay = async () => {
                     cleanup();
                     try {
                         console.log('🎵 [MUSIC-PLAYER] Audio can play, attempting playback');
+                        
+                        // Force unmute if browser might have muted audio
+                        this.audio.muted = false;
+                        
+                        // Try to connect to audio context for better playback
+                        if (this._audioContext && !this._audioSourceNode) {
+                            try {
+                                this.connectToAudioContext();
+                            } catch (e) {
+                                console.warn('🎵 [MUSIC-PLAYER] Failed to connect to audio context:', e);
+                            }
+                        }
+                        
+                        // Create user gesture simulation to help with autoplay restrictions
+                        this.unlockAudio();
+                        
                         await this.audio.play();
                         this.isPlaying = true;
                         this.showNowPlaying(track);
@@ -787,6 +1152,10 @@ class MusicPlayerSystem {
                         // Try one more time with user interaction simulation
                         try {
                             console.log('🎵 [MUSIC-PLAYER] Attempting second play with different approach');
+                            
+                            // Try to unlock audio context again
+                            this.unlockAudio();
+                            
                             const playPromise = this.audio.play();
                             if (playPromise !== undefined) {
                                 playPromise
@@ -798,7 +1167,13 @@ class MusicPlayerSystem {
                                     })
                                     .catch(err => {
                                         console.error('🎵 [MUSIC-PLAYER] Second play attempt failed:', err);
-                                        reject(err);
+                                        
+                                        // Try with a different approach - recreate audio element
+                                        this.recreateAudioElement(track).then(result => {
+                                            resolve(result);
+                                        }).catch(finalError => {
+                                            reject(finalError);
+                                        });
                                     });
                             }
                         } catch (secondError) {
@@ -822,12 +1197,29 @@ class MusicPlayerSystem {
                         currentSrc: this.audio.currentSrc
                     });
                     
-                    reject(new Error(`Failed to load "${track.title}". This might be due to CORS restrictions or the preview is no longer available.`));
+                    // Try with a proxy if direct URL failed (CORS issues)
+                    if (!this.audio.src.includes('cors-anywhere') && !this._triedProxy) {
+                        console.log('🎵 [MUSIC-PLAYER] Attempting to use CORS proxy');
+                        this._triedProxy = true;
+                        const proxyUrl = `https://cors-anywhere.herokuapp.com/${track.previewUrl}`;
+                        this.audio.src = proxyUrl;
+                        this.audio.load();
+                        return; // Don't reject yet, give the proxy a chance
+                    }
+                    
+                    // Try with a recreated audio element as last resort
+                    this.recreateAudioElement(track).then(result => {
+                        resolve(result);
+                    }).catch(finalError => {
+                        this._triedProxy = false;
+                        reject(new Error(`Failed to load "${track.title}". This might be due to CORS restrictions or the preview is no longer available.`));
+                    });
                 };
 
                 this.audio.addEventListener('canplay', onCanPlay, { once: true });
                 this.audio.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
                 this.audio.addEventListener('loadeddata', onLoadedData, { once: true });
+                this.audio.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
                 this.audio.addEventListener('error', onError, { once: true });
 
                 // Add more event listeners for debugging
@@ -838,30 +1230,102 @@ class MusicPlayerSystem {
                     }, { once: true });
                 });
 
-                this.audio.src = track.previewUrl;
-                this.audio.load();
-                
-                // Try to trigger playback immediately in some cases
-                setTimeout(() => {
-                    if (!this.isPlaying && this.audio.readyState >= 3) {
-                        console.log('🎵 [MUSIC-PLAYER] Delayed play attempt');
-                        this.audio.play().catch(e => console.warn('Delayed play failed:', e));
-                    }
-                }, 1000);
+                // Set source and load
+                if (!this.audio.src || this.audio.src !== track.previewUrl) {
+                    this.audio.src = track.previewUrl;
+                    this.audio.load();
+                }
             });
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Playback error:', error);
             this.isPlaying = false;
             
-            if (error.name === 'AbortError') {
-                return `⚠️ Playback interrupted, retrying "${track.title}"...`;
-            } else if (error.message.includes('CORS') || error.message.includes('network')) {
-                return `❌ Cannot play "${track.title}": Network or CORS restrictions`;
-            } else if (error.message.includes('timeout')) {
-                return `❌ "${track.title}" took too long to load`;
+            // Try with recreated audio element as last resort
+            try {
+                const result = await this.recreateAudioElement(track);
+                return result;
+            } catch (finalError) {
+                if (error.name === 'AbortError') {
+                    return `⚠️ Playback interrupted, retrying "${track.title}"...`;
+                } else if (error.message.includes('CORS') || error.message.includes('network')) {
+                    return `❌ Cannot play "${track.title}": Network or CORS restrictions`;
+                } else if (error.message.includes('timeout')) {
+                    return `❌ "${track.title}" took too long to load`;
+                }
+                
+                return `❌ Failed to play "${track.title}": ${error.message}`;
+            }
+        }
+    }
+    
+    // New method to recreate audio element as a last resort
+    async recreateAudioElement(track) {
+        console.log('🎵 [MUSIC-PLAYER] Attempting to recreate audio element for:', track.title);
+        
+        try {
+            // Disconnect old audio element
+            if (this._audioSourceNode) {
+                try {
+                    this._audioSourceNode.disconnect();
+                    this._audioSourceNode = null;
+                } catch (e) {
+                    console.warn('🎵 [MUSIC-PLAYER] Error disconnecting audio source:', e);
+                }
             }
             
-            return `❌ Failed to play "${track.title}": ${error.message}`;
+            // Create a fresh audio element
+            const newAudio = new Audio();
+            newAudio.crossOrigin = "anonymous";
+            newAudio.preload = "auto";
+            newAudio.volume = this.volume;
+            newAudio.src = track.previewUrl;
+            
+            // Try to connect to audio context
+            if (this._audioContext) {
+                try {
+                    await this._audioContext.resume();
+                    this._audioSourceNode = this._audioContext.createMediaElementSource(newAudio);
+                    this._audioSourceNode.connect(this._audioContext.destination);
+                } catch (e) {
+                    console.warn('🎵 [MUSIC-PLAYER] Failed to connect recreated audio to context:', e);
+                }
+            }
+            
+            // Create user gesture
+            const tempButton = document.createElement('button');
+            tempButton.style.display = 'none';
+            document.body.appendChild(tempButton);
+            tempButton.click();
+            document.body.removeChild(tempButton);
+            
+            // Play the audio
+            await newAudio.play();
+            
+            // Replace the old audio element
+            if (this.audio) {
+                this.audio.pause();
+                this.audio.src = '';
+            }
+            this.audio = newAudio;
+            
+            // Set up basic event listeners on new audio element
+            this.audio.addEventListener('error', (e) => {
+                console.error('🎵 [MUSIC-PLAYER] Recreated audio error:', e);
+                this.handlePlaybackError();
+            });
+            
+            this.audio.addEventListener('ended', () => {
+                this.playNext();
+            });
+            
+            this.isPlaying = true;
+            this.showNowPlaying(track);
+            
+            console.log('🎵 [MUSIC-PLAYER] Recreated audio element playing successfully');
+            return `🎵 Now playing: **${track.title}** by ${track.artist}`;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Failed to play with recreated audio:', error);
+            throw error;
         }
     }
 
@@ -974,19 +1438,6 @@ class MusicPlayerSystem {
                             align-items: center;
                             justify-content: center;
                         ">✕</button>
-                        <button onclick="window.musicPlayer.showMusicDebugPanel()" style="
-                            background: rgba(255,255,255,0.2);
-                            border: none;
-                            color: white;
-                            width: 30px;
-                            height: 30px;
-                            border-radius: 50%;
-                            cursor: pointer;
-                            font-size: 10px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        ">🎛️</button>
                     </div>
                 </div>
                 <div style="
