@@ -366,6 +366,15 @@ class ChatController extends BaseController
             }
         }
 
+        // Ensure reply_message_id is null or a valid integer
+        if ($replyMessageId !== null) {
+            if (empty($replyMessageId) || $replyMessageId === '' || !is_numeric($replyMessageId)) {
+                $replyMessageId = null;
+            } else {
+                $replyMessageId = intval($replyMessageId);
+            }
+        }
+
         $query = new Query();
         try {
             $query->beginTransaction();
@@ -455,6 +464,15 @@ class ChatController extends BaseController
         }
         if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
             return $this->internalForbidden('You are not a participant in this chat');
+        }
+
+        // Ensure reply_message_id is null or a valid integer
+        if ($replyMessageId !== null) {
+            if (empty($replyMessageId) || $replyMessageId === '' || !is_numeric($replyMessageId)) {
+                $replyMessageId = null;
+            } else {
+                $replyMessageId = intval($replyMessageId);
+            }
         }
 
         $query = new Query();
@@ -1578,12 +1596,20 @@ class ChatController extends BaseController
         $attachments = $input['attachments'] ?? [];
         $mentions = $input['mentions'] ?? [];
         $replyMessageId = $input['reply_message_id'] ?? null;
+        $tempMessageId = $input['temp_message_id'] ?? null;
 
         // Sanitize reply_message_id: ignore non-numeric (temporary) IDs coming from socket
         if ($replyMessageId !== null && !ctype_digit((string)$replyMessageId)) {
+            error_log("Sanitizing non-numeric reply_message_id: " . var_export($replyMessageId, true));
             $replyMessageId = null;
         } elseif ($replyMessageId !== null) {
-            $replyMessageId = intval($replyMessageId);
+            if (empty($replyMessageId) || $replyMessageId === '') {
+                error_log("Sanitizing empty reply_message_id: " . var_export($replyMessageId, true));
+                $replyMessageId = null;
+            } else {
+                $replyMessageId = intval($replyMessageId);
+                error_log("Converted reply_message_id to int: " . var_export($replyMessageId, true));
+            }
         }
 
         if (empty($content) && empty($attachments)) {
@@ -1595,26 +1621,43 @@ class ChatController extends BaseController
             return $this->validationError($validationErrors);
         }
 
+        $targetType = $input['target_type'];
+        $targetId = $input['target_id'];
+
         try {
-            if ($input['target_type'] === 'channel') {
-                $result = $this->sendChannelMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
+            // Auto-add bot to server/channel or chat room to ensure permissions
+            require_once __DIR__ . '/BotController.php';
+            $botController = new BotController();
+            
+            if ($targetType === 'channel') {
+                $channel = $this->channelRepository->find($targetId);
+                if (!$channel) {
+                    return $this->notFound("Channel not found with ID $targetId");
+                }
+                
+                // Ensure bot is a member of the server
+                if ($channel->server_id != 0) {
+                    $botController->ensureBotInServer($userId, $channel->server_id);
+                }
+                
+                $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             } else {
-                $result = $this->sendDirectMessage($input['target_id'], $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
+                $chatRoom = $this->chatRoomRepository->find($targetId);
+                if (!$chatRoom) {
+                    return $this->notFound("Chat room not found with ID $targetId");
+                }
+                
+                // Ensure bot is a participant in the chat room
+                $botController->ensureBotInChatRoom($userId, $targetId);
+                
+                $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             }
 
-            error_log("Socket message save result: " . json_encode($result));
-
             if ($result['success']) {
-                $messageData = null;
-                if (isset($result['data']['data']['message'])) {
-                    $messageData = $result['data']['data']['message'];
-                } else if (isset($result['data']['message'])) {
-                    $messageData = $result['data']['message'];
-                }
+                $messageData = $result['data']['message'];
 
-                if (!$messageData) {
-                    error_log("No message data found in result: " . json_encode($result));
-                    return $this->serverError('Message data not found in response');
+                if (isset($input['nonce'])) {
+                    $messageData['nonce'] = $input['nonce'];
                 }
 
                 return $this->success([
@@ -1625,8 +1668,10 @@ class ChatController extends BaseController
                     'temp_message_id' => $tempMessageId
                 ], 'Message saved successfully');
             } else {
-                error_log("Failed to save socket message: " . json_encode($result));
-                return $result;
+                // Always return JSON response, even for errors
+                header('Content-Type: application/json');
+                echo json_encode($result);
+                exit;
             }
         } catch (Exception $e) {
             error_log("Error saving socket message: " . $e->getMessage());
@@ -1699,30 +1744,31 @@ class ChatController extends BaseController
         $targetId = $input['target_id'];
 
         try {
+            // Auto-add bot to server/channel or chat room to ensure permissions
+            require_once __DIR__ . '/BotController.php';
+            $botController = new BotController();
+            
             if ($targetType === 'channel') {
                 $channel = $this->channelRepository->find($targetId);
                 if (!$channel) {
                     return $this->notFound("Channel not found with ID $targetId");
                 }
-
+                
+                // Ensure bot is a member of the server
                 if ($channel->server_id != 0) {
-                    $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
-                    if (!$membership) {
-                        return $this->forbidden('Bot is not a member of this server');
-                    }
+                    $botController->ensureBotInServer($userId, $channel->server_id);
                 }
-
+                
                 $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             } else {
                 $chatRoom = $this->chatRoomRepository->find($targetId);
                 if (!$chatRoom) {
                     return $this->notFound("Chat room not found with ID $targetId");
                 }
-
-                if (!$this->chatRoomRepository->isParticipant($targetId, $userId)) {
-                    return $this->forbidden('Bot is not a participant in this chat');
-                }
-
+                
+                // Ensure bot is a participant in the chat room
+                $botController->ensureBotInChatRoom($userId, $targetId);
+                
                 $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             }
 
@@ -1741,7 +1787,10 @@ class ChatController extends BaseController
                     'temp_message_id' => $tempMessageId
                 ], 'Message saved successfully');
             } else {
-                return $result;
+                // Always return JSON response, even for errors
+                header('Content-Type: application/json');
+                echo json_encode($result);
+                exit;
             }
         } catch (Exception $e) {
             error_log("Error saving bot message: " . $e->getMessage());

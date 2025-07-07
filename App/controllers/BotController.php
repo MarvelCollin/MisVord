@@ -495,4 +495,54 @@ class BotController extends BaseController
             return $this->serverError('An error occurred while retrieving the bot: ' . $e->getMessage());
         }
     }
+    
+    /**
+     * Ensures a bot is a member of a server
+     * @param int $botId The bot user ID
+     * @param int $serverId The server ID
+     * @return bool True if the bot is now a member
+     */
+    public function ensureBotInServer($botId, $serverId) {
+        try {
+            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+            $membershipRepo = new UserServerMembershipRepository();
+            
+            // Check if bot is already a member
+            if ($membershipRepo->isMember($botId, $serverId)) {
+                return true;
+            }
+            
+            // Add bot to server with 'member' role
+            $membershipRepo->addMember($botId, $serverId, 'member');
+            return true;
+        } catch (Exception $e) {
+            error_log("Failed to ensure bot in server: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Ensures a bot is a participant in a chat room
+     * @param int $botId The bot user ID
+     * @param int $roomId The chat room ID
+     * @return bool True if the bot is now a participant
+     */
+    public function ensureBotInChatRoom($botId, $roomId) {
+        try {
+            require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
+            $chatRoomRepo = new ChatRoomRepository();
+            
+            // Check if bot is already a participant
+            if ($chatRoomRepo->isParticipant($roomId, $botId)) {
+                return true;
+            }
+            
+            // Add bot to chat room
+            $chatRoomRepo->addParticipant($roomId, $botId);
+            return true;
+        } catch (Exception $e) {
+            error_log("Failed to ensure bot in chat room: " . $e->getMessage());
+            return false;
+        }
+    }
 }
