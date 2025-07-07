@@ -639,20 +639,59 @@ function highlightSearchQuery(content, query) {
 }
 
 function formatSearchTimestamp(timestamp) {
+    if (!timestamp) return '';
+    
+    // Create date objects in local timezone
     const date = new Date(timestamp);
     const now = new Date();
-    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-
-    // Use Indonesian locale (id-ID) and 24-hour format
-    const timeString = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
-
-    if (diffDays === 0) {
-        return 'Hari ini ' + timeString; // Today → Hari ini
-    } else if (diffDays === 1) {
-        return 'Kemarin ' + timeString; // Yesterday → Kemarin
+    
+    // Apply UTC+7 offset for Asia/Jakarta
+    const jakartaOffsetHours = 7;
+    const localOffsetMinutes = date.getTimezoneOffset();
+    const jakartaOffsetMinutes = jakartaOffsetHours * 60 * -1;
+    const offsetDiffMinutes = jakartaOffsetMinutes - localOffsetMinutes;
+    
+    // Adjust the date for Jakarta timezone
+    const jakartaDate = new Date(date.getTime() + offsetDiffMinutes * 60 * 1000);
+    const jakartaNow = new Date(now.getTime() + offsetDiffMinutes * 60 * 1000);
+    
+    // Get date strings for comparison
+    const jakartaDateString = jakartaDate.toISOString().split('T')[0];
+    const jakartaNowString = jakartaNow.toISOString().split('T')[0];
+    
+    // Calculate yesterday
+    const jakartaYesterday = new Date(jakartaNow);
+    jakartaYesterday.setDate(jakartaYesterday.getDate() - 1);
+    const jakartaYesterdayString = jakartaYesterday.toISOString().split('T')[0];
+    
+    // Format time
+    const hours = jakartaDate.getHours().toString().padStart(2, '0');
+    const minutes = jakartaDate.getMinutes().toString().padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+    
+    // Determine how to format based on date difference
+    if (jakartaDateString === jakartaNowString) {
+        // Today: "Today at 15:30"
+        return `Today at ${timeStr}`;
+    } else if (jakartaDateString === jakartaYesterdayString) {
+        // Yesterday: "Yesterday at 15:30"
+        return `Yesterday at ${timeStr}`;
     } else {
-        // Example: 12 Jul
-        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        const diffDays = Math.floor((jakartaNow - jakartaDate) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 7) {
+            // This week: "Monday at 15:30"
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayName = days[jakartaDate.getDay()];
+            return `${dayName} at ${timeStr}`;
+        } else {
+            // Older: "Jul 25, 2025 15:30"
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthName = months[jakartaDate.getMonth()];
+            const day = jakartaDate.getDate();
+            const year = jakartaDate.getFullYear();
+            return `${monthName} ${day}, ${year} ${timeStr}`;
+        }
     }
 }
 

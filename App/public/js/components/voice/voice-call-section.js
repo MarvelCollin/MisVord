@@ -1938,10 +1938,24 @@ class VoiceCallSection {
         </div>
       </div>
       
-      <div class="music-status">
+      <div class="music-status bg-[#2b2d31] py-1 px-3 rounded-full text-xs text-[#b5bac1] mt-1 max-w-full overflow-hidden whitespace-nowrap text-ellipsis" style="max-width: 180px; animation: pulse 2s infinite;">
         <i class="fas fa-music mr-1"></i>
-        Ready to play
+        Ready to play music
       </div>
+      <style>
+        .bot-participant-card .music-status {
+          transition: all 0.3s ease;
+        }
+        .bot-participant-card .music-status:hover {
+          background-color: #5865f2;
+          color: white;
+        }
+        @keyframes pulse {
+          0% { opacity: 0.7; }
+          50% { opacity: 1; }
+          100% { opacity: 0.7; }
+        }
+      </style>
     `;
 
     return participantCard;

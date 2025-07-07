@@ -624,6 +624,7 @@ class SimpleChannelSwitcher {
             }
             if (chatSection) {
                 chatSection.classList.remove('hidden');
+                chatSection.classList.add('dm-chat-visible'); // Add this class for consistency with DM switcher
                 chatSection.style.display = 'flex';
                 chatSection.setAttribute('data-channel-id', channelId);
             }

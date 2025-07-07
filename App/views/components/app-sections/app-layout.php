@@ -139,7 +139,7 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
                     </div>
                 </div>
             <?php elseif ($contentType === 'dm'): ?>
-                <div class="chat-section">
+                <div class="chat-section dm-chat-visible">
                     <?php include dirname(__DIR__) . '/app-sections/chat-section.php'; ?>
                 </div>
             <?php endif; ?>
@@ -191,7 +191,7 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
     display: none !important;
 }
 
-.chat-section:not(.hidden), .voice-section:not(.hidden) {
+.chat-section:not(.hidden), .voice-section:not(.hidden), .chat-section.dm-chat-visible {
     display: flex !important;
 }
 

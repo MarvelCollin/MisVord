@@ -28,18 +28,29 @@ class SimpleDMSwitcher {
         const chatSection  = document.querySelector('.chat-section');
         const voiceSection = document.querySelector('.voice-section');
 
+        console.log('🔍 [DM-SWITCH] showChatSection called:', {
+            chatSectionFound: !!chatSection,
+            voiceSectionFound: !!voiceSection,
+            currentDMId: this.currentDMId
+        });
+
         if (voiceSection) {
             voiceSection.classList.add('hidden');
             voiceSection.style.display = 'none';
         }
         if (chatSection) {
-            // Make sure any residual `hidden` class is removed so that
-            // the stylesheet rule `.chat-section.hidden { display: none !important; }`
-            // no longer hides the element. Inline styles alone are not enough
-            // to override the `!important` declaration in CSS.
             chatSection.classList.remove('hidden');
             chatSection.style.display = 'flex';
             chatSection.setAttribute('data-channel-id', this.currentDMId || '');
+            
+            // Force visibility by adding a specific class
+            chatSection.classList.add('dm-chat-visible');
+            
+            console.log('✅ [DM-SWITCH] Chat section visibility updated:', {
+                hasHiddenClass: chatSection.classList.contains('hidden'),
+                display: chatSection.style.display,
+                classList: Array.from(chatSection.classList)
+            });
         }
     }
     
@@ -102,7 +113,12 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-
+        console.log('🔄 [DM-SWITCH] Switching to DM:', {
+            dmId,
+            roomType,
+            username,
+            previousDmId: this.currentDMId
+        });
         
         this.currentDMId = dmId;
         this.currentDMType = roomType;
@@ -184,7 +200,7 @@ class SimpleDMSwitcher {
     }
     
     clearActiveDM() {
-
+        console.log('🔍 [DM-SWITCH] clearActiveDM called');
         
         this.currentDMId = null;
         
@@ -192,7 +208,16 @@ class SimpleDMSwitcher {
             item.classList.remove('bg-discord-light');
             item.classList.add('hover:bg-discord-light');
         });
+        
+        // Ensure chat section is visible when clearing active DM
         this.showChatSection();
+        
+        // Additional check to ensure chat section visibility
+        const chatSection = document.querySelector('.chat-section');
+        if (chatSection) {
+            chatSection.classList.add('dm-chat-visible');
+            console.log('✅ [DM-SWITCH] Added dm-chat-visible class in clearActiveDM');
+        }
     }
     
     updateURL(dmId) {

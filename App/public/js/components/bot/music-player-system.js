@@ -737,14 +737,24 @@ class MusicPlayerSystem {
         }
 
         try {
-
+            console.log('🎵 [MUSIC-PLAYER] Attempting to play track:', {
+                title: track.title,
+                artist: track.artist,
+                previewUrl: track.previewUrl
+            });
             
             await this.stop();
             
             this.currentSong = track;
             this.audio.volume = this.volume;
             this.audio.crossOrigin = "anonymous";
-            this.audio.preload = "metadata";
+            this.audio.preload = "auto";
+            
+            // Add to queue if not already in it
+            if (!this.queue.some(t => t.id === track.id)) {
+                this.queue.push(track);
+                this.currentIndex = this.queue.length - 1;
+            }
             
             return new Promise((resolve, reject) => {
                 const timeoutId = setTimeout(() => {
@@ -764,15 +774,37 @@ class MusicPlayerSystem {
                 const onCanPlay = async () => {
                     cleanup();
                     try {
-
+                        console.log('🎵 [MUSIC-PLAYER] Audio can play, attempting playback');
                         await this.audio.play();
                         this.isPlaying = true;
                         this.showNowPlaying(track);
+                        console.log('🎵 [MUSIC-PLAYER] Playback started successfully');
 
                         resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
                     } catch (playError) {
                         console.error('🎵 [MUSIC-PLAYER] Play error:', playError);
-                        reject(playError);
+                        
+                        // Try one more time with user interaction simulation
+                        try {
+                            console.log('🎵 [MUSIC-PLAYER] Attempting second play with different approach');
+                            const playPromise = this.audio.play();
+                            if (playPromise !== undefined) {
+                                playPromise
+                                    .then(() => {
+                                        console.log('🎵 [MUSIC-PLAYER] Second play attempt succeeded');
+                                        this.isPlaying = true;
+                                        this.showNowPlaying(track);
+                                        resolve(`🎵 Now playing: **${track.title}** by ${track.artist}`);
+                                    })
+                                    .catch(err => {
+                                        console.error('🎵 [MUSIC-PLAYER] Second play attempt failed:', err);
+                                        reject(err);
+                                    });
+                            }
+                        } catch (secondError) {
+                            console.error('🎵 [MUSIC-PLAYER] Second play attempt error:', secondError);
+                            reject(secondError);
+                        }
                     }
                 };
 
@@ -798,9 +830,24 @@ class MusicPlayerSystem {
                 this.audio.addEventListener('loadeddata', onLoadedData, { once: true });
                 this.audio.addEventListener('error', onError, { once: true });
 
+                // Add more event listeners for debugging
+                const debugEvents = ['abort', 'stalled', 'suspend', 'waiting'];
+                debugEvents.forEach(event => {
+                    this.audio.addEventListener(event, () => {
+                        console.log(`🎵 [MUSIC-PLAYER] Audio event: ${event}`);
+                    }, { once: true });
+                });
 
                 this.audio.src = track.previewUrl;
                 this.audio.load();
+                
+                // Try to trigger playback immediately in some cases
+                setTimeout(() => {
+                    if (!this.isPlaying && this.audio.readyState >= 3) {
+                        console.log('🎵 [MUSIC-PLAYER] Delayed play attempt');
+                        this.audio.play().catch(e => console.warn('Delayed play failed:', e));
+                    }
+                }, 1000);
             });
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Playback error:', error);
@@ -1006,11 +1053,47 @@ class MusicPlayerSystem {
     }
 
     showStatus(message) {
-
+        console.log(`🎵 [MUSIC-PLAYER] ${message}`);
+        
+        // Update bot participant status if available
+        try {
+            const botCard = document.querySelector('[data-participant-id="bot-4"]');
+            if (botCard) {
+                const statusElement = botCard.querySelector('.music-status');
+                if (statusElement) {
+                    statusElement.innerHTML = `<i class="fas fa-music mr-1"></i>${message}`;
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [MUSIC-PLAYER] Failed to update status display:', e);
+        }
+        
+        // Show toast notification if available
+        if (window.toast && typeof window.toast.info === 'function') {
+            window.toast.info(message);
+        }
     }
 
     showError(message) {
-        console.error(`🎵 Music Player Error: ${message}`);
+        console.error(`🎵 [MUSIC-PLAYER] Error: ${message}`);
+        
+        // Update bot participant status if available
+        try {
+            const botCard = document.querySelector('[data-participant-id="bot-4"]');
+            if (botCard) {
+                const statusElement = botCard.querySelector('.music-status');
+                if (statusElement) {
+                    statusElement.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i>${message}`;
+                }
+            }
+        } catch (e) {
+            console.warn('⚠️ [MUSIC-PLAYER] Failed to update error display:', e);
+        }
+        
+        // Show toast notification if available
+        if (window.toast && typeof window.toast.error === 'function') {
+            window.toast.error(message);
+        }
     }
 
     getCurrentStatus() {
@@ -1023,12 +1106,6 @@ class MusicPlayerSystem {
     }
 
     showMusicDebugPanel() {
-
-
-
-
-
-
         console.log('🎵 Audio State:', {
             src: this.audio.src,
             currentSrc: this.audio.currentSrc,
@@ -1040,9 +1117,6 @@ class MusicPlayerSystem {
             volume: this.audio.volume,
             crossOrigin: this.audio.crossOrigin
         });
-
-        
-
     }
 }
 
