@@ -293,7 +293,7 @@ class BotHandler extends EventEmitter {
 
         this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
 
-        const voiceChannelRoom = `voice-channel-${voiceConnection.channelId}`;
+        const voiceChannelRoom = `voice_channel_${voiceConnection.channelId}`;
         
         io.to(voiceChannelRoom).emit('bot-voice-participant-joined', {
             participant: botParticipantData,
@@ -316,7 +316,7 @@ class BotHandler extends EventEmitter {
 
         
 
-        const voiceChannelRoom = `voice-channel-${channelId}`;
+        const voiceChannelRoom = `voice_channel_${channelId}`;
         const eventData = {
             participant: botParticipant,
             channelId: channelId
@@ -491,7 +491,7 @@ class BotHandler extends EventEmitter {
             io.to(targetRoom).emit('bot-music-command', musicCommandData);
             
             if (channelId) {
-                const voiceChannelRoom = `voice-channel-${channelId}`;
+                const voiceChannelRoom = `voice_channel_${channelId}`;
                 io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
             }
             
@@ -746,7 +746,7 @@ class BotHandler extends EventEmitter {
                     
 
                     if (channelId) {
-                        const voiceChannelRoom = `voice-channel-${channelId}`;
+                        const voiceChannelRoom = `voice_channel_${channelId}`;
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
 
                     }
@@ -851,7 +851,7 @@ class BotHandler extends EventEmitter {
 
         const botClient = this.activeConnections.get(botId);
         const roomManager = require('../services/roomManager');
-        const voiceChannelRoom = `voice-channel-${channelId}`;
+        const voiceChannelRoom = `voice_channel_${channelId}`;
         
 
         if (botClient) {

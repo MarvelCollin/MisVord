@@ -89,7 +89,7 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
 <link rel="stylesheet" href="<?= asset('/css/friends-mobile-menu.css') ?>?v=<?php echo $cache_version; ?>">
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
 
-<link rel="stylesheet" href="<?= asset('/css/server-dropdown.css') ?>?v=<?php echo $cache_version; ?>">
+<link rel="stylesheet" href="<?= asset('/css/server-dropdown.css') ?>?v=<?php echo time(); ?>">
 
 <?php if (isset($page_css)): ?>
     <?php if (is_array($page_css)): ?>

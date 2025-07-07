@@ -642,13 +642,17 @@ function formatSearchTimestamp(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
     const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
-    
+
+    // Use Indonesian locale (id-ID) and 24-hour format
+    const timeString = date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+
     if (diffDays === 0) {
-        return 'Today ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        return 'Hari ini ' + timeString; // Today → Hari ini
     } else if (diffDays === 1) {
-        return 'Yesterday ' + date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        return 'Kemarin ' + timeString; // Yesterday → Kemarin
     } else {
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        // Example: 12 Jul
+        return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
     }
 }
 

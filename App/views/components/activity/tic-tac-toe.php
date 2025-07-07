@@ -10,7 +10,7 @@ $serverId = $GLOBALS['server']->id ?? $GLOBALS['currentServer']->id ?? null;
     <div class="relative z-10">
         <div class="text-center mb-8">
             <h2 class="tic-tac-toe-title text-4xl font-bold mb-4">
-                TIC-TAC-TOE
+                Tic Mac Voe
             </h2>
             <p class="text-lg font-bold tracking-wider text-gray-200">
                 GAME ARENA

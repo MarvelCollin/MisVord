@@ -316,7 +316,7 @@ class TicTacToeModal {
                 <div class="drag-handle"></div>
                 
                 <div class="modal-header flex justify-between items-center p-6 pb-4">
-                    <h2 class="tic-tac-toe-title text-3xl font-bold">TIC-TAC-TOE</h2>
+                    <h2 class="tic-tac-toe-title text-3xl font-bold">Tic Mac Voe</h2>
                     <div class="flex items-center gap-2">
                         <button id="minimize-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200">
                             <i class="fas fa-window-minimize text-sm"></i>

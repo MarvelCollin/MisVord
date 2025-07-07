@@ -243,6 +243,22 @@ function getCurrentServerId() {
     return serverId;
 }
 
+function getCurrentUserId() {
+    try {
+        if (window.currentUser && window.currentUser.id) {
+            return window.currentUser.id;
+        }
+        const userElement = document.querySelector('[data-user-id]');
+        if (userElement && userElement.dataset.userId) {
+            return userElement.dataset.userId;
+        }
+        return null;
+    } catch (e) {
+        console.error('Error getting current user ID:', e);
+        return null;
+    }
+}
+
 function showInvitePeopleModal() {
     const modal = document.getElementById('invite-people-modal');
     if (!modal) {
@@ -367,23 +383,16 @@ function setupMemberLeaveFlow(serverId) {
     closeBtn.onclick = () => closeModal('leave-server-modal');
 }
 
-function setupOwnerLeaveFlow(serverId) {
+async function setupOwnerLeaveFlow(serverId) {
     const transferView = document.getElementById('leave-server-transfer-view');
     const deleteView = document.getElementById('leave-server-delete-view');
-    let selectedUserId = null;
-
     const searchInput = document.getElementById('owner-transfer-user-search');
     const usersContainer = document.getElementById('owner-transfer-users-container');
-    const usersLoading = document.getElementById('owner-transfer-users-loading');
     const selectedUserContainer = document.getElementById('owner-transfer-selected-user-container');
     const confirmTransferBtn = document.getElementById('confirm-owner-transfer');
-    const memberListSkeleton = document.getElementById('owner-transfer-skeleton');
+    let selectedUserId = null;
 
-    // Show skeleton loading immediately
-    if (memberListSkeleton) {
-        memberListSkeleton.classList.remove('hidden');
-    }
-
+    // Close buttons setup
     const closeButtons = [
         document.getElementById('close-leave-server-modal'),
         document.getElementById('cancel-owner-leave'),
@@ -391,249 +400,116 @@ function setupOwnerLeaveFlow(serverId) {
     ];
     closeButtons.forEach(btn => btn.onclick = () => closeModal('leave-server-modal'));
 
-    const loadEligibleMembers = async () => {
-        try {
-            // Show skeleton loading
-            if (memberListSkeleton) {
-                memberListSkeleton.classList.remove('hidden');
-            }
-            
-            await waitForServerAPI();
-            if (!window.serverAPI) throw new Error('serverAPI not available');
+    // Check if there are other members
+    try {
+        await waitForServerAPI();
+        if (!window.serverAPI) throw new Error('serverAPI not available');
 
-            const response = await window.serverAPI.getEligibleNewOwners(serverId);
-            console.log('Eligible members response:', response);
-            
-            // Add detailed debugging information
-            if (response) {
-                console.log('Response details:', {
-                    hasSuccess: !!response.success,
-                    hasMembers: !!response.members,
-                    membersIsArray: Array.isArray(response.members),
-                    membersLength: response.members ? response.members.length : 0,
-                    responseData: response.data
-                });
-            }
-            
-            // Check if we have members to transfer to - look in both formats
-            // Some API responses put the members in response.members, others in response.data.members
-            const hasMembers = (
-                (response && response.success && Array.isArray(response.members) && response.members.length > 0) ||
-                (response && response.success && response.data && Array.isArray(response.data.members) && response.data.members.length > 0)
-            );
-            
-            // Hide skeleton loading
-            if (memberListSkeleton) {
-                memberListSkeleton.classList.add('hidden');
-            }
-            
-            if (hasMembers) {
-                console.log('Found eligible members, showing transfer view');
-                // Populate member list for transfer view if available
-                const members = response.members || (response.data && response.data.members) || [];
-                if (members.length > 0) {
-                    populateEligibleMembersList(members);
-                }
-                transferView.classList.remove('hidden');
-                deleteView.classList.add('hidden');
-            } else {
-                console.log('No eligible members found, showing delete view');
-                // Try a fallback to make sure - query for server members if the API failed
-                try {
-                    if (response && response.success === false) {
-                        const membersResponse = await window.serverAPI.getServerMembers(serverId);
-                        if (membersResponse && membersResponse.success && membersResponse.members && 
-                            membersResponse.members.length > 1) {
-                            // There are other members in the server, we should show transfer view
-                            console.log('Found members through fallback method');
-                            // Populate member list for transfer view
-                            populateEligibleMembersList(membersResponse.members.filter(m => m.id !== getCurrentUserId()));
-                            transferView.classList.remove('hidden');
-                            deleteView.classList.add('hidden');
-                            return;
-                        }
-                    }
-                } catch (fallbackError) {
-                    console.error('Fallback member check failed:', fallbackError);
-                }
-                
-                // No eligible members, show delete view
-                transferView.classList.add('hidden');
-                deleteView.classList.remove('hidden');
-            }
-        } catch (error) {
-            console.error('Error loading eligible members:', error);
-            
-            // Hide skeleton loading on error
-            if (memberListSkeleton) {
-                memberListSkeleton.classList.add('hidden');
-            }
-            
-            // Even if the API fails, try to fallback to server members
-            try {
-                const membersResponse = await window.serverAPI.getServerMembers(serverId);
-                if (membersResponse && membersResponse.success && membersResponse.members && 
-                    membersResponse.members.length > 1) {
-                    // There are other members in the server, we should show transfer view
-                    console.log('API error occurred but found members through fallback');
-                    // Populate member list for transfer view
-                    populateEligibleMembersList(membersResponse.members.filter(m => m.id !== getCurrentUserId()));
-                    transferView.classList.remove('hidden');
-                    deleteView.classList.add('hidden');
-                    return;
-                }
-            } catch (fallbackError) {
-                console.error('Fallback check after API error failed:', fallbackError);
-            }
-            
-            // If we can't determine members, default to showing transfer view for safety
-            console.log('Defaulting to transfer view after error');
+        const response = await window.serverAPI.getServerMembers(serverId);
+        const members = response?.members || (response?.data?.members) || [];
+        const memberships = response?.memberships || (response?.data?.memberships) || {};
+        const currentUserId = getCurrentUserId();
+        const otherMembers = members.filter(m => m.id !== currentUserId);
+
+        if (otherMembers.length > 0) {
             transferView.classList.remove('hidden');
             deleteView.classList.add('hidden');
-            
-            showToast('Could not load members for transfer. Please try again.', 'error');
-        }
-    };
-    
-    // Function to populate the eligible members list
-    function populateEligibleMembersList(members) {
-        const eligibleMembersList = document.getElementById('eligible-members-list');
-        if (!eligibleMembersList) return;
-        
-        // Clear any previous content
-        eligibleMembersList.innerHTML = '';
-        
-        if (members && members.length > 0) {
-            const memberItems = members.map(member => `
-                <div class="user-item p-2 flex items-center hover:bg-discord-dark-input cursor-pointer" 
-                     data-user-id="${member.id}" 
-                     data-user-name="${member.username}" 
-                     data-user-avatar="${member.avatar_url || ''}">
-                    <img src="${member.avatar_url || '/assets/common/default-profile-picture.png'}" class="w-8 h-8 rounded-full mr-2">
-                    <span>${member.username}</span>
-                </div>
-            `).join('');
-            
-            eligibleMembersList.innerHTML = memberItems;
-            
-            // Add click event listeners to the member items
-            eligibleMembersList.querySelectorAll('.user-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    selectedUserId = item.dataset.userId;
-                    document.getElementById('owner-transfer-selected-user-name').textContent = item.dataset.userName;
-                    document.getElementById('owner-transfer-selected-user-avatar').src = item.dataset.userAvatar || '/assets/common/default-profile-picture.png';
-                    selectedUserContainer.classList.remove('hidden');
-                    confirmTransferBtn.disabled = false;
-                    confirmTransferBtn.classList.remove('cursor-not-allowed', 'opacity-50');
-                });
-            });
-            
-            // Show the eligible members list
-            eligibleMembersList.parentElement.classList.remove('hidden');
         } else {
-            eligibleMembersList.innerHTML = '<p class="p-2 text-discord-lighter">No eligible members found.</p>';
-            eligibleMembersList.parentElement.classList.remove('hidden');
+            transferView.classList.add('hidden');
+            deleteView.classList.remove('hidden');
         }
+    } catch (error) {
+        console.error('Error checking members:', error);
+        // Default to transfer view for safety
+        transferView.classList.remove('hidden');
+        deleteView.classList.add('hidden');
+        showToast('Could not verify member count. Please try again.', 'error');
     }
-    
+
+    // Search functionality
     const searchUsers = debounce(async (query) => {
         if (query.length < 2) {
             usersContainer.classList.add('hidden');
             return;
         }
-        usersLoading.classList.remove('hidden');
-        usersContainer.innerHTML = '';
 
         try {
-            await waitForServerAPI();
-            if (!window.serverAPI) throw new Error('serverAPI not available');
+            // Get server members with their roles
+            const response = await window.serverAPI.getServerMembers(serverId);
+            const members = response?.members || (response?.data?.members) || [];
+            const memberships = response?.memberships || (response?.data?.memberships) || {};
+            const currentUserId = getCurrentUserId();
 
-            let result;
-            if (typeof window.serverAPI.searchMembers === 'function') {
-                result = await window.serverAPI.searchMembers(serverId, query);
-            } else {
-                // fallback: fetch all members and filter client-side
-                const all = await window.serverAPI.getServerMembers(serverId);
-                if (all.success && all.members) {
-                    const filtered = all.members.filter(u => 
-                        (u.username || '').toLowerCase().includes(query.toLowerCase()) || 
-                        (u.display_name || '').toLowerCase().includes(query.toLowerCase())
-                    );
-                    result = { success: true, data: filtered };
-                } else if (all.success && all.data && Array.isArray(all.data.members)) {
-                    // Alternative response format
-                    const filtered = all.data.members.filter(u => 
-                        (u.username || '').toLowerCase().includes(query.toLowerCase()) || 
-                        (u.display_name || '').toLowerCase().includes(query.toLowerCase())
-                    );
-                    result = { success: true, data: filtered };
-                } else {
-                    result = { success: false, data: [] };
-                }
-            }
-            
-            usersLoading.classList.add('hidden');
-            
-            // Normalize result format
-            let userData = [];
-            if (result.success && result.data && result.data.length > 0) {
-                userData = result.data;
-            } else if (result.success && result.members && result.members.length > 0) {
-                userData = result.members;
-            }
-            
-            if (userData.length > 0) {
-                usersContainer.innerHTML = userData.map(user => `
-                    <div class="user-item p-2 flex items-center hover:bg-discord-dark-input cursor-pointer" data-user-id="${user.id}" data-user-name="${user.username}" data-user-avatar="${user.avatar_url || ''}">
-                        <img src="${user.avatar_url || '/assets/common/default-profile-picture.png'}" class="w-8 h-8 rounded-full mr-2">
-                        <span>${user.username}</span>
+            // Filter members by search query and exclude current user
+            const filteredMembers = members.filter(member => 
+                member.id !== currentUserId && 
+                (member.username.toLowerCase().includes(query.toLowerCase()) || 
+                 (member.display_name || '').toLowerCase().includes(query.toLowerCase()))
+            );
+
+            if (filteredMembers.length > 0) {
+                usersContainer.innerHTML = filteredMembers.map(user => {
+                    // Get user role from memberships data or default to "Member"
+                    let role = 'Member';
+                    
+                    // Try to find role in different possible response formats
+                    if (memberships && memberships[user.id]) {
+                        role = memberships[user.id].role || role;
+                    } else if (user.membership && user.membership.role) {
+                        role = user.membership.role;
+                    } else if (user.role) {
+                        role = user.role;
+                    }
+                    
+                    // Capitalize first letter of role
+                    role = role.charAt(0).toUpperCase() + role.slice(1);
+                    
+                    return `
+                    <div class="user-item" 
+                         data-user-id="${user.id}" 
+                         data-user-name="${user.username}" 
+                         data-user-role="${role}"
+                         data-user-avatar="${user.avatar_url || '/assets/common/default-profile-picture.png'}">
+                        <img src="${user.avatar_url || '/assets/common/default-profile-picture.png'}" 
+                             alt="${user.username}">
+                        <div class="user-info">
+                            <span class="user-name">${user.username}</span>
+                            <span class="user-role">${role}</span>
+                        </div>
                     </div>
-                `).join('');
-                usersContainer.classList.remove('hidden');
+                `}).join('');
             } else {
-                usersContainer.innerHTML = '<p class="p-2 text-discord-lighter">No users found.</p>';
-                usersContainer.classList.remove('hidden');
+                usersContainer.innerHTML = '<div class="p-2 text-discord-lighter">No users found</div>';
             }
+            usersContainer.classList.remove('hidden');
         } catch (error) {
             console.error('Error searching users:', error);
-            showToast('Failed to search for users.', 'error');
-            usersLoading.classList.add('hidden');
-            
-            // Show error message in container
-            usersContainer.innerHTML = '<p class="p-2 text-discord-red">Error searching for users. Please try again.</p>';
+            usersContainer.innerHTML = '<div class="p-2 text-discord-red">Error searching for users</div>';
             usersContainer.classList.remove('hidden');
         }
     }, 300);
-    
-    // Get current user ID
-    function getCurrentUserId() {
-        try {
-            // Try to get it from global variable if available
-            if (window.currentUser && window.currentUser.id) {
-                return window.currentUser.id;
-            }
-            
-            // Try to get from page data if available
-            const userElement = document.querySelector('[data-user-id]');
-            if (userElement && userElement.dataset.userId) {
-                return userElement.dataset.userId;
-            }
-            
-            return null;
-        } catch (e) {
-            console.error('Error getting current user ID:', e);
-            return null;
-        }
-    }
 
+    // Search input handler
     searchInput.addEventListener('input', (e) => searchUsers(e.target.value));
 
+    // User selection handler
     usersContainer.addEventListener('click', (e) => {
         const userDiv = e.target.closest('[data-user-id]');
         if (userDiv) {
             selectedUserId = userDiv.dataset.userId;
-            document.getElementById('owner-transfer-selected-user-name').textContent = userDiv.dataset.userName;
-            document.getElementById('owner-transfer-selected-user-avatar').src = userDiv.dataset.userAvatar || '/assets/common/default-profile-picture.png';
+            const userName = userDiv.dataset.userName;
+            const userRole = userDiv.dataset.userRole || 'Member';
+            const userAvatar = userDiv.dataset.userAvatar || '/assets/common/default-profile-picture.png';
+            
+            document.getElementById('owner-transfer-selected-user-name').textContent = userName;
+            document.getElementById('owner-transfer-selected-user-avatar').src = userAvatar;
+            
+            // Update role information in the selected user display
+            const roleElement = document.getElementById('owner-transfer-selected-user-role');
+            if (roleElement) {
+                roleElement.innerHTML = `<span class="text-discord-lighter">Current role: ${userRole}</span> • <span class="text-discord-green">Will become owner</span>`;
+            }
+            
             selectedUserContainer.classList.remove('hidden');
             usersContainer.classList.add('hidden');
             searchInput.value = '';
@@ -642,6 +518,7 @@ function setupOwnerLeaveFlow(serverId) {
         }
     });
 
+    // Transfer and delete handlers
     confirmTransferBtn.onclick = async () => {
         if (!selectedUserId) {
             showToast('Please select a member to transfer ownership to.', 'error');
@@ -651,8 +528,6 @@ function setupOwnerLeaveFlow(serverId) {
     };
 
     document.getElementById('confirm-delete-leave').onclick = () => leaveServer(serverId, true);
-
-    loadEligibleMembers();
 }
 
 async function transferOwnershipAndLeave(serverId, newOwnerId) {

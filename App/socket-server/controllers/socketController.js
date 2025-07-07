@@ -572,7 +572,7 @@ function setup(io) {
 
         client.on('bot-left-voice', (data) => {
             if (data && data.channel_id && data.bot_id) {
-                const voiceChannelRoom = `voice-channel-${data.channel_id}`;
+                const voiceChannelRoom = `voice_channel_${data.channel_id}`;
                 const participant = { user_id: data.bot_id };
                 
                 io.to(voiceChannelRoom).emit('bot-voice-participant-left', {
@@ -789,7 +789,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             VoiceConnectionTracker.removeUserFromVoice(user_id);
 
             
-            client.leave(`voice-channel-${channel_id}`);
+            client.leave(`voice_channel_${channel_id}`);
 
             
             const titiBotId = BotHandler.getTitiBotId();

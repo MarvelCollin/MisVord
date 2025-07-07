@@ -1,6 +1,5 @@
 <?php
 ?>
-<!-- Leave Server Modal (Unified) -->
 <div id="leave-server-modal" class="fixed inset-0 flex items-center justify-center hidden z-50">
     <div class="absolute inset-0 bg-black bg-opacity-70"></div>
     
@@ -24,10 +23,10 @@
                     <p class="text-discord-red text-sm font-medium">You won't be able to rejoin unless invited back.</p>
                 </div>
                 <div class="flex justify-end items-center space-x-3">
-                    <button id="cancel-leave-server" class="px-4 py-2 text-white bg-discord-dark-hover hover:bg-discord-dark-input rounded transition-colors">
+                    <button id="cancel-leave-server" class="cancel-button">
                         Cancel
                     </button>
-                    <button id="confirm-leave-server" class="px-4 py-2 text-white bg-discord-red hover:bg-red-700 rounded transition-colors">
+                    <button id="confirm-leave-server" class="confirm-button">
                         Leave Server
                     </button>
                 </div>
@@ -45,90 +44,39 @@
                         <p class="text-discord-lighter">You must transfer ownership to another member before you can leave.</p>
                     </div>
                     
-                    <!-- Skeleton loading for member list -->
-                    <div id="owner-transfer-skeleton" class="mb-5">
-                        <div class="text-sm font-medium text-discord-lighter mb-1 uppercase">Eligible Members</div>
-                        <div class="bg-discord-dark-hover rounded p-1">
-                            <div class="p-2 flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
-                                <div class="flex-grow">
-                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
-                                </div>
-                            </div>
-                            <div class="p-2 flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
-                                <div class="flex-grow">
-                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
-                                </div>
-                            </div>
-                            <div class="p-2 flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
-                                <div class="flex-grow">
-                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- List of eligible members -->
-                    <div class="mb-5 hidden">
-                        <div class="text-sm font-medium text-discord-lighter mb-1 uppercase">Eligible Members</div>
-                        <div id="eligible-members-list" class="bg-discord-dark-hover rounded max-h-36 overflow-y-auto">
-                            <!-- Members will be populated here by JS -->
-                        </div>
-                    </div>
-                    
                     <div class="mb-5">
-                        <label for="owner-transfer-user-search" class="block text-sm font-medium text-discord-lighter mb-1 uppercase">Search for a member</label>
-                        <div class="relative">
-                            <input type="text" id="owner-transfer-user-search" class="form-input bg-discord-dark-input text-white w-full rounded mb-1 pl-8" placeholder="Search by username...">
-                            <div class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-discord-lighter">
-                                <i class="fas fa-search"></i>
-                            </div>
+                        <label for="owner-transfer-user-search" class="block text-sm font-medium text-discord-lighter mb-2 uppercase">SEARCH FOR A MEMBER</label>
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="owner-transfer-user-search" class="search-input" placeholder="Search by username...">
                         </div>
-                        <div id="owner-transfer-users-container" class="bg-discord-dark-hover rounded mt-2 max-h-36 overflow-y-auto hidden">
-                            <!-- Users will be populated here by JS -->
-                        </div>
-                        <div id="owner-transfer-users-loading" class="bg-discord-dark-hover rounded mt-2 max-h-36 overflow-y-auto hidden">
-                            <!-- Skeleton loading -->
-                            <div class="p-2 flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
-                                <div class="flex-grow">
-                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
-                                </div>
-                            </div>
-                            <div class="p-2 flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 skeleton-item"></div>
-                                <div class="flex-grow">
-                                    <div class="h-4 bg-discord-dark-input rounded w-3/4 skeleton-item"></div>
-                                </div>
-                            </div>
-                        </div>
+                        <div id="owner-transfer-users-container" class="mt-2 bg-discord-dark-hover rounded-md shadow-lg max-h-48 overflow-y-auto hidden"></div>
                     </div>
 
                     <div id="owner-transfer-selected-user-container" class="mb-5 hidden">
-                        <label class="block text-sm font-medium text-discord-lighter mb-1 uppercase">Selected User</label>
-                        <div class="bg-discord-dark-hover rounded p-3 flex items-center border border-discord-dark-input">
-                            <img id="owner-transfer-selected-user-avatar" class="w-12 h-12 rounded-full mr-3">
+                        <label class="block text-sm font-medium text-discord-lighter mb-2 uppercase">Selected Member</label>
+                        <div class="bg-discord-dark-hover rounded-md p-3 flex items-center border border-discord-dark-input">
+                            <img id="owner-transfer-selected-user-avatar" class="w-10 h-10 rounded-full mr-3" src="/assets/common/default-profile-picture.png">
                             <div class="flex-grow">
-                                <div class="text-white font-medium text-lg" id="owner-transfer-selected-user-name"></div>
+                                <div class="text-white font-medium" id="owner-transfer-selected-user-name"></div>
+                                <div class="text-discord-lighter text-sm" id="owner-transfer-selected-user-role">Will become the new server owner</div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex justify-end items-center space-x-3">
-                        <button id="cancel-owner-leave" class="px-4 py-2 text-white bg-discord-dark-hover hover:bg-discord-dark-input rounded transition-colors">
+                    <div class="flex justify-end items-center space-x-3 mt-6">
+                        <button id="cancel-owner-leave" class="cancel-button">
                             Cancel
                         </button>
-                        <button id="confirm-owner-transfer" class="px-4 py-2 text-white bg-discord-blurple hover:bg-discord-blurple-hover rounded transition-colors cursor-not-allowed opacity-50" disabled>
+                        <button id="confirm-owner-transfer" class="confirm-button opacity-50 cursor-not-allowed" disabled>
                             Transfer Ownership & Leave
                         </button>
                     </div>
                 </div>
 
-                <!-- Delete Server View (when owner is last member) -->
+                <!-- Delete Server View -->
                 <div id="leave-server-delete-view" class="hidden">
-                     <div class="text-center mb-5">
+                    <div class="text-center mb-5">
                         <div class="bg-discord-red bg-opacity-10 text-discord-red inline-block p-3 rounded-full mb-3">
                             <i class="fas fa-trash-alt h-8 w-8"></i>
                         </div>
@@ -137,10 +85,10 @@
                         <p class="text-discord-red text-sm font-medium mt-2">This action cannot be undone.</p>
                     </div>
                     <div class="flex justify-end items-center space-x-3">
-                        <button id="cancel-delete-leave" class="px-4 py-2 text-white bg-discord-dark-hover hover:bg-discord-dark-input rounded transition-colors">
+                        <button id="cancel-delete-leave" class="cancel-button">
                             Cancel
                         </button>
-                        <button id="confirm-delete-leave" class="px-4 py-2 text-white bg-discord-red hover:bg-red-700 rounded transition-colors">
+                        <button id="confirm-delete-leave" class="confirm-button">
                             Delete Server & Leave
                         </button>
                     </div>

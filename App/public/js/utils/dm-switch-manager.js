@@ -33,6 +33,10 @@ class SimpleDMSwitcher {
             voiceSection.style.display = 'none';
         }
         if (chatSection) {
+            // Make sure any residual `hidden` class is removed so that
+            // the stylesheet rule `.chat-section.hidden { display: none !important; }`
+            // no longer hides the element. Inline styles alone are not enough
+            // to override the `!important` declaration in CSS.
             chatSection.classList.remove('hidden');
             chatSection.style.display = 'flex';
             chatSection.setAttribute('data-channel-id', this.currentDMId || '');

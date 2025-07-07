@@ -328,6 +328,11 @@ function updateParticipantDisplay() {
         const memberEl = document.createElement('div');
         memberEl.className = 'flex items-center px-2 py-1.5 rounded hover:bg-discord-light cursor-pointer group transition-colors';
         memberEl.setAttribute('data-user-id', participant.user_id);
+        // Provide additional data attributes for UserDetailModal integration
+        memberEl.setAttribute('data-server-id', '');
+        memberEl.setAttribute('data-username', participant.username || '');
+        memberEl.setAttribute('data-role', 'member');
+        memberEl.setAttribute('data-status', status);
         
         memberEl.innerHTML = `
             <div class="relative mr-3">
