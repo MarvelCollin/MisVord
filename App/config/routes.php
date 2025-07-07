@@ -189,6 +189,47 @@ Route::get('/join/([a-zA-Z0-9]+)', function($code) {
     $controller->showInvite($code);
 });
 
+Route::post('/api/servers/explore', function() {
+    $controller = new ExploreController();
+    
+    // Check if user is logged in
+    if (!isset($_SESSION['user_id'])) {
+        http_response_code(401);
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        return;
+    }
+
+    try {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        // Default parameters - CHANGED TO MAX 6 SERVERS
+        $page = isset($input['page']) ? max(1, intval($input['page'])) : 1;
+        $perPage = isset($input['per_page']) ? min(6, max(3, intval($input['per_page']))) : 6;
+        $sort = isset($input['sort']) ? $input['sort'] : 'alphabetical';
+        $category = isset($input['category']) ? trim($input['category']) : '';
+        $search = isset($input['search']) ? trim($input['search']) : '';
+        
+        $result = $controller->getPaginatedServers($page, $perPage, $sort, $category, $search);
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'servers' => $result['servers'],
+            'has_more' => $result['has_more'],
+            'total' => $result['total'],
+            'page' => $page,
+            'per_page' => $perPage
+        ]);
+        
+    } catch (Exception $e) {
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false, 
+            'message' => 'Server error: ' . $e->getMessage()
+        ]);
+    }
+});
 Route::get('/api/servers/join/([a-zA-Z0-9]+)', function($code) {
     require_once __DIR__ . '/../controllers/ServerController.php';
     $controller = new ServerController();

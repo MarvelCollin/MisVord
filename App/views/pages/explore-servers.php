@@ -18,11 +18,13 @@ $servers = $exploreData['servers'];
 $userServerId = $exploreData['userServerIds'];
 $featuredServers = $exploreData['featuredServers'];
 $categories = $exploreData['categories'];
+$initialData = $exploreData['initialData'];
 
 $GLOBALS['servers'] = $servers;
 $GLOBALS['userServerIds'] = $userServerId;
 $GLOBALS['featuredServers'] = $featuredServers;
 $GLOBALS['categories'] = $categories;
+$GLOBALS['initialData'] = $initialData;
 $GLOBALS['contentType'] = 'explore';
 
 $page_title = 'misvord - Explore Servers';
@@ -34,6 +36,12 @@ $additional_js = ['components/servers/server-dropdown'];
 $contentType = 'explore';
 
 ob_start(); ?>
+
+<script>
+    window.misvordExplore = {
+        initialData: <?= json_encode($initialData) ?>
+    };
+</script>
 
 <?php include dirname(dirname(__DIR__)) . '/views/components/app-sections/app-layout.php'; ?>
 

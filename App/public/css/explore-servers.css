@@ -501,8 +501,6 @@
   color: #a3a6aa;
 }
 
-
-
 .join-server-btn {
   position: relative;
   overflow: hidden;
@@ -564,7 +562,7 @@
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -792,5 +790,172 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+
+/* Infinite Scroll Loading Animations */
+#infinite-loading-indicator .grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+#infinite-loading-indicator {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+#load-more-button {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+#load-more-button button {
+  transition: all 0.3s ease;
+}
+
+#load-more-button button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+/* Server card animations for infinite scroll */
+.misvord-initial-server-card {
+  transition: all 0.3s ease;
+}
+
+.misvord-initial-server-card.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Loading states for infinite scroll */
+.infinite-scroll-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.infinite-scroll-loading .explore-server-card {
+  transform: scale(0.98);
+}
+
+/* Smooth transitions for dynamically added content */
+.explore-server-card {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.explore-server-card.loading {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+
+@keyframes fadeInUp {
+  from {
+      opacity: 0;
+      transform: translateY(20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  #load-more-button button {
+      padding: 16px 24px;
+      font-size: 14px;
+  }
+}
+
+/* Lazy Loading Styles */
+.lazy-loading {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+  background: linear-gradient(90deg, #2f3136 25%, #36393f 50%, #2f3136 75%);
+  background-size: 200% 100%;
+  animation: misvord-skeleton-loading 1.5s infinite;
+}
+
+.lazy-loaded {
+  opacity: 1;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.lazy-error {
+  opacity: 0.7;
+  filter: grayscale(100%);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
+/* Infinite Scroll Loading Animations */
+#infinite-loading-indicator .grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+}
+
+#infinite-loading-indicator {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+#load-more-button {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+#load-more-button button {
+  transition: all 0.3s ease;
+}
+
+#load-more-button button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+/* Server card animations for infinite scroll */
+.misvord-initial-server-card {
+  transition: all 0.3s ease;
+}
+
+.misvord-initial-server-card.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Loading states for infinite scroll */
+.infinite-scroll-loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.infinite-scroll-loading .explore-server-card {
+  transform: scale(0.98);
+}
+
+/* Smooth transitions for dynamically added content */
+.explore-server-card {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.explore-server-card.loading {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+}
+
+@keyframes fadeInUp {
+  from {
+      opacity: 0;
+      transform: translateY(20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+@media (max-width: 768px) {
+  #load-more-button button {
+      padding: 16px 24px;
+      font-size: 14px;
   }
 }

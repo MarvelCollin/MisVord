@@ -6,6 +6,13 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function initExplorePage() {
+    if (window.misvordExplore && window.misvordExplore.initialData) {
+        const initialData = window.misvordExplore.initialData;
+        currentPage = initialData.current_page || 1;
+        totalPages = initialData.total_pages || 1;
+        hasMore = initialData.has_more || false;
+    }
+
     const container = document.getElementById('all-servers');
     if (container) {
         showLoadingSkeletons();
@@ -41,13 +48,23 @@ function initExplorePage() {
     highlightExploreButton();
     initServerDetailTriggers();
     initScrollAnimations();
+    initInfiniteScroll();
 }
 
 window.initExplorePage = initExplorePage;
 
+let currentPage = 1;
+let totalPages = 1;
+let hasMore = true;
+let isLoading = false;
 let currentSort = 'alphabetical';
 let currentCategory = '';
 let currentSearch = '';
+
+function asset(path) {
+    const basePath = window.location.origin;
+    return `${basePath}/public/assets/${path}`;
+}
 
 function initScrollAnimations() {
     const animatedElements = document.querySelectorAll('.slide-up, .fade-in');
@@ -251,60 +268,8 @@ function selectSortOption(sortType, optionElement) {
 }
 
 function applyFilters() {
-    const serverWrappers = Array.from(document.querySelectorAll('.misvord-initial-server-card'));
-    const container = document.getElementById('all-servers');
-    
-    if (!container) return;
-    
-    let filteredWrappers = serverWrappers.filter(wrapper => {
-        const card = wrapper.querySelector('.explore-server-card');
-        if (!card) return false;
-        
-        const matchesCategory = !currentCategory || card.getAttribute('data-category') === currentCategory;
-        const matchesSearch = !currentSearch || matchesSearchQuery(card, currentSearch);
-        return matchesCategory && matchesSearch;
-    });
-
-    const filteredCards = filteredWrappers.map(wrapper => wrapper.querySelector('.explore-server-card')).filter(card => card);
-    const sortedCards = sortServerCards(filteredCards, currentSort);
-    
-    updateCategoryCounts(filteredCards);
-    
-    hideLoadingSkeletons();
-    showLoadingSkeletons();
-    
-    serverWrappers.forEach(wrapper => {
-        wrapper.style.display = 'none';
-    });
-    
-    setTimeout(() => {
-        hideLoadingSkeletons();
-        hideNoResults();
-        
-        const sortedFragment = document.createDocumentFragment();
-        sortedCards.forEach(card => {
-            const wrapper = card.closest('.misvord-initial-server-card');
-            if (wrapper) {
-                sortedFragment.appendChild(wrapper);
-            } else {
-                sortedFragment.appendChild(card);
-            }
-        });
-        container.appendChild(sortedFragment);
-        
-        sortedCards.forEach((card, index) => {
-            const wrapper = card.closest('.misvord-initial-server-card');
-            if (wrapper) {
-                wrapper.style.display = 'block';
-            }
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0) scale(1)';
-        });
-        
-        if (filteredCards.length === 0) {
-            showNoResults();
-        }
-    }, 200);
+    currentPage = 1;
+    fetchAndRenderServers(false);
 }
 
 function showLoadingSkeletons() {
@@ -352,39 +317,6 @@ function hideCategoryCountSkeletons() {
     });
 }
 
-function updateCategoryCounts(filteredCards) {
-    const categoryCounts = {};
-    const categoryItems = document.querySelectorAll('.category-item[data-category]');
-    
-    categoryItems.forEach(item => {
-        const category = item.getAttribute('data-category');
-        if (category) {
-            categoryCounts[category] = 0;
-        }
-    });
-    
-    const allServerCards = document.querySelectorAll('.misvord-initial-server-card .explore-server-card');
-    allServerCards.forEach(card => {
-        const category = card.getAttribute('data-category');
-        if (category && categoryCounts.hasOwnProperty(category)) {
-            categoryCounts[category]++;
-        }
-    });
-    
-    const allServersCount = document.querySelector('.category-item[data-category=""] .misvord-category-count');
-    if (allServersCount) {
-        allServersCount.textContent = allServerCards.length;
-    }
-    
-    categoryItems.forEach(item => {
-        const category = item.getAttribute('data-category');
-        const countEl = item.querySelector('.misvord-category-count');
-        if (category && countEl && categoryCounts.hasOwnProperty(category)) {
-            countEl.textContent = categoryCounts[category];
-        }
-    });
-}
-
 function createSkeletonCard() {
     const card = document.createElement('div');
     card.className = 'misvord-skeleton-loading-card explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group';
@@ -414,76 +346,6 @@ function createSkeletonCard() {
     `;
     
     return card;
-}
-
-function matchesSearchQuery(card, query) {
-    const serverName = card.querySelector('.server-name')?.textContent.toLowerCase() || '';
-    const serverDescription = card.querySelector('.server-description')?.textContent.toLowerCase() || '';
-    const serverCategory = card.getAttribute('data-category')?.toLowerCase() || '';
-    
-    return serverName.includes(query) || 
-           serverDescription.includes(query) || 
-           serverCategory.includes(query);
-}
-
-function sortServerCards(cards, sortType) {
-    const cardsCopy = [...cards];
-    
-    switch (sortType) {
-        case 'alphabetical':
-            return cardsCopy.sort((a, b) => {
-                const nameA = a.querySelector('.server-name')?.textContent || '';
-                const nameB = b.querySelector('.server-name')?.textContent || '';
-                return nameA.localeCompare(nameB);
-            });
-            
-        case 'alphabetical-desc':
-            return cardsCopy.sort((a, b) => {
-                const nameA = a.querySelector('.server-name')?.textContent || '';
-                const nameB = b.querySelector('.server-name')?.textContent || '';
-                return nameB.localeCompare(nameA);
-            });
-            
-        case 'members-desc':
-            return cardsCopy.sort((a, b) => {
-                const membersA = extractMemberCount(a);
-                const membersB = extractMemberCount(b);
-                return membersB - membersA;
-            });
-            
-        case 'members-asc':
-            return cardsCopy.sort((a, b) => {
-                const membersA = extractMemberCount(a);
-                const membersB = extractMemberCount(b);
-                return membersA - membersB;
-            });
-            
-        case 'newest':
-            return cardsCopy.sort((a, b) => {
-                const idA = parseInt(a.getAttribute('data-server-id')) || 0;
-                const idB = parseInt(b.getAttribute('data-server-id')) || 0;
-                return idB - idA;
-            });
-            
-        case 'oldest':
-            return cardsCopy.sort((a, b) => {
-                const idA = parseInt(a.getAttribute('data-server-id')) || 0;
-                const idB = parseInt(b.getAttribute('data-server-id')) || 0;
-                return idA - idB;
-            });
-            
-        default:
-            return cardsCopy;
-    }
-}
-
-function extractMemberCount(card) {
-    const memberCountElem = card.querySelector('.server-stats span');
-    if (memberCountElem) {
-        const memberMatch = memberCountElem.textContent.match(/[\d,]+/);
-        return memberMatch ? parseInt(memberMatch[0].replace(/,/g, '')) : 0;
-    }
-    return 0;
 }
 
 function showNoResults() {
@@ -654,4 +516,235 @@ function extractServerDataFromCard(card) {
         image_url: iconUrl,
         category: category
     };
+}
+
+function initInfiniteScroll() {
+    const container = document.getElementById('all-servers');
+    if (!container) return;
+
+    let loadMoreTrigger = document.getElementById('infinite-loading-indicator');
+    if (!loadMoreTrigger) {
+        loadMoreTrigger = document.createElement('div');
+        loadMoreTrigger.id = 'infinite-loading-indicator';
+        loadMoreTrigger.className = 'col-span-full';
+        container.parentElement.appendChild(loadMoreTrigger);
+    }
+    
+    const observer = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !isLoading && hasMore) {
+            loadMoreServers();
+        } else if (entries[0].isIntersecting && !isLoading && !hasMore) {
+            // Loop content
+            loadMoreServers();
+        }
+    }, {
+        rootMargin: '0px 0px 500px 0px',
+    });
+
+    observer.observe(loadMoreTrigger);
+}
+
+function loadMoreServers() {
+    if (isLoading) return;
+
+    if (!hasMore) {
+        currentPage = 1;
+    } else {
+        currentPage++;
+    }
+    fetchAndRenderServers(true);
+}
+
+async function fetchAndRenderServers(append = false) {
+    if (isLoading) return;
+    isLoading = true;
+
+    const indicator = document.getElementById('infinite-loading-indicator');
+    if (indicator && append) {
+        indicator.innerHTML = `
+            <div class="grid-container p-4">
+                ${Array.from({ length: 3 }, () => createSkeletonCard().outerHTML).join('')}
+            </div>
+        `;
+    }
+    
+    const container = document.getElementById('all-servers');
+
+    try {
+        const response = await fetch('/api/servers/explore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                page: currentPage,
+                per_page: 6,
+                sort: currentSort,
+                category: currentCategory,
+                search: currentSearch
+            })
+        });
+        
+        const data = await response.json();
+
+        if (data.success) {
+            if (!append) {
+                hideLoadingSkeletons();
+                container.innerHTML = '';
+            }
+
+            hasMore = data.has_more;
+            currentPage = data.page;
+            totalPages = data.total_pages;
+
+            if (data.servers.length > 0) {
+                const fragment = document.createDocumentFragment();
+                data.servers.forEach(server => {
+                    const cardWrapper = createServerCardElement(server);
+                    fragment.appendChild(cardWrapper);
+                });
+                container.appendChild(fragment);
+                initJoinServerHandlersForNewCards(container);
+                initServerDetailTriggersForNewCards(container);
+                initLazyLoadingForNewCards(container);
+            }
+
+            if (!append && data.servers.length === 0) {
+                showNoResults();
+            }
+
+        } else {
+            if (window.showToast) window.showToast(data.message || 'Error loading servers.', 'error');
+        }
+    } catch (err) {
+        console.error("Failed to fetch servers", err);
+        if (window.showToast) window.showToast('Could not connect to server.', 'error');
+    } finally {
+        isLoading = false;
+        if (indicator) {
+            indicator.innerHTML = '';
+        }
+        if (!append) {
+            hideLoadingSkeletons();
+        }
+    }
+}
+
+function createServerCardElement(server) {
+    const cardWrapper = document.createElement('div');
+    cardWrapper.className = 'misvord-initial-server-card fade-in-up';
+    
+    const isJoined = server.is_member;
+
+    cardWrapper.innerHTML = `
+        <div class="explore-server-card server-card bg-discord-darker rounded-xl overflow-hidden transition-all duration-300 cursor-pointer group/card" data-server-id="${server.id}" data-category="${server.category}">
+            <div class="server-banner h-32 relative overflow-hidden">
+                <img src="${server.banner_url || asset('landing-page/background.png')}" alt="${server.name} Banner" class="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105" loading="lazy">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+            </div>
+            <div class="relative p-4">
+                <div class="absolute -top-12 left-4">
+                    <div class="explore-server-icon-small server-icon rounded-xl w-16 h-16 bg-discord-dark-2 border-4 border-discord-darker transition-all duration-300 group-hover/card:scale-105 group-hover/card:shadow-lg">
+                        <img src="${server.image_url || '/public/assets/common/default-profile-picture.png'}" alt="${server.name} Icon" class="w-full h-full object-cover" loading="lazy">
+                    </div>
+                </div>
+                <div class="mt-4 flex justify-between items-start">
+                    <div>
+                        <h3 class="server-name text-lg font-bold text-white truncate">${server.name}</h3>
+                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">${server.category}</p>
+                    </div>
+                </div>
+                <p class="server-description text-sm text-gray-300 mt-2 h-10 line-clamp-2">${server.description}</p>
+                <div class="server-stats flex items-center text-xs text-gray-400 mt-3 gap-4">
+                    <span><i class="fas fa-users mr-1"></i> ${server.member_count.toLocaleString()} Members</span>
+                    <span><i class="fas fa-calendar-alt mr-1"></i> Created ${new Date(server.created_at).toLocaleDateString()}</span>
+                </div>
+                <div class="mt-4">
+                    <button class="join-server-btn w-full py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${isJoined ? 'bg-discord-green text-white cursor-default' : 'bg-discord-blurple hover:bg-discord-blurple-dark text-white'}">
+                        <i class="fas ${isJoined ? 'fa-check' : 'fa-plus'} mr-2"></i>
+                        ${isJoined ? 'Joined' : 'Join Server'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return cardWrapper;
+}
+
+function initJoinServerHandlersForNewCards(container) {
+    const newButtons = container.querySelectorAll('.join-server-btn:not([data-handler-attached])');
+    newButtons.forEach(button => {
+        button.setAttribute('data-handler-attached', 'true');
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const serverId = button.closest('.explore-server-card').getAttribute('data-server-id');
+            if (serverId) {
+                handleJoinServer(serverId, button);
+            }
+        });
+    });
+}
+
+function initServerDetailTriggersForNewCards(container) {
+    const newCards = container.querySelectorAll('.explore-server-card:not([data-handler-attached])');
+    newCards.forEach(card => {
+        card.setAttribute('data-handler-attached', 'true');
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('button')) {
+                const serverId = card.getAttribute('data-server-id');
+                const serverData = extractServerDataFromCard(card);
+                if (typeof window.showServerDetail === 'function') {
+                    window.showServerDetail(serverId, serverData);
+                }
+            }
+        });
+    });
+}
+
+function initLazyLoadingForNewCards(container) {
+    const lazyImages = container.querySelectorAll('img[loading="lazy"]:not([data-lazy-loaded])');
+    
+    if ('IntersectionObserver' in window) {
+        const imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('src');
+                    
+                    // Add loading placeholder if not already present
+                    if (!img.classList.contains('lazy-loading')) {
+                        img.classList.add('lazy-loading');
+                    }
+                    
+                    // Create a new image to preload
+                    const preloadImg = new Image();
+                    preloadImg.onload = () => {
+                        img.src = src;
+                        img.classList.remove('lazy-loading');
+                        img.classList.add('lazy-loaded');
+                        img.setAttribute('data-lazy-loaded', 'true');
+                    };
+                    preloadImg.onerror = () => {
+                        img.classList.remove('lazy-loading');
+                        img.classList.add('lazy-error');
+                    };
+                    preloadImg.src = src;
+                    
+                    observer.unobserve(img);
+                }
+            });
+        }, {
+            rootMargin: '200px 0px', // Start loading 200px before the image enters viewport
+            threshold: 0.01
+        });
+        
+        lazyImages.forEach(img => {
+            imageObserver.observe(img);
+        });
+    } else {
+        // Fallback for browsers that don't support IntersectionObserver
+        lazyImages.forEach(img => {
+            img.setAttribute('data-lazy-loaded', 'true');
+        });
+    }
 }

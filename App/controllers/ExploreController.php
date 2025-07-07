@@ -29,6 +29,104 @@ class ExploreController extends BaseController
         }
     }
 
+    public function getPaginatedServers($page = 1, $perPage = 12, $sort = 'alphabetical', $category = '', $search = '') {
+        try {
+            $offset = ($page - 1) * $perPage;
+            $currentUserId = $_SESSION['user_id'] ?? 0;
+            
+            // Build the query using your existing repository methods
+            $baseServers = $this->serverRepository->getPublicServersWithMemberCount();
+            $userServerIds = $this->getUserServerIds($currentUserId);
+            
+            // Convert to array and add membership info
+            $servers = array_map(function($server) use ($userServerIds) {
+                $serverArray = is_array($server) ? $server : (array) $server;
+                $serverArray['is_member'] = in_array($serverArray['id'], $userServerIds);
+                return $serverArray;
+            }, $baseServers);
+            
+            // Apply filters
+            if (!empty($category)) {
+                $servers = array_filter($servers, function($server) use ($category) {
+                    return $server['category'] === $category;
+                });
+            }
+            
+            if (!empty($search)) {
+                $searchLower = strtolower($search);
+                $servers = array_filter($servers, function($server) use ($searchLower) {
+                    return strpos(strtolower($server['name']), $searchLower) !== false ||
+                           strpos(strtolower($server['description'] ?? ''), $searchLower) !== false;
+                });
+            }
+            
+            // Apply sorting
+            switch ($sort) {
+                case 'alphabetical':
+                    usort($servers, function($a, $b) {
+                        return strcmp($a['name'], $b['name']);
+                    });
+                    break;
+                case 'alphabetical-desc':
+                    usort($servers, function($a, $b) {
+                        return strcmp($b['name'], $a['name']);
+                    });
+                    break;
+                case 'members-desc':
+                    usort($servers, function($a, $b) {
+                        return ($b['member_count'] ?? 0) - ($a['member_count'] ?? 0);
+                    });
+                    break;
+                case 'members-asc':
+                    usort($servers, function($a, $b) {
+                        return ($a['member_count'] ?? 0) - ($b['member_count'] ?? 0);
+                    });
+                    break;
+                case 'newest':
+                    usort($servers, function($a, $b) {
+                        return $b['id'] - $a['id'];
+                    });
+                    break;
+                case 'oldest':
+                    usort($servers, function($a, $b) {
+                        return $a['id'] - $b['id'];
+                    });
+                    break;
+            }
+            
+            $total = count($servers);
+            $paginatedServers = array_slice($servers, $offset, $perPage);
+            $hasMore = ($offset + $perPage) < $total;
+            
+            // Format server data
+            $formattedServers = array_map(function($server) {
+                return [
+                    'id' => $server['id'],
+                    'name' => $server['name'],
+                    'description' => $server['description'] ?: 'No description available.',
+                    'category' => $server['category'] ?? '',
+                    'member_count' => intval($server['member_count'] ?? 0),
+                    'is_member' => boolval($server['is_member'] ?? false),
+                    'image_url' => $server['image_url'] ?? null,
+                    'banner_url' => $server['banner_url'] ?? null,
+                    'created_at' => $server['created_at'] ?? null
+                ];
+            }, $paginatedServers);
+            
+            return [
+                'servers' => $formattedServers,
+                'has_more' => $hasMore,
+                'total' => $total,
+                'current_page' => $page,
+                'total_pages' => ceil($total / $perPage)
+            ];
+            
+        } catch (Exception $e) {
+            error_log("Error in getPaginatedServers: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
     private function getFeaturedServers($limit = 3)
     {
         try {
@@ -60,9 +158,10 @@ class ExploreController extends BaseController
             return is_array($server) ? $server : (array) $server;
         }, $userServers);
 
-        $servers = $this->getPublicServers();
-        $featuredServers = $this->getFeaturedServers(3);
+        $initialData = $this->getPaginatedServers(1, 6);
+        $servers = $initialData['servers'];
         $userServerIds = $this->getUserServerIds($currentUserId);
+        $featuredServers = $this->getFeaturedServers(3);
 
         $allServers = array_merge($featuredServers, $servers);
         $uniqueServers = [];
@@ -90,7 +189,8 @@ class ExploreController extends BaseController
             'userServerIds' => $userServerIds,
             'featuredServers' => $featuredServers,
             'categories' => $categories,
-            'currentUserId' => $currentUserId
+            'currentUserId' => $currentUserId,
+            'initialData' => $initialData
         ];
     }
 

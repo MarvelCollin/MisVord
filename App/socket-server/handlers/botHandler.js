@@ -9,7 +9,7 @@ class BotHandler extends EventEmitter {
     static botEventEmitter = new EventEmitter();
     static botVoiceParticipants = new Map();
 
-    static registerBot(botId, username) {
+    static async registerBot(botId, username) {
         console.log(`🤖 [BOT-DEBUG] Registering bot:`, {
             botId,
             username,
@@ -21,10 +21,15 @@ class BotHandler extends EventEmitter {
             username: username,
             status: 'active',
             joinedRooms: new Set(),
-            lastActivity: Date.now()
+            lastActivity: Date.now(),
+            avatar_url: '/public/assets/common/default-profile-picture.png'
         });
         
-
+        const avatar = await this.fetchBotAvatar(username);
+        if (avatar) {
+            const botObj = this.bots.get(botId);
+            if (botObj) botObj.avatar_url = avatar;
+        }
     }
 
     static connectBot(io, botId, username) {
@@ -47,7 +52,7 @@ class BotHandler extends EventEmitter {
                 username: username,
                 isBot: true,
                 authenticated: true,
-                avatar_url: '/public/assets/common/default-profile-picture.png'
+                avatar_url: (this.bots.get(botId)?.avatar_url) || '/public/assets/common/default-profile-picture.png'
             },
             emit: (event, data) => {
 
@@ -284,7 +289,7 @@ class BotHandler extends EventEmitter {
             id: `bot-voice-${botId}`,
             user_id: botId.toString(),
             username: username,
-            avatar_url: '/public/assets/common/default-profile-picture.png',
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
             isBot: true,
             channelId: voiceConnection.channelId,
             meetingId: voiceConnection.meetingId,
@@ -343,18 +348,18 @@ class BotHandler extends EventEmitter {
 
         switch (command) {
             case 'ping':
-                responseContent = '🏓 Pong! TitiBot is alive and ready to rock! 🎵';
+                responseContent = '🏓 Pong! Saya TitiBot siap nyanyi buat abang.';
 
                 break;
 
             case 'help':
                 responseContent = `🤖 **TitiBot Commands:**
-📻 **/titibot ping** - Check if bot is alive
-🎵 **/titibot play [song]** - Play music from iTunes
-⏹️ **/titibot stop** - Stop current music
-⏭️ **/titibot next** - Play next song
-⏮️ **/titibot prev** - Play previous song
-➕ **/titibot queue [song]** - Add song to queue`;
+📻 **/titibot ping** - Cek apakah botnya aktif
+🎵 **/titibot play [song]** - Nyanyi musig 
+⏹️ **/titibot stop** - Stop musig
+⏭️ **/titibot next** - Nyanyi musig selanjutnya
+⏮️ **/titibot prev** - Nyanyi musig sebelumnya
+➕ **/titibot queue [song]** - Tambahin ke list`;
 
                 break;
 
@@ -397,7 +402,7 @@ class BotHandler extends EventEmitter {
 
             case 'queue':
                 if (!parameter) {
-                    responseContent = '❌ Udah di bilang formatnya queue {namaLagu} masih ngemeng';
+                    responseContent = '❌ Udah di bilang formatnya queue {namaLagu} malah ngemeng';
 
                 } else {
                     responseContent = `➕ Berhasil di tambahin di queue king: "${parameter}" - Searching...`;
@@ -414,7 +419,7 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'not_in_voice':
-                responseContent = '❌ You need to be in a voice channel to use music commands. Please join a voice channel first or navigate to a voice channel page.';
+                responseContent = '❌ Minimal masuk voice channel dulu sih bang.';
 
                 break;
 
@@ -444,7 +449,7 @@ class BotHandler extends EventEmitter {
             id: temp_message_id,
             user_id: parseInt(botId),
             username: username,
-            avatar_url: '/public/assets/common/default-profile-picture.png',
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
             content: responseContent,
             sent_at: currentTimestamp,
             type: 'text',
@@ -534,7 +539,6 @@ class BotHandler extends EventEmitter {
         const indonesiaTime = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
         const currentTimestamp = indonesiaTime.toISOString();
 
-
         const botMessageData = {
             user_id: parseInt(botId),
             target_type: targetType,
@@ -547,6 +551,56 @@ class BotHandler extends EventEmitter {
             temp_message_id: temp_message_id
         };
 
+        const broadcastData = {
+            id: temp_message_id,
+            temp_message_id: temp_message_id,
+            user_id: parseInt(botId),
+            username: username,
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
+            content: responseContent,
+            sent_at: currentTimestamp,
+            timestamp: Date.parse(currentTimestamp),
+            message_type: 'text',
+            is_temporary: true,
+            is_bot: true,
+            bot_id: botId,
+            source: 'bot-temp-message',
+            reply_message_id: originalMessage.id,
+            reply_data: {
+                message_id: originalMessage.id,
+                content: originalMessage.content,
+                user_id: originalMessage.user_id,
+                username: originalMessage.username,
+                avatar_url: originalMessage.avatar_url || '/public/assets/common/default-profile-picture.png'
+            }
+        };
+
+        if (messageType === 'channel') {
+            broadcastData.channel_id = channelId;
+            broadcastData.target_type = 'channel';
+            broadcastData.target_id = channelId;
+        } else {
+            broadcastData.room_id = roomId;
+            broadcastData.target_type = 'dm';
+            broadcastData.target_id = roomId;
+        }
+
+        if (musicData) {
+            broadcastData.music_data = musicData;
+        }
+
+        const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
+        const targetRoom = messageType === 'channel' ? `channel-${channelId}` : `dm-room-${roomId}`;
+        
+        console.log(`📡 [BOT-DEBUG] Broadcasting temporary bot message:`, {
+            eventName,
+            targetRoom,
+            tempMessageId: temp_message_id,
+            content: responseContent?.substring(0, 30) + '...'
+        });
+        
+        io.to(targetRoom).emit(eventName, broadcastData);
+
         console.log(`💾 [BOT-DEBUG] Preparing database save:`, {
             targetType: botMessageData.target_type,
             targetId: botMessageData.target_id,
@@ -556,10 +610,7 @@ class BotHandler extends EventEmitter {
         });
 
         try {
-
             const http = require('http');
-            const querystring = require('querystring');
-            
             const postData = JSON.stringify(botMessageData);
             
             const options = {
@@ -633,99 +684,71 @@ class BotHandler extends EventEmitter {
             if (saveResult.success && saveResult.data?.message) {
                 const savedMessage = saveResult.data.message;
                 
-                console.log(`📦 [BOT-DEBUG] Preparing broadcast data:`, {
+                console.log(`📦 [BOT-DEBUG] Preparing message_id_updated event:`, {
                     realId: savedMessage.id,
                     tempId: temp_message_id,
                     sentAt: savedMessage.sent_at
                 });
                 
-
-                const broadcastData = {
-                    id: savedMessage.id,
-                    message_id: savedMessage.id,
-                    user_id: parseInt(botId),
-                    username: username,
-                    avatar_url: '/public/assets/common/default-profile-picture.png',
-                    content: responseContent,
-                    sent_at: savedMessage.sent_at || currentTimestamp,
-                    created_at: savedMessage.sent_at || currentTimestamp,
-                    edited_at: null,
-                    type: 'text',
-                    message_type: 'text',
-                    attachments: [],
-                    has_reactions: false,
-                    reaction_count: 0,
-                    reactions: [],
-                    is_bot: true,
-                    bot_id: botId,
-                    timestamp: Date.parse(savedMessage.sent_at || currentTimestamp),
-                    source: 'database-loaded',
-                    is_temporary: false,
-                    is_pinned: false,
-                    reply_message_id: originalMessage.id,
-                    reply_data: {
-                        message_id: originalMessage.id,
-                        content: originalMessage.content,
-                        user_id: originalMessage.user_id,
-                        username: originalMessage.username,
-                        avatar_url: originalMessage.avatar_url || '/public/assets/common/default-profile-picture.png'
-                    }
-                };
-
-
-                if (messageType === 'channel') {
-                    broadcastData.channel_id = channelId;
-                    broadcastData.target_type = 'channel';
-                    broadcastData.target_id = channelId;
-                } else {
-                    broadcastData.room_id = roomId;
-                    broadcastData.target_type = 'dm';
-                    broadcastData.target_id = roomId;
-                }
-
-
-                if (musicData) {
-                    broadcastData.music_data = musicData;
-
-                }
-                
-                const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
-                const targetRoom = messageType === 'channel' ? `channel-${channelId}` : `dm-room-${roomId}`;
-                
-                console.log(`📡 [BOT-DEBUG] Broadcasting bot message:`, {
-                    eventName,
-                    targetRoom,
-                    messageId: savedMessage.id,
-                    content: responseContent?.substring(0, 30) + '...'
-                });
-                
-
-                const MessageHandler = require('./messageHandler');
-                
-
-                const mockBotClient = {
-                    id: `bot-${botId}`,
-                    data: {
+                const updateData = {
+                    temp_message_id: temp_message_id,
+                    real_message_id: savedMessage.id,
+                    message_data: {
+                        id: savedMessage.id,
+                        message_id: savedMessage.id,
                         user_id: parseInt(botId),
                         username: username,
-                        avatar_url: '/public/assets/common/default-profile-picture.png',
-                        authenticated: true
+                        avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
+                        content: responseContent,
+                        sent_at: savedMessage.sent_at || currentTimestamp,
+                        created_at: savedMessage.sent_at || currentTimestamp,
+                        edited_at: null,
+                        type: 'text',
+                        message_type: 'text',
+                        attachments: [],
+                        has_reactions: false,
+                        reaction_count: 0,
+                        reactions: [],
+                        is_bot: true,
+                        bot_id: botId,
+                        timestamp: Date.parse(savedMessage.sent_at || currentTimestamp),
+                        source: 'database-loaded',
+                        is_temporary: false,
+                        is_pinned: false,
+                        reply_message_id: originalMessage.id,
+                        reply_data: {
+                            message_id: originalMessage.id,
+                            content: originalMessage.content,
+                            user_id: originalMessage.user_id,
+                            username: originalMessage.username,
+                            avatar_url: originalMessage.avatar_url || '/public/assets/common/default-profile-picture.png'
+                        }
                     },
-                    rooms: new Set([targetRoom]),
-                    join: () => {},
-                    to: () => ({
-                        emit: () => {}
-                    })
+                    timestamp: Date.now()
                 };
-                
 
-                
-
-                MessageHandler.forwardMessage(io, mockBotClient, eventName, broadcastData);
-                
+                if (messageType === 'channel') {
+                    updateData.message_data.channel_id = channelId;
+                    updateData.message_data.target_type = 'channel';
+                    updateData.message_data.target_id = channelId;
+                } else {
+                    updateData.message_data.room_id = roomId;
+                    updateData.message_data.target_type = 'dm';
+                    updateData.message_data.target_id = roomId;
+                }
 
                 if (musicData) {
+                    updateData.message_data.music_data = musicData;
+                }
+                
+                console.log(`📡 [BOT-DEBUG] Emitting message_id_updated event:`, {
+                    targetRoom,
+                    tempId: temp_message_id,
+                    realId: savedMessage.id
+                });
+                io.to(targetRoom).emit('message_id_updated', updateData);
 
+                if (musicData) {
                     const musicCommandData = {
                         channel_id: channelId,
                         room_id: roomId,
@@ -741,23 +764,15 @@ class BotHandler extends EventEmitter {
                         action: musicData.action
                     });
                     
-
                     io.to(targetRoom).emit('bot-music-command', musicCommandData);
                     
-
                     if (channelId) {
                         const voiceChannelRoom = `voice_channel_${channelId}`;
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
-
                     }
                     
-
                     io.emit('bot-music-command', musicCommandData);
-                    
-
                 }
-                
-
             } else {
                 console.error(`❌ [BOT-DEBUG] Save failed:`, saveResult);
                 throw new Error(`Failed to save bot message: ${saveResult.message || 'Unknown error'}`);
@@ -766,37 +781,12 @@ class BotHandler extends EventEmitter {
         } catch (error) {
             console.error(`❌ [BOT-DEBUG] Error processing bot message:`, error.message);
             
-
-            const fallbackData = {
-                id: temp_message_id,
-                user_id: parseInt(botId),
-                username: username,
-                avatar_url: '/public/assets/common/default-profile-picture.png',
-                content: responseContent,
-                sent_at: currentTimestamp,
-                type: 'text',
-                message_type: 'text',
-                is_temporary: true,
-                is_bot: true,
-                bot_id: botId,
-                error: 'Failed to save to database',
-                timestamp: Date.now(),
-                source: 'bot-fallback'
+            const errorData = {
+                temp_message_id: temp_message_id,
+                error: error.message || 'Failed to save to database'
             };
             
-            if (messageType === 'channel') {
-                fallbackData.channel_id = channelId;
-            } else {
-                fallbackData.room_id = roomId;
-            }
-            
-            const eventName = messageType === 'channel' ? 'new-channel-message' : 'user-message-dm';
-            const targetRoom = messageType === 'channel' ? `channel-${channelId}` : `dm-room-${roomId}`;
-            
-
-            
-            io.to(targetRoom).emit(eventName, fallbackData);
-
+            io.to(targetRoom).emit('message_save_failed', errorData);
         }
     }
 
@@ -879,7 +869,7 @@ class BotHandler extends EventEmitter {
             id: `bot-voice-${botId}`,
             user_id: botId.toString(),
             username: username,
-            avatar_url: '/public/assets/common/default-profile-picture.png',
+            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/common/default-profile-picture.png',
             isBot: true,
             channelId: channelId,
             meetingId: `voice_channel_${channelId}`,
@@ -905,6 +895,37 @@ class BotHandler extends EventEmitter {
         });
         
 
+    }
+
+    static async fetchBotAvatar(username) {
+        return new Promise((resolve) => {
+            try {
+                const http = require('http');
+                const options = {
+                    hostname: 'app',
+                    port: 1001,
+                    path: `/api/bot/user/${username}`,
+                    method: 'GET',
+                    headers: { 'User-Agent': 'SocketServer/1.0' }
+                };
+                const req = http.request(options, (res) => {
+                    let data = '';
+                    res.on('data', chunk => data += chunk);
+                    res.on('end', () => {
+                        try {
+                            const result = JSON.parse(data);
+                            if (result.success && result.bot && result.bot.avatar_url) {
+                                resolve(result.bot.avatar_url);
+                            } else {
+                                resolve(null);
+                            }
+                        } catch { resolve(null); }
+                    });
+                });
+                req.on('error', () => resolve(null));
+                req.end();
+            } catch { resolve(null); }
+        });
     }
 }
 

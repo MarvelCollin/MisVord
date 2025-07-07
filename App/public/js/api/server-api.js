@@ -619,6 +619,31 @@ const serverAPI = {
         });
     },
 
+    // ADD THE NEW METHOD HERE, INSIDE THE OBJECT
+    getExploreServers: function(page = 1, perPage = 6, sort = 'alphabetical', category = '', search = '') {
+        return fetch('/api/servers/explore', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                page: page,
+                per_page: perPage,
+                sort: sort,
+                category: category,
+                search: search
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        });
+    },
+
     dataURLtoBlob: function(dataURL) {
         const arr = dataURL.split(',');
         if (arr.length < 2 || !arr[0].match(/:(.*?);/)) {
@@ -638,5 +663,4 @@ const serverAPI = {
 };
 
 export default serverAPI;
-
 window.serverAPI = serverAPI;
