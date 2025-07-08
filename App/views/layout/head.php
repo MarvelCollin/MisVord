@@ -684,6 +684,12 @@ function showBotDebugPanel() {
                         <button onclick="checkMusicListeners()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded text-sm">
                             <i class="fas fa-headphones mr-1"></i>Check Music Listeners
                         </button>
+                        <button onclick="trackMusicPlayback()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-heartbeat mr-1"></i>Track Music Playback
+                        </button>
+                        <button onclick="validateMusicState()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-stethoscope mr-1"></i>Validate Music State
+                        </button>
                         <button onclick="refreshBotStatus()" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded text-sm">
                             <i class="fas fa-sync mr-1"></i>Refresh Status
                         </button>
@@ -745,6 +751,7 @@ function initializeBotDebugPanel() {
     addBotDebugLog('🤖 Bot Debug Panel initialized', 'success');
     refreshBotStatus();
     
+    // Set up socket listeners
     if (window.globalSocketManager?.io) {
         window.globalSocketManager.io.on('bot-voice-participant-joined', (data) => {
             addBotDebugLog(`🎤 Bot joined voice channel: ${data.channel_id}`, 'success');
@@ -757,13 +764,114 @@ function initializeBotDebugPanel() {
         });
         
         window.globalSocketManager.io.on('bot-music-command', (data) => {
-            addBotDebugLog(`🎵 Music command received: ${data.action} - ${data.query || 'N/A'}`, 'info');
-            refreshBotStatus();
+            const actionType = data.music_data?.action || 'unknown';
+            const songQuery = data.music_data?.query || 'N/A';
+            
+            addBotDebugLog(`🎵 Music command received: ${actionType} - ${songQuery}`, 'info');
+            
+            // We need to wait a moment for the music to actually start playing
+            setTimeout(() => {
+                refreshBotStatus();
+                setTimeout(refreshBotStatus, 2000); // Check again after 2 seconds
+            }, 500);
         });
         
         window.globalSocketManager.io.on('bot-response', (data) => {
             addBotDebugLog(`💬 Bot response: ${data.message}`, 'info');
         });
+    }
+    
+    // Set up listeners for music player events
+    setupMusicPlayerTracking();
+}
+
+function setupMusicPlayerTracking() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    if (!musicPlayer || !musicPlayer.audio) {
+        addBotDebugLog('⚠️ Music player not available for event tracking', 'warning');
+        
+        // Try again in a second
+        setTimeout(setupMusicPlayerTracking, 1000);
+        return;
+    }
+    
+    // Track audio element events
+    ['play', 'playing', 'pause', 'ended', 'error'].forEach(eventName => {
+        musicPlayer.audio.addEventListener(eventName, () => {
+            addBotDebugLog(`🔊 Audio event: ${eventName}`, 'info');
+            refreshBotStatus();
+        });
+    });
+    
+    addBotDebugLog('✅ Music player tracking initialized', 'success');
+}
+
+// Function to actively track music playback
+let musicTrackingInterval = null;
+function trackMusicPlayback() {
+    if (musicTrackingInterval) {
+        clearInterval(musicTrackingInterval);
+        musicTrackingInterval = null;
+        addBotDebugLog('⏹️ Music tracking stopped', 'info');
+        return;
+    }
+    
+    addBotDebugLog('▶️ Starting music tracking (will update every 3 seconds)', 'success');
+    
+    // First check now
+    checkCurrentMusicStatus();
+    
+    // Then set up interval
+    musicTrackingInterval = setInterval(() => {
+        checkCurrentMusicStatus();
+    }, 3000);
+}
+
+function checkCurrentMusicStatus() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    if (!musicPlayer) {
+        addBotDebugLog('❌ Music player not available', 'error');
+        return;
+    }
+    
+    const isPlaying = musicPlayer.isPlaying || 
+                      (musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src);
+                      
+    if (isPlaying) {
+        let songInfo = '';
+        if (musicPlayer.currentSong && musicPlayer.currentSong.title) {
+            songInfo = `"${musicPlayer.currentSong.title}" by ${musicPlayer.currentSong.artist || 'Unknown'}`;
+        } else if (musicPlayer.audio && musicPlayer.audio.src) {
+            songInfo = `Audio from: ${musicPlayer.audio.src.substring(0, 30)}...`;
+        } else {
+            songInfo = 'Unknown track';
+        }
+        
+        // Get current position
+        let position = '';
+        if (musicPlayer.audio) {
+            const current = Math.round(musicPlayer.audio.currentTime || 0);
+            const total = Math.round(musicPlayer.audio.duration || 0);
+            position = `${current}/${total}s`;
+        }
+        
+        addBotDebugLog(`🎵 Currently playing: ${songInfo} (${position})`, 'success');
+        
+        // Update the display in the music status area
+        const currentlyPlayingSongEl = document.getElementById('currently-playing-song');
+        if (currentlyPlayingSongEl) {
+            currentlyPlayingSongEl.textContent = songInfo;
+            currentlyPlayingSongEl.className = 'text-xs text-purple-300 font-semibold';
+        }
+        
+        // Update the music player status
+        const musicPlayerEl = document.getElementById('music-player-status');
+        if (musicPlayerEl) {
+            musicPlayerEl.textContent = 'Playing';
+            musicPlayerEl.className = 'text-sm text-green-400';
+        }
+    } else {
+        addBotDebugLog('⏸️ No music currently playing', 'info');
     }
 }
 
@@ -793,7 +901,11 @@ function refreshBotStatus() {
     if (musicPlayerEl) {
         const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
         if (musicPlayer) {
-            const isPlaying = musicPlayer.isPlaying;
+            // Direct check for actual audio playback status, mirroring getMusicPlaybackInfo
+            const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
+            // Use the same logic as getMusicPlaybackInfo to determine if music is playing
+            const isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
+            
             musicPlayerEl.textContent = isPlaying ? 'Playing' : 'Not Playing';
             musicPlayerEl.className = isPlaying ? 'text-sm text-green-400' : 'text-sm text-gray-400';
             
@@ -801,8 +913,10 @@ function refreshBotStatus() {
             const musicInfo = getMusicPlaybackInfo();
             
             if (currentlyPlayingSongEl) {
-                if (musicPlayer.currentSong && isPlaying) {
-                    currentlyPlayingSongEl.textContent = `${musicPlayer.currentSong.title} by ${musicPlayer.currentSong.artist || 'Unknown'}`;
+                // Get the track from any available source
+                const currentTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
+                if (currentTrack && isPlaying) {
+                    currentlyPlayingSongEl.textContent = `${currentTrack.title} by ${currentTrack.artist || 'Unknown'}`;
                     currentlyPlayingSongEl.className = 'text-xs text-purple-300 font-semibold';
                 } else {
                     currentlyPlayingSongEl.textContent = 'None';
@@ -1078,7 +1192,8 @@ function getMusicPlaybackInfo() {
         songTitle: 'None',
         songArtist: 'None',
         listeners: [],
-        voiceChannelId: null
+        voiceChannelId: null,
+        debug: {}
     };
     
     if (!musicPlayer) {
@@ -1086,14 +1201,54 @@ function getMusicPlaybackInfo() {
         return result;
     }
     
-    // Get current song info
-    result.isPlaying = musicPlayer.isPlaying || false;
+    // Direct check for actual audio playback status
+    const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
+    
+    // Get current song info from multiple possible locations
+    result.isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
+    
+    // Store debug info
+    result.debug = {
+        audioElement: {
+            src: musicPlayer.audio?.src || 'none',
+            paused: musicPlayer.audio?.paused,
+            currentTime: musicPlayer.audio?.currentTime,
+            duration: musicPlayer.audio?.duration
+        },
+        isPlayingFlag: musicPlayer.isPlaying,
+        currentSong: musicPlayer.currentSong,
+        currentTrack: musicPlayer.currentTrack,
+        queue: musicPlayer.queue?.length || 0
+    };
+    
+    // Check all possible locations for current song info
     if (musicPlayer.currentSong) {
         result.songTitle = musicPlayer.currentSong.title || 'Unknown';
         result.songArtist = musicPlayer.currentSong.artist || 'Unknown';
     } else if (musicPlayer.currentTrack) {
         result.songTitle = musicPlayer.currentTrack.title || 'Unknown';
         result.songArtist = musicPlayer.currentTrack.artist || 'Unknown';
+    } else if (musicPlayer.queue && musicPlayer.queue.length > 0 && musicPlayer.currentIndex >= 0) {
+        // Try to get from queue
+        const currentQueueItem = musicPlayer.queue[musicPlayer.currentIndex];
+        if (currentQueueItem) {
+            result.songTitle = currentQueueItem.title || 'Unknown';
+            result.songArtist = currentQueueItem.artist || 'Unknown';
+        }
+    }
+    
+    // If we have a playing audio element but no song info, use the URL as a fallback
+    if (result.isPlaying && result.songTitle === 'None' && musicPlayer.audio?.src) {
+        const url = musicPlayer.audio.src;
+        try {
+            // Extract song name from URL
+            const urlParts = url.split('/');
+            const filename = urlParts[urlParts.length - 1].split('?')[0];
+            result.songTitle = decodeURIComponent(filename) || 'Unknown track';
+            result.songArtist = 'Unknown artist';
+        } catch (e) {
+            result.songTitle = 'Playing unknown track';
+        }
     }
     
     // Get voice channel ID
@@ -1197,6 +1352,27 @@ function checkMusicListeners() {
     
     const musicInfo = getMusicPlaybackInfo();
     
+    // First examine the actual music player debug info
+    addBotDebugLog('🔍 Analyzing music player state...', 'info');
+    const debugInfo = musicInfo.debug;
+    
+    // Check audio element status
+    const audio = debugInfo.audioElement;
+    if (audio.src && audio.src !== 'none') {
+        addBotDebugLog(`🎧 Audio element has source: ${audio.src.substring(0, 30)}...`, 'info');
+        addBotDebugLog(`   Paused: ${audio.paused}, Time: ${Math.round(audio.currentTime || 0)}/${Math.round(audio.duration || 0)}s`, 'info');
+    } else {
+        addBotDebugLog('❌ Audio element has no source', 'warning');
+    }
+    
+    // Check tracking variables
+    addBotDebugLog(`🔄 Player state variables:`, 'info');
+    addBotDebugLog(`   isPlaying flag: ${debugInfo.isPlayingFlag}`, debugInfo.isPlayingFlag ? 'success' : 'warning');
+    addBotDebugLog(`   Has currentSong: ${!!debugInfo.currentSong}`, debugInfo.currentSong ? 'success' : 'info');
+    addBotDebugLog(`   Has currentTrack: ${!!debugInfo.currentTrack}`, debugInfo.currentTrack ? 'success' : 'info');
+    addBotDebugLog(`   Queue size: ${debugInfo.queue}`, 'info');
+    
+    // Check voice channel
     if (!musicInfo.voiceChannelId) {
         addBotDebugLog('❌ No voice channel detected', 'error');
         return;
@@ -1209,6 +1385,9 @@ function checkMusicListeners() {
     } else {
         addBotDebugLog('⏹️ No music currently playing', 'warning');
     }
+    
+    // Analyze command flow
+    analyzeMusicCommandFlow();
     
     addBotDebugLog(`👥 Detected ${musicInfo.listeners.length} participants in voice channel:`, 'info');
     
@@ -1231,6 +1410,61 @@ function checkMusicListeners() {
         addBotDebugLog(`⚠️ Detected ${listenersCount} listeners but no music is playing`, 'warning');
     } else {
         addBotDebugLog(`ℹ️ No music playing and no listeners`, 'info');
+    }
+}
+
+function analyzeMusicCommandFlow() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    if (!musicPlayer) {
+        addBotDebugLog('❌ Music player not available for flow analysis', 'error');
+        return;
+    }
+    
+    addBotDebugLog('🔄 Analyzing music command flow...', 'info');
+    
+    // 1. Command reception
+    const socketManager = window.globalSocketManager;
+    if (socketManager && socketManager.isReady()) {
+        addBotDebugLog('1️⃣ Socket ready for command reception', 'success');
+    } else {
+        addBotDebugLog('1️⃣ Socket not ready - command reception may fail', 'warning');
+    }
+    
+    // 2. Music player initialization
+    if (musicPlayer._audioInitialized) {
+        addBotDebugLog('2️⃣ Music player properly initialized', 'success');
+    } else {
+        addBotDebugLog('2️⃣ Music player not fully initialized', 'warning');
+    }
+    
+    // 3. Audio unlocking
+    const audioContext = musicPlayer._audioContext;
+    if (audioContext) {
+        const contextState = audioContext.state;
+        addBotDebugLog(`3️⃣ Audio context state: ${contextState}`, 
+            contextState === 'running' ? 'success' : 'warning');
+    } else {
+        addBotDebugLog('3️⃣ No audio context available', 'warning');
+    }
+    
+    // 4. Music search and track loading
+    const lastFoundTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
+    if (lastFoundTrack) {
+        addBotDebugLog(`4️⃣ Last found track: ${lastFoundTrack.title || 'Unknown'}`, 'success');
+        if (lastFoundTrack.previewUrl) {
+            addBotDebugLog(`   Has preview URL: ${lastFoundTrack.previewUrl.substring(0, 30)}...`, 'success');
+        } else {
+            addBotDebugLog('   No preview URL available', 'warning');
+        }
+    } else {
+        addBotDebugLog('4️⃣ No track has been found/loaded', 'warning');
+    }
+    
+    // Check for hooks to intercept command execution
+    if (typeof musicPlayer.processBotMusicCommand === 'function') {
+        addBotDebugLog('5️⃣ Music command processor available', 'success');
+    } else {
+        addBotDebugLog('5️⃣ Music command processor missing!', 'error');
     }
 }
 

@@ -36,7 +36,7 @@ if (count($servers) > $maxServersToShow) {
 <div id="tooltip-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 0; z-index: 99999; pointer-events: none;"></div>
 
 <div class="flex h-full">
-    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 transition-all duration-200 h-full">
+    <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 transition-all duration-200 h-full" style="height: 100vh; overflow: hidden;">
         <div id="server-list" class="server-sidebar-list flex-1 w-full">
             <div class="server-sidebar-icon <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">
@@ -86,7 +86,40 @@ if (count($servers) > $maxServersToShow) {
                 <?php endforeach; ?>
             <?php endif; ?>
             
-            <!-- REMOVED: Test server data for scrolling -->
+            <!-- Temporary test server data to demonstrate scrolling -->
+            <?php
+            // Only show test servers in development environment
+            $showTestServers = true; // Set to false in production
+            if ($showTestServers):
+                $testServers = [
+                    ['id' => 'test1', 'name' => 'Test Server 1', 'initials' => 'T1'],
+                    ['id' => 'test2', 'name' => 'Test Server 2', 'initials' => 'T2'],
+                    ['id' => 'test3', 'name' => 'Test Server 3', 'initials' => 'T3'],
+                    ['id' => 'test4', 'name' => 'Test Server 4', 'initials' => 'T4'],
+                    ['id' => 'test5', 'name' => 'Test Server 5', 'initials' => 'T5'],
+                    ['id' => 'test6', 'name' => 'Test Server 6', 'initials' => 'T6'],
+                    ['id' => 'test7', 'name' => 'Test Server 7', 'initials' => 'T7'],
+                    ['id' => 'test8', 'name' => 'Test Server 8', 'initials' => 'T8'],
+                    ['id' => 'test9', 'name' => 'Test Server 9', 'initials' => 'T9'],
+                    ['id' => 'test10', 'name' => 'Test Server 10', 'initials' => 'T10']
+                ];
+                foreach ($testServers as $testServer):
+            ?>
+                <div class="server-sidebar-icon" data-server-id="<?php echo $testServer['id']; ?>">
+                    <a href="#" class="block server-link" data-server-id="<?php echo $testServer['id']; ?>">
+                        <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
+                            <span class="text-white font-bold text-xl"><?php echo htmlspecialchars($testServer['initials']); ?></span>
+                        </div>
+                    </a>
+                    <div class="tooltip hidden absolute left-16 bg-black text-white py-1 px-2 rounded text-sm whitespace-nowrap z-50">
+                        <?php echo htmlspecialchars($testServer['name']); ?>
+                    </div>
+                </div>
+            <?php 
+                endforeach;
+            endif;
+            ?>
+            <!-- End of test data -->
             
             <div class="server-sidebar-icon">
                 <button data-action="create-server" class="discord-add-server-button">

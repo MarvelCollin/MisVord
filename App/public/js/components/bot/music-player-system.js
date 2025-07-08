@@ -443,12 +443,7 @@ class MusicPlayerSystem {
                         const searchResult = await this.searchMusic(query.trim());
                         
                         if (searchResult && searchResult.previewUrl) {
-                            console.log('🎵 [MUSIC-PLAYER] Found track:', {
-                                title: searchResult.title,
-                                artist: searchResult.artist,
-                                previewUrl: searchResult.previewUrl
-                            });
-                            
+                            console.log('🎵 [MUSIC-PLAYER] Search found:', searchResult);
                             this.showStatus(`Found "${searchResult.title}" - preparing playback...`);
                             
                             try {
@@ -474,6 +469,11 @@ class MusicPlayerSystem {
                                 
                                 // Start playback and show UI
                                 console.log('🎵 [MUSIC-PLAYER] Starting playback for:', searchResult.title);
+                                
+                                // Update state variables BEFORE playback to ensure they're set
+                                this.currentSong = searchResult;
+                                this.currentTrack = searchResult;
+                                
                                 await this.playTrack(searchResult);
                                 
                                 // Force update the player UI
@@ -481,9 +481,8 @@ class MusicPlayerSystem {
                                 this.showNowPlaying(searchResult);
                                 this.showStatus(`Now playing: ${searchResult.title}`);
                                 
-                                // Update state variables
+                                // Update isPlaying flag again to ensure it's set
                                 this.isPlaying = true;
-                                this.currentSong = searchResult;
                                 
                                 console.log('🎵 [MUSIC-PLAYER] Playback started successfully');
                             } catch (playError) {
@@ -1248,7 +1247,10 @@ class MusicPlayerSystem {
 
             this.unlockAudio();
             
+            // Update both state tracking variables
             this.currentSong = track;
+            this.currentTrack = track;
+            
             this.audio.volume = this.volume;
             this.audio.crossOrigin = "anonymous";
             this.audio.preload = "auto"; // Changed from metadata to auto for more reliable loading
@@ -1282,7 +1284,11 @@ class MusicPlayerSystem {
                     await playPromise;
                 }
                 
+                // Ensure both state tracking variables are set
                 this.isPlaying = true;
+                this.currentSong = track;
+                this.currentTrack = track;
+                
                 this.showNowPlaying(track);
                 
                 return `🎵 Now playing: **${track.title}** by ${track.artist}`;
@@ -1790,6 +1796,48 @@ class MusicPlayerSystem {
             volume: this.audio.volume,
             crossOrigin: this.audio.crossOrigin
         });
+    }
+
+    validateMusicState() {
+        // Check all state variables
+        const audioActive = this.audio && !this.audio.paused && this.audio.src;
+        const stateValid = this.isPlaying === audioActive;
+        const songValid = audioActive ? (!!this.currentSong && !!this.currentTrack) : true;
+        
+        console.log('🎵 [MUSIC-STATE-VALIDATOR] Music Player State:', {
+            audioElement: {
+                exists: !!this.audio,
+                src: this.audio?.src ? 'Set' : 'Empty',
+                paused: this.audio?.paused,
+                currentTime: Math.round(this.audio?.currentTime || 0),
+                duration: Math.round(this.audio?.duration || 0)
+            },
+            stateFlags: {
+                isPlaying: this.isPlaying,
+                audioActive: audioActive,
+                stateConsistent: stateValid,
+                songDataValid: songValid
+            },
+            trackData: {
+                currentSong: this.currentSong ? 
+                    { title: this.currentSong.title, artist: this.currentSong.artist } : null,
+                currentTrack: this.currentTrack ? 
+                    { title: this.currentTrack.title, artist: this.currentTrack.artist } : null,
+                queueLength: this.queue.length,
+                currentIndex: this.currentIndex
+            }
+        });
+        
+        // Return summarized status
+        return {
+            isPlaying: audioActive,
+            stateConsistent: stateValid,
+            songDataValid: songValid,
+            currentSongTitle: this.currentSong?.title || this.currentTrack?.title || null,
+            recommendations: !stateValid ? 
+                ["isPlaying flag does not match audio element state"] : 
+                (!songValid ? ["Current song data missing while audio is playing"] : [])
+        };
     }
 }
 

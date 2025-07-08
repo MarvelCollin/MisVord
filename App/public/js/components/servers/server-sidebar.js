@@ -24,12 +24,13 @@ function setupScrollBehavior() {
         const topPadding = 24;
         const bottomPadding = 24;
         
-        // Set max height to ensure scrolling works
-        serverList.style.maxHeight = `${viewportHeight - (topPadding + bottomPadding)}px`;
-        serverList.style.height = 'auto';
+        // Force scrollable height - set a slightly smaller height to ensure scrollbar appears
+        const maxHeight = viewportHeight - (topPadding + bottomPadding);
+        serverList.style.maxHeight = `${maxHeight}px`;
+        serverList.style.height = '100%';
         
-        // Ensure overflow settings are correct - forcing auto overflow
-        serverList.style.overflowY = 'auto !important';
+        // Ensure overflow settings are correct - force auto
+        serverList.style.overflowY = 'auto';
         serverList.style.overflowX = 'hidden';
         
         // Add smooth scrolling
@@ -38,15 +39,24 @@ function setupScrollBehavior() {
         // If sidebar container exists, ensure it doesn't block scrolling
         if (sidebarContainer) {
             sidebarContainer.style.overflowY = 'hidden';
+            sidebarContainer.style.height = '100vh';
         }
 
-        // Check if scrolling is needed
-        const needsScrolling = serverList.scrollHeight > serverList.clientHeight;
+        // Check if scrolling is needed - add a small threshold to ensure scrollbar shows
+        const needsScrolling = serverList.scrollHeight > (serverList.clientHeight - 10);
+        
+        console.log('Scroll debug:', {
+            scrollHeight: serverList.scrollHeight,
+            clientHeight: serverList.clientHeight,
+            needsScrolling: needsScrolling,
+            maxHeight: maxHeight
+        });
+        
         if (needsScrolling) {
             serverList.classList.remove('no-scrollbar');
-            
-            // Force scrollbar to be visible and active by adding a small padding
-            serverList.style.paddingRight = '4px';
+            // Force scrollbar to be visible and active
+            serverList.style.paddingRight = '8px';
+            serverList.style.overflowY = 'scroll'; // Force scroll instead of auto for testing
         } else {
             serverList.classList.add('no-scrollbar');
         }
@@ -91,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initServerSidebar();
     initializeHomeIconEasterEgg();
+    setupScrollBehavior(); // Add this line to enable scrolling behavior
     
 
     setTimeout(() => {
