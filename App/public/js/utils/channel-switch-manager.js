@@ -596,8 +596,6 @@ class SimpleChannelSwitcher {
             setTimeout(() => {
                 if (window.voiceManager && typeof window.voiceManager.refreshParticipantsUI === 'function') {
                     window.voiceManager.refreshParticipantsUI();
-                } else if (window.videoSDKManager && window.videoSDKManager.refreshExistingParticipants) {
-                    window.videoSDKManager.refreshExistingParticipants();
                 }
             }, 500);
         }

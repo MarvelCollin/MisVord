@@ -14,11 +14,10 @@ class VoiceCallSection {
 
     this.initialized = false;
     this.streamProcessingDebounce = new Map();
-    this.coordinator = null;
+    this.pendingParticipants = new Set();
     this.bindEvents();
 
-    this._pageUnloading = false; // New flag to track page unload
-    
+    this._pageUnloading = false;
 
     this.setupPageUnloadListener();
   }
@@ -66,8 +65,6 @@ class VoiceCallSection {
   init() {
     if (this.initialized) return;
 
-    this.setupCoordinator();
-
     this.micBtn = document.getElementById("micBtn");
     this.videoBtn = document.getElementById("videoBtn");
     this.deafenBtn = document.getElementById("deafenBtn");
@@ -112,20 +109,9 @@ class VoiceCallSection {
       this.retryInitialization();
     }, 1000);
 
-    setTimeout(() => {
-      this.ensureLocalParticipant();
-    }, 1500);
+
 
     this.startVideoOverlaySafetyMonitor();
-  }
-
-  setupCoordinator() {
-    if (window.participantCoordinator) {
-      this.coordinator = window.participantCoordinator;
-      this.coordinator.registerSystem('VoiceCallSection');
-    } else {
-      setTimeout(() => this.setupCoordinator(), 100);
-    }
   }
 
   retryInitialization() {
@@ -134,15 +120,11 @@ class VoiceCallSection {
         if (window.videoSDKManager?.isMeetingJoined) {
           this.syncButtonStates();
           this.refreshParticipantGrid();
-        } else {
-          const grid = document.getElementById("participantGrid");
-          if (grid && grid.children.length === 0) {
-            this.createFallbackLocalParticipant();
-          }
         }
       }, 2000);
     } else {
-      this.ensureLocalParticipant();
+      this.syncButtonStates();
+      this.refreshParticipantGrid();
     }
   }
 
@@ -369,14 +351,6 @@ class VoiceCallSection {
     this.disconnectBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-
-
-      if (this.coordinator) {
-        this.coordinator.setExplicitLeaveRequested(true);
-      } else if (window.participantCoordinator) {
-        window.participantCoordinator.setExplicitLeaveRequested(true);
-      }
-
 
       this.handleVoiceDisconnect();
 
@@ -815,27 +789,8 @@ class VoiceCallSection {
   }
 
   handleMeetingJoined() {
-    
-    
-
-    this.refreshParticipantGrid();
-    
-
-    setTimeout(() => {
-      this.ensureLocalParticipant();
-    }, 300);
-    
-
     this.updateParticipantCount();
     this.updateActivityStatus();
-    
-
-    setTimeout(() => {
-      if (document.getElementById("participantGrid")?.children.length === 0) {
-        
-        this.createFallbackLocalParticipant();
-      }
-    }, 1000);
   }
 
   handleStreamEvent(e) {
@@ -877,36 +832,22 @@ class VoiceCallSection {
       return;
     }
 
-
     if (grid.querySelector(`[data-participant-id="${participantId}"]`)) {
       return;
     }
 
-
-    const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
-    
-
-    const isLocal = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
-    if (!isLocal && this.coordinator) {
-
-      if (this.coordinator.hasParticipant(currentChannelId, participantId)) {
-        const existingSystem = this.coordinator.getParticipantSystem(participantId);
-        if (existingSystem === 'VoiceCallSection') {
-          return; // We already manage this participant
-        }
-
-        const resolved = this.coordinator.resolveConflict(currentChannelId, participantId, 'VoiceCallSection', null);
-        if (!resolved) {
-          return;
-        }
-      }
+    if (this.pendingParticipants.has(participantId)) {
+      return;
     }
+
+    this.pendingParticipants.add(participantId);
 
     const name = participantObj?.displayName || participantObj?.name || "Unknown";
     
     let userData;
-    if (isLocal) {
+    const isLocal = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
 
+    if (isLocal) {
       userData = window.userDataHelper?.getCurrentUserData() || {
         id: window.currentUserId || document.querySelector('meta[name="user-id"]')?.content || 'local-user',
         username: name || document.querySelector('meta[name="username"]')?.content || 'You',
@@ -942,19 +883,8 @@ class VoiceCallSection {
       userData
     );
     
-
-    if (!isLocal && this.coordinator && userData) {
-      const added = this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection');
-      if (!added) {
-
-        return;
-      }
-    } else if (isLocal && this.coordinator && userData) {
-
-      this.coordinator.addParticipant(currentChannelId, participantId, userData, 'VoiceCallSection', true);
-    }
-    
     grid.appendChild(participantElement);
+    this.pendingParticipants.delete(participantId);
 
     setTimeout(() => {
       this.checkParticipantStreams(participantObj);
@@ -967,29 +897,18 @@ class VoiceCallSection {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
 
-
     const isLocalParticipant = participantId === window.videoSDKManager?.meeting?.localParticipant?.id;
-    if (isLocalParticipant && !this.coordinator?.explicitLeaveRequested && !this._pageUnloading) {
-      
+    if (isLocalParticipant && !this._pageUnloading) {
       return;
     }
+
+    this.pendingParticipants.delete(participantId);
 
     const element = grid.querySelector(
       `[data-participant-id="${participantId}"]`
     );
     if (element) {
       element.remove();
-    }
-
-
-    const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
-    if (this.coordinator) {
-
-      if (this.coordinator.explicitLeaveRequested || this._pageUnloading) {
-        this.coordinator.removeParticipant(currentChannelId, participantId, 'VoiceCallSection');
-      } else {
-        
-      }
     }
 
     this.removeScreenShareCard(participantId);
@@ -1315,14 +1234,8 @@ class VoiceCallSection {
     const grid = document.getElementById("participantGrid");
     if (!grid) return;
 
-
-    const currentChannelId = window.voiceManager?.currentChannelId || 'voice-call';
-    if (this.coordinator) {
-      this.coordinator.clearChannel(currentChannelId);
-    }
-
+    this.pendingParticipants.clear();
     grid.innerHTML = "";
-
 
     let delay = 0;
 
@@ -1331,7 +1244,6 @@ class VoiceCallSection {
         window.videoSDKManager.meeting.participants.values()
       );
       
-
       participants.forEach((participant) => {
         setTimeout(() => {
           this.addParticipantToGrid(participant.id, participant);
@@ -1339,25 +1251,10 @@ class VoiceCallSection {
         }, delay);
         delay += 50;
       });
-
-
-      const localParticipant = window.videoSDKManager.meeting.localParticipant;
-      if (localParticipant) {
-
-        setTimeout(() => {
-          if (!grid.querySelector(`[data-participant-id="${localParticipant.id}"]`)) {
-            this.addParticipantToGrid(localParticipant.id, localParticipant);
-            this.checkParticipantStreams(localParticipant);
-          }
-        }, 50);
-        delay += 50;
-      }
     }
 
     setTimeout(() => {
       this.updateParticipantCount();
-
-      this.ensureLocalParticipant();
     }, delay + 100);
   }
 
@@ -1868,13 +1765,6 @@ class VoiceCallSection {
   }
 
   handleVoiceDisconnect() {
-
-    if (this.coordinator) {
-      this.coordinator.setExplicitLeaveRequested(true);
-    } else if (window.participantCoordinator) {
-      window.participantCoordinator.setExplicitLeaveRequested(true);
-    }
-
     if (window.musicPlayer) {
       try {
         window.musicPlayer.stop();
@@ -1962,90 +1852,14 @@ class VoiceCallSection {
   }
 
 
-  ensureLocalParticipant() {
-    if (!window.videoSDKManager?.meeting?.localParticipant) {
-      console.warn("[VOICE-CALL] Local participant not available in VideoSDK");
-      this.createFallbackLocalParticipant();
-      return;
-    }
-    
-    const localParticipant = window.videoSDKManager.meeting.localParticipant;
-    const grid = document.getElementById("participantGrid");
-    
-    if (!grid) return;
-    
 
-    const existingLocalParticipant = grid.querySelector(`[data-participant-id="${localParticipant.id}"]`);
-    if (!existingLocalParticipant) {
-      
-      this.addParticipantToGrid(localParticipant.id, localParticipant);
-      this.checkParticipantStreams(localParticipant);
-      
-
-      setTimeout(() => {
-        this.checkParticipantStreams(localParticipant);
-      }, 1000);
-    }
-  }
-
-
-  createFallbackLocalParticipant() {
-    const grid = document.getElementById("participantGrid");
-    if (!grid) return;
-    
-    const localUserId = document.querySelector('meta[name="user-id"]')?.content || 'local-user';
-    const username = document.querySelector('meta[name="username"]')?.content || 'You';
-    const avatar = document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png';
-    
-
-    if (grid.querySelector(`[data-participant-id="fallback-local-${localUserId}"]`)) {
-      return;
-    }
-    
-    const fallbackParticipantObj = {
-      id: `fallback-local-${localUserId}`,
-      displayName: username,
-      name: username
-    };
-    
-    const userData = {
-      id: localUserId,
-      username: username,
-      display_name: username,
-      avatar_url: avatar
-    };
-    
-    const participantElement = this.createParticipantElement(
-      fallbackParticipantObj.id,
-      fallbackParticipantObj,
-      userData
-    );
-    
-
-    const avatar_element = participantElement.querySelector(".participant-avatar");
-    if (avatar_element) {
-      avatar_element.classList.add("local-participant");
-    }
-    
-    grid.appendChild(participantElement);
-    this.updateGridLayout();
-  }
 
 
   setupPageUnloadListener() {
     window.addEventListener('beforeunload', () => {
       this._pageUnloading = true;
-      
-
-      if (this.coordinator) {
-        this.coordinator.setExplicitLeaveRequested(true);
-      } else if (window.participantCoordinator) {
-        window.participantCoordinator.setExplicitLeaveRequested(true);
-      }
-      
 
       this.handleVoiceDisconnect();
-      
 
       if (window.voiceManager && typeof window.voiceManager.leaveVoice === "function") {
         window.voiceManager.leaveVoice();

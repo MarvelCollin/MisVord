@@ -1293,57 +1293,67 @@ function getMusicPlaybackInfo() {
 function getVoiceChannelParticipants(channelId) {
     if (!channelId) return [];
     
-    const participants = [];
+    const participantMap = new Map();
     
-    // Check for regular participants via VideoSDK
+    const extractUserId = (id, name) => {
+        if (!id) return null;
+        const idStr = String(id);
+        if (/^\d+$/.test(idStr)) return idStr;
+        if (idStr.includes('_')) {
+            const parts = idStr.split('_');
+            const lastPart = parts[parts.length - 1];
+            if (/^\d+$/.test(lastPart)) return lastPart;
+        }
+        if (name && name.includes('_')) {
+            const nameParts = name.split('_');
+            const lastPart = nameParts[nameParts.length - 1];
+            if (/^\d+$/.test(lastPart)) return lastPart;
+        }
+        return null;
+    };
+    
+    const addParticipant = (userId, username, isBot = false, isSelf = false) => {
+        const normalizedId = extractUserId(userId, username) || userId;
+        if (!participantMap.has(normalizedId)) {
+            participantMap.set(normalizedId, {
+                user_id: normalizedId,
+                username: username || 'Unknown',
+                channelId: channelId,
+                isBot: isBot,
+                isSelf: isSelf
+            });
+        }
+    };
+    
     if (window.videoSDKManager && window.videoSDKManager.meeting) {
         const peers = window.videoSDKManager.meeting.participants;
         if (peers) {
             peers.forEach(peer => {
                 if (peer.id) {
-                    participants.push({
-                        user_id: peer.id,
-                        username: peer.displayName || 'Unknown',
-                        channelId: channelId
-                    });
+                    addParticipant(peer.id, peer.displayName || 'Unknown');
                 }
             });
         }
     }
     
-    // Check for bot participants
     if (window.BotComponent && window.BotComponent.voiceBots) {
         window.BotComponent.voiceBots.forEach((botData, botId) => {
             if (botData.channel_id === channelId) {
-                participants.push({
-                    user_id: botId,
-                    username: botData.username || 'Bot',
-                    isBot: true,
-                    channelId: channelId
-                });
+                addParticipant(botId, botData.username || 'Bot', true);
             }
         });
     }
     
-    // Add current user if in voice
     const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
     const currentUsername = document.querySelector('meta[name="username"]')?.content;
     const userInVoice = window.unifiedVoiceStateManager?.getState()?.isConnected && 
                        window.unifiedVoiceStateManager?.getState()?.channelId === channelId;
                        
-    if (currentUserId && userInVoice) {
-        // Check if user is not already in the list
-        if (!participants.some(p => p.user_id === currentUserId)) {
-            participants.push({
-                user_id: currentUserId,
-                username: currentUsername || 'You',
-                channelId: channelId,
-                isSelf: true
-            });
-        }
+    if (currentUserId && userInVoice && !participantMap.has(currentUserId)) {
+        addParticipant(currentUserId, currentUsername || 'You', false, true);
     }
     
-    return participants;
+    return Array.from(participantMap.values());
 }
 
 
@@ -1607,6 +1617,39 @@ function clearBotDebugLogs() {
     if (logsContainer) {
         logsContainer.innerHTML = '<div class="text-gray-500">Logs cleared...</div>';
         botDebugLogCount = 0;
+    }
+}
+
+function testParticipantDeduplication() {
+    addBotDebugLog('🧪 Testing participant deduplication fix...', 'info');
+    
+    const voiceChannelId = window.unifiedVoiceStateManager?.getState()?.channelId;
+    if (!voiceChannelId) {
+        addBotDebugLog('❌ No voice channel detected', 'error');
+        return;
+    }
+    
+    const participants = getVoiceChannelParticipants(voiceChannelId);
+    
+    addBotDebugLog(`📊 Found ${participants.length} participants:`, 'info');
+    participants.forEach(p => {
+        addBotDebugLog(`   👤 ${p.username} (${p.user_id}) ${p.isBot ? '🤖' : ''} ${p.isSelf ? '👆' : ''}`, 'info');
+    });
+    
+    const uniqueIds = new Set(participants.map(p => p.user_id));
+    if (uniqueIds.size !== participants.length) {
+        addBotDebugLog(`❌ DUPLICATION STILL EXISTS! ${participants.length} participants but only ${uniqueIds.size} unique IDs`, 'error');
+        
+        const duplicates = participants.filter((p, index) => 
+            participants.findIndex(other => other.user_id === p.user_id) !== index
+        );
+        duplicates.forEach(dup => {
+            addBotDebugLog(`   🔄 Duplicate: ${dup.username} (${dup.user_id})`, 'error');
+        });
+        return false;
+    } else {
+        addBotDebugLog(`✅ NO DUPLICATES FOUND! All ${participants.length} participants are unique`, 'success');
+        return true;
     }
 }
 </script>

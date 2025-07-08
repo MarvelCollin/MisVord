@@ -238,22 +238,9 @@ class ChannelVoiceParticipants {
         const channelParticipants = this.participants.get(channelId);
         const normalizedUserId = userId.toString();
         
-
-        if (this.coordinator) {
-            if (this.coordinator.hasParticipant(channelId, normalizedUserId)) {
-                const existingSystem = this.coordinator.getParticipantSystem(normalizedUserId);
-                const isCurrentUser = normalizedUserId === window.currentUserId;
-                if (existingSystem === 'VoiceCallSection' && isCurrentUser) {
-
-                    return;
-                }
-            }
-        }
-        
         if (channelParticipants.has(normalizedUserId)) {
             return;
         }
-
 
         if (!window.userDataHelper) {
             await this.waitForUserDataHelper();
@@ -280,15 +267,12 @@ class ChannelVoiceParticipants {
             };
         }
 
-
-        if (this.coordinator) {
-            const added = this.coordinator.addParticipant(channelId, normalizedUserId, participantData, 'ChannelVoiceParticipants');
-            if (!added) {
-                return; // Already exists in coordinator
-            }
-        }
-
         channelParticipants.set(normalizedUserId, participantData);
+        console.log('[VOICE-PARTICIPANT] Added participant:', {
+            channelId,
+            userId: normalizedUserId,
+            username: participantData.username
+        });
     }
 
     removeParticipant(channelId, userId) {

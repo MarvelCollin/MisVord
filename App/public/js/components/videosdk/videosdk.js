@@ -18,7 +18,6 @@ class VideoSDKManager {
         this._micState = false;
         this._webcamState = false;
         this._screenShareState = false;
-        this.processedParticipants = new Set();
         this.presenceMonitorInterval = null;
         this.lastPresenceCheck = null;
         this.joiningInProgress = false;
@@ -340,18 +339,8 @@ class VideoSDKManager {
                 if (eventName === 'error') {
                     console.error("Meeting error:", args[0]);
                 } else if (eventName === 'meeting-joined') {
-
                     this.isMeetingJoined = true;
                     setTimeout(() => {
-                        if (this.meeting?.localParticipant) {
-
-                            window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-                                detail: { 
-                                    participant: this.meeting.localParticipant.id, 
-                                    participantObj: this.meeting.localParticipant 
-                                }
-                            }));
-                        }
                         window.dispatchEvent(new CustomEvent('videosdkMeetingFullyJoined'));
                     }, 100);
                 } else if (eventName === 'meeting-left') {
@@ -384,39 +373,10 @@ class VideoSDKManager {
         }
         
         this.setupSimpleStreamHandlers();
-        this.setupExistingParticipants();
     }
     
     handleParticipantJoined(participant) {
 
-        if (this.processedParticipants.has(participant.id)) {
-            return;
-        }
-        
-
-        const existingParticipantName = participant.displayName || participant.name;
-        if (existingParticipantName) {
-            for (const [processedId] of this.processedParticipants.entries()) {
-                const processedParticipant = this.meeting?.participants?.get(processedId);
-                if (processedParticipant && 
-                    (processedParticipant.displayName === existingParticipantName || 
-                     processedParticipant.name === existingParticipantName)) {
-                    
-
-                    if (processedId !== participant.id) {
-                        this.processedParticipants.delete(processedId);
-                        this.cleanupParticipantResourcesById(processedId);
-                        
-                        window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
-                            detail: { participant: processedId }
-                        }));
-                    }
-                    break;
-                }
-            }
-        }
-        
-        this.processedParticipants.add(participant.id);
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
@@ -431,7 +391,6 @@ class VideoSDKManager {
     handleParticipantLeft(participant) {
 
         
-        this.processedParticipants.delete(participant.id);
         this.cleanupParticipantResourcesById(participant.id);
         
 
@@ -440,36 +399,7 @@ class VideoSDKManager {
         }));
     }
     
-    setupExistingParticipants() {
-        if (!this.meeting || !this.meeting.participants) return;
-        
 
-        try {
-            setTimeout(() => {
-                let delay = 0;
-                this.meeting.participants.forEach((participant, participantId) => {
-                    
-
-                    if (this.processedParticipants.has(participant.id)) {
-                        return;
-                    }
-                    
-                    setTimeout(() => {
-                        this.processedParticipants.add(participant.id);
-                        this.registerStreamEvents(participant);
-                        this.startStreamMonitoring(participant);
-                        
-                        window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-                            detail: { participant: participant.id, participantObj: participant }
-                        }));
-                    }, delay);
-                    delay += 100; // Stagger each participant by 100ms
-                });
-            }, 500);
-        } catch (error) {
-            console.error('Error setting up existing participants:', error);
-        }
-    }
     
     cleanupParticipantResourcesById(participantId) {
         try {
@@ -769,9 +699,6 @@ class VideoSDKManager {
     }
 
     async leaveMeeting() {
-
-        const isExplicitLeave = window.participantCoordinator?.explicitLeaveRequested || false;
-
         try {
             if (this.meeting) {
                 const leaveResult = this.meeting.leave();
@@ -788,14 +715,12 @@ class VideoSDKManager {
             console.error('[VideoSDK] Unexpected error while leaving meeting:', err);
         }
 
-        if (isExplicitLeave) {
             this.cleanupParticipantResources();
 
             this.isMeetingJoined = false;
             this.isConnected = false;
             this.joiningInProgress = false;
             this.meeting = null;
-            this.processedParticipants.clear();
 
             sessionStorage.removeItem('isInVoiceCall');
             sessionStorage.removeItem('voiceChannelName');
@@ -812,13 +737,6 @@ class VideoSDKManager {
             window.dispatchEvent(new CustomEvent('presenceForceReset', { 
                 detail: { reason: 'Meeting left' } 
             }));
-        } else {
-
-            
-            this.isMeetingJoined = false;
-            this.isConnected = false;
-            this.joiningInProgress = false;
-        }
 
         this.checkAndSyncPresence();
     }
@@ -1206,41 +1124,7 @@ class VideoSDKManager {
         };
     }
 
-    refreshExistingParticipants() {
-        if (!this.meeting || !this.meeting.participants || !this.isMeetingJoined) return;
-        
 
-        
-        try {
-            let delay = 0;
-            
-            this.meeting.participants.forEach((participant, participantId) => {
-
-                
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-                        detail: { participant: participant.id, participantObj: participant }
-                    }));
-                }, delay);
-                delay += 50;
-            });
-            
-            if (this.meeting.localParticipant) {
-                setTimeout(() => {
-                    window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-                        detail: { 
-                            participant: this.meeting.localParticipant.id, 
-                            participantObj: this.meeting.localParticipant 
-                        }
-                    }));
-                }, delay);
-            }
-            
-
-        } catch (error) {
-            console.error('Error refreshing existing participants:', error);
-        }
-    }
 
     async preload() {
         if (this.initialized) {

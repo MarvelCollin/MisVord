@@ -649,42 +649,7 @@ window.testBotMusic = function(song = 'never gonna give you up') {
 };
 
 
-window.ensureVoiceCallInitialized = function() {
-    if (!window.voiceCallSection) {
-        console.warn('⚠️ [VOICE-CALL] Voice call section not initialized, creating instance');
-        window.voiceCallSection = new VoiceCallSection();
-    }
-    
 
-    if (window.voiceCallSection.initialized) {
-        window.voiceCallSection.ensureLocalParticipant();
-    } else {
-        window.voiceCallSection.init();
-    }
-    
-
-    const grid = document.getElementById("participantGrid");
-    if (grid && grid.children.length === 0) {
-        
-        window.voiceCallSection.createFallbackLocalParticipant();
-    }
-    
-    return true;
-}
-
-
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-        window.ensureVoiceCallInitialized();
-    }, 1000);
-});
-
-
-window.addEventListener("videosdkInitialized", () => {
-    setTimeout(() => {
-        window.ensureVoiceCallInitialized();
-    }, 500);
-});
 
 
 window.testMicDeafenSync = function() {

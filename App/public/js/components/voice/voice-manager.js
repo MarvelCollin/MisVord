@@ -175,34 +175,25 @@ class VoiceManager {
         window.addEventListener('beforeunload', () => {
             if (this.isConnected) {
                 this._pageUnloading = true;
-                
-                if (window.participantCoordinator) {
-                    window.participantCoordinator.setExplicitLeaveRequested(true);
-                }
-                
                 this.leaveVoice();
             }
         });
         
         window.addEventListener('unload', () => {
             if (this.isConnected) {
-
                 this.cleanup();
             }
         });
         
         window.addEventListener('pagehide', () => {
             if (this.isConnected) {
-
-                this.cleanup();
+            } else if (document.visibilityState === 'visible' && this.isConnected) {
             }
         });
         
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && this.isConnected) {
-
             } else if (document.visibilityState === 'visible' && this.isConnected) {
-
             }
         });
     }
@@ -542,11 +533,6 @@ class VoiceManager {
             channelId: this.currentChannelId,
             meetingId: this.currentMeetingId
         });
-        
-
-        if (window.participantCoordinator) {
-            window.participantCoordinator.setExplicitLeaveRequested(true);
-        }
 
         this.isConnected = false;
         window.voiceJoinInProgress = false;
@@ -565,7 +551,6 @@ class VoiceManager {
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
-        
 
         sessionStorage.removeItem('wasInVoiceCall');
         sessionStorage.removeItem('voiceChannelId');
@@ -579,7 +564,6 @@ class VoiceManager {
             const instance = window.ChannelVoiceParticipants.getInstance();
             const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
             if (currentUserId) {
-
                 instance.removeParticipant(previousChannelId, currentUserId);
                 instance.updateParticipantContainer(previousChannelId);
             }
@@ -594,10 +578,6 @@ class VoiceManager {
     }
     
     cleanup() {
-        if (window.participantCoordinator) {
-            window.participantCoordinator.setExplicitLeaveRequested(true);
-        }
-        
         if (this.currentChannelId && window.globalSocketManager?.io && window.globalSocketManager.isReady()) {
             try {
                 window.globalSocketManager.io.emit('unregister-voice-meeting', {
@@ -632,13 +612,6 @@ class VoiceManager {
     }
     
     refreshParticipantsUI() {
-
-        
-        if (this.videoSDKManager && typeof this.videoSDKManager.refreshExistingParticipants === 'function') {
-            this.videoSDKManager.refreshExistingParticipants();
-        }
-        
-
         window.dispatchEvent(new CustomEvent('voiceParticipantsRefresh'));
     }
 
