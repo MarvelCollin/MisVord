@@ -220,6 +220,11 @@ if (!function_exists('renderMessage')) {
 .chat-skeleton-container {
     padding: 16px;
     animation-delay: 0.1s;
+    /* Position skeleton at bottom initially */
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
 }
 
 .chat-skeleton-message {
@@ -228,25 +233,19 @@ if (!function_exists('renderMessage')) {
     padding: 2px 16px;
 }
 
-.chat-skeleton-message:nth-child(1) {
-    animation-delay: 0ms;
-}
-
-.chat-skeleton-message:nth-child(2) {
-    animation-delay: 200ms;
-}
-
-.chat-skeleton-message:nth-child(3) {
-    animation-delay: 400ms;
-}
-
-.chat-skeleton-message:nth-child(4) {
-    animation-delay: 600ms;
-}
-
-.chat-skeleton-message:nth-child(5) {
-    animation-delay: 800ms;
-}
+.chat-skeleton-message:nth-child(1) { animation-delay: 0ms; }
+.chat-skeleton-message:nth-child(2) { animation-delay: 100ms; }
+.chat-skeleton-message:nth-child(3) { animation-delay: 200ms; }
+.chat-skeleton-message:nth-child(4) { animation-delay: 300ms; }
+.chat-skeleton-message:nth-child(5) { animation-delay: 400ms; }
+.chat-skeleton-message:nth-child(6) { animation-delay: 500ms; }
+.chat-skeleton-message:nth-child(7) { animation-delay: 600ms; }
+.chat-skeleton-message:nth-child(8) { animation-delay: 700ms; }
+.chat-skeleton-message:nth-child(9) { animation-delay: 800ms; }
+.chat-skeleton-message:nth-child(10) { animation-delay: 900ms; }
+.chat-skeleton-message:nth-child(11) { animation-delay: 1000ms; }
+.chat-skeleton-message:nth-child(12) { animation-delay: 1100ms; }
+.chat-skeleton-message:nth-child(13) { animation-delay: 1200ms; }
 
 .chat-skeleton-avatar {
     width: 40px;
@@ -790,6 +789,91 @@ if (!function_exists('renderMessage')) {
                     </div>
                     <div class="chat-skeleton-text medium"></div>
                     <div class="chat-skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text very-short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text long"></div>
+                    <div class="chat-skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text medium"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text short"></div>
+                    <div class="chat-skeleton-text very-short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text long"></div>
+                    <div class="chat-skeleton-text medium"></div>
+                    <div class="chat-skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text medium"></div>
+                    <div class="chat-skeleton-text very-short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text long"></div>
                 </div>
             </div>
         </div>

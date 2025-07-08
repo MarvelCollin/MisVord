@@ -629,11 +629,6 @@ class ChatSection {
                 this.initializeExistingMessages();
                 
                 this.updateChannelHeader();
-                
-                // Make sure we're at the bottom
-                setTimeout(() => {
-                    this.scrollToBottom();
-                }, 100);
             } else {
                 console.warn('⚠️ [CHAT-SECTION] Missing targetId or chatType, hiding skeleton anyway', {
                     targetId: this.targetId,
@@ -1177,7 +1172,8 @@ class ChatSection {
                 } else {
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
-                    this.scrollToBottom();
+                    
+                    // Don't scroll - messages should appear at bottom where skeleton was
                 }
                 
                 this.hideEmptyState();
@@ -3258,6 +3254,7 @@ class ChatSection {
     hideChatSkeleton() {
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
         const realContent = document.getElementById('chat-real-content');
+        const chatMessages = document.getElementById('chat-messages');
         
         if (skeletonContainer) {
             skeletonContainer.style.display = 'none';
@@ -3265,12 +3262,30 @@ class ChatSection {
         
         if (realContent) {
             realContent.style.display = 'block';
+            
+            // Ensure messages appear at the bottom immediately without scrolling animation
+            if (chatMessages) {
+                // Disable smooth scrolling temporarily
+                const originalScrollBehavior = chatMessages.style.scrollBehavior;
+                chatMessages.style.scrollBehavior = 'auto';
+                
+                // Position at bottom immediately
+                requestAnimationFrame(() => {
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                    
+                    // Restore original scroll behavior
+                    requestAnimationFrame(() => {
+                        chatMessages.style.scrollBehavior = originalScrollBehavior;
+                    });
+                });
+            }
         }
     }
     
     showChatSkeleton() {
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
         const realContent = document.getElementById('chat-real-content');
+        const chatMessages = document.getElementById('chat-messages');
         
         if (skeletonContainer) {
             skeletonContainer.style.display = 'block';
@@ -3278,6 +3293,33 @@ class ChatSection {
         
         if (realContent) {
             realContent.style.display = 'none';
+        }
+        
+        // Position skeleton at the bottom immediately
+        if (chatMessages) {
+            // Disable smooth scrolling temporarily for instant positioning
+            const originalScrollBehavior = chatMessages.style.scrollBehavior;
+            chatMessages.style.scrollBehavior = 'auto';
+            
+            // Use multiple methods to ensure reliable positioning
+            const positionAtBottom = () => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            };
+            
+            // Immediate positioning
+            positionAtBottom();
+            
+            // Also position after DOM update
+            requestAnimationFrame(() => {
+                positionAtBottom();
+                
+                // One more frame to ensure skeleton is fully rendered
+                requestAnimationFrame(() => {
+                    positionAtBottom();
+                    // Restore original scroll behavior
+                    chatMessages.style.scrollBehavior = originalScrollBehavior;
+                });
+            });
         }
     }
 
