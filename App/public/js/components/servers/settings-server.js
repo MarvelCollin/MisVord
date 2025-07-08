@@ -541,7 +541,7 @@ function initMemberManagementTab() {
                 const avatarDiv = memberElement.querySelector('.member-avatar');
                 if (avatarDiv) {
                     avatarDiv.innerHTML = `
-                        <img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">
+                        <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">
                     `;
                 }
             }
@@ -726,7 +726,7 @@ function initMemberManagementTab() {
                 if (member.avatar_url) {
                     avatarContainer.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
                 } else {
-                    avatarContainer.innerHTML = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
+                    avatarContainer.innerHTML = `<img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
                 }
             }
             
@@ -1767,7 +1767,7 @@ function initDeleteServerTab() {
             if (member.avatar_url) {
                 avatarContent = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
             } else {
-                avatarContent = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
+                avatarContent = `<img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
             }
             
 
@@ -1818,7 +1818,7 @@ function initDeleteServerTab() {
         if (member.avatar_url) {
             selectedUserAvatar.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
         } else {
-            selectedUserAvatar.innerHTML = `<img src="/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
+            selectedUserAvatar.innerHTML = `<img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
         }
         
         selectedUserName.textContent = member.display_name || member.username;

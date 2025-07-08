@@ -33,7 +33,6 @@ $additional_js = [
     'utils/lazy-loader',
     'utils/debug-logging',
     'utils/jaro-winkler',
-    'utils/voice-utils',
     'core/socket/global-socket-manager',
     'api/chat-api',
     'api/user-api',
@@ -50,9 +49,7 @@ $additional_js = [
     'components/messaging/mention-handler',
     'components/messaging/chat-bot',
     'components/messaging/chat-section',
-    'components/videosdk/videosdk',
-    'components/voice/voice-dependency-loader',
-    'components/voice/voice-section',
+    // voice-dependency-loader removed - functionality merged into voice-manager
     'components/voice/voice-manager',
     'components/voice/global-voice-indicator',
     'components/bot/bot',

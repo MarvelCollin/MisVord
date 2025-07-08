@@ -469,60 +469,17 @@ class SimpleChannelSwitcher {
             window.chatSection.forceStopAllOperations();
         }
         
-        if (window.ensureVoiceReady && typeof window.ensureVoiceReady === 'function') {
+        // Voice dependencies now handled automatically in VoiceManager
+        if (window.voiceManager && typeof window.voiceManager.ensureInitialized === 'function') {
             try {
-                await window.ensureVoiceReady();
+                await window.voiceManager.ensureInitialized();
             } catch (error) {
-                console.warn('[CHANNEL-SWITCH] Voice preload failed:', error);
+                console.warn('[CHANNEL-SWITCH] Voice initialization failed:', error);
             }
         }
         
-        if (!window.voiceSection) {
-            
-            if (window.VoiceSection) {
-                window.voiceSection = new window.VoiceSection();
-            } else if (typeof window.initializeVoiceUI === 'function') {
-                await window.initializeVoiceUI();
-            }
-            
-            let attempts = 0;
-            while (!window.voiceSection && attempts < 10) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-                attempts++;
-                if (window.VoiceSection && !window.voiceSection) {
-                    window.voiceSection = new window.VoiceSection();
-                }
-            }
-        }
-        
-        if (window.voiceSection) {
-            if (forceFresh || previousChannelId !== channelId) {
-                await window.voiceSection.resetState();
-                await window.voiceSection.updateChannelId(channelId, true);
-            } else if (previousChannelId === channelId) {
-                if (wasConnected && window.voiceManager && window.voiceManager.isConnected) {
-                    if (typeof window.voiceSection.restoreConnectedState === 'function') {
-                        window.voiceSection.restoreConnectedState();
-                    } else {
-                        if (window.voiceSection.elements.joinView) {
-                            window.voiceSection.elements.joinView.classList.add('hidden');
-                        }
-                        if (window.voiceSection.elements.connectingView) {
-                            window.voiceSection.elements.connectingView.classList.add('hidden');
-                        }
-                        if (window.voiceSection.elements.voiceControls) {
-                            window.voiceSection.elements.voiceControls.classList.remove('hidden');
-                        }
-                    }
-                    
-                    if (typeof window.voiceManager.refreshParticipantsUI === 'function') {
-                        window.voiceManager.refreshParticipantsUI();
-                    }
-                }
-            }
-        } else {
-            console.warn('[CHANNEL-SWITCH] Voice section could not be initialized');
-        }
+        // Voice UI now handled directly by VoiceManager and VoiceCallSection
+        console.log('[CHANNEL-SWITCH] Voice channel initialization handled by VoiceManager');
 
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = channelId;
@@ -640,14 +597,8 @@ class SimpleChannelSwitcher {
                     innerHTML: section.innerHTML.substring(0, 200) + '...'
                 });
                 
-                if (!window.voiceSection) {
-                    
-                    if (window.VoiceSection) {
-                        window.voiceSection = new window.VoiceSection();
-                    } else if (typeof window.initializeVoiceUI === 'function') {
-                        window.initializeVoiceUI();
-                    }
-                }
+                // Voice UI now handled directly by VoiceManager and VoiceCallSection
+                console.log('[CHANNEL-SWITCH] Voice UI updated for channel:', channelId);
             });
             
             if (allVoiceSections.length === 0) {
@@ -1024,9 +975,8 @@ window.debugSectionState = function() {
         },
         
         voiceComponents: {
-            voiceSection: !!window.voiceSection,
             voiceManager: !!window.voiceManager,
-            VoiceSection: !!window.VoiceSection
+            voiceCallSection: !!window.voiceCallSection
         }
     });
     

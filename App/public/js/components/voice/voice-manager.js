@@ -1,729 +1,401 @@
-if (typeof window.VoiceManager === 'undefined') {
 class VoiceManager {
     constructor() {
+        this.meeting = null;
         this.isConnected = false;
+        this.isMeetingJoined = false;
         this.currentChannelId = null;
         this.currentChannelName = null;
-        this.videoSDKManager = null;
-        this.initializationPromise = null;
-        this.initialized = false;
         this.currentMeetingId = null;
-        this.preloadStarted = false;
-        this.preloadComplete = false;
+        this.authToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIiwiYWxsb3dfcHVibGlzaCJdLCJpYXQiOjE3NTEyMTU2MjEsImV4cCI6MTc1MzgwNzYyMX0.duF2XwBk9-glZTDWS8QyX4yGNaf6faZXUCLsc07QxJk";
+        this.participants = new Map();
+        this.localParticipant = null;
         
-        this._pageUnloading = false;
+        this._micOn = false;
+        this._videoOn = false;
+        this._screenShareOn = false;
+        this._deafened = false;
         
-        this.validateExistingState();
-        this.attachEventListeners();
-    }
-    
-    validateExistingState() {
-        setTimeout(() => {
-            if (window.unifiedVoiceStateManager) {
-                const storedState = window.unifiedVoiceStateManager.getState();
-                if (storedState.isConnected && !this.isConnected) {
-
-                    
-                    const hasVideoSDK = window.videoSDKManager?.isConnected;
-                    if (!hasVideoSDK) {
-
-                        window.unifiedVoiceStateManager.clearStaleConnection();
-                    }
-                }
-            }
-        }, 500);
+        this.init();
     }
     
     async init() {
-        if (this.initialized) return;
-        
-        if (!this.initializationPromise) {
-            this.initializationPromise = this._performInit();
-        }
-        
-        return await this.initializationPromise;
+        await this.loadVideoSDK();
+        this.setupBeforeUnloadHandler();
+        window.voiceManager = this;
+        console.log('[VoiceManager] Initialized successfully');
     }
     
-    async _performInit() {
-        try {
-            
-            await this.loadVideoSDKScript();
-            await this.initVideoSDK();
-            this.attachEventListeners();
-            this.setupErrorHandling();
-            this.initialized = true;
-            
-        } catch (error) {
-            console.error('❌ Failed to initialize voice manager:', error);
-            this.initializationPromise = null;
-            throw error;
+    async ensureInitialized() {
+        if (!this.sdkLoaded) {
+            await this.loadVideoSDK();
         }
+        return this.sdkLoaded;
     }
-
-    async preloadResources() {
-        if (this.preloadStarted) return;
-        
-        this.preloadStarted = true;
-        
-        
-        try {
-            await this.loadVideoSDKScript();
-            
-            if (window.videoSDKManager && typeof window.videoSDKManager.preload === 'function') {
-                
-                await window.videoSDKManager.preload();
-            } else {
-                
-                await this.initVideoSDK();
-            }
-            
-            this.preloadComplete = true;
-            
-        } catch (error) {
-            console.warn('[VOICE-MANAGER] Voice preload failed:', error);
-            this.preloadStarted = false;
+    
+    async loadVideoSDK() {
+        if (typeof VideoSDK !== 'undefined') {
+            this.sdkLoaded = true;
+            return;
         }
-    }
-
-    async loadVideoSDKScript() {
+        
         return new Promise((resolve, reject) => {
-            if (typeof VideoSDK !== 'undefined') {
-
-                resolve();
-                return;
-            }
-
-
             const script = document.createElement('script');
             script.src = 'https://sdk.videosdk.live/js-sdk/0.2.7/videosdk.js';
-            script.async = true;
-            
             script.onload = () => {
-
+                this.sdkLoaded = true;
                 resolve();
             };
-            
-            script.onerror = (error) => {
-                console.error('❌ Failed to load VideoSDK script:', error);
-                reject(new Error('Failed to load VideoSDK script'));
-            };
-            
+            script.onerror = reject;
             document.head.appendChild(script);
         });
     }
-
-    async initVideoSDK() {
-        
-        
-        await new Promise((resolve) => {
-            const checkSDK = () => {
-                if (window.videoSDKManager) {
-                    
-                    resolve();
-                } else {
-                    console.warn('VideoSDK manager not available, waiting...');
-                    setTimeout(checkSDK, 500);
-                }
-            };
-            checkSDK();
+    
+    setupBeforeUnloadHandler() {
+        window.addEventListener('beforeunload', () => {
+            if (this.isConnected) {
+                this.leaveVoice();
+            }
         });
-
+    }
+    
+    async joinVoice(channelId, channelName) {
+        if (this.isConnected) {
+            if (this.currentChannelId === channelId) return;
+            await this.leaveVoice();
+        }
+        
         try {
-            this.videoSDKManager = window.videoSDKManager;
+            this.currentChannelId = channelId;
+            this.currentChannelName = channelName;
             
-            console.log('[VOICE-MANAGER] Checking VideoSDK manager state:', {
-                initialized: this.videoSDKManager.initialized,
-                hasVideoSDK: typeof VideoSDK !== 'undefined',
-                hasAuthToken: !!this.videoSDKManager.authToken
+            const meetingId = await this.getOrCreateMeeting(channelId);
+            const userName = this.getUserName();
+            
+            VideoSDK.config(this.authToken);
+            
+            this.meeting = VideoSDK.initMeeting({
+                meetingId: meetingId,
+                name: userName,
+                micEnabled: true,
+                webcamEnabled: false
             });
             
-            if (!this.videoSDKManager.initialized) {
-                const config = this.videoSDKManager.getMetaConfig();
-                
-                
-                await this.videoSDKManager.init(config.authToken);
-                
-            } else {
-                
-            }
-
-            return true;
+            this.setupMeetingEvents();
+            await this.meeting.join();
+            
+            this.isConnected = true;
+            this.currentMeetingId = meetingId;
+            
+            this.updatePresence();
+            this.notifySocketServer('join');
+            
+            window.dispatchEvent(new CustomEvent('voiceConnect', {
+                detail: { channelId, channelName, meetingId }
+            }));
+            
         } catch (error) {
-            console.error('❌ Failed to initialize VideoSDK:', error);
+            console.error('Failed to join voice:', error);
+            this.cleanup();
             throw error;
         }
     }
     
-    attachEventListeners() {
-        const joinBtn = document.getElementById('joinBtn');
-        const leaveBtn = document.getElementById('leaveBtn');
-        const disconnectBtn = document.getElementById('disconnectBtn');
+    async leaveVoice() {
+        if (!this.isConnected) return;
         
-        if (joinBtn) {
-            joinBtn.addEventListener('click', () => this.joinVoice());
-        }
-        
-        const bindLeave = (btn) => {
-            if (btn) {
-                btn.addEventListener('click', () => this.leaveVoice());
-            }
-        };
-
-        bindLeave(leaveBtn);
-        bindLeave(disconnectBtn);
-        
-        window.addEventListener('beforeunload', () => {
-            if (this.isConnected) {
-                this._pageUnloading = true;
-                this.leaveVoice();
-            }
-        });
-        
-        window.addEventListener('unload', () => {
-            if (this.isConnected) {
-                this.cleanup();
-            }
-        });
-        
-        window.addEventListener('pagehide', () => {
-            if (this.isConnected) {
-            } else if (document.visibilityState === 'visible' && this.isConnected) {
-            }
-        });
-        
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden' && this.isConnected) {
-            } else if (document.visibilityState === 'visible' && this.isConnected) {
-            }
-        });
-    }
-    
-    setupErrorHandling() {
-
-    }
-    
-    setupVoice(channelId) {
-        if (this.currentChannelId === channelId) return;
-        
-        if (this.isConnected) {
-            this.leaveVoice();
-        }
-        
-        this.currentChannelId = channelId;
-        
-
-        const storedChannelId = sessionStorage.getItem('voiceChannelId');
-        const storedMeetingId = sessionStorage.getItem('voiceMeetingId');
-        
-        if (storedChannelId === channelId && storedMeetingId) {
-            console.log('🔄 [VOICE-MANAGER] Found stored meeting ID for channel:', {
-                channelId,
-                meetingId: storedMeetingId
-            });
-            this.currentMeetingId = storedMeetingId;
-        }
-        
-        const channelNameElements = document.querySelectorAll('.voice-ind-title, .voice-channel-title, .voice-section .channel-name');
-        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-        const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
-                           channelElement?.textContent?.trim() || 'Voice Channel';
-        this.currentChannelName = channelName;
-        
-
-        if (window.unifiedVoiceStateManager) {
-            const currentState = window.unifiedVoiceStateManager.getState();
-            if (currentState.isConnected) {
-                console.log('🔄 [VOICE-MANAGER] Updating unified voice state for voice setup:', {
-                    channelId,
-                    channelName,
-                    previousChannelId: currentState.channelId,
-                    meetingId: this.currentMeetingId
-                });
-                
-                window.unifiedVoiceStateManager.setState({
-                    ...currentState,
-                    channelId: channelId,
-                    channelName: channelName,
-                    meetingId: this.currentMeetingId
-                });
-            }
-        }
-        
-        channelNameElements.forEach(el => {
-            if (el.classList.contains('channel-name') || el.classList.contains('voice-channel-title')) {
-                el.textContent = channelName.length > 10 
-                    ? channelName.substring(0, 8) + '...' 
-                    : channelName;
-            } else {
-                el.textContent = channelName;
-            }
-        });
-    }
-    
-    async joinVoice() {
-        const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
-        const targetChannelId = this.currentChannelId || metaChannelId;
-
-
-        if (this.isConnected) {
-            if (this.currentChannelId === targetChannelId) {
-
-                return Promise.resolve();
-            }
-
-            this.leaveVoice();
-        }
-        
-        if (window.voiceJoinInProgress) {
-
-            window.voiceJoinInProgress = false;
-        }
-        
-        if (window.videoSDKJoiningInProgress) {
-
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-        
-        if (window.voiceJoinInProgress) {
-
-            return Promise.resolve();
-        }
-        
-        window.voiceJoinInProgress = true;
-        
-        if (!targetChannelId) {
-            window.voiceJoinInProgress = false;
-            this.showToast('Channel not available', 'error');
-            return Promise.reject(new Error('Channel not available'));
-        }
-
         try {
-            this.setupVoice(targetChannelId);
-
-            console.log('[VOICE-MANAGER] Checking initialization state:', {
-                preloadComplete: this.preloadComplete,
-                initialized: this.initialized,
-                hasVideoSDKManager: !!this.videoSDKManager,
-                videoSDKInitialized: this.videoSDKManager?.initialized,
-                isPageReload: !!sessionStorage.getItem('wasInVoiceCall')
-            });
-
-            if (!this.initialized || !this.videoSDKManager) {
-                
-                await this.init();
+            if (this.meeting) {
+                await this.meeting.leave();
             }
-
-            if (!this.videoSDKManager) {
-                throw new Error('VideoSDK manager not available after initialization');
-            }
-            
-            if (!this.videoSDKManager.initialized) {
-                
-                const config = this.videoSDKManager.getMetaConfig();
-                await this.videoSDKManager.init(config.authToken);
-            }
-
-            if (!this.videoSDKManager.initialized) {
-                throw new Error('VideoSDK initialization failed');
-            }
-            
-            window.videoSDKJoiningInProgress = true;
-
-
-            const wasInVoiceCall = sessionStorage.getItem('wasInVoiceCall');
-            const previousChannelId = sessionStorage.getItem('voiceChannelId');
-            const previousMeetingId = sessionStorage.getItem('voiceMeetingId');
-            const isRejoinAfterReload = wasInVoiceCall && previousChannelId === targetChannelId;
-            
-            if (isRejoinAfterReload) {
-                console.log('🔄 [VOICE-MANAGER] Detected rejoin after page reload:', {
-                    previousChannelId,
-                    targetChannelId,
-                    previousMeetingId
-                });
-                
-
-                if (previousMeetingId) {
-                    this.currentMeetingId = previousMeetingId;
-                    
-                }
-            }
-
-            const existingMeeting = await this.checkExistingMeeting(targetChannelId);
-            
-            let meetingId;
-            if (existingMeeting && existingMeeting.meeting_id) {
-                meetingId = existingMeeting.meeting_id;
-                
-            } else {
-                const customMeetingId = `voice_channel_${targetChannelId}`;
-                meetingId = await this.videoSDKManager.createMeetingRoom(customMeetingId);
-                if (!meetingId) {
-                    throw new Error('Failed to create meeting room');
-                }
-                
-            }
-
-
-            this.currentMeetingId = meetingId;
-            this.currentChannelId = targetChannelId;
-            
-            
-
-
-            sessionStorage.setItem('wasInVoiceCall', 'true');
-            sessionStorage.setItem('voiceChannelId', targetChannelId);
-            sessionStorage.setItem('voiceMeetingId', meetingId);
-
-            const userName = this.getUsernameFromMultipleSources();
-
-            console.log(`🎉 [VOICE-MANAGER] Meeting prepared for external joining`, {
-                meetingId: meetingId,
-                channelId: targetChannelId,
-                wasExistingMeeting: !!existingMeeting,
-                action: existingMeeting ? 'PREPARED_EXISTING' : 'PREPARED_NEW',
-                isRejoinAfterReload,
-                currentMeetingId: this.currentMeetingId
-            });
-
-
-            await this.registerMeetingWithSocket(targetChannelId, meetingId, isRejoinAfterReload);
-
-
-            if (isRejoinAfterReload && window.globalSocketManager?.io) {
-                window.globalSocketManager.io.emit('force-refresh-voice-participants', {
-                    channel_id: targetChannelId
-                });
-                
-
-                if (window.ChannelVoiceParticipants) {
-                    const instance = window.ChannelVoiceParticipants.getInstance();
-                    if (instance) {
-                        instance.refreshAllChannelParticipants();
-                    }
-                }
-            }
-
-            return Promise.resolve();
         } catch (error) {
-            console.error('❌ [VOICE-MANAGER] Failed to join voice:', error);
+            console.warn('Error leaving meeting:', error);
+        }
+        
+        this.notifySocketServer('leave');
+        this.cleanup();
+        
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+    }
+    
+    cleanup() {
+        this.meeting = null;
+        this.isConnected = false;
+        this.isMeetingJoined = false;
+        this.currentChannelId = null;
+        this.currentChannelName = null;
+        this.currentMeetingId = null;
+        this.participants.clear();
+        this.localParticipant = null;
+        
+        this._micOn = false;
+        this._videoOn = false;
+        this._screenShareOn = false;
+        this._deafened = false;
+        
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' });
+        }
+    }
+    
+    setupMeetingEvents() {
+        if (!this.meeting) return;
+        
+        this.meeting.on('meeting-joined', () => {
+            this.isMeetingJoined = true;
+            this.localParticipant = this.meeting.localParticipant;
+            this.handleParticipantJoined(this.meeting.localParticipant);
+        });
+        
+        this.meeting.on('meeting-left', () => {
+            this.isMeetingJoined = false;
+        });
+        
+        this.meeting.on('participant-joined', (participant) => {
+            this.handleParticipantJoined(participant);
+        });
+        
+        this.meeting.on('participant-left', (participant) => {
+            this.handleParticipantLeft(participant);
+        });
+        
+        if (this.meeting.localParticipant) {
+            this.setupStreamHandlers(this.meeting.localParticipant);
+        }
+    }
+    
+    handleParticipantJoined(participant) {
+        if (!participant || this.participants.has(participant.id)) return;
+        
+        this.participants.set(participant.id, {
+            id: participant.id,
+            name: participant.displayName || participant.name,
+            isLocal: participant.id === this.localParticipant?.id,
+            streams: new Map()
+        });
+        
+        this.setupStreamHandlers(participant);
+        
+        window.dispatchEvent(new CustomEvent('participantJoined', {
+            detail: { participant: participant.id, data: participant }
+        }));
+    }
+    
+    handleParticipantLeft(participant) {
+        if (!participant) return;
+        
+        this.participants.delete(participant.id);
+        
+        window.dispatchEvent(new CustomEvent('participantLeft', {
+            detail: { participant: participant.id }
+        }));
+    }
+    
+    setupStreamHandlers(participant) {
+        if (!participant) return;
+        
+        participant.on('stream-enabled', (stream) => {
+            const participantData = this.participants.get(participant.id);
+            if (participantData) {
+                participantData.streams.set(stream.kind, stream);
+            }
             
-            window.videoSDKJoiningInProgress = false;
-            window.voiceJoinInProgress = false;
-            this.isConnected = false;
-            this.showToast('Failed to connect to voice', 'error');
-            return Promise.reject(error);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participant.id,
+                    kind: stream.kind,
+                    stream: stream
+                }
+            }));
+        });
+        
+        participant.on('stream-disabled', (stream) => {
+            const participantData = this.participants.get(participant.id);
+            if (participantData) {
+                participantData.streams.delete(stream.kind);
+            }
+            
+            window.dispatchEvent(new CustomEvent('streamDisabled', {
+                detail: {
+                    participantId: participant.id,
+                    kind: stream.kind
+                }
+            }));
+        });
+    }
+    
+    toggleMic() {
+        if (!this.meeting || !this.localParticipant) return this._micOn;
+        
+        if (this._micOn) {
+            this.meeting.muteMic();
+            this._micOn = false;
+        } else {
+            this.meeting.unmuteMic();
+            this._micOn = true;
+        }
+        
+        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: { type: 'mic', state: this._micOn }
+        }));
+        
+        return this._micOn;
+    }
+    
+    async toggleVideo() {
+        if (!this.meeting || !this.localParticipant) return this._videoOn;
+        
+        try {
+            if (this._videoOn) {
+                await this.meeting.disableWebcam();
+                this._videoOn = false;
+            } else {
+                await this.meeting.enableWebcam();
+                this._videoOn = true;
+            }
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'video', state: this._videoOn }
+            }));
+            
+            return this._videoOn;
+        } catch (error) {
+            console.error('Failed to toggle video:', error);
+            return this._videoOn;
+        }
+    }
+    
+    toggleDeafen() {
+        this._deafened = !this._deafened;
+        
+        if (this._deafened && this._micOn) {
+            this.toggleMic();
+        }
+        
+        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: { type: 'deafen', state: this._deafened }
+        }));
+        
+        return this._deafened;
+    }
+    
+    async toggleScreenShare() {
+        if (!this.meeting || !this.localParticipant) return this._screenShareOn;
+        
+        try {
+            if (this._screenShareOn) {
+                await this.meeting.disableScreenShare();
+                this._screenShareOn = false;
+            } else {
+                await this.meeting.enableScreenShare();
+                this._screenShareOn = true;
+            }
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'screen', state: this._screenShareOn }
+            }));
+            
+            return this._screenShareOn;
+        } catch (error) {
+            console.error('Failed to toggle screen share:', error);
+            return this._screenShareOn;
+        }
+    }
+    
+    getMicState() { return this._micOn; }
+    getVideoState() { return this._videoOn; }
+    getDeafenState() { return this._deafened; }
+    getScreenShareState() { return this._screenShareOn; }
+    
+    async getOrCreateMeeting(channelId) {
+        const customMeetingId = `voice_channel_${channelId}`;
+        
+        const existing = await this.checkExistingMeeting(channelId);
+        if (existing?.meeting_id) {
+            return existing.meeting_id;
+        }
+        
+        try {
+            const response = await fetch('https://api.videosdk.live/v2/rooms', {
+                method: 'POST',
+                headers: {
+                    'Authorization': this.authToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ customRoomId: customMeetingId })
+            });
+            
+            const data = await response.json();
+            return data.roomId || customMeetingId;
+        } catch (error) {
+            console.error('Failed to create meeting:', error);
+            return customMeetingId;
         }
     }
     
     async checkExistingMeeting(channelId) {
         return new Promise((resolve) => {
             if (!window.globalSocketManager?.io) {
-
                 resolve(null);
                 return;
             }
             
-            const handleResponse = (data) => {
-                if (data.channel_id === channelId) {
-                    window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
-                    console.log(`📡 [VOICE-MANAGER] Voice meeting status received for channel ${channelId}:`, {
-                        has_meeting: data.has_meeting,
-                        meeting_id: data.meeting_id,
-                        participant_count: data.participant_count,
-                        full_data: data
-                    });
-                    
-                    if (data.has_meeting && data.meeting_id) {
-
-                        resolve({
-                        meeting_id: data.meeting_id,
-                        participant_count: data.participant_count
-                        });
-                    } else {
-
-                        resolve(null);
-                    }
-                }
-            };
-            
-            window.globalSocketManager.io.on('voice-meeting-status', handleResponse);
-
-            window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-            
-            setTimeout(() => {
-                window.globalSocketManager.io.off('voice-meeting-status', handleResponse);
-
+            const timeout = setTimeout(() => {
+                window.globalSocketManager.io.off('voice-meeting-status', handler);
                 resolve(null);
-            }, 3000);
-        });
-    }
-
-    async registerMeetingWithSocket(channelId, meetingId, broadcast = false) {
-        return new Promise((resolve) => {
-            if (!window.globalSocketManager?.io || !window.globalSocketManager.isReady()) {
-                console.warn('🔄 [VOICE-MANAGER] GlobalSocketManager not ready, skipping socket registration');
-                resolve({ meeting_id: meetingId, channel_id: channelId });
-                return;
-            }
-            
-            const handleUpdate = (data) => {
-                if (data.channel_id === channelId && (data.action === 'join' || data.action === 'already_registered')) {
-                    window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                    resolve(data);
-                }
-            };
-            
-
-            window.globalSocketManager.io.on('voice-meeting-update', handleUpdate);
-            
-
-            const username = this.getUsernameFromMultipleSources();
-            
-
-            const serverId = document.querySelector('meta[name="server-id"]')?.content || 
-                            document.getElementById('current-server-id')?.value || 
-                            null;
-            
-
-            console.log('🔄 [VOICE-MANAGER] Registering with socket server:', {
-                channelId,
-                meetingId,
-                serverId,
-                username,
-                broadcast
-            });
-            
-            window.globalSocketManager.io.emit('register-voice-meeting', {
-                channel_id: channelId,
-                meeting_id: meetingId,
-                server_id: serverId,
-                username: username,
-                broadcast: broadcast // Pass the broadcast flag
-            });
-            
-
-            setTimeout(() => {
-                window.globalSocketManager.io.off('voice-meeting-update', handleUpdate);
-                
-
-                window.globalSocketManager.io.emit('register-voice-meeting', {
-                    channel_id: channelId,
-                    meeting_id: meetingId,
-                    server_id: serverId,
-                    username: username,
-                    broadcast: true // Always set broadcast flag on retry
-                });
-                
-                resolve({ meeting_id: meetingId, channel_id: channelId });
             }, 2000);
+            
+            const handler = (data) => {
+                if (data.channel_id === channelId) {
+                    clearTimeout(timeout);
+                    window.globalSocketManager.io.off('voice-meeting-status', handler);
+                    resolve(data.has_meeting ? data : null);
+                }
+            };
+            
+            window.globalSocketManager.io.on('voice-meeting-status', handler);
+            window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
         });
     }
-
-    leaveVoice() {
-        if (!this.isConnected) {
-            return;
-        }
+    
+    notifySocketServer(action) {
+        if (!window.globalSocketManager?.io) return;
         
-        if (window.videoSDKJoiningInProgress) {
-            return;
-        }
-        
-        console.log('🚪 [VOICE-MANAGER] Leaving voice channel:', {
-            channelId: this.currentChannelId,
-            meetingId: this.currentMeetingId
-        });
-
-        this.isConnected = false;
-        window.voiceJoinInProgress = false;
-        
-        if (this.currentChannelId && window.globalSocketManager?.io) {
+        if (action === 'join') {
+            window.globalSocketManager.io.emit('register-voice-meeting', {
+                channel_id: this.currentChannelId,
+                meeting_id: this.currentMeetingId,
+                username: this.getUserName()
+            });
+        } else if (action === 'leave') {
             window.globalSocketManager.io.emit('unregister-voice-meeting', {
                 channel_id: this.currentChannelId
             });
         }
-        
-        if (this.videoSDKManager) {
-            this.videoSDKManager.leaveMeeting();
-        }
-        
-        const previousChannelId = this.currentChannelId;
-        this.currentChannelId = null;
-        this.currentChannelName = null;
-        this.currentMeetingId = null;
-
-        sessionStorage.removeItem('wasInVoiceCall');
-        sessionStorage.removeItem('voiceChannelId');
-        sessionStorage.removeItem('voiceMeetingId');
-        
-        if (window.unifiedVoiceStateManager) {
-            window.unifiedVoiceStateManager.handleDisconnect();
-        }
-        
-        if (previousChannelId && window.ChannelVoiceParticipants) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            const currentUserId = window.currentUserId || window.globalSocketManager?.userId;
-            if (currentUserId) {
-                instance.removeParticipant(previousChannelId, currentUserId);
-                instance.updateParticipantContainer(previousChannelId);
-            }
-        }
-        
-        this.dispatchEvent(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect');
-        this.showToast('Disconnected from voice', 'info');
-
-        if (window.MusicLoaderStatic?.playDisconnectVoiceSound) {
-            window.MusicLoaderStatic.playDisconnectVoiceSound();
-        }
     }
     
-    cleanup() {
-        if (this.currentChannelId && window.globalSocketManager?.io && window.globalSocketManager.isReady()) {
-            try {
-                window.globalSocketManager.io.emit('unregister-voice-meeting', {
-                    channel_id: this.currentChannelId
-                });
-            } catch (error) {
-                console.warn('🧹 [VOICE-MANAGER] Failed to send unregister to socket:', error);
-            }
-        }
+    updatePresence() {
+        if (!window.globalSocketManager || !this.currentChannelName) return;
         
-        if (this.videoSDKManager) {
-            try {
-                this.videoSDKManager.leaveMeeting();
-            } catch (error) {
-                console.warn('🧹 [VOICE-MANAGER] Failed to leave VideoSDK meeting:', error);
-            }
-        }
-        
-        this.isConnected = false;
-        this.currentChannelId = null;
-        this.currentChannelName = null;
-        this.currentMeetingId = null;
-        window.voiceJoinInProgress = false;
-        
-        if (window.unifiedVoiceStateManager) {
-            try {
-                window.unifiedVoiceStateManager.handleDisconnect();
-            } catch (error) {
-                console.warn('🧹 [VOICE-MANAGER] Failed to reset unified voice state:', error);
-            }
-        }
+        window.globalSocketManager.updatePresence('online', {
+            type: `In Voice - ${this.currentChannelName}`,
+            state: 'In a voice channel',
+            details: this.currentChannelName
+        });
     }
     
-    refreshParticipantsUI() {
-        window.dispatchEvent(new CustomEvent('voiceParticipantsRefresh'));
-    }
-
-    dispatchEvent(eventName, detail = {}) {
-        window.dispatchEvent(new CustomEvent(eventName, { detail }));
-    }
-    
-    showToast(message, type = 'info') {
-        window.showToast?.(message, type, 3000);
-    }
-
-    getUsernameFromMultipleSources() {
-
-        let username = null;
-        
-
-        if (window.currentUsername && window.currentUsername !== 'Anonymous') {
-            username = window.currentUsername;
-
-        }
-        
-
-        if (!username) {
-            const metaUsername = document.querySelector('meta[name="username"]')?.content;
-            if (metaUsername && metaUsername !== 'Anonymous' && metaUsername.trim() !== '') {
-                username = metaUsername;
-
-            }
-        }
-        
-
-        if (!username) {
-            const appContainer = document.getElementById('app-container');
-            const dataUsername = appContainer?.getAttribute('data-username');
-            if (dataUsername && dataUsername !== 'Anonymous' && dataUsername.trim() !== '') {
-                username = dataUsername;
-
-            }
-        }
-        
-
-        if (!username) {
-            const socketData = document.getElementById('socket-data');
-            const socketUsername = socketData?.getAttribute('data-username');
-            if (socketUsername && socketUsername !== 'Anonymous' && socketUsername.trim() !== '') {
-                username = socketUsername;
-
-            }
-        }
-        
-
-        if (!username) {
-            const timestamp = Date.now().toString().slice(-4);
-            username = `User${timestamp}`;
-
-        }
-        
-        return username;
-    }
-
-    resetState() {
-
-        
-        this.isConnected = false;
-        this.currentChannelId = null;
-        this.currentChannelName = null;
-        this.currentMeetingId = null;
-        
-        if (this.videoSDKManager && this.videoSDKManager.meeting) {
-            this.videoSDKManager.leaveMeeting();
-        }
-        
-        if (this.videoSDKManager) {
-            this.videoSDKManager = null;
-            this.initialized = false;
-            this.initializationPromise = null;
-        }
-        
-        if (window.unifiedVoiceStateManager) {
-            window.unifiedVoiceStateManager.reset();
-        }
-        
-        setTimeout(() => {
-            this.init().catch(error => {
-                console.error('Failed to reinitialize voice manager:', error);
-            });
-        }, 100);
+    getUserName() {
+        return document.querySelector('meta[name="username"]')?.content || 
+               window.currentUsername || 
+               'Anonymous';
     }
 }
 
-window.VoiceManager = VoiceManager;
-}
-
-window.addEventListener('DOMContentLoaded', async function() {
+if (!window.voiceManager) {
     window.voiceManager = new VoiceManager();
-    setTimeout(async () => {
-        try {
+}
 
-        } catch (error) {
-            console.error('Failed to initialize voice manager:', error);
-        }
-    }, 1000);
-});
-
-window.addEventListener(window.VOICE_EVENTS?.VOICE_UI_READY || 'voiceUIReady', function() {
-    if (window.voiceManager) {
-        window.voiceManager.preloadResources();
-    }
-});
-
-window.addEventListener(window.VOICE_EVENTS?.VOICE_DISCONNECT || 'voiceDisconnect', function() {
-
-
-});
-
+if (!window.videoSDKManager) {
+    window.videoSDKManager = window.voiceManager;
+}
+    
+    

@@ -33,8 +33,7 @@ if ($is_auth_page) {
 <script src="<?php echo js('utils/fallback-logger'); ?>?v=<?php echo time(); ?>"></script>
 
 <?php if (!$is_auth_page): ?>
-<!-- Load participant coordination system early -->
-<script src="<?php echo js('utils/participant-coordination'); ?>?v=<?php echo time(); ?>"></script>
+<!-- Participant coordination now handled in VoiceManager -->
 <?php endif; ?>
 
 <script>
@@ -112,15 +111,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script type="module" src="/public/js/utils/channel-switch-manager.js"></script>
 
-<!-- Voice components (consolidated and deduplication-free) -->
+<!-- Simplified voice components -->
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
-<script src="<?php echo asset('/js/utils/voice-utils.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/music-loader-static.js'); ?>"></script>
-<script src="<?php echo asset('/js/components/voice/voice-dependency-loader.js'); ?>"></script>
-<script type="module" src="<?php echo asset('/js/utils/voice-state-manager.js'); ?>"></script>
-<script src="<?php echo asset('/js/components/videosdk/videosdk.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
-<script src="<?php echo asset('/js/components/voice/voice-section.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>
 
 <script src="<?php echo js('components/home/friends-tabs'); ?>?v=<?php echo time(); ?>" type="module"></script>

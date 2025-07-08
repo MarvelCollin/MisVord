@@ -469,8 +469,8 @@ async function setupOwnerLeaveFlow(serverId) {
                          data-user-id="${user.id}" 
                          data-user-name="${user.username}" 
                          data-user-role="${role}"
-                         data-user-avatar="${user.avatar_url || '/assets/common/default-profile-picture.png'}">
-                        <img src="${user.avatar_url || '/assets/common/default-profile-picture.png'}" 
+                         data-user-avatar="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}">
+                        <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                              alt="${user.username}">
                         <div class="user-info">
                             <span class="user-name">${user.username}</span>
@@ -499,7 +499,7 @@ async function setupOwnerLeaveFlow(serverId) {
             selectedUserId = userDiv.dataset.userId;
             const userName = userDiv.dataset.userName;
             const userRole = userDiv.dataset.userRole || 'Member';
-            const userAvatar = userDiv.dataset.userAvatar || '/assets/common/default-profile-picture.png';
+            const userAvatar = userDiv.dataset.userAvatar || '/public/assets/common/default-profile-picture.png';
             
             document.getElementById('owner-transfer-selected-user-name').textContent = userName;
             document.getElementById('owner-transfer-selected-user-avatar').src = userAvatar;

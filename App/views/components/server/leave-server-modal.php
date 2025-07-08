@@ -56,7 +56,9 @@
                     <div id="owner-transfer-selected-user-container" class="mb-5 hidden">
                         <label class="block text-sm font-medium text-discord-lighter mb-2 uppercase">Selected Member</label>
                         <div class="bg-discord-dark-hover rounded-md p-3 flex items-center border border-discord-dark-input">
-                            <img id="owner-transfer-selected-user-avatar" class="w-10 h-10 rounded-full mr-3" src="/assets/common/default-profile-picture.png">
+                            <div id="owner-transfer-selected-user-avatar-container" class="w-10 h-10 rounded-full mr-3 bg-gray-700 overflow-hidden">
+                                <img id="owner-transfer-selected-user-avatar" class="w-10 h-10 rounded-full mr-3" src="/public/assets/common/default-profile-picture.png">
+                            </div>
                             <div class="flex-grow">
                                 <div class="text-white font-medium" id="owner-transfer-selected-user-name"></div>
                                 <div class="text-discord-lighter text-sm" id="owner-transfer-selected-user-role">Will become the new server owner</div>

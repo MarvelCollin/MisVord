@@ -9,6 +9,9 @@ class BotHandler extends EventEmitter {
     static botEventEmitter = new EventEmitter();
     static botVoiceParticipants = new Map();
 
+    // Add additional tracking for human participants in voice channels
+    static voiceChannelHumanParticipants = new Map();
+
     static async registerBot(botId, username) {
         console.log(`🤖 [BOT-DEBUG] Registering bot:`, {
             botId,
@@ -128,7 +131,28 @@ class BotHandler extends EventEmitter {
 
         this.botEventEmitter.on('bot-message-intercept', messageHandler);
         
-
+        // Set up listener for bot-left-voice events to properly remove bots when users disconnect
+        io.on('bot-left-voice', (data) => {
+            console.log(`🤖 [BOT-VOICE] Bot left voice event received:`, data);
+            
+            if (data && data.bot_id && data.channel_id) {
+                this.removeBotFromVoiceChannel(io, data.bot_id, data.channel_id);
+            }
+        });
+        
+        // Set up listener for user voice disconnects to track human participants
+        io.on('user-left-voice', (data) => {
+            if (data && data.channel_id && data.user_id) {
+                this.handleUserLeftVoice(io, data.channel_id, data.user_id);
+            }
+        });
+        
+        // Set up listener for user voice joins to track human participants
+        io.on('user-joined-voice', (data) => {
+            if (data && data.channel_id && data.user_id) {
+                this.handleUserJoinedVoice(data.channel_id, data.user_id);
+            }
+        });
     }
 
     static emitBotMessageIntercept(data) {
@@ -954,6 +978,75 @@ class BotHandler extends EventEmitter {
                 req.end();
             } catch { resolve(null); }
         });
+    }
+
+    // Helper method to track when a user joins a voice channel
+    static handleUserJoinedVoice(channelId, userId) {
+        if (!channelId || !userId) return;
+        
+        const channelKey = `voice_channel_${channelId}`;
+        
+        if (!this.voiceChannelHumanParticipants.has(channelKey)) {
+            this.voiceChannelHumanParticipants.set(channelKey, new Set());
+        }
+        
+        const participants = this.voiceChannelHumanParticipants.get(channelKey);
+        participants.add(userId);
+        
+        console.log(`👤 [BOT-VOICE] User joined voice channel:`, {
+            channelId,
+            userId,
+            totalParticipants: participants.size
+        });
+    }
+    
+    // Helper method to track when a user leaves a voice channel and auto-cleanup bots
+    static handleUserLeftVoice(io, channelId, userId) {
+        if (!channelId || !userId) return;
+        
+        const channelKey = `voice_channel_${channelId}`;
+        
+        if (!this.voiceChannelHumanParticipants.has(channelKey)) {
+            return;
+        }
+        
+        const participants = this.voiceChannelHumanParticipants.get(channelKey);
+        participants.delete(userId);
+        
+        console.log(`👤 [BOT-VOICE] User left voice channel:`, {
+            channelId,
+            userId,
+            remainingParticipants: participants.size
+        });
+        
+        // Auto-cleanup: if no human participants left, remove all bots
+        if (participants.size === 0) {
+            console.log(`🧹 [BOT-VOICE] No human participants left in channel, removing bots:`, { channelId });
+            this.cleanupBotsInChannel(io, channelId);
+        }
+    }
+    
+    // Method to remove all bots from a voice channel when all humans leave
+    static cleanupBotsInChannel(io, channelId) {
+        if (!channelId) return;
+        
+        // Find all bots in this channel
+        for (const [key, botParticipant] of this.botVoiceParticipants.entries()) {
+            if (key.includes(`-${channelId}`)) {
+                const botId = key.split('-')[0];
+                console.log(`🧹 [BOT-VOICE] Auto-removing bot from empty channel:`, {
+                    botId,
+                    channelId,
+                    botName: botParticipant.username
+                });
+                
+                this.removeBotFromVoiceChannel(io, botId, channelId);
+            }
+        }
+        
+        // Clean up the tracking set
+        const channelKey = `voice_channel_${channelId}`;
+        this.voiceChannelHumanParticipants.delete(channelKey);
     }
 }
 

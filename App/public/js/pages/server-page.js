@@ -14,8 +14,8 @@ function loadScript(src, type = '', async = false) {
 
 async function loadVoiceScripts() {
   try {
-    if (window.ensureVoiceReady && typeof window.ensureVoiceReady === 'function') {
-      return await window.ensureVoiceReady();
+                if (window.voiceManager && typeof window.voiceManager.ensureInitialized === 'function') {
+                return await window.voiceManager.ensureInitialized();
     }
     
     return window.VideoSDK && window.videoSDKManager && window.voiceManager;
@@ -266,8 +266,8 @@ function initVoicePage() {
   if (channelItems.length > 0) {
   }
   
-  if (window.ensureVoiceReady && typeof window.ensureVoiceReady === 'function') {
-    window.ensureVoiceReady().catch(console.warn);
+              if (window.voiceManager && typeof window.voiceManager.ensureInitialized === 'function') {
+                window.voiceManager.ensureInitialized().catch(console.warn);
   }
 }
 

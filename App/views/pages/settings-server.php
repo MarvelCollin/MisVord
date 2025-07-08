@@ -171,7 +171,7 @@ ob_start();
                                         <img id="server-icon-preview" src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
                                     <?php else: ?>
                                         <div id="server-icon-placeholder" class="w-full h-full flex items-center justify-center">
-                                            <img src="/assets/common/default-profile-picture.png" alt="Default Server Icon" class="w-full h-full object-cover">
+                                            <img src="/public/assets/common/default-profile-picture.png" alt="Default Server Icon" class="w-full h-full object-cover">
                                         </div>
                                     <?php endif; ?>
                                     <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -575,7 +575,7 @@ ob_start();
                         <?php if ($server->image_url): ?>
                             <img src="<?php echo htmlspecialchars($server->image_url); ?>" alt="Server Icon" class="w-full h-full object-cover">
                         <?php else: ?>
-                            <img src="/assets/common/default-profile-picture.png" alt="Default Server Icon" class="w-full h-full object-cover">
+                            <img src="/public/assets/common/default-profile-picture.png" alt="Default Server Icon" class="w-full h-full object-cover">
                         <?php endif; ?>
                     </div>
                 </div>

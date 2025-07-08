@@ -500,8 +500,7 @@ class GlobalSocketManager {
             
 
             const isOwnConnection = data.user_id === this.userId;
-            if (isOwnConnection && window.videoSDKManager?.isReady()) {
-
+            if (isOwnConnection && window.voiceManager?.sdkLoaded) {
                 return;
             }
         });
