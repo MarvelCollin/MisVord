@@ -350,28 +350,8 @@ async function joinVoiceChannel() {
         }
         await waitForVoiceCallSectionReady();
         
-
         if (window.globalSocketManager?.isReady() && channelId) {
-            
-            
-
             window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-            
-
-            if (window.ChannelVoiceParticipants) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-                if (instance) {
-                    setTimeout(() => {
-                        instance.requestAllVoiceChannelUpdates();
-                        instance.forceRefreshAllContainers();
-                        
-
-                        window.globalSocketManager.io.emit('force-refresh-voice-participants', {
-                            channel_id: channelId
-                        });
-                    }, 1000);
-                }
-            }
         }
         
     } catch (error) {

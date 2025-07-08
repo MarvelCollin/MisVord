@@ -1589,27 +1589,7 @@ class MusicPlayerSystem {
         this.removeExistingPlayer();
         
 
-        try {
-            if (!this.botParticipantAdded) {
-                const grid = document.getElementById("participantGrid");
-                const existingBotCard = grid?.querySelector(`[data-participant-id="bot-${this.botParticipantId}"]`);
-                
-                if (!existingBotCard) {
-                    const botData = {
-                        user_id: this.botParticipantId,
-                        username: 'TitiBot',
-                        avatar_url: '/public/assets/common/default-profile-picture.png'
-                    };
-                    
-                    window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', { 
-                        detail: { participant: botData } 
-                    }));
-                }
-                this.botParticipantAdded = true;
-            }
-        } catch (e) {
-            console.warn('⚠️ [MUSIC-PLAYER] Failed to inject bot participant:', e);
-        }
+
         
         const playerHtml = `
             <div id="music-player-widget" style="
@@ -1712,16 +1692,7 @@ class MusicPlayerSystem {
             clearInterval(this.progressInterval);
             this.progressInterval = null;
         }
-        try {
-            if (this.botParticipantAdded) {
-                window.dispatchEvent(new CustomEvent('bot-voice-participant-left', { 
-                    detail: { participant: { user_id: this.botParticipantId } } 
-                }));
-                this.botParticipantAdded = false;
-            }
-        } catch (e) {
-            console.warn('⚠️ [MUSIC-PLAYER] Failed to remove bot participant:', e);
-        }
+
     }
 
     removeExistingPlayer() {

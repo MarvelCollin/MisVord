@@ -85,48 +85,12 @@ class VoiceCallSection {
 
     this.syncButtonStates();
 
-    if (window.videoSDKManager?.isMeetingJoined) {
-      setTimeout(() => {
-        this.refreshParticipantGrid();
-      }, 500);
-    }
-
     this.initialized = true;
-
-    setInterval(() => {
-      if (window.videoSDKManager?.isMeetingJoined) {
-        this.syncButtonStates();
-
-        if (this.lastStreamSync && Date.now() - this.lastStreamSync < 5000) {
-          return;
-        }
-        this.lastStreamSync = Date.now();
-        this.syncAllParticipantStreams();
-      }
-    }, 5000);
-
-    setTimeout(() => {
-      this.retryInitialization();
-    }, 1000);
-
-
 
     this.startVideoOverlaySafetyMonitor();
   }
 
-  retryInitialization() {
-    if (!window.videoSDKManager?.isMeetingJoined) {
-      setTimeout(() => {
-        if (window.videoSDKManager?.isMeetingJoined) {
-          this.syncButtonStates();
-          this.refreshParticipantGrid();
-        }
-      }, 2000);
-    } else {
-      this.syncButtonStates();
-      this.refreshParticipantGrid();
-    }
-  }
+
 
   updateGridLayout() {
     const grid = document.getElementById("participantGrid");
@@ -752,23 +716,35 @@ class VoiceCallSection {
 
   refresh() {
     this.syncButtonStates();
-    this.refreshParticipantGrid();
     this.updateActivityStatus();
   }
 
   handleParticipantJoined(e) {
     const { participant, participantObj } = e.detail;
     
+    if (!participant || !participantObj) {
+      return;
+    }
+
+    const grid = document.getElementById("participantGrid");
+    if (!grid) {
+      return;
+    }
+
+    if (grid.querySelector(`[data-participant-id="${participant}"]`)) {
+      return;
+    }
+
+    if (this.pendingParticipants.has(participant)) {
+      return;
+    }
 
     const isLocalParticipant = participant === window.videoSDKManager?.meeting?.localParticipant?.id;
     
-
     if (isLocalParticipant) {
-      
       const localParticipantObj = window.videoSDKManager?.meeting?.localParticipant;
       if (localParticipantObj) {
         this.addParticipantToGrid(participant, localParticipantObj);
-
         setTimeout(() => {
           this.checkParticipantStreams(localParticipantObj);
         }, 300);
@@ -1230,34 +1206,6 @@ class VoiceCallSection {
     countElement.textContent = count.toString();
   }
 
-  refreshParticipantGrid() {
-    const grid = document.getElementById("participantGrid");
-    if (!grid) return;
-
-    this.pendingParticipants.clear();
-    grid.innerHTML = "";
-
-    let delay = 0;
-
-    if (window.videoSDKManager?.meeting?.participants) {
-      const participants = Array.from(
-        window.videoSDKManager.meeting.participants.values()
-      );
-      
-      participants.forEach((participant) => {
-        setTimeout(() => {
-          this.addParticipantToGrid(participant.id, participant);
-          this.checkParticipantStreams(participant);
-        }, delay);
-        delay += 50;
-      });
-    }
-
-    setTimeout(() => {
-      this.updateParticipantCount();
-    }, delay + 100);
-  }
-
   checkParticipantStreams(participant) {
     if (!participant || !participant.streams) return;
 
@@ -1555,31 +1503,6 @@ class VoiceCallSection {
       activityDetails,
       "voice-call-section"
     );
-  }
-
-  syncAllParticipantStreams() {
-    if (!window.videoSDKManager?.meeting) return;
-
-    const grid = document.getElementById("participantGrid");
-    if (!grid) return;
-
-    const participants = Array.from(
-      window.videoSDKManager.meeting.participants.values()
-    );
-    const localParticipant = window.videoSDKManager.meeting.localParticipant;
-
-    if (localParticipant) {
-      participants.push(localParticipant);
-    }
-
-    participants.forEach((participant) => {
-      const participantCard = grid.querySelector(
-        `[data-participant-id="${participant.id}"]`
-      );
-      if (participantCard && participant.streams) {
-        this.checkParticipantStreams(participant);
-      }
-    });
   }
 
   isScreenShareStream(stream) {

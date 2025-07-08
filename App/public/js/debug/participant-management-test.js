@@ -168,10 +168,12 @@ window.ParticipantManagementTest = {
     },
     
     async simulateParticipantAdd(participant) {
-
-        if (window.voiceCallSection && typeof window.voiceCallSection.addParticipantToGrid === 'function') {
-            await window.voiceCallSection.addParticipantToGrid(participant.id, participant);
-        }
+        window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
+            detail: {
+                participant: participant.id,
+                participantObj: participant
+            }
+        }));
     },
     
     async testRaceConditionPrevention() {

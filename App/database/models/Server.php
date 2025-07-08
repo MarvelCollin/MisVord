@@ -1,6 +1,8 @@
 <?php
 
 require_once __DIR__ . '/Model.php';
+require_once __DIR__ . '/User.php';
+require_once __DIR__ . '/../query.php';
 
 class Server extends Model {
     protected static $table = 'servers';

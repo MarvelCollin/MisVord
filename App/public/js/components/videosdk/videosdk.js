@@ -21,6 +21,7 @@ class VideoSDKManager {
         this.presenceMonitorInterval = null;
         this.lastPresenceCheck = null;
         this.joiningInProgress = false;
+        this.processedParticipants = new Set();
         this.startPresenceMonitoring();
     }
 
@@ -376,11 +377,19 @@ class VideoSDKManager {
     }
     
     handleParticipantJoined(participant) {
+        if (!participant || !participant.id) {
+            return;
+        }
+
+        if (this.processedParticipants.has(participant.id)) {
+            return;
+        }
+
+        this.processedParticipants.add(participant.id);
 
         this.registerStreamEvents(participant);
         this.startStreamMonitoring(participant);
         
-
         setTimeout(() => {
             window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
                 detail: { participant: participant.id, participantObj: participant }
@@ -389,11 +398,14 @@ class VideoSDKManager {
     }
     
     handleParticipantLeft(participant) {
+        if (!participant || !participant.id) {
+            return;
+        }
 
+        this.processedParticipants.delete(participant.id);
         
         this.cleanupParticipantResourcesById(participant.id);
         
-
         window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
             detail: { participant: participant.id }
         }));
@@ -715,28 +727,29 @@ class VideoSDKManager {
             console.error('[VideoSDK] Unexpected error while leaving meeting:', err);
         }
 
-            this.cleanupParticipantResources();
+        this.cleanupParticipantResources();
 
-            this.isMeetingJoined = false;
-            this.isConnected = false;
-            this.joiningInProgress = false;
-            this.meeting = null;
+        this.isMeetingJoined = false;
+        this.isConnected = false;
+        this.joiningInProgress = false;
+        this.meeting = null;
+        this.processedParticipants.clear();
 
-            sessionStorage.removeItem('isInVoiceCall');
-            sessionStorage.removeItem('voiceChannelName');
+        sessionStorage.removeItem('isInVoiceCall');
+        sessionStorage.removeItem('voiceChannelName');
 
-            if (window.globalSocketManager) {
-                window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-leave');
-            }
+        if (window.globalSocketManager) {
+            window.globalSocketManager.updatePresence('online', { type: 'active' }, 'videosdk-leave');
+        }
 
-            if (window.voiceManager) {
-                window.voiceManager.isConnected = false;
-            }
+        if (window.voiceManager) {
+            window.voiceManager.isConnected = false;
+        }
 
-            window.dispatchEvent(new CustomEvent('voiceDisconnect'));
-            window.dispatchEvent(new CustomEvent('presenceForceReset', { 
-                detail: { reason: 'Meeting left' } 
-            }));
+        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
+        window.dispatchEvent(new CustomEvent('presenceForceReset', { 
+            detail: { reason: 'Meeting left' } 
+        }));
 
         this.checkAndSyncPresence();
     }

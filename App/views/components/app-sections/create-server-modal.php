@@ -243,7 +243,6 @@ $additional_js[] = 'components/servers/create-server-modal';
 
                 <div class="mb-4">
                     <label class="flex items-center cursor-pointer">
-                        <input type="hidden" name="is_public" value="0">
                         <input type="checkbox" id="is-public" name="is_public" value="1" class="sr-only peer">
                         <div class="relative w-11 h-6 bg-discord-dark rounded-full peer 
                             peer-focus:ring-2 peer-focus:ring-discord-blue 

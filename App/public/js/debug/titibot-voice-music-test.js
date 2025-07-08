@@ -92,20 +92,7 @@ window.testTitiBotVoiceMusicIntegration = function(options = {}) {
         } else {
 
             
-            const mockBotData = {
-                id: 'bot-voice-4',
-                user_id: '4',
-                username: 'TitiBot',
-                avatar_url: '/public/assets/common/default-profile-picture.png',
-                isBot: true,
-                channelId: channelId,
-                meetingId: `voice_channel_${channelId}`,
-                joinedAt: Date.now()
-            };
-            
-            window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', {
-                detail: { participant: mockBotData }
-            }));
+
             
             setTimeout(() => {
                 const botCard = document.querySelector('[data-participant-id="bot-4"]');

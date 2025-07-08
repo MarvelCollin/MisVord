@@ -1767,6 +1767,7 @@ Route::get('/api/bot/user/{username}', function($username) {
     $controller->getBotByUsername($username);
 });
 
+
 return array_merge(Route::getRoutes(), [
     '404' => 'pages/404.php'
 ]);

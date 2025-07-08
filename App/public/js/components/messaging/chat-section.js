@@ -655,17 +655,14 @@ class ChatSection {
             
             this.chatBot.init();
             
-            setTimeout(() => {
-                this.hideChatSkeleton();
-                this.updateSendButton();
-                console.log('✅ [CHAT-SECTION] Initialization complete', {
-                    chatType: this.chatType,
-                    targetId: this.targetId,
-                    sendReceiveHandler: !!this.sendReceiveHandler,
-                    messageInput: !!this.messageInput,
-                    messageForm: !!this.messageForm
-                });
-            }, 2000);
+            this.updateSendButton();
+            console.log('✅ [CHAT-SECTION] Initialization complete', {
+                chatType: this.chatType,
+                targetId: this.targetId,
+                sendReceiveHandler: !!this.sendReceiveHandler,
+                messageInput: !!this.messageInput,
+                messageForm: !!this.messageForm
+            });
         }
 
         this.userId = document.querySelector('meta[name="user-id"]')?.getAttribute('content');
@@ -1173,28 +1170,19 @@ class ChatSection {
             });
 
             if (messages.length > 0) {
-                this.hideChatSkeleton();
-                
                 if (isLoadMore) {
-                    if (typeof this.messageHandler.prependMessagesProgressively === 'function') {
-                        await this.messageHandler.prependMessagesProgressively(messages);
-                    } else {
-                        console.warn('⚠️ [CHAT-SECTION] Progressive prepend not available, using fallback');
-                        await this.messageHandler.prependMessages(messages);
-                    }
-                    
+                    await this.messageHandler.prependMessages(messages);
                     this.currentOffset += messages.length;
                     this.hideLoadMoreProgress(true, `Loaded ${messages.length} older messages`);
                 } else {
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
-                    
-                    // Always scroll to bottom on initial load
                     this.scrollToBottom();
                 }
                 
                 this.hideEmptyState();
                 this.isInitialized = true;
+                this.hideChatSkeleton();
             } else {
                 this.hideChatSkeleton();
                 

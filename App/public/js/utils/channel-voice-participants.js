@@ -167,6 +167,11 @@ class ChannelVoiceParticipants {
         window.addEventListener('voiceConnect', (event) => {
             const channelId = event.detail?.channelId;
             if (channelId && !voiceConnectHandled) {
+                const isInVoiceCallView = document.getElementById('participantGrid') !== null;
+                if (isInVoiceCallView) {
+                    return;
+                }
+
                 const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
                 if (container) {
                     container.classList.remove('hidden');
@@ -193,6 +198,10 @@ class ChannelVoiceParticipants {
             this.updateChannelCount(channel_id, participant_count);
         }
 
+        const isInVoiceCallView = document.getElementById('participantGrid') !== null;
+        if (isInVoiceCallView) {
+            return;
+        }
 
         const isOwnEvent = user_id === window.currentUserId || user_id === window.globalSocketManager?.userId;
         if (action !== 'leave' && isOwnEvent && window.videoSDKManager?.isReady()) {
@@ -205,7 +214,6 @@ class ChannelVoiceParticipants {
         if ((action === 'join' || action === 'already_registered') && user_id && !participantExists) {
             await this.addParticipant(channel_id, user_id, username);
         } else if (action === 'leave' && user_id) {
-
             this._processingSocketLeaveEvent = true;
             this.removeParticipant(channel_id, user_id);
             this._processingSocketLeaveEvent = false;
@@ -216,6 +224,11 @@ class ChannelVoiceParticipants {
     }
 
     async addCurrentUserToChannel(channelId) {
+        const isInVoiceCallView = document.getElementById('participantGrid') !== null;
+        if (isInVoiceCallView) {
+            return;
+        }
+
         if (!window.currentUserId || !window.currentUsername) {
             console.warn('[VOICE-PARTICIPANT] Current user info not available');
             return;
@@ -231,6 +244,11 @@ class ChannelVoiceParticipants {
         this.updateParticipantContainer(channelId);
     }    
     async addParticipant(channelId, userId, username) {
+        const isInVoiceCallView = document.getElementById('participantGrid') !== null;
+        if (isInVoiceCallView) {
+            return;
+        }
+
         if (!this.participants.has(channelId)) {
             this.participants.set(channelId, new Map());
         }
@@ -337,6 +355,11 @@ class ChannelVoiceParticipants {
     }
 
     updateParticipantContainer(channelId) {
+        const isInVoiceCallView = document.getElementById('participantGrid') !== null;
+        if (isInVoiceCallView) {
+            return;
+        }
+
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
 

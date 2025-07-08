@@ -33,7 +33,7 @@ class BaseController
             }
         }
 
-        if ($this->isApiRoute() || ($this->isAjaxRequest() && !isset($_GET['render_html']))) {
+        if (($this->isApiRoute() || ($this->isAjaxRequest() && !isset($_GET['render_html']))) && !headers_sent()) {
             header('Content-Type: application/json');
             
             if ($this->ajaxConfig['cors']['enabled'] ?? false) {
@@ -52,6 +52,10 @@ class BaseController
     }
 
     protected function applyCorsHeaders() {
+        if (headers_sent()) {
+            return;
+        }
+        
         $cors = $this->ajaxConfig['cors'] ?? [];
         
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';

@@ -742,4 +742,70 @@ window.testMicDeafenSync = function() {
         return false;
     }
 }
+
+window.testParticipantDeduplication = function() {
+    const grid = document.getElementById('participantGrid');
+    if (!grid) {
+        console.error('❌ [TEST] Voice participant grid not found');
+        return false;
+    }
+    
+    const participantCards = grid.querySelectorAll('.participant-card');
+    const participantIds = new Set();
+    let hasDuplicates = false;
+    
+    participantCards.forEach(card => {
+        const participantId = card.getAttribute('data-participant-id');
+        if (participantIds.has(participantId)) {
+            console.error('❌ [TEST] Duplicate participant found:', participantId);
+            hasDuplicates = true;
+        } else {
+            participantIds.add(participantId);
+        }
+    });
+    
+    console.log('🧪 [TEST] Participant deduplication test:', {
+        totalCards: participantCards.length,
+        uniqueParticipants: participantIds.size,
+        hasDuplicates: hasDuplicates,
+        participantIds: Array.from(participantIds)
+    });
+    
+    return !hasDuplicates;
+};
+
+window.verifyVoiceCallSystemIntegrity = function() {
+    console.log('🔍 [VERIFY] Voice call system integrity check...');
+    
+    const checks = {
+        voiceCallSection: !!window.voiceCallSection,
+        participantGrid: !!document.getElementById('participantGrid'),
+        videoSDKManager: !!window.videoSDKManager,
+        voiceManager: !!window.voiceManager,
+        channelVoiceParticipants: !!window.ChannelVoiceParticipants,
+        globalSocketManager: !!window.globalSocketManager
+    };
+    
+    console.log('📊 [VERIFY] System components:', checks);
+    
+    const testResults = {
+        deduplicationTest: window.testParticipantDeduplication(),
+        systemIntegrity: Object.values(checks).every(Boolean)
+    };
+    
+    if (testResults.deduplicationTest && testResults.systemIntegrity) {
+        console.log('✅ [VERIFY] All tests passed - participant duplication fix successful');
+        return true;
+    } else {
+        console.error('❌ [VERIFY] Some tests failed:', testResults);
+        return false;
+    }
+};
+
+setTimeout(() => {
+    if (document.getElementById('participantGrid')) {
+        console.log('✅ [VOICE-CALL] Participant deduplication fixes applied');
+        window.verifyVoiceCallSystemIntegrity();
+    }
+}, 1000);
 </script>

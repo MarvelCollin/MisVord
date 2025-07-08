@@ -608,29 +608,7 @@ function syncVideoSDKToChannelDisplay() {
 
 function testVideoSDKParticipantEvents() {
     
-    const testParticipantId = 'test-participant-' + Date.now();
-    const testParticipantName = 'Test User';
-    
 
-    window.dispatchEvent(new CustomEvent('videosdkParticipantJoined', {
-        detail: {
-            participant: testParticipantId,
-            participantObj: {
-                id: testParticipantId,
-                displayName: testParticipantName,
-                name: testParticipantName
-            }
-        }
-    }));
-    
-    setTimeout(() => {
-
-        window.dispatchEvent(new CustomEvent('videosdkParticipantLeft', {
-            detail: {
-                participant: testParticipantId
-            }
-        }));
-    }, 2000);
 }
 
 function getVideoSDKConnectionHealth() {
@@ -719,15 +697,7 @@ function testGlobalParticipantBroadcast() {
         return false;
     }
     
-    const testParticipantId = 'test-global-' + Date.now();
-    const testParticipantName = 'Test Global User';
-    
 
-    voiceCallManager.broadcastParticipantUpdate('join', testParticipantId, testParticipantName);
-    
-    setTimeout(() => {
-        voiceCallManager.broadcastParticipantUpdate('leave', testParticipantId, testParticipantName);
-    }, 2000);
     
 
     return true;

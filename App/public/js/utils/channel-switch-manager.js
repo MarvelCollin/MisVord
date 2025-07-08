@@ -545,16 +545,6 @@ class SimpleChannelSwitcher {
                 await window.voiceManager.setupVoice(channelId);
                 
                 if (wasConnected && currentParticipants.length > 0) {
-                    const participantGrid = document.getElementById('participantGrid');
-                    if (participantGrid) {
-                        participantGrid.innerHTML = '';
-                        currentParticipants.forEach(participant => {
-                            if (window.voiceManager.addParticipantToGrid) {
-                                window.voiceManager.addParticipantToGrid(participant);
-                            }
-                        });
-                    }
-                    
                     const participantCount = document.getElementById('voiceParticipantCount');
                     if (participantCount) {
                         participantCount.textContent = currentParticipants.length.toString();

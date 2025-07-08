@@ -185,7 +185,6 @@ class ChannelController extends BaseController
                 'type' => $type,
                 'description' => $input['description'] ?? null,
                 'category_id' => $input['category_id'] ?? null,
-                'created_by' => $this->getCurrentUserId(),
                 'created_at' => date('Y-m-d H:i:s')
             ];
 

@@ -64,19 +64,6 @@ class BotComponent {
                 window.dispatchEvent(new CustomEvent('bot-voice-participant-joined', {
                     detail: { participant }
                 }));
-
-                if (window.voiceCallSection) {
-                    window.voiceCallSection.addBotParticipant(participant);
-                } else {
-                    console.warn('⚠️ [BOT] voiceCallSection not found, retrying in 1 second...');
-                    setTimeout(() => {
-                        if (window.voiceCallSection) {
-                            window.voiceCallSection.addBotParticipant(participant);
-                        } else {
-                            console.error('❌ [BOT] voiceCallSection still not found after retry');
-                        }
-                    }, 1000);
-                }
             }
         });
 
@@ -90,10 +77,6 @@ class BotComponent {
                 window.dispatchEvent(new CustomEvent('bot-voice-participant-left', {
                     detail: { participant }
                 }));
-
-                if (window.voiceCallSection) {
-                    window.voiceCallSection.removeBotParticipant(participant.user_id);
-                }
             }
         });
 

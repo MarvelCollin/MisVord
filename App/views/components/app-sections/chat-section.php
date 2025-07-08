@@ -794,7 +794,7 @@ if (!function_exists('renderMessage')) {
             </div>
         </div>
         
-        <div class="messages-container flex flex-col min-h-full" id="chat-real-content" style="display: block;">
+        <div class="messages-container flex flex-col min-h-full" id="chat-real-content" style="display: none;">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;
