@@ -188,7 +188,7 @@ class FriendsTabManager {
         const newUrl = `/home/friends?tab=${tabName}`;
         history.replaceState(
             { pageType: 'home', contentType: 'friends', tab: tabName }, 
-            `misvord - Friends - ${tabName}`, 
+            `MisVord - Friends - ${tabName}`, 
             newUrl
         );
     }

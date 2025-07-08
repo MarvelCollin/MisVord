@@ -248,7 +248,7 @@ class SimpleDMSwitcher {
     }
     
     updatePageTitle(name, type) {
-        const title = type === 'friends' ? 'misvord - Friends' : `misvord - ${name}`;
+        const title = type === 'friends' ? 'MisVord - Friends' : `MisVord - ${name}`;
         document.title = title;
 
     }

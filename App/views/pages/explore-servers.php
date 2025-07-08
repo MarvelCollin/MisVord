@@ -27,7 +27,7 @@ $GLOBALS['categories'] = $categories;
 $GLOBALS['initialData'] = $initialData;
 $GLOBALS['contentType'] = 'explore';
 
-$page_title = 'misvord - Explore Servers';
+$page_title = 'MisVord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
 $page_css = ['explore-servers', 'server-detail'];
 $page_js = 'pages/explore-servers';

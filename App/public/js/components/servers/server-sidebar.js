@@ -28,9 +28,9 @@ function setupScrollBehavior() {
         serverList.style.maxHeight = `${viewportHeight - (topPadding + bottomPadding)}px`;
         serverList.style.height = 'auto';
         
-        // Ensure overflow settings are correct
-        serverList.style.overflowY = 'auto';
-        serverList.style.overflowX = 'visible';
+        // Ensure overflow settings are correct - forcing auto overflow
+        serverList.style.overflowY = 'auto !important';
+        serverList.style.overflowX = 'hidden';
         
         // Add smooth scrolling
         serverList.style.scrollBehavior = 'smooth';
@@ -39,6 +39,20 @@ function setupScrollBehavior() {
         if (sidebarContainer) {
             sidebarContainer.style.overflowY = 'hidden';
         }
+
+        // Check if scrolling is needed
+        const needsScrolling = serverList.scrollHeight > serverList.clientHeight;
+        if (needsScrolling) {
+            serverList.classList.remove('no-scrollbar');
+            
+            // Force scrollbar to be visible and active by adding a small padding
+            serverList.style.paddingRight = '4px';
+        } else {
+            serverList.classList.add('no-scrollbar');
+        }
+
+        // Make sure pointer events are enabled for scrolling
+        serverList.style.pointerEvents = 'auto';
     };
     
     updateMaxHeight();
@@ -66,13 +80,17 @@ function setupScrollBehavior() {
         checkServerVisibility();
         updateMaxHeight(); // Re-run to ensure correct size after all content is loaded
     }, 200);
+
+    // Add additional check after all dynamic content might be loaded
+    setTimeout(() => {
+        updateMaxHeight();
+    }, 1000);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
 
     initServerSidebar();
     initializeHomeIconEasterEgg();
-    setupScrollBehavior();
     
 
     setTimeout(() => {
@@ -192,12 +210,20 @@ function checkServerVisibility() {
     const serverList = document.getElementById('server-list');
     if (!serverList) return;
     
-    const serverIcons = serverList.querySelectorAll('.server-sidebar-icon');
-    if (serverIcons.length <= 5) {
-
+    // Count all visible server icons (including those in folders)
+    const allVisibleIcons = serverList.querySelectorAll('.server-sidebar-icon:not([style*="display: none"])');
+    const totalVisibleItems = allVisibleIcons.length;
+    
+    // Check if scrollbar is needed based on content height
+    const needsScrollbar = serverList.scrollHeight > serverList.clientHeight;
+    
+    if (!needsScrollbar || totalVisibleItems <= 5) {
         serverList.classList.add('no-scrollbar');
     } else {
         serverList.classList.remove('no-scrollbar');
+        
+        // Ensure scrollbar is visible
+        serverList.style.overflowY = 'auto';
     }
 }
 
@@ -230,9 +256,6 @@ function initServerSidebar() {
     window.__SIDEBAR_INITIALIZED__ = true;
     
     performCompleteRender();
-    
-
-    setupScrollBehavior();
     
 
     setTimeout(() => {

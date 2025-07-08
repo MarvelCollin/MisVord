@@ -21,6 +21,13 @@ $tooltipPath = dirname(dirname(__DIR__)) . '/components/common/tooltip.php';
 if (file_exists($tooltipPath)) {
     require_once $tooltipPath;
 }
+
+// Limit the number of servers displayed to avoid overcrowding
+// Only keep user's real servers plus important utility buttons
+$maxServersToShow = 10; // Adjust this number based on your layout
+if (count($servers) > $maxServersToShow) {
+    $servers = array_slice($servers, 0, $maxServersToShow);
+}
 ?>
 
 <link rel="stylesheet" href="/public/css/server-sidebar.css">
@@ -30,7 +37,7 @@ if (file_exists($tooltipPath)) {
 
 <div class="flex h-full">
     <div class="w-[72px] sm:w-[72px] md:w-[72px] bg-discord-darker flex flex-col items-center pt-3 pb-3 transition-all duration-200 h-full">
-        <div id="server-list" class="server-sidebar-list flex-1 overflow-y-auto w-full" style="max-height: calc(100vh - 24px); overflow-x: visible !important;">
+        <div id="server-list" class="server-sidebar-list flex-1 w-full">
             <div class="server-sidebar-icon <?php echo $isHomePage ? 'active' : ''; ?>">
                 <a href="/home" class="block">
                     <div class="server-sidebar-button flex items-center justify-center transition-all duration-200">
@@ -79,6 +86,8 @@ if (file_exists($tooltipPath)) {
                 <?php endforeach; ?>
             <?php endif; ?>
             
+            <!-- REMOVED: Test server data for scrolling -->
+            
             <div class="server-sidebar-icon">
                 <button data-action="create-server" class="discord-add-server-button">
                     <i class="fas fa-plus discord-add-server-icon"></i>
@@ -115,18 +124,7 @@ if (file_exists($tooltipPath)) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-
-    const setServerSidebarHeight = () => {
-        const sidebar = document.querySelector('#server-list');
-        if (sidebar) {
-            const viewportHeight = window.innerHeight;
-            sidebar.style.maxHeight = `${viewportHeight - 24}px`;
-        }
-    };
-    
-
-    setServerSidebarHeight();
-    window.addEventListener('resize', setServerSidebarHeight);
+    // All scroll-related code removed
     
     document.querySelectorAll('.server-link').forEach(link => {
         link.addEventListener('click', function(e) {
@@ -150,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-
     setTimeout(() => {
         const tooltipContainer = document.getElementById('tooltip-container');
         if (tooltipContainer) {
@@ -164,53 +161,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 
-
-setInterval(() => {
-    const tooltipContainer = document.getElementById('tooltip-container');
-    if (tooltipContainer) {
-        const visibleTooltips = tooltipContainer.querySelectorAll('.tooltip:not(.hidden)');
-        if (visibleTooltips.length > 0) {
-
-            let shouldHide = true;
-            visibleTooltips.forEach(tooltip => {
-                const elementId = tooltip.getAttribute('data-for-element');
-                const element = document.getElementById(elementId);
-                if (element) {
-                    const rect = element.getBoundingClientRect();
-                    const mouseX = window.mouseX || 0;
-                    const mouseY = window.mouseY || 0;
-                    
-
-                    if ((mouseX >= rect.left && mouseX <= rect.right && 
-                        mouseY >= rect.top && mouseY <= rect.bottom) ||
-                        (mouseX >= tooltip.getBoundingClientRect().left && 
-                         mouseX <= tooltip.getBoundingClientRect().right && 
-                         mouseY >= tooltip.getBoundingClientRect().top && 
-                         mouseY <= tooltip.getBoundingClientRect().bottom)) {
-                        shouldHide = false;
-                    }
-                }
-            });
-            
-            if (shouldHide) {
-                visibleTooltips.forEach(tooltip => {
-                    tooltip.classList.add('hidden');
-                    tooltip.style.opacity = '0';
-                    tooltip.style.display = 'none';
-                });
-            }
-        }
-    }
-}, 2000);
-
-
+// Mouse tracking for tooltips
 window.mouseX = 0;
 window.mouseY = 0;
 document.addEventListener('mousemove', (e) => {
     window.mouseX = e.clientX;
     window.mouseY = e.clientY;
 });
-
 
 document.addEventListener('scroll', () => {
     if (window.hideAllTooltips) {

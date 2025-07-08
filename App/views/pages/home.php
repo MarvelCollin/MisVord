@@ -155,7 +155,7 @@ elseif (isset($_SESSION['active_dm']) && !empty($_SESSION['active_dm'])) {
     }
 }
 
-$page_title = 'misvord - Home';
+$page_title = 'MisVord - Home';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
 $page_js = 'pages/home-page';

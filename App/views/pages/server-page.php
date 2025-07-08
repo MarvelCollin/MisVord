@@ -20,7 +20,7 @@ $serverId = $currentServer ? $currentServer->id : 0;
 
 $GLOBALS['isLoading'] = isset($_GET['loading']) && $_GET['loading'] === 'true';
 
-$page_title = 'misvord - ' . $serverName;
+$page_title = 'MisVord - ' . $serverName;
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'app';
 $additional_css = ['tic-tac-toe'];

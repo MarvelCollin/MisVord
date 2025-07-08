@@ -165,7 +165,7 @@ class ServerController extends BaseController
             $serverData = [
                 'name' => $input['name'],
                 'description' => $input['description'],
-                'is_public' => isset($input['is_public']) ? (bool)$input['is_public'] : false,
+                'is_public' => isset($input['is_public']) && ($input['is_public'] === '1' || $input['is_public'] === true || $input['is_public'] === 1),
                 'category' => $input['category']
             ];
 

@@ -393,10 +393,15 @@ function handleServerCreation(form, formData = null) {
         if (!formData) {
             formData = new FormData(form);
         }
+        
+        // Ensure is_public is properly set (convert to boolean value)
+        if (formData.has('is_public')) {
+            const isPublic = formData.get('is_public') === '1';
+            formData.set('is_public', isPublic ? '1' : '0');
+        }
+        
         const modal = document.getElementById('create-server-modal');
         const submitBtn = form.querySelector('button[type="submit"]');
-        
-
         
         serverAPI.createServer(formData)
             .then(data => {

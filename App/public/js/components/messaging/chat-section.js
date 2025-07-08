@@ -584,14 +584,10 @@ class ChatSection {
         if (!this.chatType || !this.targetId) {
             this.chatType = this.detectChatType();
             
-            
-            
             await this.waitForRequiredElements();
         
             if (!this.targetId) {
                 this.targetId = this.detectTargetId();
-                
-                
                 
                 if (!this.targetId) {
                     await new Promise(resolve => setTimeout(resolve, 500));
@@ -611,7 +607,6 @@ class ChatSection {
             this.setupEventListeners();
             
             if (this.targetId && this.chatType) {
-                
                 this.setupHandlers();
             
                 if (this.messageHandler) {
@@ -620,11 +615,25 @@ class ChatSection {
             
                 this.joinSocketRoom();
                 
+                // Ensure chat container is cleared before loading messages
+                const messagesContainer = this.getMessagesContainer();
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '';
+                }
+                
+                // Show skeleton while loading
+                this.showChatSkeleton();
+                
                 await this.loadMessages();
-            
+                
                 this.initializeExistingMessages();
-            
+                
                 this.updateChannelHeader();
+                
+                // Make sure we're at the bottom
+                setTimeout(() => {
+                    this.scrollToBottom();
+                }, 100);
             } else {
                 console.warn('⚠️ [CHAT-SECTION] Missing targetId or chatType, hiding skeleton anyway', {
                     targetId: this.targetId,
@@ -642,7 +651,6 @@ class ChatSection {
                 setTimeout(() => {
                     this.mentionHandler.init();
                 }, 500);
-            } else {
             }
             
             this.chatBot.init();
@@ -1048,7 +1056,6 @@ class ChatSection {
         } = options;
         
         if (this.isLoading && !forceFresh) {
-
             return;
         }
 
@@ -1062,8 +1069,6 @@ class ChatSection {
             offset = 0;
         }
         
-
-        
         console.log('🔍 [CHAT-SECTION] Starting loadMessages with:', {
             targetId: this.targetId, 
             chatType: this.chatType,
@@ -1076,11 +1081,9 @@ class ChatSection {
         
         try {
             if (!window.ChatAPI) {
-
                 await new Promise(resolve => {
                     const checkAPI = () => {
                         if (window.ChatAPI) {
-
                             resolve();
                         } else {
                             setTimeout(checkAPI, 100);
@@ -1100,7 +1103,6 @@ class ChatSection {
                 requestOptions.bypass_cache = true;
             }
             
-
             const response = await window.ChatAPI.getMessages(
                 this.targetId,
                 this.chatType,
@@ -1116,8 +1118,6 @@ class ChatSection {
                 messageCount: response?.data?.messages?.length || 'unknown'
             });
             
-
-            
             if (!response) {
                 throw new Error('No response received from server');
             }
@@ -1130,28 +1130,22 @@ class ChatSection {
                     messages = response.data.messages;
                     hasMore = response.data.has_more || false;
 
-                    
                     let botCount = 0;
                     let userCount = 0;
                     messages.forEach(msg => {
                         if (msg.user_status === 'bot' || msg.username === 'titibot') {
                             botCount++;
-
                         } else {
                             userCount++;
                         }
                     });
                     
-
-                    
                 } else if (response.data.messages === null || response.data.messages === undefined) {
                     messages = [];
                     hasMore = false;
-
                 } else if (Array.isArray(response.data)) {
                     messages = response.data;
                     hasMore = messages.length >= limit;
-
                 } else {
                     console.error('❌ [CHAT-SECTION] Unexpected messages format:', {
                         messagesValue: response.data.messages,
@@ -1178,14 +1172,10 @@ class ChatSection {
                 currentOffset: this.currentOffset
             });
 
-
-
             if (messages.length > 0) {
                 this.hideChatSkeleton();
                 
                 if (isLoadMore) {
-
-                    
                     if (typeof this.messageHandler.prependMessagesProgressively === 'function') {
                         await this.messageHandler.prependMessagesProgressively(messages);
                     } else {
@@ -1196,25 +1186,21 @@ class ChatSection {
                     this.currentOffset += messages.length;
                     this.hideLoadMoreProgress(true, `Loaded ${messages.length} older messages`);
                 } else {
-
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
-                    this.scrollToBottomIfAppropriate(options.isChannelSwitch);
+                    
+                    // Always scroll to bottom on initial load
+                    this.scrollToBottom();
                 }
                 
                 this.hideEmptyState();
                 this.isInitialized = true;
-
             } else {
                 this.hideChatSkeleton();
                 
                 if (!isLoadMore) {
-
                     this.showEmptyState();
-                } else {
-
                 }
-
             }
 
             this.updateLoadMoreButton();
@@ -1234,7 +1220,6 @@ class ChatSection {
             }
         } finally {
             this.isLoading = false;
-
         }
     }
     
@@ -2335,11 +2320,15 @@ class ChatSection {
         
         try {
             this.isAutoScrolling = true;
+            // Add smooth scrolling behavior
+            this.chatMessages.style.scrollBehavior = 'smooth';
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
             this.userHasScrolled = false;
             setTimeout(() => {
                 this.isAutoScrolling = false;
-            }, 100);
+                // Reset to auto after scrolling completes
+                this.chatMessages.style.scrollBehavior = 'auto';
+            }, 300);
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Failed to scroll to bottom:', error);
             this.isAutoScrolling = false;
@@ -2349,7 +2338,8 @@ class ChatSection {
     scrollToBottomIfAppropriate(isChannelSwitch = false) {
         if (!this.chatMessages) return;
         
-        if (isChannelSwitch) {
+        // Always scroll to bottom on initialization
+        if (!this.isInitialized || isChannelSwitch) {
             this.scrollToBottom();
             return;
         }
@@ -3223,21 +3213,51 @@ class ChatSection {
     handleNewMessageScroll(isOwnMessage = false) {
         if (!this.chatMessages) return;
         
+        // Always scroll when it's the user's own message
         if (isOwnMessage) {
             this.scrollToBottom();
             return;
         }
         
+        // Automatically scroll if user hasn't manually scrolled up
         if (!this.userHasScrolled) {
             this.scrollToBottom();
             return;
         }
         
+        // Check if user is already near the bottom
         const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
-        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 20;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; // Increased threshold for better UX
         
         if (isAtBottom) {
             this.scrollToBottom();
+        } else {
+            // Show a "new message" indicator that can be clicked to scroll down
+            this.showNewMessageIndicator();
+        }
+    }
+    
+    showNewMessageIndicator() {
+        // Only create if it doesn't exist
+        if (!document.getElementById('new-message-indicator')) {
+            const indicator = document.createElement('div');
+            indicator.id = 'new-message-indicator';
+            indicator.className = 'fixed bottom-24 right-8 bg-[#5865f2] text-white px-3 py-2 rounded-full shadow-lg cursor-pointer z-50 flex items-center gap-2 animate-bounce';
+            indicator.innerHTML = '<i class="fas fa-arrow-down"></i><span>New messages</span>';
+            
+            indicator.addEventListener('click', () => {
+                this.scrollToBottom();
+                indicator.remove();
+            });
+            
+            document.body.appendChild(indicator);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (document.getElementById('new-message-indicator')) {
+                    document.getElementById('new-message-indicator').remove();
+                }
+            }, 5000);
         }
     }
 

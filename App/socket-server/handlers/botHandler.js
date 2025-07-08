@@ -481,30 +481,26 @@ class BotHandler extends EventEmitter {
         io.to(targetRoom).emit(eventName, immediateData);
         
 
-        if (musicData) {
-            const musicCommandData = {
-                channel_id: channelId,
-                room_id: roomId,
-                music_data: musicData,
-                bot_id: botId,
-                timestamp: Date.now()
-            };
-            
-
-            
-
-            io.to(targetRoom).emit('bot-music-command', musicCommandData);
-            
-            if (channelId) {
-                const voiceChannelRoom = `voice_channel_${channelId}`;
-                io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
+                    if (musicData) {
+                const musicCommandData = {
+                    channel_id: channelId,
+                    room_id: roomId,
+                    music_data: musicData,
+                    bot_id: botId,
+                    timestamp: Date.now()
+                };
+                
+                // Only send to the text channel room and voice channel room
+                io.to(targetRoom).emit('bot-music-command', musicCommandData);
+                
+                if (channelId) {
+                    const voiceChannelRoom = `voice_channel_${channelId}`;
+                    io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
+                }
+                
+                // Removed global broadcast to prevent music playing for all users
+                // io.emit('bot-music-command', musicCommandData);
             }
-            
-
-            io.emit('bot-music-command', musicCommandData);
-            
-
-        }
         
 
     }
@@ -786,21 +782,24 @@ class BotHandler extends EventEmitter {
                         timestamp: Date.now()
                     };
                     
-                    console.log(`🎵 [BOT-DEBUG] Emitting music command to multiple rooms:`, {
+                    console.log(`🎵 [BOT-DEBUG] Emitting music command to target rooms:`, {
                         targetRoom,
                         channelId,
                         roomId,
                         action: musicData.action
                     });
                     
+                    // Send to the text channel room
                     io.to(targetRoom).emit('bot-music-command', musicCommandData);
                     
+                    // Send to the voice channel room
                     if (channelId) {
                         const voiceChannelRoom = `voice_channel_${channelId}`;
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
                     }
                     
-                    io.emit('bot-music-command', musicCommandData);
+                    // Removed global broadcast to fix the issue with music playing for all users
+                    // io.emit('bot-music-command', musicCommandData);
                 }
             } else {
                 console.error(`❌ [BOT-DEBUG] Save failed:`, response.data);

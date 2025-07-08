@@ -247,7 +247,7 @@ function initAuth() {
                 updateFormHeight();
             }, timing.formTransition);
 
-            document.title = `${getFormTitle(targetForm)} - misvord`;
+            document.title = `${getFormTitle(targetForm)} - MisVord`;
             
             try {
                 const newUrl = targetForm === 'login' ? '/login' : 
@@ -284,7 +284,7 @@ function initAuth() {
             case 'forgot': return 'Account Recovery';
             case 'security': return 'Set Security Question';
             case 'reset-password': return 'Create New Password';
-            default: return 'misvord';
+            default: return 'MisVord';
         }
     }
 

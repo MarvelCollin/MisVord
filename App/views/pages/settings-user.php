@@ -16,7 +16,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$page_title = 'User Settings - misvord';
+$page_title = 'User Settings - MisVord';
 $body_class = 'bg-discord-dark text-white settings-page';
 $page_css = 'settings-user';
 $page_js = 'components/auth/settings-user';
@@ -29,7 +29,7 @@ $userRepository = new UserRepository();
 $user = $userRepository->find($user_id);
 
 if (!$user) {
-    $page_title = 'Error - misvord';
+    $page_title = 'Error - MisVord';
     $content = '<div class="flex items-center justify-center h-screen bg-discord-dark text-white"><p>Could not load user data. Please try again later.</p></div>';
     include dirname(dirname(__DIR__)) . '/views/layout/main-app.php';
     exit;

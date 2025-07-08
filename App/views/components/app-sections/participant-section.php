@@ -138,7 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeParticipantSystem() {
-
+    // Add this line to generate test data with 30 members
+    window.testParticipantScroll(30);
     
     setupFriendsManagerIntegration();
     setupVoiceEventListeners();

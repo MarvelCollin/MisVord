@@ -639,9 +639,19 @@ function showBotDebugPanel() {
                             <div class="text-sm text-gray-400">Voice Connection:</div>
                             <div id="bot-voice-status" class="text-sm text-blue-400">Loading...</div>
                         </div>
-                        <div class="bg-gray-800 rounded p-3">
-                            <div class="text-sm text-gray-400">Music Player:</div>
+                        <div class="bg-gray-800 rounded p-3 border-l-4 border-purple-500">
+                            <div class="text-sm text-gray-400 flex items-center">
+                                <i class="fas fa-music mr-1 text-purple-400"></i>Music Status:
+                            </div>
                             <div id="music-player-status" class="text-sm text-purple-400">Loading...</div>
+                            <div class="text-xs text-gray-400 mt-1">Currently Playing:</div>
+                            <div id="currently-playing-song" class="text-xs text-purple-300">None</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3 border-l-4 border-purple-500">
+                            <div class="text-sm text-gray-400 flex items-center">
+                                <i class="fas fa-headphones mr-1 text-purple-400"></i>Music Listeners:
+                            </div>
+                            <div id="music-listeners" class="text-xs text-purple-300">None</div>
                         </div>
                         <div class="bg-gray-800 rounded p-3">
                             <div class="text-sm text-gray-400">Current Channel:</div>
@@ -670,6 +680,9 @@ function showBotDebugPanel() {
                         </button>
                         <button onclick="testVoiceContextDetection()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded text-sm">
                             <i class="fas fa-search mr-1"></i>Test Voice Detection
+                        </button>
+                        <button onclick="checkMusicListeners()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-headphones mr-1"></i>Check Music Listeners
                         </button>
                         <button onclick="refreshBotStatus()" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded text-sm">
                             <i class="fas fa-sync mr-1"></i>Refresh Status
@@ -758,6 +771,8 @@ function refreshBotStatus() {
     const botComponentEl = document.getElementById('bot-component-status');
     const botVoiceEl = document.getElementById('bot-voice-status');
     const musicPlayerEl = document.getElementById('music-player-status');
+    const currentlyPlayingSongEl = document.getElementById('currently-playing-song');
+    const musicListenersEl = document.getElementById('music-listeners');
     const botChannelEl = document.getElementById('bot-current-channel');
     const userVoiceEl = document.getElementById('user-voice-state');
     const botSocketEl = document.getElementById('bot-socket-status');
@@ -774,14 +789,54 @@ function refreshBotStatus() {
         botVoiceEl.className = voiceConnected ? 'text-sm text-green-400' : 'text-sm text-red-400';
     }
     
+    // Check music player status
     if (musicPlayerEl) {
         const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
-        if (musicPlayer && typeof musicPlayer.processBotMusicCommand === 'function') {
-            musicPlayerEl.textContent = 'Available';
-            musicPlayerEl.className = 'text-sm text-green-400';
+        if (musicPlayer) {
+            const isPlaying = musicPlayer.isPlaying;
+            musicPlayerEl.textContent = isPlaying ? 'Playing' : 'Not Playing';
+            musicPlayerEl.className = isPlaying ? 'text-sm text-green-400' : 'text-sm text-gray-400';
+            
+            // Debug music playback info
+            const musicInfo = getMusicPlaybackInfo();
+            
+            if (currentlyPlayingSongEl) {
+                if (musicPlayer.currentSong && isPlaying) {
+                    currentlyPlayingSongEl.textContent = `${musicPlayer.currentSong.title} by ${musicPlayer.currentSong.artist || 'Unknown'}`;
+                    currentlyPlayingSongEl.className = 'text-xs text-purple-300 font-semibold';
+                } else {
+                    currentlyPlayingSongEl.textContent = 'None';
+                    currentlyPlayingSongEl.className = 'text-xs text-gray-400';
+                }
+            }
+            
+            // Update listeners info
+            if (musicListenersEl) {
+                if (musicInfo.listeners.length > 0) {
+                    musicListenersEl.innerHTML = musicInfo.listeners.map(listener => 
+                        `<div class="flex items-center mt-1">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
+                            ${listener.username || listener.user_id} (${listener.listening ? 'Listening' : 'In Voice'})
+                        </div>`
+                    ).join('');
+                } else {
+                    musicListenersEl.textContent = 'No listeners detected';
+                    musicListenersEl.className = 'text-xs text-gray-400';
+                }
+                
+                // Add debug info to logs
+                if (musicInfo.isPlaying) {
+                    addBotDebugLog(`🎵 Music playing: "${musicInfo.songTitle}" for ${musicInfo.listeners.length} users`, 'info');
+                }
+            }
         } else {
             musicPlayerEl.textContent = 'Not Available';
             musicPlayerEl.className = 'text-sm text-red-400';
+            
+            if (currentlyPlayingSongEl) {
+                currentlyPlayingSongEl.textContent = 'Music player not available';
+                currentlyPlayingSongEl.className = 'text-xs text-red-400';
+            }
         }
     }
     
@@ -1016,6 +1071,168 @@ function testMusicPlay() {
     sendBotCommand('/titibot play never gonna give you up');
 }
 
+function getMusicPlaybackInfo() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    const result = {
+        isPlaying: false,
+        songTitle: 'None',
+        songArtist: 'None',
+        listeners: [],
+        voiceChannelId: null
+    };
+    
+    if (!musicPlayer) {
+        addBotDebugLog('❌ Music player not available for debugging', 'warning');
+        return result;
+    }
+    
+    // Get current song info
+    result.isPlaying = musicPlayer.isPlaying || false;
+    if (musicPlayer.currentSong) {
+        result.songTitle = musicPlayer.currentSong.title || 'Unknown';
+        result.songArtist = musicPlayer.currentSong.artist || 'Unknown';
+    } else if (musicPlayer.currentTrack) {
+        result.songTitle = musicPlayer.currentTrack.title || 'Unknown';
+        result.songArtist = musicPlayer.currentTrack.artist || 'Unknown';
+    }
+    
+    // Get voice channel ID
+    const voiceContext = window.debugTitiBotVoiceContext ? window.debugTitiBotVoiceContext() : null;
+    if (voiceContext && voiceContext.voiceChannelId) {
+        result.voiceChannelId = voiceContext.voiceChannelId;
+    } else {
+        result.voiceChannelId = window.unifiedVoiceStateManager?.getState()?.channelId || 
+                               window.voiceManager?.currentChannelId || 
+                               null;
+    }
+    
+    // Get listeners in voice channel
+    if (result.voiceChannelId) {
+        // Get participants from voice channel
+        const participants = getVoiceChannelParticipants(result.voiceChannelId);
+        
+        // Map to listeners with status
+        result.listeners = participants.map(participant => {
+            // The bot is always "listening" when it's in the channel
+            const isBot = participant.isBot || participant.user_id === '4' || participant.username?.toLowerCase() === 'titibot';
+            
+            // For regular users, we check if they're in the same channel
+            const isInSameChannel = participant.channelId === result.voiceChannelId;
+            
+            // For a user to be listening, they must be in the same channel AND music must be playing
+            const isListening = isInSameChannel && (isBot || result.isPlaying);
+            
+            return {
+                user_id: participant.user_id,
+                username: participant.username || 'Unknown',
+                isBot: isBot,
+                listening: isListening
+            };
+        });
+    }
+    
+    return result;
+}
+
+// Helper function to get all participants in a voice channel
+function getVoiceChannelParticipants(channelId) {
+    if (!channelId) return [];
+    
+    const participants = [];
+    
+    // Check for regular participants via VideoSDK
+    if (window.videoSDKManager && window.videoSDKManager.meeting) {
+        const peers = window.videoSDKManager.meeting.participants;
+        if (peers) {
+            peers.forEach(peer => {
+                if (peer.id) {
+                    participants.push({
+                        user_id: peer.id,
+                        username: peer.displayName || 'Unknown',
+                        channelId: channelId
+                    });
+                }
+            });
+        }
+    }
+    
+    // Check for bot participants
+    if (window.BotComponent && window.BotComponent.voiceBots) {
+        window.BotComponent.voiceBots.forEach((botData, botId) => {
+            if (botData.channel_id === channelId) {
+                participants.push({
+                    user_id: botId,
+                    username: botData.username || 'Bot',
+                    isBot: true,
+                    channelId: channelId
+                });
+            }
+        });
+    }
+    
+    // Add current user if in voice
+    const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+    const currentUsername = document.querySelector('meta[name="username"]')?.content;
+    const userInVoice = window.unifiedVoiceStateManager?.getState()?.isConnected && 
+                       window.unifiedVoiceStateManager?.getState()?.channelId === channelId;
+                       
+    if (currentUserId && userInVoice) {
+        // Check if user is not already in the list
+        if (!participants.some(p => p.user_id === currentUserId)) {
+            participants.push({
+                user_id: currentUserId,
+                username: currentUsername || 'You',
+                channelId: channelId,
+                isSelf: true
+            });
+        }
+    }
+    
+    return participants;
+}
+
+
+function checkMusicListeners() {
+    addBotDebugLog('🎵 Checking music playback and listeners...', 'info');
+    
+    const musicInfo = getMusicPlaybackInfo();
+    
+    if (!musicInfo.voiceChannelId) {
+        addBotDebugLog('❌ No voice channel detected', 'error');
+        return;
+    }
+    
+    addBotDebugLog(`🎤 Voice Channel: ${musicInfo.voiceChannelId}`, 'info');
+    
+    if (musicInfo.isPlaying) {
+        addBotDebugLog(`🎵 Now Playing: "${musicInfo.songTitle}" by ${musicInfo.songArtist}`, 'success');
+    } else {
+        addBotDebugLog('⏹️ No music currently playing', 'warning');
+    }
+    
+    addBotDebugLog(`👥 Detected ${musicInfo.listeners.length} participants in voice channel:`, 'info');
+    
+    musicInfo.listeners.forEach(listener => {
+        const icon = listener.isBot ? '🤖' : '👤';
+        const status = listener.listening ? 'Listening' : 'Not listening';
+        const style = listener.listening ? 'success' : 'info';
+        
+        addBotDebugLog(`   ${icon} ${listener.username} (${listener.user_id}): ${status}`, style);
+    });
+    
+    // Summary
+    const listenersCount = musicInfo.listeners.filter(l => l.listening).length;
+    
+    if (musicInfo.isPlaying && listenersCount > 0) {
+        addBotDebugLog(`✅ Music is playing for ${listenersCount} listener(s)`, 'success');
+    } else if (musicInfo.isPlaying) {
+        addBotDebugLog(`⚠️ Music is playing but no one is listening!`, 'warning');
+    } else if (listenersCount > 0) {
+        addBotDebugLog(`⚠️ Detected ${listenersCount} listeners but no music is playing`, 'warning');
+    } else {
+        addBotDebugLog(`ℹ️ No music playing and no listeners`, 'info');
+    }
+}
 
 function testVoiceContextDetection() {
     addBotDebugLog('🔍 Testing voice context detection for bot commands...', 'info');

@@ -19,7 +19,7 @@ $serverId = $settingsData['serverId'];
 $channelId = $settingsData['channelId'];
 $section = $settingsData['section'];
 
-$page_title = 'misvord - Channel Settings';
+$page_title = 'MisVord - Channel Settings';
 $body_class = 'bg-discord-dark text-white';
 $page_css = 'settings-page';
 $page_js = 'pages/settings-page';

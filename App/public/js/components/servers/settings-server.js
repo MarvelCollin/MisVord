@@ -331,7 +331,7 @@ function updateServerNameInUI(newName) {
         sidebarServerName.textContent = newName;
     }
     
-    document.title = `misvord - ${newName} Settings`;
+    document.title = `MisVord - ${newName} Settings`;
 }
 
 /**

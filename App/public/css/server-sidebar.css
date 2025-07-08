@@ -13,9 +13,6 @@
   --discord-folder-selected: #3f4248;
   --discord-folder-bg: #1e1f22;
   --animation-duration: 300ms;
-  --scrollbar-width: 8px;
-  --scrollbar-thumb-color: #36393f;
-  --scrollbar-thumb-hover-color: #5865f2;
 }
 
 /* Add improved transition effects for all elements */
@@ -27,7 +24,7 @@
   transition: all var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Enhanced scrollable sidebar */
+/* Server sidebar list without scrolling */
 .server-sidebar-list {
   display: flex;
   flex-direction: column;
@@ -37,44 +34,7 @@
   position: relative;
   width: 72px;
   height: auto;
-  max-height: calc(100vh - 48px);
-  overflow-y: auto !important;
-  overflow-x: visible !important;
-  scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb-color) transparent;
-  scrollbar-gutter: stable;
-}
-
-/* Enhanced scrollbar styles */
-.server-sidebar-list::-webkit-scrollbar {
-  width: var(--scrollbar-width);
-}
-
-.server-sidebar-list::-webkit-scrollbar-track {
-  background: transparent;
-  margin: 4px 0;
-}
-
-.server-sidebar-list::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb-color);
-  border-radius: calc(var(--scrollbar-width) / 2);
-  border: 2px solid var(--discord-darker);
-  min-height: 40px;
-  opacity: 0.7;
-}
-
-.server-sidebar-list::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover-color);
-  opacity: 1;
-}
-
-/* Show scrollbar on hover */
-.server-sidebar-list {
-  scrollbar-width: thin;
-}
-
-.server-sidebar-list:hover {
-  scrollbar-width: thin;
+  overflow: visible;
 }
 
 .server-sidebar-icon {
@@ -453,7 +413,7 @@
   transform: translateX(0);
 }
 
-/* Remove any overflow restrictions that might affect tooltips */
+/* Remove any overflow restrictions */
 .server-sidebar-list,
 .server-sidebar-icon,
 .server-sidebar-group,
@@ -731,70 +691,4 @@
     width: 18px;
     height: 18px;
   }
-}
-
-/* Add styles for no-scrollbar class and scrolling improvements */
-
-.server-sidebar-list.no-scrollbar::-webkit-scrollbar {
-  width: 0;
-  display: none;
-}
-
-.server-sidebar-list.no-scrollbar {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-/* Smooth scroll behavior */
-.server-sidebar-list {
-  scroll-behavior: smooth;
-}
-
-/* Scroll indicator when content overflows */
-.server-sidebar-list::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 4px;
-  background: var(--discord-primary);
-  border-radius: 2px;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
-
-.server-sidebar-list:not(.no-scrollbar):not([style*="overflow-y: hidden"]):hover::after {
-  opacity: 0.5;
-}
-
-/* Ensure sidebar container has proper height and overflow */
-.w-\[72px\],
-[class*="w-[72px]"] {
-  height: 100vh;
-  overflow-y: hidden;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Make sure scrollbar doesn't take space from content */
-.server-sidebar-list {
-  margin-right: -4px;
-  padding-right: 4px;
-  box-sizing: content-box;
-}
-
-/* Add scrolling indicator animation */
-@keyframes scroll-indicator {
-  0% { opacity: 0; }
-  20% { opacity: 0.7; }
-  80% { opacity: 0.7; }
-  100% { opacity: 0; }
-}
-
-.server-sidebar-list:hover::after {
-  animation: scroll-indicator 2s ease-in-out;
 }

@@ -18,7 +18,7 @@ $serverId = $settingsData['serverId'];
 $section = $settingsData['section'] ?? 'profile';
 $userRole = $settingsData['userRole'] ?? 'member';
 
-$page_title = 'misvord - Server Settings';
+$page_title = 'MisVord - Server Settings';
 $body_class = 'bg-discord-dark text-white settings-page';
 $page_css = 'settings-server';
 $page_js = 'pages/settings-page';

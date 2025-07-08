@@ -38,7 +38,7 @@ $stats = $adminController->getSystemStats();
 $users = $adminController->getUsers();
 $servers = $adminController->getServers();
 
-$page_title = 'Admin Dashboard - misvord';
+$page_title = 'Admin Dashboard - MisVord';
 $body_class = 'bg-discord-dark text-white admin-page';
 $page_css = 'admin';
 $page_js = 'components/admin/admin';

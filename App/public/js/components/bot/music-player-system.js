@@ -32,56 +32,71 @@ class MusicPlayerSystem {
     }
 
     initializeAudio() {
+        console.log('🎵 [MUSIC-PLAYER] Initializing audio system...');
         try {
-
+            // Create a new audio element with better settings
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
-            this.audio.preload = "none";
+            this.audio.preload = "auto"; // Changed from "none" to "auto" for better loading
             this.audio.volume = this.volume;
             
-
+            console.log('🎵 [MUSIC-PLAYER] Audio element created');
+            
+            // Set up Web Audio API for better audio handling
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
+                console.log('🎵 [MUSIC-PLAYER] Creating AudioContext');
                 this._audioContext = new AudioContext();
                 
-
                 try {
                     this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
                     this._audioSourceNode.connect(this._audioContext.destination);
-                    
+                    console.log('🎵 [MUSIC-PLAYER] Audio connected to context successfully');
                 } catch (e) {
                     console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context:', e);
+                    // We'll continue without the audio context connection
                 }
-                
-                
+            } else {
+                console.warn('🎵 [MUSIC-PLAYER] AudioContext not available in this browser');
             }
             
-
+            // Set up error handling
             this.audio.addEventListener('error', (e) => {
                 console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
                 this.handlePlaybackError();
             });
 
+            // Set up auto-advance when song ends
             this.audio.addEventListener('ended', () => {
+                console.log('🎵 [MUSIC-PLAYER] Track ended, playing next');
                 this.playNext();
             });
             
-
+            // Add detailed logging for all audio events
             ['loadstart', 'canplay', 'canplaythrough', 'abort', 'stalled',
              'suspend', 'waiting', 'loadedmetadata', 'loadeddata', 'play',
              'playing', 'pause'].forEach(eventName => {
                 this.audio.addEventListener(eventName, () => {
+                    console.log(`🎵 [MUSIC-PLAYER] Audio event: ${eventName}`);
                     
+                    // When we get the 'playing' event, update our state
+                    if (eventName === 'playing') {
+                        console.log('🎵 [MUSIC-PLAYER] Playback confirmed - audio is playing');
+                        this.isPlaying = true;
+                    }
                 });
             });
             
             this._audioInitialized = true;
+            console.log('🎵 [MUSIC-PLAYER] Audio system initialized successfully');
             
         } catch (e) {
             console.error('🎵 [MUSIC-PLAYER] Failed to initialize audio system:', e);
-
+            
+            // Create a simpler fallback audio element
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
+            console.log('🎵 [MUSIC-PLAYER] Created fallback audio element');
         }
     }
 
@@ -231,17 +246,109 @@ class MusicPlayerSystem {
         
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.on('bot-music-command', (data) => {
-
+                console.log('🎵 [MUSIC-PLAYER] Received bot-music-command via socket.io');
                 this.processBotMusicCommand(data);
             });
         }
         
         window.addEventListener('bot-music-command', (e) => {
-
+            console.log('🎵 [MUSIC-PLAYER] Received bot-music-command via window event');
             this.processBotMusicCommand(e.detail);
         });
         
+        // Listen for voice channel join events to update our channel context
+        window.addEventListener('voiceConnect', (e) => {
+            if (e.detail && e.detail.channelId) {
+                console.log('🎵 [MUSIC-PLAYER] Voice channel joined:', e.detail.channelId);
+                this.channelId = e.detail.channelId;
+            }
+        });
+        
+        // Listen for bot voice participant events
+        window.addEventListener('bot-voice-participant-joined', (e) => {
+            if (e.detail && e.detail.participant && e.detail.participant.channelId) {
+                console.log('🎵 [MUSIC-PLAYER] Bot joined voice channel:', e.detail.participant.channelId);
+            }
+        });
+        
         this.setupSocketListeners();
+        
+        // Create a patch for voice detection - improve compatibility with existing code
+        this.patchVoiceDetection();
+    }
+    
+    patchVoiceDetection() {
+        // This function improves voice detection by checking multiple sources
+        const originalFn = window.debugTitiBotVoiceContext;
+        
+        if (originalFn) {
+            window.debugTitiBotVoiceContext = function() {
+                // Get original results
+                const originalResult = originalFn();
+                
+                // If original detection worked, use it
+                if (originalResult && originalResult.userInVoice && originalResult.voiceChannelId) {
+                    return originalResult;
+                }
+                
+                // Otherwise try additional detection methods
+                console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Original detection failed, trying alternatives');
+                
+                let voiceChannelId = null;
+                let userInVoice = false;
+                
+                // Check unified state manager
+                if (window.unifiedVoiceStateManager?.getState?.()) {
+                    const state = window.unifiedVoiceStateManager.getState();
+                    if (state.isConnected && state.channelId) {
+                        voiceChannelId = state.channelId;
+                        userInVoice = true;
+                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Found via unifiedVoiceStateManager');
+                    }
+                }
+                
+                // Check voice manager
+                if (!voiceChannelId && window.voiceManager) {
+                    if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
+                        voiceChannelId = window.voiceManager.currentChannelId;
+                        userInVoice = true;
+                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Found via voiceManager');
+                    }
+                }
+                
+                // Check session storage
+                if (!voiceChannelId && sessionStorage.getItem('isInVoiceCall') === 'true') {
+                    voiceChannelId = sessionStorage.getItem('voiceChannelId') || 
+                                     sessionStorage.getItem('currentVoiceChannelId');
+                    if (voiceChannelId) {
+                        userInVoice = true;
+                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Found via sessionStorage');
+                    }
+                }
+                
+                // Last resort: Check URL and meta tags
+                if (!voiceChannelId) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const channelId = urlParams.get('channel');
+                    const channelType = urlParams.get('type') || document.querySelector('meta[name="channel-type"]')?.content;
+                    
+                    if (channelType === 'voice' && channelId) {
+                        voiceChannelId = channelId;
+                        // Assume user is in voice if we're on a voice channel page
+                        userInVoice = true;
+                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Assuming voice connection from URL');
+                    }
+                }
+                
+                return {
+                    userInVoice,
+                    voiceChannelId,
+                    detectionMethod: 'patched'
+                };
+            };
+            
+            console.log('🎵 [MUSIC-PLAYER] Voice detection patched for better compatibility');
+        }
     }
 
     setupSocketListeners() {
@@ -266,26 +373,58 @@ class MusicPlayerSystem {
     }
 
     async processBotMusicCommand(data) {
-        
+        console.log('🎵 [MUSIC-PLAYER] Received music command:', data);
         
         if (!data || !data.music_data) {
             console.warn('⚠️ [MUSIC-PLAYER] Invalid bot music command data:', data);
             return;
         }
+
+        // Get current voice context
+        const voiceContext = window.debugTitiBotVoiceContext ? window.debugTitiBotVoiceContext() : null;
+        
+        // Check if the user is in the voice channel where the music is being played
+        if (data.channel_id) {
+            const isInVoiceChannel = voiceContext && 
+                                    voiceContext.userInVoice && 
+                                    voiceContext.voiceChannelId === data.channel_id;
+            
+            // Log voice status for debugging
+            console.log('🎵 [MUSIC-PLAYER] Voice context check:', {
+                userVoiceContext: voiceContext,
+                commandChannelId: data.channel_id,
+                isInVoiceChannel: isInVoiceChannel
+            });
+            
+            // If user is not in the voice channel, log but continue processing
+            // (Changed from return to just logging to fix music not playing)
+            if (!isInVoiceChannel) {
+                console.log('🎵 [MUSIC-PLAYER] User not in same voice channel, but processing command anyway');
+                
+                // Try using the channel ID from the command
+                if (data.channel_id && !this.channelId) {
+                    this.channelId = data.channel_id;
+                    console.log('🎵 [MUSIC-PLAYER] Setting channel ID from command:', data.channel_id);
+                }
+            }
+        }
         
         if (!this.initialized) {
-            
+            console.log('🎵 [MUSIC-PLAYER] Initializing music player before processing command');
             this.forceInitialize();
         }
         
         const { music_data } = data;
         const { action, query, track } = music_data;
         
+        console.log('🎵 [MUSIC-PLAYER] Processing music command action:', action);
+        
         this.showStatus(`Processing ${action} command...`);
         
         try {
             switch (action) {
                 case 'play':
+                    console.log('🎵 [MUSIC-PLAYER] Processing play command:', query);
 
                     if (query && query.trim()) {
                         this.showStatus(`Searching for: ${query}`);
@@ -294,57 +433,101 @@ class MusicPlayerSystem {
                         if (this._audioContext && this._audioContext.state === 'suspended') {
                             try {
                                 await this._audioContext.resume();
+                                console.log('🎵 [MUSIC-PLAYER] Audio context resumed successfully');
                             } catch (e) {
                                 console.warn('🎵 [MUSIC-PLAYER] Failed to resume audio context:', e);
                             }
                         }
                         
+                        console.log('🎵 [MUSIC-PLAYER] Searching for music:', query);
                         const searchResult = await this.searchMusic(query.trim());
+                        
                         if (searchResult && searchResult.previewUrl) {
+                            console.log('🎵 [MUSIC-PLAYER] Found track:', {
+                                title: searchResult.title,
+                                artist: searchResult.artist,
+                                previewUrl: searchResult.previewUrl
+                            });
+                            
                             this.showStatus(`Found "${searchResult.title}" - preparing playback...`);
                             
-
-                            await this.stop();
-                            
-
                             try {
-
+                                console.log('🎵 [MUSIC-PLAYER] Stopping current playback');
+                                await this.stop();
+                                
+                                // Create a user gesture to unlock audio
+                                console.log('🎵 [MUSIC-PLAYER] Creating user gesture to unlock audio');
                                 const tempButton = document.createElement('button');
                                 tempButton.style.display = 'none';
                                 document.body.appendChild(tempButton);
                                 tempButton.click();
                                 document.body.removeChild(tempButton);
                                 
-
+                                // Make sure audio context is resumed
                                 if (this._audioContext && this._audioContext.state === 'suspended') {
+                                    console.log('🎵 [MUSIC-PLAYER] Resuming audio context again');
                                     await this._audioContext.resume();
                                 }
                                 
-
+                                // Unlock audio playback
                                 this.unlockAudio();
-                            } catch (e) {
-                                console.warn('🎵 [MUSIC-PLAYER] Failed to create user gesture:', e);
+                                
+                                // Start playback and show UI
+                                console.log('🎵 [MUSIC-PLAYER] Starting playback for:', searchResult.title);
+                                await this.playTrack(searchResult);
+                                
+                                // Force update the player UI
+                                console.log('🎵 [MUSIC-PLAYER] Showing now playing UI');
+                                this.showNowPlaying(searchResult);
+                                this.showStatus(`Now playing: ${searchResult.title}`);
+                                
+                                // Update state variables
+                                this.isPlaying = true;
+                                this.currentSong = searchResult;
+                                
+                                console.log('🎵 [MUSIC-PLAYER] Playback started successfully');
+                            } catch (playError) {
+                                console.error('🎵 [MUSIC-PLAYER] Error during playback start:', playError);
+                                this.showError(`Playback error: ${playError.message}`);
+                                
+                                // Try a fallback approach
+                                console.log('🎵 [MUSIC-PLAYER] Attempting fallback playback');
+                                try {
+                                    const audioElement = new Audio(searchResult.previewUrl);
+                                    audioElement.volume = 0.5;
+                                    audioElement.play();
+                                    
+                                    this.audio = audioElement;
+                                    this.isPlaying = true;
+                                    this.currentSong = searchResult;
+                                    this.showNowPlaying(searchResult);
+                                    
+                                    console.log('🎵 [MUSIC-PLAYER] Fallback playback started');
+                                } catch (fallbackError) {
+                                    console.error('🎵 [MUSIC-PLAYER] Fallback playback failed:', fallbackError);
+                                }
                             }
-                            
-                            await this.playTrack(searchResult);
-                            this.showNowPlaying(searchResult);
-                            this.showStatus(`Now playing: ${searchResult.title}`);
-
                         } else {
                             console.warn('⚠️ [MUSIC-PLAYER] No playable track found for:', query);
                             this.showError('No playable track found for: ' + query);
                         }
                     } else if (track && track.previewUrl) {
+                        console.log('🎵 [MUSIC-PLAYER] Playing provided track:', track.title);
                         this.showStatus(`Preparing to play "${track.title}"...`);
                         
-
                         await this.stop();
                         
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.showStatus(`Now playing: ${track.title}`);
-
+                        
+                        // Update state variables
+                        this.isPlaying = true;
+                        this.currentSong = track;
+                        
+                        console.log('🎵 [MUSIC-PLAYER] Playback started for provided track');
                     } else {
+                        console.error('🎵 [MUSIC-PLAYER] No song specified or found');
                         this.showError('No song specified or found');
                     }
                     break;

@@ -10,7 +10,7 @@ $username = $_SESSION['username'] ?? '';
 $discriminator = $_SESSION['discriminator'] ?? '';
 $avatarUrl = $_SESSION['avatar_url'] ?? '';
 
-$page_title = 'misvord - Chat & Share with Friends';
+$page_title = 'MisVord - Chat & Share with Friends';
 $body_class = 'bg-gray-900 text-white';
 $page_css = 'landing-page';
 $page_js = 'pages/landing-page';
