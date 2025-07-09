@@ -277,8 +277,8 @@ class ChannelVoiceParticipants {
         
         let participantCount = 0;
         
-        // participants from voiceManager if connected to this channel
-        if (window.voiceManager && window.voiceManager.currentChannelId === channelId) {
+        // participants from voiceManager ONLY when this tab is actually connected to the call
+        if (window.voiceManager && window.voiceManager.currentChannelId === channelId && window.voiceManager.isConnected) {
             const allParticipants = window.voiceManager.getAllParticipants();
             allParticipants.forEach((data, id) => {
                 const element = this.createParticipantElement(data);
@@ -388,7 +388,7 @@ class ChannelVoiceParticipants {
     calculateChannelParticipantCount(channelId) {
         let count = 0;
         
-        if (window.voiceManager && window.voiceManager.currentChannelId === channelId) {
+        if (window.voiceManager && window.voiceManager.currentChannelId === channelId && window.voiceManager.isConnected) {
             count = window.voiceManager.getAllParticipants().size;
         }
         
