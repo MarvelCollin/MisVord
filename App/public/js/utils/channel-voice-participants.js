@@ -1,6 +1,7 @@
 class ChannelVoiceParticipants {
     constructor() {
         this.externalParticipants = new Map(); // channelId -> Map<userId, data>
+        this.debugPanel = null; // debug panel element
         this.init();
     }
     
@@ -8,6 +9,12 @@ class ChannelVoiceParticipants {
         this.setupEventListeners();
         this.loadInitialState();
         this.initializeVoiceState();
+        // Create debug panel once DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.createDebugPanel());
+        } else {
+            this.createDebugPanel();
+        }
     }
     
     setupEventListeners() {
@@ -26,6 +33,11 @@ class ChannelVoiceParticipants {
         } else {
             window.addEventListener('globalSocketReady', () => this.attachSocketEvents());
         }
+
+        // Re-request participant lists once socket is authenticated (ensures data after reload)
+        window.addEventListener('socketAuthenticated', () => {
+            this.requestAllChannelStatus();
+        });
         
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener((state) => {
@@ -304,6 +316,9 @@ class ChannelVoiceParticipants {
         } else {
             container.classList.add('hidden');
         }
+
+        // Refresh debug panel each time sidebar updates
+        this.updateDebugPanel();
     }
     
     createParticipantElement(participant) {
@@ -385,16 +400,23 @@ class ChannelVoiceParticipants {
     }
     
     loadInitialState() {
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId && window.globalSocketManager?.io) {
-                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-            }
-        });
+        this.requestAllChannelStatus();
         
         setTimeout(() => {
             this.loadExistingBotParticipants();
         }, 1000);
+    }
+
+    requestAllChannelStatus() {
+        if (!window.globalSocketManager?.io || !window.globalSocketManager.isAuthenticated) {
+            return;
+        }
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            }
+        });
     }
     
     loadExistingBotParticipants() {
@@ -405,6 +427,54 @@ class ChannelVoiceParticipants {
                 }
             });
         }
+    }
+
+    // ------------------------
+    // Debug panel helpers (temporary)
+    // ------------------------
+
+    createDebugPanel() {
+        if (this.debugPanel) return;
+        this.debugPanel = document.createElement('div');
+        this.debugPanel.id = 'voice-debug-panel';
+        Object.assign(this.debugPanel.style, {
+            position: 'fixed',
+            bottom: '10px',
+            right: '10px',
+            maxWidth: '300px',
+            maxHeight: '200px',
+            overflowY: 'auto',
+            background: 'rgba(0,0,0,0.7)',
+            color: '#fff',
+            fontSize: '12px',
+            padding: '8px',
+            borderRadius: '4px',
+            zIndex: '9999',
+            whiteSpace: 'pre-line'
+        });
+        this.debugPanel.textContent = 'Voice Debug Panel';
+        document.body.appendChild(this.debugPanel);
+        this.updateDebugPanel();
+    }
+
+    updateDebugPanel() {
+        if (!this.debugPanel) return;
+        const lines = [];
+        this.externalParticipants.forEach((map, chan) => {
+            const names = Array.from(map.values()).map(p => p.username || 'Unknown').join(', ');
+            lines.push(`Channel ${chan}: ${names}`);
+        });
+        if (window.voiceManager && window.voiceManager.isConnected) {
+            const chanId = window.voiceManager.currentChannelId;
+            if (chanId) {
+                const localNames = [];
+                window.voiceManager.getAllParticipants().forEach(p => {
+                    localNames.push(p.username || p.name || 'Unknown');
+                });
+                lines.push(`Local Chan ${chanId}: ${localNames.join(', ')}`);
+            }
+        }
+        this.debugPanel.innerHTML = lines.length ? lines.join('<br>') : 'No participants';
     }
     
     static getInstance() {

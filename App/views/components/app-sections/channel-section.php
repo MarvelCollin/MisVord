@@ -355,8 +355,6 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 }
 </style>
 
-<script src="/public/js/utils/channel-voice-participants.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     function initializeChannelSkeleton() {

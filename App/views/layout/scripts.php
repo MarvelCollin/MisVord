@@ -109,7 +109,10 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="<?php echo js($script); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endforeach; ?>
 
-<script type="module" src="/public/js/utils/channel-switch-manager.js"></script>
+<script type="module" src="<?php echo js('utils/channel-switch-manager'); ?>?v=<?php echo time(); ?>"></script>
+
+<!-- Global voice participant sidebar & debug panel -->
+<script src="/public/js/utils/channel-voice-participants.js?v=<?php echo time(); ?>"></script>
 
 <!-- Simplified voice components -->
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
