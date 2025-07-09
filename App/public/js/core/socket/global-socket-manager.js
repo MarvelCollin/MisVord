@@ -60,6 +60,9 @@ class GlobalSocketManager {
             
             this.connect();
             
+            // Set up page unload handler for clean disconnection
+            this.setupUnloadHandler();
+            
             if (this.io) {
                 this.setupActivityTracking();
                 return true;
@@ -70,6 +73,48 @@ class GlobalSocketManager {
             this.error('Failed to initialize socket connection:', error);
             return false;
         }
+    }
+    
+    setupUnloadHandler() {
+        window.addEventListener('beforeunload', (event) => {
+            // Handle any active voice connections
+            if (this.isConnected && this.isAuthenticated) {
+                console.log('🔄 [SOCKET] Page unloading - cleaning up socket connections');
+                
+                // Notify server about disconnection for voice
+                const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+                if (voiceState && voiceState.isConnected && voiceState.channelId) {
+                    try {
+                        this.io.emit('unregister-voice-meeting', {
+                            channel_id: voiceState.channelId,
+                            force_disconnect: true,
+                            reason: 'page_reload'
+                        });
+                    } catch (error) {
+                        console.error('Error notifying about voice disconnect during unload:', error);
+                    }
+                }
+                
+                // Update presence to offline
+                try {
+                    this.io.emit('update-presence', {
+                        status: 'offline',
+                        user_id: this.userId,
+                        activity_details: { type: 'offline' },
+                        reason: 'page_reload'
+                    });
+                } catch (error) {
+                    console.error('Error updating presence during unload:', error);
+                }
+                
+                // Try to cleanly disconnect
+                try {
+                    this.io.disconnect();
+                } catch (error) {
+                    console.error('Error disconnecting socket during unload:', error);
+                }
+            }
+        });
     }
     
     getAvatarUrl() {

@@ -10,7 +10,6 @@ export * from './servers/server-detail.js';
 export * from './servers/channel-redirect.js';
 export * from './channels/channel-manager.js';
 export * from './voice/voice-manager.js';
-export * from './voice/global-voice-indicator.js';
 // videosdk.js functionality now handled directly in voice-manager.js
 
 export * from './bot/bot.js';

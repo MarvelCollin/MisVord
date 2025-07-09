@@ -23,6 +23,17 @@ class VoiceManager {
         await this.loadVideoSDK();
         this.setupBeforeUnloadHandler();
         this.setupBotEventListeners();
+        
+        // Ensure we're synced with the unified voice state
+        if (window.localStorageManager) {
+            this.syncChannelWithUnifiedState();
+            
+            // Also add listener for future changes
+            window.localStorageManager.addVoiceStateListener(() => {
+                this.syncChannelWithUnifiedState();
+            });
+        }
+        
         window.voiceManager = this;
         console.log('[VoiceManager] Initialized successfully');
     }
@@ -53,9 +64,60 @@ class VoiceManager {
     }
     
     setupBeforeUnloadHandler() {
-        window.addEventListener('beforeunload', () => {
+        window.addEventListener('beforeunload', (event) => {
             if (this.isConnected) {
-                this.leaveVoice();
+                console.log('🔄 [VOICE-MANAGER] Page unloading - cleaning up voice connection');
+                
+                // Force immediate disconnect from meeting
+                if (this.meeting) {
+                    try {
+                        this.meeting.leave();
+                    } catch (error) {
+                        console.error('Error leaving meeting during page unload:', error);
+                    }
+                }
+                
+                // Force socket server notification
+                if (window.globalSocketManager?.io) {
+                    try {
+                        window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                            channel_id: this.currentChannelId,
+                            force_disconnect: true
+                        });
+                    } catch (error) {
+                        console.error('Error notifying socket during page unload:', error);
+                    }
+                }
+                
+                // Update unified state to mark as disconnected
+                if (window.localStorageManager) {
+                    try {
+                        const currentState = window.localStorageManager.getUnifiedVoiceState();
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...currentState,
+                            isConnected: false,
+                            channelId: null,
+                            meetingId: null,
+                            connectionTime: null,
+                            disconnectionReason: 'page_reload'
+                        });
+                    } catch (error) {
+                        console.error('Error updating unified state during page unload:', error);
+                    }
+                }
+                
+                // Attempt to send beacon to server for more reliable disconnect
+                if (navigator.sendBeacon && window.location.origin) {
+                    try {
+                        const disconnectEndpoint = `${window.location.origin}/api/voice/disconnect`;
+                        const data = new FormData();
+                        data.append('channel_id', this.currentChannelId || '');
+                        data.append('meeting_id', this.currentMeetingId || '');
+                        navigator.sendBeacon(disconnectEndpoint, data);
+                    } catch (error) {
+                        console.error('Error sending beacon during page unload:', error);
+                    }
+                }
             }
         });
     }
@@ -196,7 +258,7 @@ class VoiceManager {
             this.loadExistingBotParticipants();
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
-                detail: { channelId, channelName, meetingId }
+                detail: { channelId, channelName, meetingId, skipJoinSound }
             }));
             
             if (!skipJoinSound && window.MusicLoaderStatic) {
@@ -207,6 +269,60 @@ class VoiceManager {
             console.error('Failed to join voice:', error);
             this.cleanup();
             throw error;
+        }
+    }
+
+    syncChannelWithUnifiedState() {
+        if (!window.localStorageManager) return;
+        
+        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+        
+        // If we're connected, ensure both channel ID and meeting ID match
+        if (this.isConnected && voiceState.isConnected) {
+            let needsSync = false;
+            
+            // Check for channel ID mismatch
+            if (this.currentChannelId && voiceState.channelId && 
+                this.currentChannelId !== voiceState.channelId) {
+                needsSync = true;
+                console.log(`🔄 [VOICE-MANAGER] Channel ID mismatch detected:`, {
+                    manager: this.currentChannelId,
+                    storage: voiceState.channelId
+                });
+            }
+            
+            // Check for meeting ID mismatch
+            if (this.currentMeetingId && voiceState.meetingId && 
+                this.currentMeetingId !== voiceState.meetingId) {
+                needsSync = true;
+                console.log(`🔄 [VOICE-MANAGER] Meeting ID mismatch detected:`, {
+                    manager: this.currentMeetingId,
+                    storage: voiceState.meetingId
+                });
+            }
+            
+            if (needsSync) {
+                console.log(`🔄 [VOICE-MANAGER] Syncing unified voice state with current values:`, {
+                    channelId: this.currentChannelId,
+                    channelName: this.currentChannelName,
+                    meetingId: this.currentMeetingId
+                });
+                
+                this.updateUnifiedVoiceState({
+                    ...voiceState,
+                    channelId: this.currentChannelId,
+                    channelName: this.currentChannelName,
+                    meetingId: this.currentMeetingId
+                });
+            }
+        }
+        // If storage says we're connected but we're not, update our state
+        else if (!this.isConnected && voiceState.isConnected && 
+                 voiceState.channelId && voiceState.meetingId) {
+            console.log(`🔄 [VOICE-MANAGER] Storage shows active voice connection, updating local state:`, voiceState);
+            this.currentChannelId = voiceState.channelId;
+            this.currentChannelName = voiceState.channelName;
+            this.currentMeetingId = voiceState.meetingId;
         }
     }
     
@@ -510,6 +626,13 @@ class VoiceManager {
     getScreenShareState() { return this._screenShareOn; }
     
     async getOrCreateMeeting(channelId) {
+        // 0. Quick DOM-check: if channel element already knows meeting-id, reuse it
+        const domMeetingId = document.querySelector(`[data-channel-id="${channelId}"]`)?.getAttribute('data-meeting-id');
+        if (domMeetingId) {
+            console.log(`📌 [VOICE-MANAGER] Using meeting ID from DOM attribute:`, { channelId, meetingId: domMeetingId });
+            return domMeetingId;
+        }
+
         // First check if there's an existing meeting on the server
         const existing = await this.checkExistingMeeting(channelId);
         if (existing?.meeting_id) {
@@ -659,6 +782,25 @@ class VoiceManager {
 
     updateUnifiedVoiceState(state) {
         if (window.localStorageManager) {
+            // Ensure we're not overwriting the channelId with a different value
+            if (this.currentChannelId && state.channelId && 
+                this.currentChannelId !== state.channelId) {
+                console.warn(`⚠️ [VOICE-MANAGER] Channel ID mismatch while updating unified state:
+                    Manager: ${this.currentChannelId}, Update: ${state.channelId}
+                    Using manager's value for consistency.`);
+                state.channelId = this.currentChannelId;
+                state.channelName = this.currentChannelName;
+            }
+            
+            // Also check meeting ID consistency
+            if (this.currentMeetingId && state.meetingId && 
+                this.currentMeetingId !== state.meetingId) {
+                console.warn(`⚠️ [VOICE-MANAGER] Meeting ID mismatch while updating unified state:
+                    Manager: ${this.currentMeetingId}, Update: ${state.meetingId}
+                    Using manager's value for consistency.`);
+                state.meetingId = this.currentMeetingId;
+            }
+            
             window.localStorageManager.setUnifiedVoiceState(state);
         }
     }

@@ -501,10 +501,6 @@ class UserProfileVoiceControls {
         if (window.voiceCallManager) {
             window.voiceCallManager.updateButtonStates();
         }
-        
-        if (window.globalVoiceIndicator) {
-            window.globalVoiceIndicator.updateControls();
-        }
     }
     
     debugState() {

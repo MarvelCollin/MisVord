@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/music-loader-static.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
-<script type="module" src="<?php echo asset('/js/components/voice/global-voice-indicator.js'); ?>"></script>
+
 
 <script src="<?php echo js('components/home/friends-tabs'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script type="module" src="<?php echo js('utils/dm-switch-manager'); ?>?v=<?php echo time(); ?>"></script>

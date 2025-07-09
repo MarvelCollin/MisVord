@@ -36,6 +36,7 @@ $channelId = $GLOBALS['activeChannelId'] ?? null;
 
 <script type="module">
 import MusicLoaderStatic from '/public/js/utils/music-loader-static.js';
+import '/public/js/components/voice/voice-facade.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     const joinBtn = document.getElementById('joinBtn');
@@ -46,8 +47,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (joinBtn) {
         joinBtn.addEventListener('click', async function() {
-            if (!window.voiceManager) {
-                console.error('Voice manager not available');
+            if (!window.voiceManager && !window.voiceFacade) {
+                console.error('Voice system not available');
                 return;
             }
             
@@ -56,7 +57,11 @@ document.addEventListener('DOMContentLoaded', function() {
             joinBtn.disabled = true;
             
             try {
-                await window.voiceManager.joinVoice(channelId, channelName, { skipJoinSound: true });
+                if (window.voiceFacade) {
+                    await window.voiceFacade.join(channelId, channelName, { skipJoinSound: true });
+                } else {
+                    await window.voiceManager.joinVoice(channelId, channelName, { skipJoinSound: true });
+                }
                 
                 MusicLoaderStatic.stopCallSound();
                 MusicLoaderStatic.playJoinVoiceSound();

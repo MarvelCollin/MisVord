@@ -1,7 +1,7 @@
 class ChannelVoiceParticipants {
     constructor() {
-        this.externalParticipants = new Map(); // channelId -> Map<userId, data>
-        this.debugPanel = null; // debug panel element
+        this.externalParticipants = new Map(); 
+        this.debugPanel = null; 
         this.init();
     }
     
@@ -9,7 +9,6 @@ class ChannelVoiceParticipants {
         this.setupEventListeners();
         this.loadInitialState();
         this.initializeVoiceState();
-        // Create debug panel once DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.createDebugPanel());
         } else {
@@ -150,6 +149,14 @@ class ChannelVoiceParticipants {
                 this.updateChannelCount(data.channel_id, data.participant_count);
                 this.updateSidebarForChannel(data.channel_id);
                 this.updateAllChannelCounts();
+
+                // Persist meeting ID on DOM element
+                if (data.meeting_id) {
+                    const channelEl = document.querySelector(`[data-channel-id="${data.channel_id}"]`);
+                    if (channelEl) {
+                        channelEl.setAttribute('data-meeting-id', data.meeting_id);
+                    }
+                }
             }
             // sync unified voice state ... (existing)
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
@@ -198,6 +205,14 @@ class ChannelVoiceParticipants {
             // update count & sidebar visibility
             this.updateChannelCount(data.channel_id, data.participant_count || 0);
             this.updateSidebarForChannel(data.channel_id);
+
+            // Persist meeting ID on DOM element for future joins
+            if (data.meeting_id) {
+                const channelEl = document.querySelector(`[data-channel-id="${data.channel_id}"]`);
+                if (channelEl) {
+                    channelEl.setAttribute('data-meeting-id', data.meeting_id);
+                }
+            }
         });
         
         socket.on('bot-voice-participant-joined', (data) => {

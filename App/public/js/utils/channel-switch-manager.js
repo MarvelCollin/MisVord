@@ -14,59 +14,21 @@ class SimpleChannelSwitcher {
     
     init() {
         this.setupChannelClicks();
-        this.ensureCorrectInitialSection();
         this.initFromURL();
-        this.highlightInitialActiveChannel();
-    }
-    
-    ensureCorrectInitialSection() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const channelId = urlParams.get('channel');
-        let channelType = urlParams.get('type') || 'text';
-        
-        if (channelId) {
-            const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-            if (channelElement) {
-                const domChannelType = channelElement.getAttribute('data-channel-type');
-                if (domChannelType === 'voice') {
-                    channelType = 'voice';
-                }
-            }
-            
-            const voiceSection = document.querySelector('.voice-section:not(.hidden)');
-            if (voiceSection) {
-                channelType = 'voice';
-            }
-            
-
-            this.showSection(channelType, channelId);
-        }
     }
     
     setupChannelClicks() {
         document.addEventListener('click', (e) => {
             const channelItem = e.target.closest('.channel-item');
-            if (!channelItem) return;
-            
-            if (e.target.closest('.channel-menu') || e.target.closest('.channel-dropdown')) {
-
-                return;
-            }
+            if (!channelItem || e.target.closest('.channel-menu')) return;
             
             e.preventDefault();
-            e.stopPropagation();
-            
-            const loadMoreContainer = document.querySelector('#load-more-container');
-            if (loadMoreContainer) {
-                loadMoreContainer.classList.add('hidden');
-
-            }
             
             const channelId = channelItem.getAttribute('data-channel-id');
             const channelType = channelItem.getAttribute('data-channel-type') || 'text';
             
             if (channelId) {
-                this.switchToChannel(channelId, channelType, true);
+                this.switchToChannel(channelId, channelType);
             }
         });
     }
@@ -74,590 +36,89 @@ class SimpleChannelSwitcher {
     initFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const channelId = urlParams.get('channel');
-        let channelType = urlParams.get('type') || 'text';
+        const channelType = urlParams.get('type') || 'text';
         
         if (channelId) {
-            const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-            if (channelElement) {
-                const domChannelType = channelElement.getAttribute('data-channel-type');
-                if (domChannelType === 'voice' && channelType !== 'voice') {
-
-                    channelType = 'voice';
-                }
-            }
-            
-            const voiceSection = document.querySelector('.voice-section:not(.hidden)');
-            const chatSection = document.querySelector('.chat-section:not(.hidden)');
-            
-            if (voiceSection && !chatSection && channelType !== 'voice') {
-
-                channelType = 'voice';
-            }
-            
-            this.switchToChannel(channelId, channelType, true);
+            this.switchToChannel(channelId, channelType, false);
         }
     }
     
-    highlightInitialActiveChannel() {
-        const activeChannelInput = document.getElementById('active-channel-id');
-        if (activeChannelInput && activeChannelInput.value) {
-            const activeChannelId = activeChannelInput.value;
-
-            this.updateActiveChannel(activeChannelId);
-        } else {
-            const activeChannel = document.querySelector('.channel-item.active');
-            if (activeChannel) {
-                const channelId = activeChannel.getAttribute('data-channel-id');
-
-                this.updateActiveChannel(channelId);
-            }
-        }
-    }
-    
-    async switchToChannel(channelId, channelType = 'text', forceFresh = false, highlightMessageId = null) {
-        if (this.isLoading) return;
-        
-
-        const previousChannelId = this.currentChannelId;
-        const previousChannelType = this.currentChannelType;
-        const isSameVoiceChannel = previousChannelType === 'voice' && channelType === 'voice' && previousChannelId === channelId;
-        
-
-        const wasInVoiceCall = window.unifiedVoiceStateManager?.getState()?.isConnected || false;
-        const voiceChannelId = wasInVoiceCall ? (window.unifiedVoiceStateManager?.getState()?.channelId || window.voiceManager?.currentChannelId) : null;
-        const voiceChannelName = wasInVoiceCall ? (window.unifiedVoiceStateManager?.getState()?.channelName || 'Voice Channel') : null;
-        
-        console.log('🔄 [SWITCH-MANAGER] Voice state preservation check:', {
-            wasInVoiceCall,
-            voiceChannelId,
-            voiceChannelName,
-            switchingFromVoiceToText: previousChannelType === 'voice' && channelType === 'text'
-        });
+    async switchToChannel(channelId, channelType = 'text', updateHistory = true) {
+        if (this.isLoading || this.currentChannelId === channelId) return;
         
         this.isLoading = true;
-        
-        const loadMoreContainer = document.querySelector('#load-more-container');
-        if (loadMoreContainer) {
-            loadMoreContainer.classList.add('hidden');
-
-        }
-        
-
         this.currentChannelId = channelId;
         this.currentChannelType = channelType;
         
         this.updateActiveChannel(channelId);
-        this.showSection(channelType, channelId);
-        this.updateURL(channelId, channelType);
+        this.showSection(channelType);
+        
+        if (updateHistory) {
+            this.updateURL(channelId, channelType);
+        }
+        
         this.updateMetaTags(channelId, channelType);
         this.updateChannelHeader(channelId, channelType);
         
-
-        
-
-        if (wasInVoiceCall && channelType === 'text' && voiceChannelId) {
-
-            
-
-            if (window.unifiedVoiceStateManager) {
-                const currentState = window.unifiedVoiceStateManager.getState();
-                window.unifiedVoiceStateManager.setState({
-                    ...currentState,
-                    isConnected: true,
-                    channelId: voiceChannelId,
-                    channelName: voiceChannelName,
-
-                    isViewingDifferentChannel: true,
-                    originalVoiceChannelId: voiceChannelId
-                });
-
-            }
-            
-
-            if (window.voiceManager) {
-                window.voiceManager.currentChannelId = voiceChannelId;
-                window.voiceManager.currentChannelName = voiceChannelName;
-
-            }
-            
-
-            window.dispatchEvent(new CustomEvent('voiceContextPreserved', {
-                detail: { 
-                    voiceChannelId, 
-                    voiceChannelName, 
-                    currentViewChannelId: channelId,
-                    currentViewChannelType: channelType
-                }
-            }));
-        }
-        
-
-        if (channelType === 'voice') {
-            const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-            const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
-                               channelElement?.getAttribute('data-channel-name') || 
-                               'Voice Channel';
-            
-
-            this.forceSyncVoiceContext(channelId, channelName);
-        }
-        
-        if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
-
-            window.emojiReactions.updateChannelContext(channelId, 'channel');
-        }
-
-
-        this.preserveVoiceParticipants();
-        
         if (channelType === 'text') {
-            await this.initializeTextChannel(channelId, true);
-            
-            if (highlightMessageId) {
-                setTimeout(() => {
-                    this.highlightMessage(highlightMessageId);
-                }, 1000);
-            }
+            await this.initializeTextChannel(channelId);
         } else if (channelType === 'voice') {
-
-            await this.initializeVoiceChannel(channelId, !isSameVoiceChannel);
-        }
-
-
-        this.updateVoiceParticipantsAfterSwitch(channelId, channelType);
-        
-
-        if (channelType === 'voice') {
-            const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-            const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
-                               channelElement?.getAttribute('data-channel-name') || 
-                               'Voice Channel';
-            this.forceSyncVoiceContext(channelId, channelName);
-        }
-        
-
-        if (channelType === 'text' && wasInVoiceCall && voiceChannelId) {
-
-            setTimeout(() => {
-                const finalState = window.unifiedVoiceStateManager?.getState();
-                if (finalState && finalState.isConnected && finalState.channelId === voiceChannelId) {
-
-                } else {
-                    console.warn('⚠️ [SWITCH-MANAGER] Voice context may not be properly preserved, attempting fix...');
-                    if (window.unifiedVoiceStateManager) {
-                        window.unifiedVoiceStateManager.setState({
-                            isConnected: true,
-                            channelId: voiceChannelId,
-                            channelName: voiceChannelName,
-                            isViewingDifferentChannel: true,
-                            originalVoiceChannelId: voiceChannelId
-                        });
-                    }
-                }
-            }, 500);
-        }
-        
-        if (window.ChannelVoiceParticipants) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance && typeof instance.onChannelSwitch === 'function') {
-                instance.onChannelSwitch();
-            }
+            await this.initializeVoiceChannel(channelId);
         }
         
         this.isLoading = false;
     }
     
-    highlightMessage(messageId) {
-        if (typeof window.highlightMessage === 'function') {
-            window.highlightMessage(messageId);
-        } else {
-            const waitForMessage = (retries = 0) => {
-                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                
-                if (messageElement) {
-                    messageElement.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'center' 
-                    });
-                    
-                    setTimeout(() => {
-                        messageElement.classList.add('highlight-message');
-                        
-                        setTimeout(() => {
-                            messageElement.classList.remove('highlight-message');
-                        }, 3000);
-                    }, 300);
-                    
-                } else if (retries < 10) {
-                    setTimeout(() => waitForMessage(retries + 1), 500);
-                } else {
-                    console.warn('Message not found for highlighting:', messageId);
-                }
-            };
-            
-            waitForMessage();
-        }
-    }
-    
     updateActiveChannel(channelId) {
-
-        
         document.querySelectorAll('.channel-item').forEach(item => {
-            item.classList.remove('active');
-            item.removeAttribute('data-active');
-            
-            item.classList.remove('bg-[#5865f2]', 'text-white', 'hover:bg-[#4752c4]', 'hover:text-white');
-            item.classList.add('text-gray-400', 'hover:text-gray-300', 'hover:bg-gray-700/30');
+            item.classList.remove('active', 'bg-[#5865f2]', 'text-white');
+            item.classList.add('text-gray-400', 'hover:text-gray-300');
             
             const icon = item.querySelector('i');
             if (icon) {
                 icon.classList.remove('text-white');
                 icon.classList.add('text-gray-500');
             }
-            
-            const voiceCount = item.querySelector('.voice-user-count');
-            if (voiceCount) {
-                voiceCount.classList.remove('text-white/70');
-                voiceCount.classList.add('text-gray-500');
-            }
         });
         
         const targetChannel = document.querySelector(`[data-channel-id="${channelId}"]`);
         if (targetChannel) {
-            targetChannel.classList.add('active');
-            targetChannel.setAttribute('data-active', 'true');
-            
-            targetChannel.classList.remove('text-gray-400', 'hover:text-gray-300', 'hover:bg-gray-700/30');
-            targetChannel.classList.add('bg-[#5865f2]', 'text-white', 'hover:bg-[#4752c4]', 'hover:text-white');
+            targetChannel.classList.add('active', 'bg-[#5865f2]', 'text-white');
+            targetChannel.classList.remove('text-gray-400');
             
             const icon = targetChannel.querySelector('i');
             if (icon) {
-                icon.classList.remove('text-gray-500');
                 icon.classList.add('text-white');
+                icon.classList.remove('text-gray-500');
             }
-            
-            const voiceCount = targetChannel.querySelector('.voice-user-count');
-            if (voiceCount) {
-                voiceCount.classList.remove('text-gray-500');
-                voiceCount.classList.add('text-white/70');
-            }
-            
-
-        } else {
-            console.warn('⚠️ [SWITCH-MANAGER] Target channel not found for ID:', channelId);
         }
     }
     
-    async initializeTextChannel(channelId, forceFresh = false) {
-
-        
-        const loadMoreContainer = document.querySelector('#load-more-container');
-        if (loadMoreContainer) {
-            loadMoreContainer.classList.add('hidden');
-
-        }
-        
-        const messagesContainer = document.querySelector('#chat-messages .messages-container');
-
-        
-
-        
-        this.showChatSkeletonDirect();
-        
-        if (window.chatSection) {
-
-            await window.chatSection.resetForNewChannel();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await window.chatSection.switchToChannel(channelId, 'text', true);
-        } else {
-
-            
-
-            try {
-                if (typeof window.initializeChatSection === 'function') {
-
-                    await window.initializeChatSection();
-                } else if (typeof initializeChatSection === 'function') {
-
-                    await initializeChatSection();
-                }
-                
-
-                if (window.chatSection) {
-
-                    await window.chatSection.resetForNewChannel();
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    await window.chatSection.switchToChannel(channelId, 'text', true);
-                } else {
-
-                    let attempts = 0;
-                    const maxAttempts = 15;
-                    
-                    while (!window.chatSection && attempts < maxAttempts) {
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        attempts++;
-
-                    }
-                    
-                    if (window.chatSection) {
-
-                        await window.chatSection.resetForNewChannel();
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        await window.chatSection.switchToChannel(channelId, 'text', true);
-                    } else {
-                        console.error('❌ [SWITCH-MANAGER] Chat section never became available, using fallback');
-                        this.fallbackTextChannelInit(channelId);
-                    }
-                }
-            } catch (error) {
-                console.error('❌ [SWITCH-MANAGER] Error initializing chat section:', error);
-                this.fallbackTextChannelInit(channelId);
-            }
-        }
-        
-
-    }
-    
-    showChatSkeletonDirect() {
-        const skeletonContainer = document.getElementById('chat-skeleton-loading');
-        const realContent = document.getElementById('chat-real-content');
-        
-        if (skeletonContainer) {
-            skeletonContainer.style.display = 'block';
-        }
-        
-        if (realContent) {
-            realContent.style.display = 'none';
-        }
-        
-
-    }
-    
-    fallbackTextChannelInit(channelId) {
-
-        
-
-        this.updateMetaTags(channelId, 'text');
-        
-
-        this.updateChannelHeader(channelId, 'text');
-        
-
-        setTimeout(() => {
-            const skeletonContainer = document.getElementById('chat-skeleton-loading');
-            const realContent = document.getElementById('chat-real-content');
-            
-            if (skeletonContainer) {
-                skeletonContainer.style.display = 'none';
-            }
-            
-            if (realContent) {
-                realContent.style.display = 'block';
-            }
-            
-
-        }, 1500);
-    }
-    
-    async initializeVoiceChannel(channelId, forceFresh = false) {
-        const currentParticipants = window.voiceManager?.getParticipants?.() || [];
-        const wasConnected = window.voiceManager?.isConnected || false;
-        const previousChannelId = window.voiceManager?.currentChannelId;
-        
-        if (window.chatSection) {
-            window.chatSection.leaveCurrentSocketRoom();
-            window.chatSection.forceStopAllOperations();
-        }
-        
-        // Voice dependencies now handled automatically in VoiceManager
-        if (window.voiceManager && typeof window.voiceManager.ensureInitialized === 'function') {
-            try {
-                await window.voiceManager.ensureInitialized();
-            } catch (error) {
-                console.warn('[CHANNEL-SWITCH] Voice initialization failed:', error);
-            }
-        }
-        
-        // Voice UI now handled directly by VoiceManager and VoiceCallSection
-        console.log('[CHANNEL-SWITCH] Voice channel initialization handled by VoiceManager');
-
-        if (window.voiceManager) {
-            window.voiceManager.currentChannelId = channelId;
-            
-            if (window.unifiedVoiceStateManager) {
-                const currentState = window.unifiedVoiceStateManager.getState();
-                window.unifiedVoiceStateManager.setState({
-                    channelId: channelId,
-                    isConnected: currentState.isConnected || wasConnected,
-                    isMuted: currentState.isMuted || false,
-                    isDeafened: currentState.isDeafened || false
-                });
-            }
-            
-            try {
-                if (wasConnected && previousChannelId !== channelId) {
-                    window.voiceManager.leaveVoice();
-                }
-                
-                await window.voiceManager.setupVoice(channelId);
-                
-                if (wasConnected && currentParticipants.length > 0) {
-                    const participantCount = document.getElementById('voiceParticipantCount');
-                    if (participantCount) {
-                        participantCount.textContent = currentParticipants.length.toString();
-                    }
-                }
-            } catch (e) {
-                console.warn('[SWITCH-MANAGER] Could not setup voiceManager for new channel:', e);
-            }
-        }
-        
-        if (window.unifiedVoiceStateManager && wasConnected) {
-            const currentState = window.unifiedVoiceStateManager.getState();
-            if (currentState.isConnected && previousChannelId !== channelId) {
-                const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
-                const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
-                                   channelElement?.getAttribute('data-channel-name') || 
-                                   'Voice Channel';
-                
-                console.log('🔄 [SWITCH-MANAGER] Updating unified voice state for channel switch:', {
-                    fromChannel: previousChannelId,
-                    toChannel: channelId,
-                    channelName
-                });
-                
-                window.unifiedVoiceStateManager.setState({
-                    ...currentState,
-                    channelId: channelId,
-                    channelName: channelName
-                });
-            }
-        }
-        
-        const voiceCallApp = document.querySelector('.voice-call-app');
-        if (voiceCallApp) {
-            voiceCallApp.style.display = 'flex';
-        }
-        
-        if (previousChannelId === channelId && wasConnected) {
-            setTimeout(() => {
-                if (window.voiceManager && typeof window.voiceManager.refreshParticipantsUI === 'function') {
-                    window.voiceManager.refreshParticipantsUI();
-                }
-            }, 500);
-        }
-    }
-    
-    showSection(channelType, channelId) {
-        
-        
-        const allChatSections = document.querySelectorAll('.chat-section');
-        const allVoiceSections = document.querySelectorAll('.voice-section');
-        
-        console.log('[DEBUG SHOWSECTION] Found sections:', {
-            chatSectionsCount: allChatSections.length,
-            voiceSectionsCount: allVoiceSections.length,
-            chatSectionClasses: allChatSections[0]?.className,
-            voiceSectionClasses: allVoiceSections[0]?.className,
-            chatSectionDisplay: allChatSections[0]?.style.display,
-            voiceSectionDisplay: allVoiceSections[0]?.style.display
-        });
+    showSection(channelType) {
+        const chatSections = document.querySelectorAll('.chat-section');
+        const voiceSections = document.querySelectorAll('.voice-section');
         
         if (channelType === 'voice') {
-            
-            
-            allChatSections.forEach((section, index) => {
-                
+            chatSections.forEach(section => {
                 section.classList.add('hidden');
                 section.style.display = 'none';
-                section.style.visibility = 'hidden';
-                section.style.position = 'absolute';
-                section.style.left = '-9999px';
-                section.style.zIndex = '-1';
             });
             
-            allVoiceSections.forEach((section, index) => {
-                
+            voiceSections.forEach(section => {
                 section.classList.remove('hidden');
                 section.style.display = 'flex';
-                section.style.visibility = 'visible';
-                section.style.position = 'relative';
-                section.style.left = 'auto';
-                section.style.zIndex = '1';
-                section.setAttribute('data-channel-id', channelId);
-                
-                console.log(`[DEBUG SHOWSECTION] Voice section ${index} after changes:`, {
-                    classes: section.className,
-                    display: section.style.display,
-                    visibility: section.style.visibility,
-                    position: section.style.position,
-                    zIndex: section.style.zIndex,
-                    hasVoiceNotJoinContainer: !!section.querySelector('#voice-not-join-container'),
-                    hasJoinBtn: !!section.querySelector('#joinBtn'),
-                    innerHTML: section.innerHTML.substring(0, 200) + '...'
-                });
-                
-                // Voice UI now handled directly by VoiceManager and VoiceCallSection
-                console.log('[CHANNEL-SWITCH] Voice UI updated for channel:', channelId);
             });
-            
-            if (allVoiceSections.length === 0) {
-                console.error('[DEBUG SHOWSECTION] No voice sections found in DOM!');
-            }
         } else {
-            
-            
-            allVoiceSections.forEach((section, index) => {
-                
+            voiceSections.forEach(section => {
                 section.classList.add('hidden');
                 section.style.display = 'none';
-                section.style.visibility = 'hidden';
-                section.style.position = 'absolute';
-                section.style.left = '-9999px';
-                section.style.zIndex = '-1';
             });
             
-            allChatSections.forEach((section, index) => {
-                
+            chatSections.forEach(section => {
                 section.classList.remove('hidden');
-                section.classList.add('dm-chat-visible');
                 section.style.display = 'flex';
-                section.style.visibility = 'visible';
-                section.style.position = 'relative';
-                section.style.left = 'auto';
-                section.style.zIndex = '1';
-                section.setAttribute('data-channel-id', channelId);
             });
         }
-        
-        setTimeout(() => {
-            const finalVisibleChatSections = Array.from(document.querySelectorAll('.chat-section')).filter(section => 
-                window.getComputedStyle(section).display !== 'none' && 
-                !section.classList.contains('hidden')
-            );
-            
-            const finalVisibleVoiceSections = Array.from(document.querySelectorAll('.voice-section')).filter(section => 
-                window.getComputedStyle(section).display !== 'none' && 
-                !section.classList.contains('hidden')
-            );
-            
-            console.log('[DEBUG SHOWSECTION] Final state after 100ms:', {
-                visibleChatSections: finalVisibleChatSections.length,
-                visibleVoiceSections: finalVisibleVoiceSections.length,
-                expectedVisible: channelType === 'voice' ? 'voice' : 'chat',
-                success: channelType === 'voice' ? 
-                    (finalVisibleVoiceSections.length > 0 && finalVisibleChatSections.length === 0) :
-                    (finalVisibleChatSections.length > 0 && finalVisibleVoiceSections.length === 0)
-            });
-            
-            if (channelType === 'voice' && finalVisibleChatSections.length > 0) {
-                console.error('🚨 [SHOWSECTION] Chat sections still visible after voice switch!');
-            }
-            
-            if (channelType === 'voice' && finalVisibleVoiceSections.length === 0) {
-                console.error('🚨 [SHOWSECTION] No voice sections visible after voice switch!');
-            }
-        }, 100);
     }
     
     updateURL(channelId, channelType) {
@@ -668,46 +129,20 @@ class SimpleChannelSwitcher {
     }
     
     updateMetaTags(channelId, channelType) {
-        let metaChannelId = document.querySelector('meta[name="channel-id"]');
-        let metaChannelType = document.querySelector('meta[name="channel-type"]');
-        let metaChatId = document.querySelector('meta[name="chat-id"]');
-        let metaChatType = document.querySelector('meta[name="chat-type"]');
-        
-        if (!metaChannelId) {
-            metaChannelId = document.createElement('meta');
-            metaChannelId.name = 'channel-id';
-            document.head.appendChild(metaChannelId);
+        this.setMeta('channel-id', channelId);
+        this.setMeta('channel-type', channelType);
+        this.setMeta('chat-id', channelId);
+        this.setMeta('chat-type', 'channel');
+    }
+    
+    setMeta(name, content) {
+        let meta = document.querySelector(`meta[name="${name}"]`);
+        if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = name;
+            document.head.appendChild(meta);
         }
-        
-        if (!metaChannelType) {
-            metaChannelType = document.createElement('meta');
-            metaChannelType.name = 'channel-type';
-            document.head.appendChild(metaChannelType);
-        }
-        
-        if (!metaChatId) {
-            metaChatId = document.createElement('meta');
-            metaChatId.name = 'chat-id';
-            document.head.appendChild(metaChatId);
-        }
-        
-        if (!metaChatType) {
-            metaChatType = document.createElement('meta');
-            metaChatType.name = 'chat-type';
-            document.head.appendChild(metaChatType);
-        }
-        
-        metaChannelId.content = channelId;
-        metaChannelType.content = channelType;
-        metaChatId.content = channelId;
-        metaChatType.content = 'channel';
-        
-        console.log('✅ [SWITCH-MANAGER] Meta tags updated for reactions system:', {
-            channelId,
-            channelType,
-            chatId: channelId,
-            chatType: 'channel'
-        });
+        meta.content = content;
     }
     
     updateChannelHeader(channelId, channelType) {
@@ -716,8 +151,8 @@ class SimpleChannelSwitcher {
                            channelElement?.getAttribute('data-channel-name') || 
                            `Channel ${channelId}`;
         
-        const headerTitle = document.querySelector('.channel-name-header, .chat-header-title, [data-channel-header]');
-        const headerIcon = document.querySelector('.channel-icon-header, .chat-header-icon, [data-channel-icon]');
+        const headerTitle = document.querySelector('.channel-name-header, .chat-header-title');
+        const headerIcon = document.querySelector('.channel-icon-header, .chat-header-icon');
         
         if (headerTitle) {
             headerTitle.textContent = channelName;
@@ -727,101 +162,70 @@ class SimpleChannelSwitcher {
             const iconClass = channelType === 'voice' ? 'fas fa-volume-high' : 'fas fa-hashtag';
             headerIcon.className = `${iconClass} text-[#949ba4] mr-2`;
         }
-        
-        window.currentChannelData = {
-            id: channelId,
-            name: channelName,
-            type: channelType
-        };
     }
     
-    preserveVoiceParticipants() {
-
-
-    }
-
-    updateVoiceParticipantsAfterSwitch(channelId, channelType) {
-
-
-    }
-
-
-    forceSyncVoiceContext(channelId, channelName) {
-
+    async initializeTextChannel(channelId) {
+        this.showSkeleton();
         
-
-        this.updateMetaTags(channelId, 'voice');
-        this.updateURL(channelId, 'voice');
+        try {
+            if (window.chatSection) {
+                await window.chatSection.switchToChannel(channelId, 'text');
+            }
+        } catch (error) {
+            console.error('Failed to initialize text channel:', error);
+        } finally {
+            this.hideSkeleton();
+        }
+    }
+    
+    async initializeVoiceChannel(channelId) {
+        const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
+        const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 'Voice Channel';
         
-
+        // Update current channel context but DO NOT auto-join the voice call.
+        if (window.voiceManager) {
+            window.voiceManager.currentChannelId = channelId;
+            window.voiceManager.currentChannelName = channelName;
+            // Intentionally not calling joinVoice here to let the user decide when to join.
+        }
+        
         if (window.unifiedVoiceStateManager) {
-            const currentState = window.unifiedVoiceStateManager.getState();
-            
-
-
             window.unifiedVoiceStateManager.setState({
+                channelId: channelId,
+                channelName: channelName,
+                isViewingDifferentChannel: false
+            });
+        }
+        
+        // Also update the localStorage directly to ensure consistency
+        if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            window.localStorageManager.setUnifiedVoiceState({
                 ...currentState,
                 channelId: channelId,
                 channelName: channelName
             });
         }
         
-
-        if (window.voiceManager) {
-            window.voiceManager.currentChannelId = channelId;
-            window.voiceManager.currentChannelName = channelName;
-
-        }
-        
-
-        this.currentChannelId = channelId;
-        this.currentChannelType = 'voice';
-        
-
-        this.updateChannelHeader(channelId, 'voice');
-        
-
-        window.dispatchEvent(new CustomEvent('voiceContextChanged', {
-            detail: { channelId, channelName, channelType: 'voice' }
-        }));
-        
-
+        // Ensure the "join" view is visible (in case we navigated from another voice channel)
+        document.getElementById('voice-not-join-container')?.classList.remove('hidden');
+        document.getElementById('voice-call-container')?.classList.add('hidden');
     }
-
-
-    debugVoiceContext() {
-
+    
+    showSkeleton() {
+        const skeleton = document.getElementById('chat-skeleton-loading');
+        const content = document.getElementById('chat-real-content');
         
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlChannelId = urlParams.get('channel');
-        const urlChannelType = urlParams.get('type');
+        if (skeleton) skeleton.style.display = 'block';
+        if (content) content.style.display = 'none';
+    }
+    
+    hideSkeleton() {
+        const skeleton = document.getElementById('chat-skeleton-loading');
+        const content = document.getElementById('chat-real-content');
         
-        const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
-        const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
-        
-        const unifiedState = window.unifiedVoiceStateManager?.getState();
-        const voiceManagerChannel = window.voiceManager?.currentChannelId;
-        const switcherChannel = this.currentChannelId;
-        
-        console.log('🔍 Voice Context Sources:', {
-            url: { channelId: urlChannelId, channelType: urlChannelType },
-            meta: { channelId: metaChannelId, channelType: metaChannelType },
-            unifiedState: unifiedState,
-            voiceManager: { channelId: voiceManagerChannel, isConnected: window.voiceManager?.isConnected },
-            switcher: { channelId: switcherChannel, channelType: this.currentChannelType }
-        });
-        
-
-        const allChannelIds = [urlChannelId, metaChannelId, unifiedState?.channelId, voiceManagerChannel, switcherChannel].filter(Boolean);
-        const uniqueChannelIds = [...new Set(allChannelIds)];
-        
-        if (uniqueChannelIds.length > 1) {
-            console.warn('⚠️ [SWITCH-MANAGER] Voice context inconsistency detected!', uniqueChannelIds);
-            return false;
-        } else {
-
-            return true;
-        }
+        if (skeleton) skeleton.style.display = 'none';
+        if (content) content.style.display = 'block';
     }
 }
 
@@ -836,304 +240,3 @@ if (typeof window !== 'undefined') {
         new SimpleChannelSwitcher();
     }
 }
-
-
-window.debugAllVoiceContext = function() {
-
-    
-
-    if (typeof window.debugTitiBotVoiceContext === 'function') {
-        window.debugTitiBotVoiceContext();
-    }
-    
-
-    if (window.simpleChannelSwitcher && typeof window.simpleChannelSwitcher.debugVoiceContext === 'function') {
-
-        const isConsistent = window.simpleChannelSwitcher.debugVoiceContext();
-        
-        if (!isConsistent) {
-
-        }
-    }
-};
-
-window.fixVoiceContextInconsistency = function() {
-
-    
-    if (window.simpleChannelSwitcher) {
-        const currentChannelId = window.simpleChannelSwitcher.currentChannelId;
-        const currentChannelType = window.simpleChannelSwitcher.currentChannelType;
-        
-        if (currentChannelType === 'voice' && currentChannelId) {
-            const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"]`);
-            const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
-                               channelElement?.getAttribute('data-channel-name') || 
-                               'Voice Channel';
-            
-            window.simpleChannelSwitcher.forceSyncVoiceContext(currentChannelId, channelName);
-            
-
-            setTimeout(() => {
-
-                window.debugAllVoiceContext();
-            }, 1000);
-        } else {
-
-        }
-    }
-};
-
-
-window.testVoiceContextAfterSwitch = function() {
-
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentChannelId = urlParams.get('channel');
-    const currentChannelType = urlParams.get('type');
-    
-
-    
-    if (currentChannelType === 'voice') {
-
-        
-
-        let voiceChannelId = null;
-        let userInVoice = false;
-        let detectionMethod = 'none';
-        
-        const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
-        
-        if ((currentChannelType === 'voice' || metaChannelType === 'voice') && currentChannelId) {
-            const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
-            if (channelElement) {
-                voiceChannelId = currentChannelId;
-                userInVoice = true;
-                detectionMethod = 'currentVoiceChannel+present';
-            }
-        }
-        
-        console.log('🎤 [TEST] Voice Detection Result:', {
-            voiceChannelId,
-            userInVoice,
-            detectionMethod,
-            expectedChannelId: currentChannelId
-        });
-        
-        if (voiceChannelId === currentChannelId && userInVoice) {
-
-            return true;
-        } else {
-
-
-            return false;
-        }
-    } else {
-
-        return null;
-    }
-};
-
-window.debugSectionState = function() {
-    const chatSection = document.querySelector('.chat-section');
-    const voiceSection = document.querySelector('.voice-section');
-    const mainContentArea = document.querySelector('.main-content-area');
-    
-    console.log('🔍 [DEBUG] Current Section State:', {
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        urlParams: Object.fromEntries(new URLSearchParams(window.location.search)),
-        
-        chatSection: {
-            exists: !!chatSection,
-            classes: chatSection?.className,
-            display: chatSection?.style.display,
-            hidden: chatSection?.classList.contains('hidden'),
-            hasContent: !!chatSection?.innerHTML.trim(),
-            computedDisplay: chatSection ? window.getComputedStyle(chatSection).display : 'not found'
-        },
-        
-        voiceSection: {
-            exists: !!voiceSection,
-            classes: voiceSection?.className,
-            display: voiceSection?.style.display,
-            hidden: voiceSection?.classList.contains('hidden'),
-            hasContent: !!voiceSection?.innerHTML.trim(),
-            hasVoiceContainer: !!voiceSection?.querySelector('.voice-container'),
-            hasJoinBtn: !!voiceSection?.querySelector('#joinBtn'),
-            computedDisplay: voiceSection ? window.getComputedStyle(voiceSection).display : 'not found'
-        },
-        
-        mainContentArea: {
-            exists: !!mainContentArea,
-            classes: mainContentArea?.className,
-            children: mainContentArea ? Array.from(mainContentArea.children).map(child => ({
-                tagName: child.tagName,
-                classes: child.className,
-                display: child.style.display,
-                hidden: child.classList.contains('hidden')
-            })) : []
-        },
-        
-        voiceComponents: {
-            voiceManager: !!window.voiceManager,
-            voiceCallSection: !!window.voiceCallSection
-        }
-    });
-    
-    return {
-        chatSection,
-        voiceSection,
-        mainContentArea
-    };
-};
-
-window.forceSwitchToVoice = function(channelId = '6') {
-    
-    if (window.simpleChannelSwitcher) {
-        window.simpleChannelSwitcher.showSection('voice', channelId);
-        window.simpleChannelSwitcher.updateURL(channelId, 'voice');
-        window.simpleChannelSwitcher.updateMetaTags(channelId, 'voice');
-    } else {
-        console.error('simpleChannelSwitcher not found');
-    }
-};
-
-export default SimpleChannelSwitcher;
-
-window.debugAdvancedSectionState = function() {
-    const allChatSections = document.querySelectorAll('.chat-section');
-    const allVoiceSections = document.querySelectorAll('.voice-section');
-    const mainContentArea = document.querySelector('.main-content-area');
-    
-    console.log('🔍 [ADVANCED DEBUG] Detailed Section Analysis:', {
-        timestamp: new Date().toISOString(),
-        url: window.location.href,
-        
-        multipleSections: {
-            chatSectionsCount: allChatSections.length,
-            voiceSectionsCount: allVoiceSections.length,
-            chatSections: Array.from(allChatSections).map((section, index) => ({
-                index,
-                classes: section.className,
-                display: section.style.display,
-                computedDisplay: window.getComputedStyle(section).display,
-                hidden: section.classList.contains('hidden'),
-                zIndex: window.getComputedStyle(section).zIndex,
-                position: window.getComputedStyle(section).position,
-                visibility: window.getComputedStyle(section).visibility,
-                opacity: window.getComputedStyle(section).opacity,
-                width: section.offsetWidth,
-                height: section.offsetHeight,
-                parent: section.parentElement?.className,
-                boundingRect: section.getBoundingClientRect()
-            })),
-            voiceSections: Array.from(allVoiceSections).map((section, index) => ({
-                index,
-                classes: section.className,
-                display: section.style.display,
-                computedDisplay: window.getComputedStyle(section).display,
-                hidden: section.classList.contains('hidden'),
-                zIndex: window.getComputedStyle(section).zIndex,
-                position: window.getComputedStyle(section).position,
-                visibility: window.getComputedStyle(section).visibility,
-                opacity: window.getComputedStyle(section).opacity,
-                width: section.offsetWidth,
-                height: section.offsetHeight,
-                parent: section.parentElement?.className,
-                boundingRect: section.getBoundingClientRect(),
-                hasVoiceContainer: !!section.querySelector('.voice-container'),
-                hasJoinBtn: !!section.querySelector('#joinBtn'),
-                voiceContainerVisible: section.querySelector('.voice-container') ? 
-                    window.getComputedStyle(section.querySelector('.voice-container')).display !== 'none' : false
-            }))
-        },
-        
-        mainContentAreaInfo: mainContentArea ? {
-            classes: mainContentArea.className,
-            display: window.getComputedStyle(mainContentArea).display,
-            position: window.getComputedStyle(mainContentArea).position,
-            zIndex: window.getComputedStyle(mainContentArea).zIndex,
-            overflow: window.getComputedStyle(mainContentArea).overflow,
-            width: mainContentArea.offsetWidth,
-            height: mainContentArea.offsetHeight,
-            boundingRect: mainContentArea.getBoundingClientRect()
-        } : null,
-        
-        potentialConflicts: {
-            flexDisplayIssues: Array.from(allVoiceSections).some(section => 
-                section.style.display === 'flex' && window.getComputedStyle(section).display !== 'flex'
-            ),
-            hiddenClassIssues: Array.from(allVoiceSections).some(section => 
-                !section.classList.contains('hidden') && window.getComputedStyle(section).display === 'none'
-            ),
-            zIndexConflicts: Array.from(allChatSections).some(section => 
-                parseInt(window.getComputedStyle(section).zIndex) > 
-                parseInt(window.getComputedStyle(allVoiceSections[0] || {}).zIndex || '0')
-            )
-        }
-    });
-    
-    const visibleChatSections = Array.from(allChatSections).filter(section => 
-        window.getComputedStyle(section).display !== 'none' && 
-        !section.classList.contains('hidden')
-    );
-    
-    const visibleVoiceSections = Array.from(allVoiceSections).filter(section => 
-        window.getComputedStyle(section).display !== 'none' && 
-        !section.classList.contains('hidden')
-    );
-    
-    console.log('🎯 [ADVANCED DEBUG] Actually Visible Sections:', {
-        visibleChatSections: visibleChatSections.length,
-        visibleVoiceSections: visibleVoiceSections.length,
-        bothVisible: visibleChatSections.length > 0 && visibleVoiceSections.length > 0
-    });
-    
-    if (visibleChatSections.length > 0 && visibleVoiceSections.length > 0) {
-        console.error('🚨 [CONFLICT DETECTED] Both chat and voice sections are visible!');
-        
-        visibleChatSections.forEach(section => {
-            
-        });
-        
-        visibleVoiceSections.forEach(section => {
-            
-        });
-    }
-    
-    return {
-        allChatSections,
-        allVoiceSections,
-        visibleChatSections,
-        visibleVoiceSections
-    };
-};
-
-window.forceHideAllChatSections = function() {
-    const allChatSections = document.querySelectorAll('.chat-section');
-    
-    
-    allChatSections.forEach((section, index) => {
-        
-        section.classList.add('hidden');
-        section.style.display = 'none';
-        section.style.visibility = 'hidden';
-        section.style.zIndex = '-1';
-    });
-};
-
-window.forceShowVoiceSection = function() {
-    const allVoiceSections = document.querySelectorAll('.voice-section');
-    
-    
-    allVoiceSections.forEach((section, index) => {
-        
-        section.classList.remove('hidden');
-        section.style.display = 'flex';
-        section.style.visibility = 'visible';
-        section.style.zIndex = '1';
-        section.style.position = 'relative';
-    });
-};
-
-window.debugAdvancedSectionState = debugAdvancedSectionState;

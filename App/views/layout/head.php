@@ -1684,6 +1684,39 @@ document.addEventListener('DOMContentLoaded', function() {
 
             showBotDebugPanel();
         }
+        
+        if (e.ctrlKey && e.key === '3') {
+            e.preventDefault();
+            
+            if (window.voiceDebugPanel) {
+                window.voiceDebugPanel.togglePanel();
+            } else {
+                console.log('Loading voice debug panel...');
+                // First check if the script is already loaded
+                const existingScript = document.querySelector('script[src*="debug-panel-voice.js"]');
+                if (existingScript) {
+                    // If script exists but not initialized, create a new instance
+                    if (window.VoiceDebugPanel && !window.voiceDebugPanel) {
+                        window.voiceDebugPanel = new window.VoiceDebugPanel();
+                        setTimeout(() => window.voiceDebugPanel.togglePanel(), 100);
+                    }
+                } else {
+                    // Load the script
+                    const script = document.createElement('script');
+                    script.src = '/public/js/components/voice/debug-panel-voice.js?v=' + Date.now();
+                    script.onload = function() {
+                        console.log('Voice debug panel loaded');
+                        if (window.voiceDebugPanel) {
+                            window.voiceDebugPanel.togglePanel();
+                        } else if (window.VoiceDebugPanel) {
+                            window.voiceDebugPanel = new window.VoiceDebugPanel();
+                            setTimeout(() => window.voiceDebugPanel.togglePanel(), 100);
+                        }
+                    };
+                    document.head.appendChild(script);
+                }
+            }
+        }
     });
     
 

@@ -124,27 +124,7 @@ if (count($servers) > $maxServersToShow) {
 document.addEventListener('DOMContentLoaded', function() {
     // All scroll-related code removed
     
-    document.querySelectorAll('.server-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const serverId = this.getAttribute('data-server-id');
-            
-            if (!serverId) return;
-
-            const isVoiceConnected = window.unifiedVoiceStateManager?.getState()?.isConnected || 
-                                    window.voiceManager?.isConnected || 
-                                    window.videoSDKManager?.isConnected;
-            
-            if (isVoiceConnected) {
-                if (window.handleServerClick) {
-                    window.handleServerClick(serverId, e);
-                    return;
-                }
-            }
-            
-            window.location.href = `/server/${serverId}`;
-        });
-    });
+    // Removed custom click interception; allow default navigation behaviour
 
     setTimeout(() => {
         const tooltipContainer = document.getElementById('tooltip-container');

@@ -16,6 +16,7 @@ class LocalStorageManager {
         this.debounceTimers = new Map();
         
         this.migrateOldVoiceState();
+        this.cleanupStaleVoiceConnections();
     }
 
     migrateOldVoiceState() {
@@ -37,6 +38,44 @@ class LocalStorageManager {
             this.set(this.keys.UNIFIED_VOICE_STATE, unified);
             this.remove('misvord_voice_state');
             this.remove('voiceConnectionState');
+        }
+    }
+    
+    cleanupStaleVoiceConnections() {
+        const voiceState = this.getUnifiedVoiceState();
+        
+        // If localStorage says we're connected, but this is a fresh page load
+        if (voiceState.isConnected) {
+            console.log('🧹 [LOCAL-STORAGE] Detected stale voice connection, cleaning up:', {
+                channelId: voiceState.channelId,
+                meetingId: voiceState.meetingId,
+                since: voiceState.connectionTime ? new Date(voiceState.connectionTime).toLocaleTimeString() : 'unknown'
+            });
+            
+            // Mark as disconnected with a reason
+            this.setUnifiedVoiceState({
+                ...voiceState,
+                isConnected: false,
+                disconnectionReason: 'stale_connection_cleanup',
+                disconnectionTime: Date.now()
+            });
+            
+            // Try to notify server about the stale connection
+            setTimeout(() => {
+                if (window.globalSocketManager?.io && window.globalSocketManager.isConnected) {
+                    try {
+                        window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                            channel_id: voiceState.channelId,
+                            meeting_id: voiceState.meetingId,
+                            force_disconnect: true,
+                            reason: 'stale_connection_cleanup'
+                        });
+                        console.log('✅ [LOCAL-STORAGE] Notified server about stale voice connection');
+                    } catch (error) {
+                        console.error('Error notifying server about stale voice connection:', error);
+                    }
+                }
+            }, 2000); // Wait for socket to be ready
         }
     }
 

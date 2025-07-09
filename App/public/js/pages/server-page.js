@@ -47,22 +47,29 @@ function getServerIdFromURL() {
 }
 
 async function initializeServerComponents() {
-
-    
+    // Skip if already initialized
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
     if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
-
         return;
     }
     
     try {
-        if (!window.initializeServerPage) {
-            const module = await import('../utils/server-initializer.js');
-            window.initializeServerPage = module.initializeServerPage;
+        // Initialize voice features directly
+        if (window.voiceManager) {
+            await window.voiceManager.ensureInitialized();
         }
         
-        await window.initializeServerPage();
-
+        // Initialize channel switcher if not already
+        if (window.SimpleChannelSwitcher && !window.simpleChannelSwitcher) {
+            new window.SimpleChannelSwitcher();
+        }
+        
+        // Initialize any other required components
+        if (window.VoiceCallSection && !window.voiceCallSection) {
+            window.voiceCallSection = new window.VoiceCallSection();
+        }
+        
+        console.log('[Server Page] ✅ Server components initialized');
     } catch (error) {
         console.error('[Server Page] ❌ Server initialization failed:', error);
     }
@@ -360,10 +367,6 @@ function coordinateSystemInitialization() {
     }, { once: true });
     
     setTimeout(() => {
-        if (window.globalVoiceIndicator && window.globalVoiceIndicator.forceUpdateIndicator) {
-            window.globalVoiceIndicator.forceUpdateIndicator();
-        }
-        
         if (window.chatSection && window.chatSection.targetId && window.chatSection.mentionHandler) {
             window.chatSection.mentionHandler.init();
         }
