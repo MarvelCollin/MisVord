@@ -266,6 +266,7 @@ class GlobalSocketManager {
             
 
             this.setupActivityTracking();
+            this.setupVoiceStateListeners();
             
 
             this.sendAuthentication();
@@ -330,6 +331,9 @@ class GlobalSocketManager {
                     this.updatePresence('online', { type: 'active' }, 'authentication');
 
                 }
+                
+                // Sync unified voice state after authentication
+                this.syncUnifiedVoiceState();
             }, 500);
             
 
@@ -486,23 +490,105 @@ class GlobalSocketManager {
         });
         
         this.io.on('voice-meeting-status', (data) => {
-
+            console.log(`🎤 [SOCKET] Voice meeting status received:`, {
+                channelId: data.channel_id,
+                hasMeeting: data.has_meeting,
+                meetingId: data.meeting_id,
+                participantCount: data.participant_count
+            });
             
-
+            // Update unified voice state if this is for current channel
+            if (window.localStorageManager) {
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                if (currentState && currentState.channelId === data.channel_id) {
+                    if (data.has_meeting && data.meeting_id) {
+                        // Update meeting ID if it changed
+                        if (currentState.meetingId !== data.meeting_id) {
+                            window.localStorageManager.setUnifiedVoiceState({
+                                ...currentState,
+                                meetingId: data.meeting_id
+                            });
+                        }
+                    } else if (currentState.isConnected && !data.has_meeting) {
+                        // Clear state if no meeting exists but we think we're connected
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...currentState,
+                            isConnected: false,
+                            meetingId: null
+                        });
+                    }
+                }
+            }
+            
             this.handleVoiceMeetingStatus(data);
         });
         
         this.io.on('voice-meeting-update', (data) => {
-
+            console.log(`🎤 [SOCKET] Voice meeting update received:`, {
+                channelId: data.channel_id,
+                action: data.action,
+                userId: data.user_id,
+                meetingId: data.meeting_id,
+                participantCount: data.participant_count,
+                isNewMeeting: data.is_new_meeting
+            });
             
-
+            // Update unified voice state for relevant updates
+            if (window.localStorageManager && data.user_id === this.userId) {
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                
+                if (data.action === 'join' || data.action === 'registered') {
+                    // Update state when user joins
+                    window.localStorageManager.setUnifiedVoiceState({
+                        ...currentState,
+                        isConnected: true,
+                        channelId: data.channel_id,
+                        meetingId: data.meeting_id,
+                        connectionTime: data.timestamp || Date.now()
+                    });
+                } else if (data.action === 'leave') {
+                    // Clear state when user leaves
+                    window.localStorageManager.setUnifiedVoiceState({
+                        ...currentState,
+                        isConnected: false,
+                        channelId: null,
+                        meetingId: null,
+                        connectionTime: null
+                    });
+                }
+            }
+            
             this.handleVoiceMeetingUpdate(data);
             
-
+            // Handle own connection state
             const isOwnConnection = data.user_id === this.userId;
             if (isOwnConnection && window.voiceManager?.sdkLoaded) {
                 return;
             }
+        });
+        
+        this.io.on('voice-meeting-registered', (data) => {
+            console.log(`✅ [SOCKET] Voice meeting registration confirmed:`, {
+                channelId: data.channel_id,
+                meetingId: data.meeting_id,
+                participantCount: data.participant_count
+            });
+            
+            // Update unified voice state on successful registration
+            if (window.localStorageManager && data.user_id === this.userId) {
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    isConnected: true,
+                    channelId: data.channel_id,
+                    meetingId: data.meeting_id,
+                    connectionTime: data.timestamp || Date.now()
+                });
+            }
+            
+            window.dispatchEvent(new CustomEvent('voiceMeetingRegistered', {
+                detail: data
+            }));
         });
         
         this.io.on('stop-typing', this.handleStopTyping.bind(this));
@@ -1319,6 +1405,136 @@ class GlobalSocketManager {
             if (instance.handleVoiceMeetingUpdate) {
                 instance.handleVoiceMeetingUpdate(data);
             }
+        }
+    }
+
+    setupVoiceStateListeners() {
+        // Listen for voice state changes
+        window.addEventListener('voiceStateChanged', (event) => {
+            const { state } = event.detail;
+            this.syncVoiceStateWithPresence(state);
+        });
+        
+        // Listen for voice connect/disconnect events
+        window.addEventListener('voiceConnect', (event) => {
+            const { channelId, channelName, meetingId } = event.detail;
+            this.handleVoiceConnect(channelId, channelName, meetingId);
+        });
+        
+        window.addEventListener('voiceDisconnect', (event) => {
+            this.handleVoiceDisconnect();
+        });
+        
+        // Listen for local storage changes
+        if (window.localStorageManager) {
+            window.localStorageManager.addVoiceStateListener((state) => {
+                this.syncVoiceStateWithPresence(state);
+            });
+        }
+    }
+    
+    syncUnifiedVoiceState() {
+        if (!window.localStorageManager) return;
+        
+        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+        
+        if (voiceState.isConnected && voiceState.channelId && voiceState.meetingId) {
+            // Validate current voice state with server
+            this.validateVoiceState(voiceState);
+        }
+    }
+    
+    validateVoiceState(voiceState) {
+        if (!this.isReady()) return;
+        
+        // Check if the voice meeting still exists
+        this.io.emit('check-voice-meeting', { channel_id: voiceState.channelId });
+        
+        // Set up a listener for validation response
+        const timeout = setTimeout(() => {
+            this.io.off('voice-meeting-status', validationHandler);
+        }, 5000);
+        
+        const validationHandler = (data) => {
+            if (data.channel_id === voiceState.channelId) {
+                clearTimeout(timeout);
+                this.io.off('voice-meeting-status', validationHandler);
+                
+                if (!data.has_meeting || data.meeting_id !== voiceState.meetingId) {
+                    console.log(`🔄 [SOCKET] Voice state validation failed, clearing state:`, {
+                        channelId: voiceState.channelId,
+                        storedMeetingId: voiceState.meetingId,
+                        serverMeetingId: data.meeting_id,
+                        serverHasMeeting: data.has_meeting
+                    });
+                    
+                    // Clear invalid state
+                    window.localStorageManager.setUnifiedVoiceState({
+                        ...voiceState,
+                        isConnected: false,
+                        channelId: null,
+                        meetingId: null,
+                        connectionTime: null
+                    });
+                } else {
+                    console.log(`✅ [SOCKET] Voice state validation successful:`, {
+                        channelId: voiceState.channelId,
+                        meetingId: voiceState.meetingId
+                    });
+                }
+            }
+        };
+        
+        this.io.on('voice-meeting-status', validationHandler);
+    }
+    
+    handleVoiceConnect(channelId, channelName, meetingId) {
+        // Update presence for voice connection
+        this.updatePresence('online', { 
+            type: `In Voice - ${channelName}` 
+        }, 'voice-connect');
+        
+        // Ensure unified voice state is updated
+        if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                isConnected: true,
+                channelId: channelId,
+                channelName: channelName,
+                meetingId: meetingId,
+                connectionTime: Date.now()
+            });
+        }
+    }
+    
+    handleVoiceDisconnect() {
+        // Update presence for voice disconnection
+        this.updatePresence('online', { type: 'active' }, 'voice-disconnect');
+        
+        // Clear unified voice state
+        if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                isConnected: false,
+                channelId: null,
+                channelName: null,
+                meetingId: null,
+                connectionTime: null
+            });
+        }
+    }
+    
+    syncVoiceStateWithPresence(voiceState) {
+        if (!voiceState) return;
+        
+        if (voiceState.isConnected && voiceState.channelName) {
+            this.updatePresence('online', { 
+                type: `In Voice - ${voiceState.channelName}` 
+            }, 'voice-state-sync');
+        } else {
+            this.updatePresence('online', { type: 'active' }, 'voice-state-sync');
         }
     }
 }

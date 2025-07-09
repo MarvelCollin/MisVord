@@ -412,7 +412,16 @@ function setup(io) {
             const { channel_id, meeting_id, server_id, username, broadcast } = data;
             const userId = client.data?.user_id;
             
-            if (!userId || !channel_id || !meeting_id) {
+            console.log(`🎤 [VOICE-PARTICIPANT] Voice meeting registration request:`, {
+                userId,
+                username: username || client.data?.username,
+                channelId: channel_id,
+                providedMeetingId: meeting_id,
+                serverId: server_id,
+                broadcast: !!broadcast
+            });
+            
+            if (!userId || !channel_id) {
                 client.emit('voice-meeting-error', {
                     error: 'Missing required data for voice meeting registration',
                     timestamp: Date.now()
@@ -420,26 +429,48 @@ function setup(io) {
                 return;
             }
 
-            console.log(`🎤 [VOICE-PARTICIPANT] Registering voice meeting:`, {
-                userId,
-                username: username || client.data?.username,
-                channelId: channel_id,
-                meetingId: meeting_id,
-                serverId: server_id,
-                broadcast: !!broadcast
-            });
+            // Check if there's already a meeting for this channel
+            const existingMeeting = roomManager.getVoiceMeeting(channel_id);
+            let finalMeetingId = meeting_id;
+            let isNewMeeting = false;
+
+            if (!existingMeeting || !existingMeeting.meeting_id) {
+                // No existing meeting - create new meeting ID if not provided
+                if (!meeting_id) {
+                    finalMeetingId = `voice_channel_${channel_id}_${Date.now()}`;
+                    isNewMeeting = true;
+                } else {
+                    finalMeetingId = meeting_id;
+                    isNewMeeting = true;
+                }
+                
+                console.log(`🆕 [VOICE-PARTICIPANT] Creating new voice meeting:`, {
+                    channelId: channel_id,
+                    meetingId: finalMeetingId,
+                    isNewMeeting
+                });
+            } else {
+                // Use existing meeting ID
+                finalMeetingId = existingMeeting.meeting_id;
+                console.log(`🔄 [VOICE-PARTICIPANT] Joining existing voice meeting:`, {
+                    channelId: channel_id,
+                    meetingId: finalMeetingId,
+                    isNewMeeting: false
+                });
+            }
 
             const voiceChannelRoom = `voice_channel_${channel_id}`;
             
             try {
                 await client.join(voiceChannelRoom);
                 
-                VoiceConnectionTracker.addUserToVoice(userId, channel_id, meeting_id, username || client.data?.username);
+                // Add user to voice tracker
+                VoiceConnectionTracker.addUserToVoice(userId, channel_id, finalMeetingId, username || client.data?.username);
                 
+                // Add to room manager
+                roomManager.addVoiceMeeting(channel_id, finalMeetingId, client.id);
 
-                roomManager.addVoiceMeeting(channel_id, meeting_id, client.id);
-
-                
+                // Get participant count
                 const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
                 const participantCount = participants.length;
                 
@@ -448,9 +479,10 @@ function setup(io) {
                     action: 'join',
                     user_id: userId,
                     username: username || client.data?.username,
-                    meeting_id: meeting_id,
+                    meeting_id: finalMeetingId,
                     server_id: server_id,
                     participant_count: participantCount,
+                    is_new_meeting: isNewMeeting,
                     timestamp: Date.now()
                 };
                 
@@ -459,38 +491,40 @@ function setup(io) {
                     serverId: server_id,
                     userId,
                     participantCount,
+                    meetingId: finalMeetingId,
+                    isNewMeeting,
                     broadcast: !!broadcast
                 });
                 
-
+                // Emit to voice channel room
                 io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
 
-
-                if (broadcast || participantCount === 1) {
-                    
+                // Broadcast globally if it's a new meeting or first participant
+                if (broadcast || isNewMeeting || participantCount === 1) {
                     io.emit('voice-meeting-update', updateData);
                     
-
                     if (server_id) {
                         const serverRoom = `server_${server_id}`;
                         io.to(serverRoom).emit('voice-meeting-update', updateData);
                     }
                 }
                 
-
-                client.emit('voice-meeting-update', {
+                // Send confirmation to the client
+                client.emit('voice-meeting-registered', {
                     ...updateData,
                     action: 'registered',
                     message: 'Successfully registered to voice meeting'
                 });
 
-
+                // Force refresh participants
                 setTimeout(() => {
                     io.emit('force-refresh-voice-participants', {
                         channel_id: channel_id,
+                        meeting_id: finalMeetingId,
                         timestamp: Date.now()
                     });
                 }, 500);
+                
             } catch (error) {
                 console.error(`❌ [VOICE-PARTICIPANT] Error registering voice meeting:`, error);
                 if (!client.data?.errorSent) {
@@ -692,14 +726,21 @@ function handleCheckVoiceMeeting(io, client, data) {
     const participantCount = participants.length;
     const hasMeeting = participantCount > 0 || (roomManagerMeeting && roomManagerMeeting.participants.size > 0);
     
-    const meetingId = hasMeeting ? (participants[0]?.meetingId || roomManagerMeeting?.meeting_id) : null;
+    // Prioritize meeting ID from room manager (persistent) over tracker
+    let meetingId = null;
+    if (roomManagerMeeting && roomManagerMeeting.meeting_id) {
+        meetingId = roomManagerMeeting.meeting_id;
+    } else if (participants.length > 0 && participants[0]?.meetingId) {
+        meetingId = participants[0].meetingId;
+    }
     
     console.log(`🔍 [VOICE-PARTICIPANT] Voice check debug:`, {
         channel_id,
         trackerParticipants: participantCount,
         roomManagerParticipants: roomManagerMeeting?.participants.size || 0,
         hasMeeting,
-        meetingId
+        meetingId,
+        meetingIdSource: roomManagerMeeting?.meeting_id ? 'room_manager' : 'tracker'
     });
     
     const response = {

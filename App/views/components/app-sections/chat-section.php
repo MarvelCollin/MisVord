@@ -219,8 +219,6 @@ if (!function_exists('renderMessage')) {
 
 .chat-skeleton-container {
     padding: 16px;
-    animation-delay: 0.1s;
-    /* Position skeleton at bottom initially */
     min-height: 100%;
     display: flex;
     flex-direction: column;
@@ -287,6 +285,20 @@ if (!function_exists('renderMessage')) {
     background-color: #4f545c;
     border-radius: 4px;
     margin-bottom: 4px;
+    animation: skeleton-pulse 2s infinite ease-in-out;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.chat-skeleton-avatar {
+    animation: skeleton-pulse 2s infinite ease-in-out;
+}
+
+.chat-skeleton-username, .chat-skeleton-timestamp {
+    animation: skeleton-pulse 2s infinite ease-in-out;
 }
 
 .chat-skeleton-text.short {

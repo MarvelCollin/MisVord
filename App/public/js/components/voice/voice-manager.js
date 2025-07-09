@@ -127,7 +127,27 @@ class VoiceManager {
             this.currentChannelId = channelId;
             this.currentChannelName = channelName;
             
-            const meetingId = await this.getOrCreateMeeting(channelId);
+            // Check unified voice state first
+            const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+            let meetingId = null;
+            
+            // If there's a stored meeting ID for this channel, use it
+            if (voiceState && voiceState.channelId === channelId && voiceState.meetingId && voiceState.isConnected) {
+                meetingId = voiceState.meetingId;
+                console.log(`🔄 [VOICE-MANAGER] Using stored meeting ID from unified voice state:`, {
+                    channelId,
+                    meetingId,
+                    storedState: voiceState
+                });
+            } else {
+                // Get or create meeting ID from server
+                meetingId = await this.getOrCreateMeeting(channelId);
+                console.log(`🆕 [VOICE-MANAGER] Got meeting ID from server:`, {
+                    channelId,
+                    meetingId
+                });
+            }
+            
             const userName = this.getUserName();
             
             VideoSDK.config(this.authToken);
@@ -145,8 +165,17 @@ class VoiceManager {
             this.isConnected = true;
             this.currentMeetingId = meetingId;
             
+            // Update unified voice state
+            this.updateUnifiedVoiceState({
+                isConnected: true,
+                channelId: channelId,
+                channelName: channelName,
+                meetingId: meetingId,
+                connectionTime: Date.now()
+            });
+            
             this.updatePresence();
-            this.notifySocketServer('join');
+            this.notifySocketServer('join', meetingId);
             this.loadExistingBotParticipants();
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
@@ -164,17 +193,40 @@ class VoiceManager {
         if (!this.isConnected) return;
         
         try {
+            this.notifySocketServer('leave');
+            
             if (this.meeting) {
                 await this.meeting.leave();
             }
+            
+            this.cleanup();
+            
+            // Update unified voice state
+            this.updateUnifiedVoiceState({
+                isConnected: false,
+                channelId: null,
+                channelName: null,
+                meetingId: null,
+                connectionTime: null
+            });
+            
+            window.dispatchEvent(new CustomEvent('voiceDisconnect', {
+                detail: { channelId: this.currentChannelId }
+            }));
+            
         } catch (error) {
-            console.warn('Error leaving meeting:', error);
+            console.error('Failed to leave voice:', error);
+            this.cleanup();
+            
+            // Still update state even if leaving failed
+            this.updateUnifiedVoiceState({
+                isConnected: false,
+                channelId: null,
+                channelName: null,
+                meetingId: null,
+                connectionTime: null
+            });
         }
-        
-        this.notifySocketServer('leave');
-        this.cleanup();
-        
-        window.dispatchEvent(new CustomEvent('voiceDisconnect'));
     }
     
     cleanup() {
@@ -196,6 +248,15 @@ class VoiceManager {
         if (window.globalSocketManager) {
             window.globalSocketManager.updatePresence('online', { type: 'active' });
         }
+        
+        // Update unified voice state
+        this.updateUnifiedVoiceState({
+            isConnected: false,
+            channelId: null,
+            channelName: null,
+            meetingId: null,
+            connectionTime: null
+        });
     }
     
     loadExistingBotParticipants() {
@@ -401,12 +462,37 @@ class VoiceManager {
     getScreenShareState() { return this._screenShareOn; }
     
     async getOrCreateMeeting(channelId) {
-        const customMeetingId = `voice_channel_${channelId}`;
-        
+        // First check if there's an existing meeting on the server
         const existing = await this.checkExistingMeeting(channelId);
         if (existing?.meeting_id) {
+            console.log(`🔄 [VOICE-MANAGER] Found existing meeting on server:`, {
+                channelId,
+                meetingId: existing.meeting_id
+            });
             return existing.meeting_id;
         }
+        
+        // Check unified voice state for this channel
+        const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+        if (voiceState && voiceState.channelId === channelId && voiceState.meetingId) {
+            // Validate the stored meeting ID with the server
+            const isValid = await this.validateMeetingId(voiceState.meetingId, channelId);
+            if (isValid) {
+                console.log(`✅ [VOICE-MANAGER] Using validated meeting ID from unified voice state:`, {
+                    channelId,
+                    meetingId: voiceState.meetingId
+                });
+                return voiceState.meetingId;
+            } else {
+                console.log(`❌ [VOICE-MANAGER] Stored meeting ID is invalid, creating new one:`, {
+                    channelId,
+                    invalidMeetingId: voiceState.meetingId
+                });
+            }
+        }
+        
+        // Create new meeting
+        const customMeetingId = `voice_channel_${channelId}_${Date.now()}`;
         
         try {
             const response = await fetch('https://api.videosdk.live/v2/rooms', {
@@ -419,7 +505,14 @@ class VoiceManager {
             });
             
             const data = await response.json();
-            return data.roomId || customMeetingId;
+            const meetingId = data.roomId || customMeetingId;
+            
+            console.log(`🆕 [VOICE-MANAGER] Created new meeting:`, {
+                channelId,
+                meetingId
+            });
+            
+            return meetingId;
         } catch (error) {
             console.error('Failed to create meeting:', error);
             return customMeetingId;
@@ -436,12 +529,20 @@ class VoiceManager {
             const timeout = setTimeout(() => {
                 window.globalSocketManager.io.off('voice-meeting-status', handler);
                 resolve(null);
-            }, 2000);
+            }, 3000);
             
             const handler = (data) => {
                 if (data.channel_id === channelId) {
                     clearTimeout(timeout);
                     window.globalSocketManager.io.off('voice-meeting-status', handler);
+                    
+                    console.log(`🔍 [VOICE-MANAGER] Server meeting check result:`, {
+                        channelId,
+                        hasMeeting: data.has_meeting,
+                        meetingId: data.meeting_id,
+                        participantCount: data.participant_count
+                    });
+                    
                     resolve(data.has_meeting ? data : null);
                 }
             };
@@ -451,13 +552,38 @@ class VoiceManager {
         });
     }
     
-    notifySocketServer(action) {
+    async validateMeetingId(meetingId, channelId) {
+        return new Promise((resolve) => {
+            if (!window.globalSocketManager?.io) {
+                resolve(false);
+                return;
+            }
+            
+            const timeout = setTimeout(() => {
+                window.globalSocketManager.io.off('voice-meeting-status', handler);
+                resolve(false);
+            }, 3000);
+            
+            const handler = (data) => {
+                if (data.channel_id === channelId) {
+                    clearTimeout(timeout);
+                    window.globalSocketManager.io.off('voice-meeting-status', handler);
+                    resolve(data.has_meeting && data.meeting_id === meetingId);
+                }
+            };
+            
+            window.globalSocketManager.io.on('voice-meeting-status', handler);
+            window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+        });
+    }
+    
+    notifySocketServer(action, meetingId) {
         if (!window.globalSocketManager?.io) return;
         
         if (action === 'join') {
             window.globalSocketManager.io.emit('register-voice-meeting', {
                 channel_id: this.currentChannelId,
-                meeting_id: this.currentMeetingId,
+                meeting_id: meetingId,
                 username: this.getUserName()
             });
         } else if (action === 'leave') {
@@ -481,6 +607,12 @@ class VoiceManager {
         return document.querySelector('meta[name="username"]')?.content || 
                window.currentUsername || 
                'Anonymous';
+    }
+
+    updateUnifiedVoiceState(state) {
+        if (window.localStorageManager) {
+            window.localStorageManager.setUnifiedVoiceState(state);
+        }
     }
 }
 

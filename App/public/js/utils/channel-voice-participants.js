@@ -6,6 +6,7 @@ class ChannelVoiceParticipants {
     init() {
         this.setupEventListeners();
         this.loadInitialState();
+        this.initializeVoiceState();
     }
     
     setupEventListeners() {
@@ -17,11 +18,81 @@ class ChannelVoiceParticipants {
         window.addEventListener('bot-voice-participant-joined', (e) => this.handleBotJoined(e));
         window.addEventListener('bot-voice-participant-left', (e) => this.handleBotLeft(e));
         
+        // Listen for unified voice state changes
+        window.addEventListener('voiceStateChanged', (e) => this.handleVoiceStateChanged(e));
+        
+        // Listen for voice meeting updates
         if (window.globalSocketManager?.io) {
             this.attachSocketEvents();
         } else {
             window.addEventListener('globalSocketReady', () => this.attachSocketEvents());
         }
+        
+        // Listen for local storage changes
+        if (window.localStorageManager) {
+            window.localStorageManager.addVoiceStateListener((state) => {
+                this.syncWithVoiceState(state);
+            });
+        }
+    }
+    
+    handleVoiceStateChanged(event) {
+        const { state, source } = event.detail;
+        this.syncWithVoiceState(state);
+    }
+    
+    syncWithVoiceState(state) {
+        if (!state) return;
+        
+        if (state.isConnected && state.channelId) {
+            // Update participant count for the connected channel
+            this.updateChannelCount(state.channelId, null);
+            
+            // Update sidebar if it's the current channel
+            if (window.voiceManager && window.voiceManager.currentChannelId === state.channelId) {
+                this.updateSidebar();
+            }
+        } else {
+            // Clear all participant counts when disconnected
+            this.clearAllParticipantCounts();
+        }
+    }
+    
+    initializeVoiceState() {
+        // Sync with current unified voice state
+        if (window.localStorageManager) {
+            const voiceState = window.localStorageManager.getUnifiedVoiceState();
+            this.syncWithVoiceState(voiceState);
+        }
+        
+        // Validate current state with server
+        setTimeout(() => {
+            this.validateCurrentState();
+        }, 1000);
+    }
+    
+    validateCurrentState() {
+        if (!window.localStorageManager || !window.globalSocketManager?.io) return;
+        
+        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+        if (voiceState.isConnected && voiceState.channelId) {
+            // Check if the server still has this meeting
+            window.globalSocketManager.io.emit('check-voice-meeting', { 
+                channel_id: voiceState.channelId 
+            });
+        }
+    }
+    
+    clearAllParticipantCounts() {
+        document.querySelectorAll('.voice-user-count').forEach(count => {
+            count.textContent = '0';
+            count.classList.add('hidden');
+        });
+        
+        document.querySelectorAll('.voice-participants').forEach(container => {
+            container.classList.add('hidden');
+            container.innerHTML = '';
+        });
     }
     
     attachSocketEvents() {

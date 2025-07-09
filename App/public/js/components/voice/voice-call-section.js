@@ -13,6 +13,12 @@ class VoiceCallSection {
         this.disconnectBtn = null;
         
         this.participantElements = new Map();
+        
+        // Voice state tracking
+        this.currentChannelId = null;
+        this.currentChannelName = null;
+        this.currentMeetingId = null;
+        
         this.init();
     }
     
@@ -28,6 +34,7 @@ class VoiceCallSection {
         this.bindControls();
         this.bindEvents();
         this.syncButtonStates();
+        this.initializeVoiceState();
     }
     
     bindControls() {
@@ -99,6 +106,132 @@ class VoiceCallSection {
         
         window.addEventListener("bot-voice-participant-joined", (e) => this.handleBotParticipantJoined(e));
         window.addEventListener("bot-voice-participant-left", (e) => this.handleBotParticipantLeft(e));
+        
+        // Listen for unified voice state changes
+        window.addEventListener("voiceStateChanged", (e) => this.handleUnifiedVoiceStateChanged(e));
+        window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
+        window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
+        
+        // Listen for voice meeting updates
+        if (window.globalSocketManager?.io) {
+            this.setupSocketListeners();
+        } else {
+            window.addEventListener('globalSocketReady', () => this.setupSocketListeners());
+        }
+        
+        // Listen for local storage changes
+        if (window.localStorageManager) {
+            window.localStorageManager.addVoiceStateListener((state) => {
+                this.syncWithVoiceState(state);
+            });
+        }
+    }
+    
+    setupSocketListeners() {
+        const socket = window.globalSocketManager?.io;
+        if (!socket) return;
+        
+        socket.on('voice-meeting-registered', (data) => {
+            this.handleVoiceMeetingRegistered(data);
+        });
+        
+        socket.on('voice-meeting-update', (data) => {
+            this.handleVoiceMeetingUpdate(data);
+        });
+        
+        socket.on('voice-meeting-status', (data) => {
+            this.handleVoiceMeetingStatus(data);
+        });
+    }
+    
+    handleUnifiedVoiceStateChanged(event) {
+        const { state, source } = event.detail;
+        this.syncWithVoiceState(state);
+    }
+    
+    handleVoiceConnect(event) {
+        const { channelId, channelName, meetingId } = event.detail;
+        this.currentChannelId = channelId;
+        this.currentChannelName = channelName;
+        this.currentMeetingId = meetingId;
+        
+        // Update UI to show connected state
+        this.updateConnectionStatus(true);
+    }
+    
+    handleVoiceDisconnect(event) {
+        this.currentChannelId = null;
+        this.currentChannelName = null;
+        this.currentMeetingId = null;
+        
+        // Update UI to show disconnected state
+        this.updateConnectionStatus(false);
+        this.clearGrid();
+    }
+    
+    handleVoiceMeetingRegistered(data) {
+        console.log(`✅ [VOICE-CALL-SECTION] Voice meeting registered:`, data);
+        
+        if (data.user_id === this.getCurrentUserId()) {
+            this.currentMeetingId = data.meeting_id;
+            this.updateConnectionStatus(true);
+        }
+    }
+    
+    handleVoiceMeetingUpdate(data) {
+        console.log(`🔄 [VOICE-CALL-SECTION] Voice meeting update:`, data);
+        
+        if (data.action === 'join' && data.user_id === this.getCurrentUserId()) {
+            this.currentMeetingId = data.meeting_id;
+            this.updateConnectionStatus(true);
+        } else if (data.action === 'leave' && data.user_id === this.getCurrentUserId()) {
+            this.currentMeetingId = null;
+            this.updateConnectionStatus(false);
+        }
+    }
+    
+    handleVoiceMeetingStatus(data) {
+        console.log(`📊 [VOICE-CALL-SECTION] Voice meeting status:`, data);
+        
+        if (data.has_meeting && data.meeting_id) {
+            this.currentMeetingId = data.meeting_id;
+        }
+    }
+    
+    syncWithVoiceState(state) {
+        if (!state) return;
+        
+        if (state.isConnected && state.channelId && state.meetingId) {
+            this.currentChannelId = state.channelId;
+            this.currentChannelName = state.channelName;
+            this.currentMeetingId = state.meetingId;
+            this.updateConnectionStatus(true);
+        } else {
+            this.currentChannelId = null;
+            this.currentChannelName = null;
+            this.currentMeetingId = null;
+            this.updateConnectionStatus(false);
+        }
+    }
+    
+    updateConnectionStatus(isConnected) {
+        const connectionInfo = document.querySelector('.voice-connection-info');
+        if (connectionInfo) {
+            if (isConnected && this.currentChannelName) {
+                connectionInfo.textContent = `Connected to ${this.currentChannelName}`;
+                connectionInfo.classList.add('connected');
+                connectionInfo.classList.remove('disconnected');
+            } else {
+                connectionInfo.textContent = 'Not connected';
+                connectionInfo.classList.add('disconnected');
+                connectionInfo.classList.remove('connected');
+            }
+        }
+    }
+    
+    getCurrentUserId() {
+        return document.querySelector('meta[name="user-id"]')?.content || 
+               window.currentUserId;
     }
     
     handleParticipantJoined(event) {
@@ -503,6 +636,25 @@ class VoiceCallSection {
     getInitials(name) {
         if (!name) return "?";
         return name.split(" ").map(w => w.charAt(0).toUpperCase()).slice(0, 2).join("");
+    }
+
+    initializeVoiceState() {
+        // Sync with current unified voice state
+        if (window.localStorageManager) {
+            const voiceState = window.localStorageManager.getUnifiedVoiceState();
+            this.syncWithVoiceState(voiceState);
+        }
+        
+        // Check if there's an active voice manager connection
+        if (window.voiceManager) {
+            this.currentChannelId = window.voiceManager.currentChannelId;
+            this.currentChannelName = window.voiceManager.currentChannelName;
+            this.currentMeetingId = window.voiceManager.currentMeetingId;
+            
+            if (window.voiceManager.isConnected) {
+                this.updateConnectionStatus(true);
+            }
+        }
     }
 }
 

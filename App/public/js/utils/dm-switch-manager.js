@@ -98,47 +98,10 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-
-        
         this.currentDMId = dmId;
         this.currentDMType = roomType;
         
-        this.highlightActiveDM(dmId);
-        this.updateURL(dmId);
-        this.updateMetaTags(dmId, roomType);
-        this.updatePageTitle(username, roomType);
-        this.showChatSection();
-        
-        if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-
-            try {
-                await window.chatSection.switchToDM(dmId, roomType, true);
-
-                this.isLoading = false;
-                return;
-            } catch (error) {
-                console.error('❌ [DM-SWITCH] SPA navigation failed, falling back to page reload:', error);
-            }
-        } else if (typeof window.initializeChatSection === 'function') {
-
-            try {
-                await window.initializeChatSection();
-                if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-                    await window.chatSection.switchToDM(dmId, roomType, true);
-
-                    this.isLoading = false;
-                    return;
-                } else {
-                    throw new Error('ChatSection still not available after initialization');
-                }
-            } catch (error) {
-                console.error('❌ [DM-SWITCH] Initialization failed, falling back to page reload:', error);
-            }
-        }
-        
-
         window.location.href = `/home/channels/dm/${dmId}`;
-        this.isLoading = false;
     }
     
     async switchToFriends() {
@@ -146,18 +109,7 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-
-        
-        this.clearActiveDM();
-        this.updateFriendsURL();
-        this.updateMetaTags(null, 'friends');
-        this.updatePageTitle('Friends', 'friends');
-        
-
-        
         window.location.href = '/home/friends?tab=online';
-        
-        this.isLoading = false;
     }
     
     highlightActiveDM(dmId) {
