@@ -125,6 +125,17 @@ class VoiceCallSection {
                 this.syncWithVoiceState(state);
             });
         }
+
+        window.addEventListener("participantAvatarUpdated", (e) => {
+            const { participantId, avatarUrl } = e.detail;
+            const element = this.participantElements.get(participantId);
+            if (element) {
+                const imgEl = element.querySelector('.participant-avatar img');
+                if (imgEl) {
+                    imgEl.src = avatarUrl;
+                }
+            }
+        });
     }
     
     setupSocketListeners() {
@@ -361,10 +372,10 @@ class VoiceCallSection {
             
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
                 <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative overflow-hidden">
-                    ${isBot ? 
-                        `<img src="${avatarUrl}" alt="${name}" class="w-full h-full object-cover rounded-full">` : 
-                        `<span>${this.getInitials(name)}</span>`
-                    }
+                    <img src="${avatarUrl}" 
+                         alt="${name}" 
+                         class="w-full h-full object-cover rounded-full"
+                         onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
                     ${isBot ? '<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white text-xs"></i></div>' : ''}
                 </div>
                 <span class="participant-name text-white text-sm font-medium text-center mb-2 max-w-full truncate">

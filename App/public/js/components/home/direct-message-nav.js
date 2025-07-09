@@ -67,22 +67,12 @@ class DirectMessageNavigation {
             dmId, 
             chatName, 
             roomType,
-            hasDmSwitcher: !!this.dmSwitcher,
-            hasGlobalSwitch: !!window.switchToDMGlobal
+            hasDmSwitcher: !!this.dmSwitcher
         });
 
         if (this.dmSwitcher) {
             this.dmSwitcher.switchToDM(dmId, roomType, chatName);
-        } else if (window.switchToDMGlobal) {
-            
-            window.switchToDMGlobal(dmId, roomType).then(success => {
-                if (!success) {
-                    
-                    window.location.href = `/home/channels/dm/${dmId}`;
-                }
-            });
         } else {
-            
             window.location.href = `/home/channels/dm/${dmId}`;
         }
     }

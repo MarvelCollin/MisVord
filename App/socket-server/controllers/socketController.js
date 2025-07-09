@@ -411,6 +411,7 @@ function setup(io) {
         client.on('register-voice-meeting', async (data) => {
             const { channel_id, meeting_id, server_id, username, broadcast } = data;
             const userId = client.data?.user_id;
+            const avatarUrl = client.data?.avatar_url || '/public/assets/common/default-profile-picture.png';
             
             console.log(`🎤 [VOICE-PARTICIPANT] Voice meeting registration request:`, {
                 userId,
@@ -418,7 +419,8 @@ function setup(io) {
                 channelId: channel_id,
                 providedMeetingId: meeting_id,
                 serverId: server_id,
-                broadcast: !!broadcast
+                broadcast: !!broadcast,
+                avatarUrl: avatarUrl
             });
             
             if (!userId || !channel_id) {
@@ -445,7 +447,7 @@ function setup(io) {
                 }
                 
                 console.log(`🆕 [VOICE-PARTICIPANT] Creating new voice meeting:`, {
-                    channelId: channel_id,
+                channelId: channel_id,
                     meetingId: finalMeetingId,
                     isNewMeeting
                 });
@@ -474,14 +476,22 @@ function setup(io) {
                 const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
                 const participantCount = participants.length;
                 
+                // Include avatar URLs in participant data
+                const participantsWithAvatars = participants.map(p => ({
+                    ...p,
+                    avatar_url: p.userId === userId ? avatarUrl : '/public/assets/common/default-profile-picture.png'
+                }));
+                
                 const updateData = {
                     channel_id: channel_id,
                     action: 'join',
                     user_id: userId,
                     username: username || client.data?.username,
+                    avatar_url: avatarUrl,
                     meeting_id: finalMeetingId,
                     server_id: server_id,
                     participant_count: participantCount,
+                    participants: participantsWithAvatars,
                     is_new_meeting: isNewMeeting,
                     timestamp: Date.now()
                 };
@@ -493,7 +503,8 @@ function setup(io) {
                     participantCount,
                     meetingId: finalMeetingId,
                     isNewMeeting,
-                    broadcast: !!broadcast
+                    broadcast: !!broadcast,
+                    avatarUrl: avatarUrl
                 });
                 
                 // Emit to voice channel room
@@ -502,7 +513,7 @@ function setup(io) {
                 // Broadcast globally if it's a new meeting or first participant
                 if (broadcast || isNewMeeting || participantCount === 1) {
                     io.emit('voice-meeting-update', updateData);
-                    
+
                     if (server_id) {
                         const serverRoom = `server_${server_id}`;
                         io.to(serverRoom).emit('voice-meeting-update', updateData);
@@ -542,17 +553,72 @@ function setup(io) {
             }
         });
         
-        client.on('unregister-voice-meeting', (data) => {
-            console.log(`🎤 [VOICE-PARTICIPANT] Voice meeting unregistration from ${client.id}:`, {
-                channelId: data.channel_id,
-                userId: client.data?.user_id,
-                username: client.data?.username
+        client.on('unregister-voice-meeting', async (data) => {
+            const { channel_id } = data;
+            const userId = client.data?.user_id;
+            
+            console.log(`🎤 [VOICE-PARTICIPANT] Voice meeting unregistration request:`, {
+                userId,
+                username: client.data?.username,
+                channelId: channel_id
             });
             
-            if (!client.data?.authenticated) {
-                console.warn('⚠️ [VOICE-PARTICIPANT] Proceeding without authentication');
+            if (!userId || !channel_id) {
+                return;
             }
-            handleUnregisterVoiceMeeting(io, client, data);
+
+            const voiceChannelRoom = `voice_channel_${channel_id}`;
+            
+            // Remove user from voice tracker
+            VoiceConnectionTracker.removeUserFromVoice(userId);
+            
+            // Get updated participant list
+            const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
+            const participantCount = participants.length;
+            
+            // Get meeting info before potentially removing it
+            const meeting = roomManager.getVoiceMeeting(channel_id);
+            const meetingId = meeting?.meeting_id;
+            
+            // Only remove the meeting if no participants left
+            if (participantCount === 0) {
+                roomManager.removeVoiceMeeting(channel_id, client.id);
+            }
+            
+            const updateData = {
+                channel_id: channel_id,
+                action: 'leave',
+                user_id: userId,
+                username: client.data?.username,
+                meeting_id: meetingId,
+                participant_count: participantCount,
+                participants: participants, // Include full participant list
+                timestamp: Date.now()
+            };
+            
+            console.log(`📢 [VOICE-PARTICIPANT] Broadcasting voice participant leave:`, {
+                channelId: channel_id,
+                userId,
+                participantCount,
+                remainingParticipants: participants.map(p => p.username)
+            });
+            
+            // Broadcast to all in voice channel room
+            io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
+            
+            // Also emit to server room if server_id provided
+            if (data.server_id) {
+                io.to(`server-${data.server_id}`).emit('voice-meeting-update', updateData);
+            }
+            
+            // Leave the voice channel room
+            await client.leave(voiceChannelRoom);
+            
+            // Send confirmation
+            client.emit('voice-meeting-unregistered', {
+                channel_id: channel_id,
+                timestamp: Date.now()
+            });
         });
         
         client.on('get-online-users', () => {
@@ -644,6 +710,35 @@ function setup(io) {
         client.on('tic-tac-toe-play-again-response', (data) => {
 
             ActivityHandler.handleTicTacToePlayAgainResponse(io, client, data);
+        });
+        
+        client.on('get-participant-data', (data) => {
+            const { participant_id } = data;
+            
+            if (!participant_id) {
+                return;
+            }
+            
+            // Find participant's socket
+            let participantData = null;
+            
+            for (const [socketId, socket] of io.sockets.sockets.entries()) {
+                if (socket.data?.user_id === participant_id || socket.id === participant_id) {
+                    participantData = {
+                        user_id: socket.data?.user_id,
+                        username: socket.data?.username,
+                        avatar_url: socket.data?.avatar_url || '/public/assets/common/default-profile-picture.png'
+                    };
+                    break;
+                }
+            }
+            
+            if (participantData) {
+                client.emit('participant-data-response', {
+                    participant_id: participant_id,
+                    data: participantData
+                });
+            }
         });
         
         client.on('disconnect', () => {

@@ -69,10 +69,32 @@ class VoiceManager {
             window.globalSocketManager.io.on('bot-voice-participant-left', (data) => {
                 this.handleBotParticipantLeft(data);
             });
-        } else {
-            window.addEventListener('globalSocketReady', () => {
-                this.setupBotEventListeners();
+            
+            // Listen for participant avatar data
+            window.globalSocketManager.io.on('participant-data-response', (data) => {
+                const { participant_id, data: pdata } = data;
+                if (!participant_id || !pdata) return;
+                const participant = this.participants.get(participant_id);
+                if (participant) {
+                    participant.avatar_url = pdata.avatar_url || participant.avatar_url;
+                    // Dispatch update event so UI can refresh avatar
+                    window.dispatchEvent(new CustomEvent('participantAvatarUpdated', {
+                        detail: {
+                            participantId: participant_id,
+                            avatarUrl: participant.avatar_url
+                        }
+                    }));
+                    // Update sidebar if needed
+                    if (window.ChannelVoiceParticipants) {
+                        const manager = window.ChannelVoiceParticipants.getInstance();
+                        if (manager) {
+                            manager.updateSidebar();
+                        }
+                    }
+                }
             });
+        } else {
+            window.addEventListener('globalSocketReady', () => this.setupBotEventListeners());
         }
     }
     
@@ -165,6 +187,11 @@ class VoiceManager {
             this.isConnected = true;
             this.currentMeetingId = meetingId;
             
+            // Play join sound
+            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playJoinVoiceSound) {
+                window.MusicLoaderStatic.playJoinVoiceSound();
+            }
+            
             // Update unified voice state
             this.updateUnifiedVoiceState({
                 isConnected: true,
@@ -197,6 +224,11 @@ class VoiceManager {
             
             if (this.meeting) {
                 await this.meeting.leave();
+            }
+            
+            // Play disconnect sound
+            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playDisconnectVoiceSound) {
+                window.MusicLoaderStatic.playDisconnectVoiceSound();
             }
             
             this.cleanup();
@@ -319,19 +351,37 @@ class VoiceManager {
     handleParticipantJoined(participant) {
         if (!participant || this.participants.has(participant.id)) return;
         
+        // Get user avatar from socket or global user data
+        let avatarUrl = '/public/assets/common/default-profile-picture.png';
+        
+        // Check if we have socket data with avatar
+        if (window.globalSocketManager?.io && participant.id) {
+            // Request avatar data through socket if needed
+            window.globalSocketManager.io.emit('get-participant-data', { 
+                participant_id: participant.id 
+            });
+        }
+        
         this.participants.set(participant.id, {
             id: participant.id,
             name: participant.displayName || participant.name,
             username: participant.displayName || participant.name,
             isBot: false,
             isLocal: participant.id === this.localParticipant?.id,
-            streams: new Map()
+            streams: new Map(),
+            avatar_url: avatarUrl
         });
         
         this.setupStreamHandlers(participant);
         
         window.dispatchEvent(new CustomEvent('participantJoined', {
-            detail: { participant: participant.id, data: participant }
+            detail: { 
+                participant: participant.id, 
+                data: {
+                    ...participant,
+                    avatar_url: avatarUrl
+                }
+            }
         }));
     }
     
@@ -384,9 +434,19 @@ class VoiceManager {
         if (this._micOn) {
             this.meeting.muteMic();
             this._micOn = false;
+            
+            // Play mute sound
+            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playDiscordMuteSound) {
+                window.MusicLoaderStatic.playDiscordMuteSound();
+            }
         } else {
             this.meeting.unmuteMic();
             this._micOn = true;
+            
+            // Play unmute sound
+            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playDiscordUnmuteSound) {
+                window.MusicLoaderStatic.playDiscordUnmuteSound();
+            }
         }
         
         window.dispatchEvent(new CustomEvent('voiceStateChanged', {

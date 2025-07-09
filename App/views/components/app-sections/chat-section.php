@@ -219,6 +219,8 @@ if (!function_exists('renderMessage')) {
 
 .chat-skeleton-container {
     padding: 16px;
+    animation-delay: 0.1s;
+    /* Position skeleton at bottom initially */
     min-height: 100%;
     display: flex;
     flex-direction: column;
@@ -285,20 +287,6 @@ if (!function_exists('renderMessage')) {
     background-color: #4f545c;
     border-radius: 4px;
     margin-bottom: 4px;
-    animation: skeleton-pulse 2s infinite ease-in-out;
-}
-
-@keyframes skeleton-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
-
-.chat-skeleton-avatar {
-    animation: skeleton-pulse 2s infinite ease-in-out;
-}
-
-.chat-skeleton-username, .chat-skeleton-timestamp {
-    animation: skeleton-pulse 2s infinite ease-in-out;
 }
 
 .chat-skeleton-text.short {
@@ -681,7 +669,7 @@ if (!function_exists('renderMessage')) {
 <meta name="chat-title" content="<?php echo htmlspecialchars($chatTitle ?? ''); ?>">
 <meta name="chat-placeholder" content="<?php echo htmlspecialchars($placeholder ?? ''); ?>">
 
-<div class="flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden">
+<div class="chat-section flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden">
     <?php if ($chatType): ?>
     <div class="h-12 min-h-[48px] px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
         <i id="channel-icon" class="<?php echo $chatIcon; ?> text-[#949ba4] mr-2"></i>

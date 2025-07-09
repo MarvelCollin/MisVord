@@ -519,7 +519,7 @@ class GlobalSocketManager {
                     }
                 }
             }
-            
+
             this.handleVoiceMeetingStatus(data);
         });
         
@@ -557,7 +557,7 @@ class GlobalSocketManager {
                     });
                 }
             }
-            
+
             this.handleVoiceMeetingUpdate(data);
             
             // Handle own connection state

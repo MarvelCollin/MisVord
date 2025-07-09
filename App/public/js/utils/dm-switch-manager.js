@@ -25,7 +25,7 @@ class SimpleDMSwitcher {
      * so that the chat pane is visible and any voice pane is hidden.
      */
     showChatSection() {
-        const chatSection  = document.querySelector('.chat-section');
+        const chatSection = document.querySelector('.chat-section');
         const voiceSection = document.querySelector('.voice-section');
 
         if (voiceSection) {
@@ -35,7 +35,18 @@ class SimpleDMSwitcher {
         if (chatSection) {
             chatSection.classList.remove('hidden');
             chatSection.style.display = 'flex';
+            chatSection.style.visibility = 'visible';
             chatSection.setAttribute('data-channel-id', this.currentDMId || '');
+
+            // Fallback: ensure skeleton is hidden after showing the chat section
+            const skeleton = document.getElementById('chat-skeleton-loading');
+            const realContent = document.getElementById('chat-real-content');
+            if (skeleton) {
+                setTimeout(() => {
+                    skeleton.style.display = 'none';
+                    if (realContent) realContent.style.display = 'block';
+                }, 500);
+            }
         }
     }
     
@@ -87,7 +98,7 @@ class SimpleDMSwitcher {
         
         if (dmMatch) {
             const dmId = dmMatch[1];
-
+            this.currentDMId = dmId;
             this.highlightActiveDM(dmId);
             this.showChatSection();
         }
@@ -98,17 +109,14 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-        this.currentDMId = dmId;
-        this.currentDMType = roomType;
-        
+        // Direct page reload to avoid SPA skeleton issues
         window.location.href = `/home/channels/dm/${dmId}`;
     }
     
     async switchToFriends() {
         if (this.isLoading) return;
-        
         this.isLoading = true;
-        
+
         window.location.href = '/home/friends?tab=online';
     }
     

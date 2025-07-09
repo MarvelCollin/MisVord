@@ -104,14 +104,58 @@ class ChannelVoiceParticipants {
         
         socket.on('voice-meeting-update', (data) => {
             if (data.action === 'join' || data.action === 'leave') {
-                this.updateSidebar();
-                this.updateAllChannelCounts();
+                // Update participant display for the specific channel
+                if (data.channel_id && data.participants) {
+                    this.updateChannelParticipants(data.channel_id, data.participants);
+                } else {
+                    this.updateSidebar();
+                    this.updateAllChannelCounts();
+                }
+            }
+            
+            // Update participant counts based on meeting updates
+            if (data.channel_id) {
+                this.updateChannelCount(data.channel_id, data.participant_count);
+                
+                // Update sidebar if it's the current channel
+                if (window.voiceManager && window.voiceManager.currentChannelId === data.channel_id) {
+                    this.updateSidebar();
+                }
+            }
+            
+            // Sync with unified voice state if it's our own update
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (data.user_id === currentUserId && window.localStorageManager) {
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                
+                if (data.action === 'join' || data.action === 'registered') {
+                    window.localStorageManager.setUnifiedVoiceState({
+                        ...currentState,
+                        isConnected: true,
+                        channelId: data.channel_id,
+                        meetingId: data.meeting_id,
+                        connectionTime: data.timestamp || Date.now()
+                    });
+                } else if (data.action === 'leave') {
+                    window.localStorageManager.setUnifiedVoiceState({
+                        ...currentState,
+                        isConnected: false,
+                        channelId: null,
+                        meetingId: null,
+                        connectionTime: null
+                    });
+                }
             }
         });
         
         socket.on('voice-meeting-status', (data) => {
             if (data.has_meeting && data.channel_id) {
                 this.updateChannelCount(data.channel_id, data.participant_count || 0);
+                
+                // Update participant display if we have participant data
+                if (data.participants) {
+                    this.updateChannelParticipants(data.channel_id, data.participants);
+                }
             }
         });
         
@@ -195,25 +239,31 @@ class ChannelVoiceParticipants {
     
     createParticipantElement(participant) {
         const div = document.createElement('div');
-        div.className = 'flex items-center py-1 px-2 text-gray-300 hover:text-white transition-colors duration-200';
+        div.className = 'voice-participant-card bg-[#2f3136] rounded-lg p-2 flex items-center space-x-3 border border-[#40444b] hover:border-[#5865f2] transition-all duration-200';
         div.setAttribute('data-user-id', participant.user_id || participant.id);
-        
+
         const avatarUrl = participant.avatar_url || '/public/assets/common/default-profile-picture.png';
         const displayName = participant.name || participant.username || 'Unknown';
         const isBot = participant.isBot || false;
-        
-        div.innerHTML = `
-            <div class="relative mr-2">
-                <img src="${avatarUrl}" 
-                     alt="${displayName}" 
-                     class="w-5 h-5 rounded-full bg-gray-600 object-cover"
+        const isSelf = participant.isSelf || false;
+
+        const avatarHTML = `
+            <div class="relative">
+                <img src="${avatarUrl}"
+                     alt="${displayName}"
+                     class="w-8 h-8 rounded-full object-cover bg-[#5865f2]"
                      onerror="this.src='/public/assets/common/default-profile-picture.png'">
-                <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 ${isBot ? 'bg-[#5865f2]' : 'bg-discord-green'} rounded-full border border-discord-dark"></div>
-                ${isBot ? '<div class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white" style="font-size: 6px;"></i></div>' : ''}
-            </div>
-            <span class="text-sm truncate">${displayName}${isBot ? ' (Bot)' : ''}</span>
-        `;
-        
+                ${isBot ? `<div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white" style="font-size: 6px;"></i></div>` : ''}
+            </div>`;
+
+        const nameHTML = `
+            <div class="flex flex-col min-w-0">
+                <span class="participant-name text-white text-sm font-medium truncate max-w-[140px]">${displayName}${isSelf ? ' (You)' : ''}${isBot ? ' (Bot)' : ''}</span>
+                ${isBot ? '<span class="text-xs text-[#5865f2] flex items-center"><i class="fas fa-music mr-1"></i>Ready to play music</span>' : ''}
+            </div>`;
+
+        div.innerHTML = avatarHTML + nameHTML;
+
         return div;
     }
     
@@ -286,6 +336,32 @@ class ChannelVoiceParticipants {
                 }
             });
         }
+    }
+
+    updateChannelParticipants(channelId, participants) {
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) return;
+        
+        container.innerHTML = '';
+        
+        if (participants && participants.length > 0) {
+            participants.forEach(participant => {
+                const element = this.createParticipantElement({
+                    id: participant.user_id,
+                    user_id: participant.user_id,
+                    name: participant.username,
+                    username: participant.username,
+                    isBot: participant.isBot || false,
+                    avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png'
+                });
+                container.appendChild(element);
+            });
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+        
+        this.updateChannelCount(channelId, participants.length);
     }
     
     static getInstance() {
