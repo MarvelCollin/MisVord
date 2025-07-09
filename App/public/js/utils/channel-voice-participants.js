@@ -1,5 +1,6 @@
 class ChannelVoiceParticipants {
     constructor() {
+        this.externalParticipants = new Map(); // channelId -> Map<userId, data>
         this.init();
     }
     
@@ -111,14 +112,34 @@ class ChannelVoiceParticipants {
         }
         
         socket.on('voice-meeting-update', (data) => {
-            if (data.action === 'join' || data.action === 'leave') {
-                if (data.channel_id) {
-                    this.updateChannelCount(data.channel_id, data.participant_count);
-                    this.updateSidebarForChannel(data.channel_id);
+            if (data.channel_id && data.user_id) {
+                const chan = data.channel_id;
+                if (!this.externalParticipants.has(chan)) {
+                    this.externalParticipants.set(chan, new Map());
                 }
+                const map = this.externalParticipants.get(chan);
+                if (data.action === 'join' || data.action === 'registered' || data.action === 'already_registered') {
+                    map.set(data.user_id, {
+                        user_id: data.user_id,
+                        username: data.username || 'Unknown',
+                        avatar_url: data.avatar_url || '/public/assets/common/default-profile-picture.png'
+                    });
+                } else if (data.action === 'leave') {
+                    map.delete(data.user_id);
+                }
+            }
+            // update counts + sidebar for all actions that reflect an existing participant
+            if (data.channel_id && (
+                data.action === 'join' ||
+                data.action === 'leave' ||
+                data.action === 'registered' ||
+                data.action === 'already_registered'
+            )) {
+                this.updateChannelCount(data.channel_id, data.participant_count);
+                this.updateSidebarForChannel(data.channel_id);
                 this.updateAllChannelCounts();
             }
-            
+            // sync unified voice state ... (existing)
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
             if (data.user_id === currentUserId && window.localStorageManager) {
                 const currentState = window.localStorageManager.getUnifiedVoiceState();
@@ -144,9 +165,27 @@ class ChannelVoiceParticipants {
         });
         
         socket.on('voice-meeting-status', (data) => {
-            if (data.has_meeting && data.channel_id) {
-                this.updateChannelCount(data.channel_id, data.participant_count || 0);
+            if (!data || !data.channel_id) return;
+
+            // hydrate external participant map from full status payload
+            if (data.participants && Array.isArray(data.participants)) {
+                if (!this.externalParticipants.has(data.channel_id)) {
+                    this.externalParticipants.set(data.channel_id, new Map());
+                }
+                const map = this.externalParticipants.get(data.channel_id);
+                data.participants.forEach(p => {
+                    if (!p || !p.user_id) return;
+                    map.set(p.user_id, {
+                        user_id: p.user_id,
+                        username: p.username || 'Unknown',
+                        avatar_url: p.avatar_url || '/public/assets/common/default-profile-picture.png'
+                    });
+                });
             }
+
+            // update count & sidebar visibility
+            this.updateChannelCount(data.channel_id, data.participant_count || 0);
+            this.updateSidebarForChannel(data.channel_id);
         });
         
         socket.on('bot-voice-participant-joined', (data) => {
@@ -211,6 +250,7 @@ class ChannelVoiceParticipants {
         
         let participantCount = 0;
         
+        // participants from voiceManager if connected to this channel
         if (window.voiceManager && window.voiceManager.currentChannelId === channelId) {
             const allParticipants = window.voiceManager.getAllParticipants();
             allParticipants.forEach((data, id) => {
@@ -218,8 +258,27 @@ class ChannelVoiceParticipants {
                 container.appendChild(element);
                 participantCount++;
             });
+        } else {
+            // external participants map
+            const map = this.externalParticipants.get(channelId);
+            if (map) {
+                map.forEach((pData, uid) => {
+                    const element = this.createParticipantElement({
+                        id: uid,
+                        user_id: uid,
+                        name: pData.username,
+                        username: pData.username,
+                        avatar_url: pData.avatar_url,
+                        isBot: false,
+                        isLocal: false
+                    });
+                    container.appendChild(element);
+                    participantCount++;
+                });
+            }
         }
         
+        // include bots
         if (window.BotComponent && window.BotComponent.voiceBots) {
             window.BotComponent.voiceBots.forEach((botData, botId) => {
                 if (botData.channel_id === channelId) {

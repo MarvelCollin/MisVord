@@ -362,17 +362,29 @@ class BotController extends BaseController
     public function sendChannelMessage()
     {
         $input = $this->getInput();
+        error_log('[BOT DEBUG] sendChannelMessage input: ' . json_encode($input));
 
+        // Validate required fields
         if (!isset($input['user_id']) || !isset($input['channel_id']) || !isset($input['content'])) {
-                        return $this->error('Bot user_id, channel_id, and content are required', 400);
+            $errorMsg = 'Bot user_id, channel_id, and content are required';
+            error_log('[BOT ERROR] ' . $errorMsg . ': ' . json_encode($input));
+            // Only pass two arguments as error() expects
+            return $this->error($errorMsg, 400);
         }
 
         $input['content'] = $this->sanitize($input['content']);
 
         try {
             $bot = $this->userRepository->find($input['user_id']);
-            if (!$bot || $bot->status !== 'bot') {
-                return $this->error('Invalid bot user', 400);
+            if (!$bot) {
+                $errorMsg = 'Bot user not found: ' . $input['user_id'];
+                error_log('[BOT ERROR] ' . $errorMsg);
+                return $this->error($errorMsg, 404);
+            }
+            if ($bot->status !== 'bot') {
+                $errorMsg = 'User is not a bot: ' . $input['user_id'];
+                error_log('[BOT ERROR] ' . $errorMsg);
+                return $this->error($errorMsg, 400);
             }
 
             require_once __DIR__ . '/../database/repositories/ChannelRepository.php';
@@ -384,17 +396,23 @@ class BotController extends BaseController
             $messageRepository = new MessageRepository();
             $channelMessageRepository = new ChannelMessageRepository();
 
+            // Validate channel
             $channel = $channelRepository->find($input['channel_id']);
             if (!$channel) {
-                return $this->error('Channel not found', 404);
+                $errorMsg = 'Channel not found: ' . $input['channel_id'];
+                error_log('[BOT ERROR] ' . $errorMsg);
+                return $this->error($errorMsg, 404);
             }
 
+            // Ensure bot is a member of the server
             if ($channel->server_id != 0) {
                 $membership = $this->userServerMembershipRepository->findByUserAndServer($input['user_id'], $channel->server_id);
                 if (!$membership) {
                     $added = $this->userServerMembershipRepository->addMembership($input['user_id'], $channel->server_id, 'member');
                     if (!$added) {
-                        return $this->error('Bot is not a member of this server and automatic join failed', 403);
+                        $errorMsg = 'Failed to add bot to server: ' . $channel->server_id;
+                        error_log('[BOT ERROR] ' . $errorMsg);
+                        return $this->error($errorMsg, 500);
                     }
                 }
             }
@@ -402,6 +420,7 @@ class BotController extends BaseController
             $query = new Query();
             $query->beginTransaction();
 
+            // Prepare message data
             $messageData = [
                 'content' => $input['content'],
                 'user_id' => $input['user_id'],
@@ -412,13 +431,19 @@ class BotController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
+            // Validate reply_message_id if present
             if (isset($input['reply_message_id'])) {
                 $repliedMessage = $messageRepository->find($input['reply_message_id']);
                 if ($repliedMessage) {
                     $messageData['reply_message_id'] = $input['reply_message_id'];
+                } else {
+                    $errorMsg = 'reply_message_id not found: ' . $input['reply_message_id'];
+                    error_log('[BOT ERROR] ' . $errorMsg);
+                    return $this->error($errorMsg, 404);
                 }
             }
 
+            // Create the message
             $message = $messageRepository->create($messageData);
 
             if ($message && isset($message->id)) {
@@ -456,7 +481,7 @@ class BotController extends BaseController
                 }
 
                 $query->commit();
-
+                error_log('[BOT DEBUG] Bot message sent successfully: ' . $message->id);
                 return $this->success([
                     'data' => [
                         'message' => $formattedMessage,
@@ -465,13 +490,18 @@ class BotController extends BaseController
                 ], 'Bot message sent successfully');
             } else {
                 $query->rollback();
-                throw new Exception('Failed to save bot message');
+                $errorMsg = 'Failed to save bot message (DB insert failed)';
+                error_log('[BOT ERROR] ' . $errorMsg);
+                return $this->error($errorMsg, 500);
             }
         } catch (Exception $e) {
             if (isset($query)) {
                 $query->rollback();
             }
-                        return $this->serverError('Failed to send bot message: ' . $e->getMessage());
+            $errorMsg = 'Exception: ' . $e->getMessage();
+            error_log('[BOT ERROR] ' . $errorMsg);
+            // Only pass two arguments as error() expects
+            return $this->error('Failed to send bot message: ' . $e->getMessage(), 500);
         }
     }
 
@@ -502,19 +532,18 @@ class BotController extends BaseController
      * @param int $serverId The server ID
      * @return bool True if the bot is now a member
      */
-    public function ensureBotInServer($botId, $serverId) {
+    public function ensureBotInServer($botId, $serverId)
+    {
         try {
             require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
             $membershipRepo = new UserServerMembershipRepository();
             
-            // Check if bot is already a member
+            // Simply check membership – do NOT auto-add. Bot must already be a member.
             if ($membershipRepo->isMember($botId, $serverId)) {
                 return true;
             }
             
-            // Add bot to server with 'member' role
-            $membershipRepo->addMember($botId, $serverId, 'member');
-            return true;
+            return false; // Not a member → caller must decide what to do.
         } catch (Exception $e) {
             error_log("Failed to ensure bot in server: " . $e->getMessage());
             return false;
@@ -527,19 +556,18 @@ class BotController extends BaseController
      * @param int $roomId The chat room ID
      * @return bool True if the bot is now a participant
      */
-    public function ensureBotInChatRoom($botId, $roomId) {
+    public function ensureBotInChatRoom($botId, $roomId)
+    {
         try {
             require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
             $chatRoomRepo = new ChatRoomRepository();
             
-            // Check if bot is already a participant
+            // Check if bot is already a participant – no auto-join anymore.
             if ($chatRoomRepo->isParticipant($roomId, $botId)) {
                 return true;
             }
             
-            // Add bot to chat room
-            $chatRoomRepo->addParticipant($roomId, $botId);
-            return true;
+            return false; // Not a participant
         } catch (Exception $e) {
             error_log("Failed to ensure bot in chat room: " . $e->getMessage());
             return false;

@@ -362,24 +362,7 @@ class ChatController extends BaseController
         if ($channel->server_id != 0) {
             $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
             if (!$membership) {
-                // Check if this is a bot user - bots can auto-join servers
-                $query = new Query();
-                $botUser = $query->table('users')
-                    ->where('id', $userId)
-                    ->where('status', 'bot')
-                    ->first();
-                
-                if (!$botUser) {
-                    return $this->internalForbidden('You are not a member of this server');
-                }
-                
-                // Auto-add bot to server
-                try {
-                    $this->userServerMembershipRepository->addMembership($userId, $channel->server_id, 'member');
-                } catch (Exception $e) {
-                    error_log("Failed to auto-add bot to server: " . $e->getMessage());
-                    return $this->internalForbidden('Bot could not be added to server');
-                }
+                return $this->internalForbidden('You are not a member of this server');
             }
         }
 
@@ -480,24 +463,7 @@ class ChatController extends BaseController
             return $this->internalNotFound('Chat room not found');
         }
         if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
-            // Check if this is a bot user - bots can auto-join chat rooms
-            $query = new Query();
-            $botUser = $query->table('users')
-                ->where('id', $userId)
-                ->where('status', 'bot')
-                ->first();
-            
-            if (!$botUser) {
-                return $this->internalForbidden('You are not a participant in this chat');
-            }
-            
-            // Auto-add bot to chat room
-            try {
-                $this->chatRoomRepository->addParticipant($chatRoomId, $userId);
-            } catch (Exception $e) {
-                error_log("Failed to auto-add bot to chat room: " . $e->getMessage());
-                return $this->internalForbidden('Bot could not be added to chat room');
-            }
+            return $this->internalForbidden('You are not a participant in this chat');
         }
 
         // Ensure reply_message_id is null or a valid integer
@@ -530,25 +496,6 @@ class ChatController extends BaseController
                 $this->chatRoomMessageRepository->addMessageToRoom($chatRoomId, $message->id);
 
                 $formattedMessage = $this->formatMessage($message);
-
-                if ($message->reply_message_id) {
-                    $repliedMessage = $this->messageRepository->find($message->reply_message_id);
-                    if ($repliedMessage) {
-                        $repliedUser = $this->userRepository->find($repliedMessage->user_id);
-                        $formattedMessage['reply_message_id'] = $message->reply_message_id;
-                        $formattedMessage['reply_data'] = [
-                            'message_id' => $message->reply_message_id,
-                            'content' => $repliedMessage->content,
-                            'user_id' => $repliedMessage->user_id,
-                            'username' => $repliedUser ? $repliedUser->username : 'Unknown',
-                            'avatar_url' => $repliedUser && $repliedUser->avatar_url ? $repliedUser->avatar_url : '/public/assets/common/default-profile-picture.png'
-                        ];
-                    }
-                }
-
-                if (!empty($mentions)) {
-                    $formattedMessage['mentions'] = $mentions;
-                }
 
                 $participants = $this->chatRoomRepository->getParticipants($chatRoomId);
                 $senderUsername = $_SESSION['username'] ?? 'Unknown';
@@ -1656,9 +1603,12 @@ class ChatController extends BaseController
                     return $this->notFound("Channel not found with ID $targetId");
                 }
                 
-                // Ensure bot is a member of the server
+                // Ensure bot is already a member of the server
                 if ($channel->server_id != 0) {
-                    $botController->ensureBotInServer($userId, $channel->server_id);
+                    $isMember = $botController->ensureBotInServer($userId, $channel->server_id);
+                    if (!$isMember) {
+                        return $this->forbidden('Bot is not a member of this server');
+                    }
                 }
                 
                 $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
@@ -1668,8 +1618,11 @@ class ChatController extends BaseController
                     return $this->notFound("Chat room not found with ID $targetId");
                 }
                 
-                // Ensure bot is a participant in the chat room
-                $botController->ensureBotInChatRoom($userId, $targetId);
+                // Ensure bot is already a participant in the chat room
+                $isParticipant = $botController->ensureBotInChatRoom($userId, $targetId);
+                if (!$isParticipant) {
+                    return $this->forbidden('Bot is not a participant in this chat room');
+                }
                 
                 $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             }
@@ -1777,7 +1730,15 @@ class ChatController extends BaseController
                 
                 // Ensure bot is a member of the server
                 if ($channel->server_id != 0) {
-                    $botController->ensureBotInServer($userId, $channel->server_id);
+                    // Check membership; if not a member, attempt to add automatically so the message can be saved
+                    $isMember = $botController->ensureBotInServer($userId, $channel->server_id);
+                    if (!$isMember) {
+                        $joinResult = $botController->joinServer($userId, $channel->server_id, 'member');
+                        // If join failed return explicit error to avoid silent 500 that the front-end reports
+                        if (!$joinResult || !$joinResult['success']) {
+                            return $this->serverError($joinResult['message'] ?? 'Failed to add bot to server');
+                        }
+                    }
                 }
                 
                 $result = $this->sendChannelMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
@@ -1787,8 +1748,11 @@ class ChatController extends BaseController
                     return $this->notFound("Chat room not found with ID $targetId");
                 }
                 
-                // Ensure bot is a participant in the chat room
-                $botController->ensureBotInChatRoom($userId, $targetId);
+                // Ensure bot is already a participant in the chat room
+                $isParticipant = $botController->ensureBotInChatRoom($userId, $targetId);
+                if (!$isParticipant) {
+                    return $this->forbidden('Bot is not a participant in this chat room');
+                }
                 
                 $result = $this->sendDirectMessage($targetId, $content, $userId, $messageType, $attachments, $mentions, $replyMessageId, true);
             }
