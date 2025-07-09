@@ -97,8 +97,8 @@ class VoiceCallSection {
         window.addEventListener("voiceStateChanged", (e) => this.handleVoiceStateChanged(e));
         window.addEventListener("voiceDisconnect", () => this.clearGrid());
         
-        window.addEventListener("bot-voice-participant-joined", (e) => this.handleBotJoined(e));
-        window.addEventListener("bot-voice-participant-left", (e) => this.handleBotLeft(e));
+        window.addEventListener("bot-voice-participant-joined", (e) => this.handleBotParticipantJoined(e));
+        window.addEventListener("bot-voice-participant-left", (e) => this.handleBotParticipantLeft(e));
     }
     
     handleParticipantJoined(event) {
@@ -121,6 +121,46 @@ class VoiceCallSection {
         if (element) {
             element.remove();
             this.participantElements.delete(participant);
+            this.updateGridLayout();
+            this.updateParticipantCount();
+        }
+    }
+    
+    handleBotParticipantJoined(event) {
+        const { participant } = event.detail;
+        if (!participant || !participant.user_id) return;
+        
+        const botId = `bot-${participant.user_id}`;
+        if (this.participantElements.has(botId)) return;
+        
+        const botData = {
+            displayName: participant.username || 'TitiBot',
+            name: participant.username || 'TitiBot',
+            isBot: true,
+            user_id: participant.user_id,
+            avatar_url: participant.avatar_url || '/public/assets/landing-page/robot.webp',
+            channelId: participant.channelId || participant.channel_id
+        };
+        
+        const element = this.createParticipantElement(botId, botData);
+        const grid = document.getElementById("participantGrid");
+        if (grid) {
+            grid.appendChild(element);
+            this.participantElements.set(botId, element);
+            this.updateGridLayout();
+            this.updateParticipantCount();
+        }
+    }
+    
+    handleBotParticipantLeft(event) {
+        const { participant } = event.detail;
+        if (!participant || !participant.user_id) return;
+        
+        const botId = `bot-${participant.user_id}`;
+        const element = this.participantElements.get(botId);
+        if (element) {
+            element.remove();
+            this.participantElements.delete(botId);
             this.updateGridLayout();
             this.updateParticipantCount();
         }
@@ -173,8 +213,10 @@ class VoiceCallSection {
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
         div.setAttribute("data-participant-id", participantId);
         
-        const name = data?.displayName || data?.name || "Unknown";
+        const name = data?.displayName || data?.name || data?.username || "Unknown";
         const isLocal = data?.isLocal || (participantId === window.voiceManager?.localParticipant?.id);
+        const isBot = data?.isBot || participantId.startsWith('bot-');
+        const avatarUrl = data?.avatar_url || '/public/assets/common/default-profile-picture.png';
         
         div.innerHTML = `
             <div class="participant-video-overlay hidden absolute inset-0 rounded-lg overflow-hidden z-20">
@@ -185,12 +227,17 @@ class VoiceCallSection {
             </div>
             
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
-                <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative">
-                    <span>${this.getInitials(name)}</span>
+                <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative overflow-hidden">
+                    ${isBot ? 
+                        `<img src="${avatarUrl}" alt="${name}" class="w-full h-full object-cover rounded-full">` : 
+                        `<span>${this.getInitials(name)}</span>`
+                    }
+                    ${isBot ? '<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white text-xs"></i></div>' : ''}
                 </div>
                 <span class="participant-name text-white text-sm font-medium text-center mb-2 max-w-full truncate">
-                    ${name}${isLocal ? " (You)" : ""}
+                    ${name}${isLocal ? " (You)" : ""}${isBot ? " (Bot)" : ""}
                 </span>
+                ${isBot ? '<div class="music-status text-xs text-[#5865f2] text-center"><i class="fas fa-music mr-1"></i>Ready to play music</div>' : ''}
             </div>
         `;
         
@@ -288,57 +335,6 @@ class VoiceCallSection {
         }
     }
     
-    handleBotJoined(event) {
-        const bot = event.detail.participant;
-        if (!bot || this.participantElements.has(`bot-${bot.user_id}`)) return;
-        
-        const element = this.createBotElement(bot);
-        const grid = document.getElementById("participantGrid");
-        if (grid) {
-            grid.appendChild(element);
-            this.participantElements.set(`bot-${bot.user_id}`, element);
-            this.updateGridLayout();
-            this.updateParticipantCount();
-        }
-    }
-    
-    handleBotLeft(event) {
-        const bot = event.detail.participant;
-        if (!bot) return;
-        
-        const botId = `bot-${bot.user_id}`;
-        const element = this.participantElements.get(botId);
-        if (element) {
-            element.remove();
-            this.participantElements.delete(botId);
-            this.updateGridLayout();
-            this.updateParticipantCount();
-        }
-    }
-    
-    createBotElement(bot) {
-        const div = document.createElement("div");
-        div.className = "participant-card bot-participant bg-[#36393f] rounded-lg p-4 flex flex-col items-center justify-center relative";
-        div.setAttribute("data-participant-id", `bot-${bot.user_id}`);
-        div.setAttribute("data-is-bot", "true");
-        
-        div.innerHTML = `
-            <div class="bot-indicator">BOT</div>
-            <div class="w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center mb-3 relative">
-                <img src="${bot.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
-                     alt="${bot.username}" 
-                     class="w-12 h-12 rounded-full object-cover">
-                <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#5865f2] rounded-full flex items-center justify-center">
-                    <i class="fas fa-robot text-white text-xs"></i>
-                </div>
-            </div>
-            <div class="text-white font-medium text-sm mb-1">${bot.username}</div>
-            <div class="text-[#5865f2] text-xs">Music Bot</div>
-        `;
-        
-        return div;
-    }
-    
     updateGridLayout() {
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
@@ -363,6 +359,16 @@ class VoiceCallSection {
         const countEl = document.getElementById("voiceParticipantCount");
         if (countEl) {
             countEl.textContent = count.toString();
+        }
+    }
+    
+    updateBotParticipantStatus(botId, statusText) {
+        const element = this.participantElements.get(`bot-${botId}`);
+        if (element) {
+            const statusElement = element.querySelector('.music-status');
+            if (statusElement) {
+                statusElement.innerHTML = `<i class="fas fa-music mr-1"></i>${statusText}`;
+            }
         }
     }
     

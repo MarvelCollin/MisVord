@@ -298,14 +298,9 @@ class ChatBot {
     }
 
     updateBotParticipantStatus(statusText) {
-
-        const botCard = document.querySelector('[data-participant-id="bot-4"]');
-        if (botCard) {
-            const statusElement = botCard.querySelector('.music-status');
-            if (statusElement) {
-                statusElement.innerHTML = `<i class="fas fa-music mr-1"></i>${statusText}`;
-
-            }
+        if (window.voiceCallSection && typeof window.voiceCallSection.updateBotParticipantStatus === 'function') {
+            const titiBotId = this.titiBotId || '4';
+            window.voiceCallSection.updateBotParticipantStatus(titiBotId, statusText);
         }
     }
 

@@ -14,6 +14,9 @@ class ChannelVoiceParticipants {
         window.addEventListener('voiceConnect', (e) => this.handleVoiceConnect(e));
         window.addEventListener('voiceDisconnect', () => this.handleVoiceDisconnect());
         
+        window.addEventListener('bot-voice-participant-joined', (e) => this.handleBotJoined(e));
+        window.addEventListener('bot-voice-participant-left', (e) => this.handleBotLeft(e));
+        
         if (window.globalSocketManager?.io) {
             this.attachSocketEvents();
         } else {
@@ -31,12 +34,25 @@ class ChannelVoiceParticipants {
         socket.on('voice-meeting-update', (data) => {
             if (data.action === 'join' || data.action === 'leave') {
                 this.updateSidebar();
+                this.updateAllChannelCounts();
             }
         });
         
         socket.on('voice-meeting-status', (data) => {
             if (data.has_meeting && data.channel_id) {
                 this.updateChannelCount(data.channel_id, data.participant_count || 0);
+            }
+        });
+        
+        socket.on('bot-voice-participant-joined', (data) => {
+            if (data.participant && data.channelId) {
+                this.updateChannelCount(data.channelId, null);
+            }
+        });
+        
+        socket.on('bot-voice-participant-left', (data) => {
+            if (data.participant && data.channelId) {
+                this.updateChannelCount(data.channelId, null);
             }
         });
     }
@@ -64,6 +80,26 @@ class ChannelVoiceParticipants {
         });
     }
     
+    handleBotJoined(event) {
+        const { participant } = event.detail;
+        if (participant && participant.channelId) {
+            this.updateChannelCount(participant.channelId, null);
+            if (window.voiceManager && window.voiceManager.currentChannelId === participant.channelId) {
+                this.updateSidebar();
+            }
+        }
+    }
+    
+    handleBotLeft(event) {
+        const { participant } = event.detail;
+        if (participant && participant.channelId) {
+            this.updateChannelCount(participant.channelId, null);
+            if (window.voiceManager && window.voiceManager.currentChannelId === participant.channelId) {
+                this.updateSidebar();
+            }
+        }
+    }
+    
     updateSidebar() {
         if (!window.voiceManager || !window.voiceManager.currentChannelId) return;
         
@@ -73,15 +109,15 @@ class ChannelVoiceParticipants {
         
         container.innerHTML = '';
         
-        const participants = window.voiceManager.participants;
-        participants.forEach((data, id) => {
+        const allParticipants = window.voiceManager.getAllParticipants();
+        allParticipants.forEach((data, id) => {
             const element = this.createParticipantElement(data);
             container.appendChild(element);
         });
         
-        this.updateChannelCount(channelId, participants.size);
+        this.updateChannelCount(channelId, allParticipants.size);
         
-        if (participants.size > 0) {
+        if (allParticipants.size > 0) {
             container.classList.remove('hidden');
         }
     }
@@ -89,10 +125,11 @@ class ChannelVoiceParticipants {
     createParticipantElement(participant) {
         const div = document.createElement('div');
         div.className = 'flex items-center py-1 px-2 text-gray-300 hover:text-white transition-colors duration-200';
-        div.setAttribute('data-user-id', participant.id);
+        div.setAttribute('data-user-id', participant.user_id || participant.id);
         
         const avatarUrl = participant.avatar_url || '/public/assets/common/default-profile-picture.png';
-        const displayName = participant.name || 'Unknown';
+        const displayName = participant.name || participant.username || 'Unknown';
+        const isBot = participant.isBot || false;
         
         div.innerHTML = `
             <div class="relative mr-2">
@@ -100,9 +137,10 @@ class ChannelVoiceParticipants {
                      alt="${displayName}" 
                      class="w-5 h-5 rounded-full bg-gray-600 object-cover"
                      onerror="this.src='/public/assets/common/default-profile-picture.png'">
-                <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-discord-green rounded-full border border-discord-dark"></div>
+                <div class="absolute -bottom-0.5 -right-0.5 w-2 h-2 ${isBot ? 'bg-[#5865f2]' : 'bg-discord-green'} rounded-full border border-discord-dark"></div>
+                ${isBot ? '<div class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white" style="font-size: 6px;"></i></div>' : ''}
             </div>
-            <span class="text-sm truncate">${displayName}</span>
+            <span class="text-sm truncate">${displayName}${isBot ? ' (Bot)' : ''}</span>
         `;
         
         return div;
@@ -111,6 +149,10 @@ class ChannelVoiceParticipants {
     updateChannelCount(channelId, count) {
         const channelItem = document.querySelector(`[data-channel-id="${channelId}"]`);
         if (!channelItem) return;
+        
+        if (count === null) {
+            count = this.calculateChannelParticipantCount(channelId);
+        }
         
         const countEl = channelItem.querySelector('.voice-user-count');
         if (countEl) {
@@ -123,6 +165,35 @@ class ChannelVoiceParticipants {
         }
     }
     
+    calculateChannelParticipantCount(channelId) {
+        let count = 0;
+        
+        if (window.voiceManager && window.voiceManager.currentChannelId === channelId) {
+            count = window.voiceManager.getAllParticipants().size;
+        }
+        
+        if (window.BotComponent && window.BotComponent.voiceBots) {
+            window.BotComponent.voiceBots.forEach((botData, botId) => {
+                if (botData.channel_id === channelId) {
+                    if (!window.voiceManager || window.voiceManager.currentChannelId !== channelId) {
+                        count++;
+                    }
+                }
+            });
+        }
+        
+        return count;
+    }
+    
+    updateAllChannelCounts() {
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                this.updateChannelCount(channelId, null);
+            }
+        });
+    }
+    
     loadInitialState() {
         document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
             const channelId = channel.getAttribute('data-channel-id');
@@ -130,6 +201,20 @@ class ChannelVoiceParticipants {
                 window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
             }
         });
+        
+        setTimeout(() => {
+            this.loadExistingBotParticipants();
+        }, 1000);
+    }
+    
+    loadExistingBotParticipants() {
+        if (window.BotComponent && window.BotComponent.voiceBots) {
+            window.BotComponent.voiceBots.forEach((botData, botId) => {
+                if (botData.channel_id) {
+                    this.updateChannelCount(botData.channel_id, null);
+                }
+            });
+        }
     }
     
     static getInstance() {

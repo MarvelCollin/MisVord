@@ -686,9 +686,6 @@ function handleCheckVoiceMeeting(io, client, data) {
         return;
     }
 
-
-    
-
     const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
     const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
     
@@ -697,7 +694,6 @@ function handleCheckVoiceMeeting(io, client, data) {
     
     const meetingId = hasMeeting ? (participants[0]?.meetingId || roomManagerMeeting?.meeting_id) : null;
     
-
     console.log(`🔍 [VOICE-PARTICIPANT] Voice check debug:`, {
         channel_id,
         trackerParticipants: participantCount,
@@ -715,7 +711,8 @@ function handleCheckVoiceMeeting(io, client, data) {
             user_id: p.userId,
             username: p.username || 'Unknown',
             meeting_id: p.meetingId,
-            joined_at: p.joinedAt
+            joined_at: p.joinedAt,
+            isBot: p.isBot || false
         })),
         timestamp: Date.now()
     };
@@ -723,7 +720,8 @@ function handleCheckVoiceMeeting(io, client, data) {
     console.log(`📊 [VOICE-PARTICIPANT] Voice meeting status for channel ${channel_id}:`, {
         hasMeeting,
         participantCount,
-        meetingId
+        meetingId,
+        participantTypes: participants.map(p => ({ id: p.userId, isBot: p.isBot }))
     });
 
     client.emit('voice-meeting-status', response);
@@ -737,7 +735,28 @@ function handleCheckVoiceMeeting(io, client, data) {
                 username: participant.username,
                 meeting_id: participant.meetingId,
                 participant_count: participantCount,
+                isBot: participant.isBot,
                 timestamp: Date.now()
+            });
+        });
+    }
+    
+    const botParticipants = VoiceConnectionTracker.getBotParticipants(channel_id);
+    if (botParticipants.length > 0) {
+        botParticipants.forEach(botParticipant => {
+            client.emit('bot-voice-participant-joined', {
+                participant: {
+                    user_id: botParticipant.userId,
+                    username: botParticipant.username,
+                    avatar_url: '/public/assets/landing-page/robot.webp',
+                    isBot: true,
+                    channelId: channel_id,
+                    channel_id: channel_id,
+                    meetingId: botParticipant.meetingId,
+                    joinedAt: botParticipant.joinedAt
+                },
+                channelId: channel_id,
+                meetingId: botParticipant.meetingId
             });
         });
     }

@@ -957,6 +957,11 @@ Route::post('/api/nitro/redeem', function() {
     $controller->redeem();
 });
 
+Route::post('/api/nitro/claim-instant', function() {
+    $controller = new NitroController();
+    $controller->claimInstant();
+});
+
 Route::get('/api/nitro/status', function() {
     $controller = new NitroController();
     $controller->getUserNitroStatus();

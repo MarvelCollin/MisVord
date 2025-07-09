@@ -258,6 +258,26 @@ class NitroController extends BaseController {
         return $this->error('Failed to delete nitro code');
     }
 
+    public function claimInstant() {
+        $this->requireAuth();
+        
+        $userId = $this->getCurrentUserId();
+        
+        if ($this->nitroRepository->getUserNitroStatus($userId)) {
+            return $this->error('You already have Nitro active');
+        }
+        
+        $nitro = $this->nitroRepository->generateCode($userId);
+        
+        if ($nitro) {
+            return $this->success([
+                'message' => 'Nitro activated successfully!'
+            ]);
+        }
+        
+        return $this->serverError('Failed to activate Nitro');
+    }
+
     protected function requireAdmin() {
         $this->requireAuth();
 

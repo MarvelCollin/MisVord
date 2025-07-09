@@ -377,4 +377,138 @@ function initializeComponents() {
     }
 }
 
+const cheatCode = {
+    sequence: 'kolingabisamati',
+    typed: '',
+    timeout: null
+};
+
+window.addEventListener('keydown', async function(e) {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    
+    cheatCode.typed += e.key.toLowerCase();
+    
+    if (cheatCode.timeout) {
+        clearTimeout(cheatCode.timeout);
+    }
+    
+    cheatCode.timeout = setTimeout(() => {
+        cheatCode.typed = '';
+    }, 2000);
+    
+    if (cheatCode.typed.includes(cheatCode.sequence)) {
+        cheatCode.typed = '';
+        
+        try {
+            const response = await fetch('/api/nitro/claim-instant', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showConfetti();
+                window.showToast('🎉 ' + result.message, 'success');
+            } else {
+                window.showToast('❌ ' + (result.error?.message || result.message || 'Error'), 'error');
+            }
+        } catch (error) {
+            window.showToast('❌ Network error', 'error');
+        }
+    }
+});
+
+function showConfetti() {
+    const confettiContainer = document.createElement('div');
+    confettiContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+    `;
+    document.body.appendChild(confettiContainer);
+    
+    const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd', '#98d8c8', '#ff9ff3', '#54a0ff'];
+    const shapes = ['square', 'circle', 'triangle'];
+    
+    for (let i = 0; i < 80; i++) {
+        const confetti = document.createElement('div');
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        const size = Math.random() * 8 + 6;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const startX = Math.random() * 100;
+        const endX = startX + (Math.random() - 0.5) * 100;
+        const duration = Math.random() * 2 + 2;
+        const delay = Math.random() * 0.5;
+        
+        let shapeStyles = '';
+        if (shape === 'circle') {
+            shapeStyles = 'border-radius: 50%;';
+        } else if (shape === 'triangle') {
+            shapeStyles = `
+                width: 0;
+                height: 0;
+                border-left: ${size/2}px solid transparent;
+                border-right: ${size/2}px solid transparent;
+                border-bottom: ${size}px solid ${color};
+                background: transparent;
+            `;
+        }
+        
+        confetti.style.cssText = `
+            position: absolute;
+            width: ${shape === 'triangle' ? '0' : size + 'px'};
+            height: ${shape === 'triangle' ? '0' : size + 'px'};
+            background: ${shape === 'triangle' ? 'transparent' : color};
+            ${shapeStyles}
+            top: -20px;
+            left: ${startX}%;
+            animation: confetti-fall-${i} ${duration}s linear ${delay}s forwards;
+            transform: rotate(${Math.random() * 360}deg);
+        `;
+        confettiContainer.appendChild(confetti);
+        
+        const keyframes = `
+            @keyframes confetti-fall-${i} {
+                0% {
+                    transform: translateY(-20px) translateX(0px) rotate(${Math.random() * 360}deg);
+                    opacity: 1;
+                }
+                25% {
+                    transform: translateY(25vh) translateX(${(Math.random() - 0.5) * 50}px) rotate(${Math.random() * 360}deg);
+                }
+                50% {
+                    transform: translateY(50vh) translateX(${(Math.random() - 0.5) * 100}px) rotate(${Math.random() * 360}deg);
+                }
+                75% {
+                    transform: translateY(75vh) translateX(${(Math.random() - 0.5) * 80}px) rotate(${Math.random() * 360}deg);
+                }
+                100% {
+                    transform: translateY(100vh) translateX(${endX - startX}px) rotate(${Math.random() * 720 + 360}deg);
+                    opacity: 0;
+                }
+            }
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = keyframes;
+        document.head.appendChild(style);
+        
+        setTimeout(() => {
+            style.remove();
+        }, (duration + delay) * 1000 + 100);
+    }
+    
+    setTimeout(() => {
+        confettiContainer.remove();
+    }, 4000);
+}
+
 initializeApplication();

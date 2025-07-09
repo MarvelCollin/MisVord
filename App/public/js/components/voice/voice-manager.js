@@ -8,6 +8,7 @@ class VoiceManager {
         this.currentMeetingId = null;
         this.authToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIiwiYWxsb3dfcHVibGlzaCJdLCJpYXQiOjE3NTEyMTU2MjEsImV4cCI6MTc1MzgwNzYyMX0.duF2XwBk9-glZTDWS8QyX4yGNaf6faZXUCLsc07QxJk";
         this.participants = new Map();
+        this.botParticipants = new Map();
         this.localParticipant = null;
         
         this._micOn = false;
@@ -21,6 +22,7 @@ class VoiceManager {
     async init() {
         await this.loadVideoSDK();
         this.setupBeforeUnloadHandler();
+        this.setupBotEventListeners();
         window.voiceManager = this;
         console.log('[VoiceManager] Initialized successfully');
     }
@@ -58,6 +60,63 @@ class VoiceManager {
         });
     }
     
+    setupBotEventListeners() {
+        if (window.globalSocketManager?.io) {
+            window.globalSocketManager.io.on('bot-voice-participant-joined', (data) => {
+                this.handleBotParticipantJoined(data);
+            });
+            
+            window.globalSocketManager.io.on('bot-voice-participant-left', (data) => {
+                this.handleBotParticipantLeft(data);
+            });
+        } else {
+            window.addEventListener('globalSocketReady', () => {
+                this.setupBotEventListeners();
+            });
+        }
+    }
+    
+    handleBotParticipantJoined(data) {
+        const { participant, channelId } = data;
+        if (!participant || !participant.user_id) return;
+        
+        if (channelId === this.currentChannelId) {
+            const botId = `bot-${participant.user_id}`;
+            this.botParticipants.set(botId, {
+                id: botId,
+                user_id: participant.user_id,
+                name: participant.username || 'TitiBot',
+                username: participant.username || 'TitiBot',
+                avatar_url: participant.avatar_url || '/public/assets/landing-page/robot.webp',
+                isBot: true,
+                isLocal: false,
+                streams: new Map(),
+                channelId: channelId
+            });
+            
+            this.participants.set(botId, this.botParticipants.get(botId));
+            
+            window.dispatchEvent(new CustomEvent('participantJoined', {
+                detail: { participant: botId, data: this.botParticipants.get(botId) }
+            }));
+        }
+    }
+    
+    handleBotParticipantLeft(data) {
+        const { participant } = data;
+        if (!participant || !participant.user_id) return;
+        
+        const botId = `bot-${participant.user_id}`;
+        if (this.botParticipants.has(botId)) {
+            this.botParticipants.delete(botId);
+            this.participants.delete(botId);
+            
+            window.dispatchEvent(new CustomEvent('participantLeft', {
+                detail: { participant: botId }
+            }));
+        }
+    }
+    
     async joinVoice(channelId, channelName) {
         if (this.isConnected) {
             if (this.currentChannelId === channelId) return;
@@ -88,6 +147,7 @@ class VoiceManager {
             
             this.updatePresence();
             this.notifySocketServer('join');
+            this.loadExistingBotParticipants();
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { channelId, channelName, meetingId }
@@ -125,6 +185,7 @@ class VoiceManager {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         this.participants.clear();
+        this.botParticipants.clear();
         this.localParticipant = null;
         
         this._micOn = false;
@@ -135,6 +196,37 @@ class VoiceManager {
         if (window.globalSocketManager) {
             window.globalSocketManager.updatePresence('online', { type: 'active' });
         }
+    }
+    
+    loadExistingBotParticipants() {
+        if (window.BotComponent && window.BotComponent.voiceBots) {
+            window.BotComponent.voiceBots.forEach((botData, botId) => {
+                if (botData.channel_id === this.currentChannelId) {
+                    this.handleBotParticipantJoined({
+                        participant: botData,
+                        channelId: this.currentChannelId
+                    });
+                }
+            });
+        }
+    }
+    
+    getAllParticipants() {
+        return new Map([...this.participants]);
+    }
+    
+    getHumanParticipants() {
+        const humanParticipants = new Map();
+        this.participants.forEach((participant, id) => {
+            if (!participant.isBot) {
+                humanParticipants.set(id, participant);
+            }
+        });
+        return humanParticipants;
+    }
+    
+    getBotParticipants() {
+        return new Map([...this.botParticipants]);
     }
     
     setupMeetingEvents() {
@@ -169,6 +261,8 @@ class VoiceManager {
         this.participants.set(participant.id, {
             id: participant.id,
             name: participant.displayName || participant.name,
+            username: participant.displayName || participant.name,
+            isBot: false,
             isLocal: participant.id === this.localParticipant?.id,
             streams: new Map()
         });

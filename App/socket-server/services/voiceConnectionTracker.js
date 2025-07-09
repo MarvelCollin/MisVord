@@ -1,38 +1,58 @@
 class VoiceConnectionTracker {
     static connections = new Map();
     static userVoiceStatus = new Map();
+    static botConnections = new Map();
 
     static addUserToVoice(userId, channelId, meetingId, username = null) {
         const userKey = userId.toString();
 
-        
         this.connections.set(userKey, {
             userId: userKey,
             channelId: channelId,
             meetingId: meetingId,
             username: username,
             joinedAt: Date.now(),
-            isConnected: true
+            isConnected: true,
+            isBot: false
         });
         
         this.userVoiceStatus.set(userKey, true);
-
     }
 
     static removeUserFromVoice(userId) {
         const userKey = userId.toString();
 
-        
         this.connections.delete(userKey);
         this.userVoiceStatus.set(userKey, false);
+    }
 
+    static addBotToVoice(botId, channelId, meetingId, username = null) {
+        const botKey = `bot-${botId}`;
+
+        this.botConnections.set(botKey, {
+            userId: botId.toString(),
+            channelId: channelId,
+            meetingId: meetingId,
+            username: username,
+            joinedAt: Date.now(),
+            isConnected: true,
+            isBot: true
+        });
+
+        this.connections.set(botKey, this.botConnections.get(botKey));
+    }
+
+    static removeBotFromVoice(botId, channelId) {
+        const botKey = `bot-${botId}`;
+
+        this.botConnections.delete(botKey);
+        this.connections.delete(botKey);
     }
 
     static getUserVoiceStatus(userId) {
         const userKey = userId.toString();
         const isConnected = this.connections.has(userKey) && this.connections.get(userKey).isConnected;
         
-
         if (isConnected) {
             console.log(`🔍 [VOICE-TRACKER] Connection details:`, {
                 channelId: this.connections.get(userKey)?.channelId,
@@ -49,7 +69,6 @@ class VoiceConnectionTracker {
         const connection = this.connections.get(userKey);
         const isConnected = connection && connection.isConnected;
         
-
         if (connection) {
             console.log(`🔍 [VOICE-TRACKER] Connection details:`, {
                 channelId: connection.channelId,
@@ -66,11 +85,9 @@ class VoiceConnectionTracker {
         const connection = this.connections.get(userKey);
         
         if (connection && connection.isConnected) {
-
             return connection;
         }
         
-
         return null;
     }
 
@@ -86,10 +103,39 @@ class VoiceConnectionTracker {
                 channelId: conn.channelId,
                 meetingId: conn.meetingId,
                 joinedAt: conn.joinedAt,
+                username: conn.username || 'Unknown',
+                isBot: conn.isBot || false
+            }));
+        
+        return participants;
+    }
+
+    static getHumanParticipants(channelId) {
+        const participants = Array.from(this.connections.values())
+            .filter(conn => conn.channelId === channelId && conn.isConnected && !conn.isBot)
+            .map(conn => ({
+                userId: conn.userId,
+                channelId: conn.channelId,
+                meetingId: conn.meetingId,
+                joinedAt: conn.joinedAt,
                 username: conn.username || 'Unknown'
             }));
         
+        return participants;
+    }
 
+    static getBotParticipants(channelId) {
+        const participants = Array.from(this.botConnections.values())
+            .filter(conn => conn.channelId === channelId && conn.isConnected)
+            .map(conn => ({
+                userId: conn.userId,
+                channelId: conn.channelId,
+                meetingId: conn.meetingId,
+                joinedAt: conn.joinedAt,
+                username: conn.username || 'Bot',
+                isBot: true
+            }));
+        
         return participants;
     }
 
@@ -99,8 +145,11 @@ class VoiceConnectionTracker {
         
         for (const [userId, connection] of this.connections.entries()) {
             if (now - connection.joinedAt > timeout) {
-
-                this.removeUserFromVoice(userId);
+                if (connection.isBot) {
+                    this.removeBotFromVoice(connection.userId, connection.channelId);
+                } else {
+                    this.removeUserFromVoice(userId);
+                }
             }
         }
     }
@@ -108,6 +157,8 @@ class VoiceConnectionTracker {
     static getStats() {
         return {
             totalConnections: this.connections.size,
+            humanConnections: this.connections.size - this.botConnections.size,
+            botConnections: this.botConnections.size,
             activeUsers: Array.from(this.connections.keys()),
             channelDistribution: this.getChannelDistribution()
         };
