@@ -2,6 +2,7 @@ class ChannelVoiceParticipants {
     constructor() {
         this.externalParticipants = new Map(); 
         this.debugPanel = null; 
+        this.loadingState = new Map(); // Tracks channels with active loading skeletons
         this.init();
     }
     
@@ -232,12 +233,48 @@ class ChannelVoiceParticipants {
     
     handleVoiceConnect(event) {
         const { channelId } = event.detail;
-        if (channelId) {
-            const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-            if (container) {
-                container.classList.remove('hidden');
-                this.updateSidebarForChannel(channelId);
-            }
+        if (!channelId) return;
+
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) return;
+
+        container.classList.remove('hidden');
+
+        // Show skeleton loader while we wait for participant data
+        this.showSkeletonLoader(channelId);
+        
+        // Set a timeout to ensure we eventually render even if no events arrive
+        setTimeout(() => {
+            this.updateSidebarForChannel(channelId);
+        }, 1500);
+    }
+    
+    /**
+     * Shows a skeleton loading animation in the voice participants sidebar
+     * @param {string} channelId - The channel to show loading for
+     */
+    showSkeletonLoader(channelId) {
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) return;
+        
+        // Mark this channel as in loading state
+        this.loadingState.set(channelId, true);
+        
+        // Clear existing content
+        container.innerHTML = '';
+        
+        // Add 1-2 skeleton loaders
+        for (let i = 0; i < 2; i++) {
+            const skeleton = document.createElement('div');
+            skeleton.className = 'voice-participant-card skeleton-loader bg-[#2f3136] rounded-lg p-2 flex items-center space-x-3 border border-[#40444b]';
+            skeleton.innerHTML = `
+                <div class="skeleton-circle w-8 h-8 rounded-full bg-[#202225] animate-pulse"></div>
+                <div class="flex flex-col flex-grow">
+                    <div class="skeleton-text h-4 w-24 bg-[#202225] rounded animate-pulse mb-1"></div>
+                    <div class="skeleton-text h-3 w-16 bg-[#202225] rounded animate-pulse"></div>
+                </div>
+            `;
+            container.appendChild(skeleton);
         }
     }
     
@@ -273,24 +310,27 @@ class ChannelVoiceParticipants {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
         
-        container.innerHTML = '';
+        // Remove loading state
+        this.loadingState.delete(channelId);
         
-        let participantCount = 0;
-        
-        // participants from voiceManager ONLY when this tab is actually connected to the call
-        if (window.voiceManager && window.voiceManager.currentChannelId === channelId && window.voiceManager.isConnected) {
-            const allParticipants = window.voiceManager.getAllParticipants();
-            allParticipants.forEach((data, id) => {
-                const element = this.createParticipantElement(data);
-                container.appendChild(element);
-                participantCount++;
+        // Build a list first so we know if clearing is safe
+        const renderList = [];
+
+        const useLocalList = window.voiceManager &&
+            window.voiceManager.currentChannelId === channelId &&
+            window.voiceManager.isConnected &&
+            window.voiceManager.getAllParticipants &&
+            window.voiceManager.getAllParticipants().size > 0;
+
+        if (useLocalList) {
+            window.voiceManager.getAllParticipants().forEach(data => {
+                renderList.push(data);
             });
         } else {
-            // external participants map
             const map = this.externalParticipants.get(channelId);
             if (map) {
                 map.forEach((pData, uid) => {
-                    const element = this.createParticipantElement({
+                    renderList.push({
                         id: uid,
                         user_id: uid,
                         name: pData.username,
@@ -299,17 +339,15 @@ class ChannelVoiceParticipants {
                         isBot: false,
                         isLocal: false
                     });
-                    container.appendChild(element);
-                    participantCount++;
                 });
             }
         }
-        
-        // include bots
+
+        // merge in bots
         if (window.BotComponent && window.BotComponent.voiceBots) {
             window.BotComponent.voiceBots.forEach((botData, botId) => {
                 if (botData.channel_id === channelId) {
-                    const element = this.createParticipantElement({
+                    renderList.push({
                         id: botId,
                         user_id: botData.bot_id,
                         name: botData.username || 'TitiBot',
@@ -318,11 +356,20 @@ class ChannelVoiceParticipants {
                         isBot: true,
                         isLocal: false
                     });
-                    container.appendChild(element);
-                    participantCount++;
                 }
             });
         }
+
+        // If nothing to render, keep previous display to avoid flicker
+        if (renderList.length === 0) {
+            return;
+        }
+
+        // Safe to refresh UI
+        // Incremental DOM diff – avoid full clear to eliminate flicker
+        this.updateParticipantContainer(container, renderList);
+
+        const participantCount = renderList.length;
         
         this.updateChannelCount(channelId, participantCount);
         
@@ -388,7 +435,13 @@ class ChannelVoiceParticipants {
     calculateChannelParticipantCount(channelId) {
         let count = 0;
         
-        if (window.voiceManager && window.voiceManager.currentChannelId === channelId && window.voiceManager.isConnected) {
+        const localListReady = window.voiceManager &&
+            window.voiceManager.currentChannelId === channelId &&
+            window.voiceManager.isConnected &&
+            window.voiceManager.getAllParticipants &&
+            window.voiceManager.getAllParticipants().size > 0;
+
+        if (localListReady) {
             count = window.voiceManager.getAllParticipants().size;
         }
         
@@ -497,6 +550,42 @@ class ChannelVoiceParticipants {
             window._channelVoiceParticipants = new ChannelVoiceParticipants();
         }
         return window._channelVoiceParticipants;
+    }
+
+    updateParticipantContainer(container, renderList) {
+        if (!container) return;
+        
+        // Remove any skeleton loaders
+        container.querySelectorAll('.skeleton-loader').forEach(el => el.remove());
+        
+        // Collect current DOM state
+        const existingElements = Array.from(container.querySelectorAll('.voice-participant-card:not(.skeleton-loader)'));
+        const str = (v) => v != null ? String(v) : '';
+        const existingMap = new Map(); // id -> element
+        existingElements.forEach(el => {
+            existingMap.set(str(el.getAttribute('data-user-id')), el);
+        });
+
+        // Build a map of desired state keyed by participant id (as string)
+        const desiredIds = renderList.map(p => str(p.user_id || p.id));
+
+        // Remove elements that are no longer in the desired list
+        existingMap.forEach((el, id) => {
+            if (!desiredIds.includes(id)) {
+                el.remove();
+                existingMap.delete(id);
+            }
+        });
+
+        // Append missing participants in the order of renderList
+        renderList.forEach(p => {
+            const pid = str(p.user_id || p.id);
+            if (!existingMap.has(pid)) {
+                const el = this.createParticipantElement(p);
+                container.appendChild(el);
+                existingMap.set(pid, el);
+            }
+        });
     }
 }
 

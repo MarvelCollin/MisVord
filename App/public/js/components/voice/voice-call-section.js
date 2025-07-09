@@ -229,9 +229,44 @@ class VoiceCallSection {
         // Update UI to show connected state
         this.updateConnectionStatus(true);
         
+        // Show loading skeleton in the grid
+        this.showGridLoadingSkeleton();
+        
         if (!event.detail.skipJoinSound) {
             MusicLoaderStatic.playJoinVoiceSound();
         }
+    }
+    
+    /**
+     * Shows a skeleton loading animation in the participant grid
+     * while waiting for participants to load
+     */
+    showGridLoadingSkeleton() {
+        const grid = document.getElementById("participantGrid");
+        if (!grid) return;
+        
+        // Clear any existing content
+        grid.innerHTML = '';
+        
+        // Create a skeleton card for yourself (joining user)
+        const skeleton = document.createElement("div");
+        skeleton.className = "participant-card skeleton-loader bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b]";
+        skeleton.innerHTML = `
+            <div class="skeleton-avatar w-16 h-16 rounded-full bg-[#202225] animate-pulse mb-3"></div>
+            <div class="skeleton-name h-4 w-24 bg-[#202225] rounded animate-pulse mb-2"></div>
+            <div class="skeleton-status h-3 w-16 bg-[#202225] rounded animate-pulse"></div>
+        `;
+        
+        grid.appendChild(skeleton);
+        this.updateGridLayout();
+        
+        // Set a timeout to clear skeletons if no participants arrive
+        setTimeout(() => {
+            const skeletons = grid.querySelectorAll('.skeleton-loader');
+            if (skeletons.length > 0 && this.participantElements.size === 0) {
+                skeletons.forEach(el => el.remove());
+            }
+        }, 3000);
     }
     
     handleVoiceDisconnect(event) {
@@ -332,18 +367,22 @@ class VoiceCallSection {
         const { participant, data } = event.detail;
         if (!participant || this.participantElements.has(participant)) return;
         
-        const element = this.createParticipantElement(participant, data);
+        // Get grid element
         const grid = document.getElementById("participantGrid");
-        if (grid) {
-            grid.appendChild(element);
-            this.participantElements.set(participant, element);
-            this.updateGridLayout();
-            this.updateParticipantCount();
-            
-            if (window.ChannelVoiceParticipants && this.currentChannelId) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-                instance.updateSidebarForChannel(this.currentChannelId);
-            }
+        if (!grid) return;
+        
+        // Remove any skeleton loaders when real participants arrive
+        grid.querySelectorAll('.skeleton-loader').forEach(el => el.remove());
+        
+        const element = this.createParticipantElement(participant, data);
+        grid.appendChild(element);
+        this.participantElements.set(participant, element);
+        this.updateGridLayout();
+        this.updateParticipantCount();
+        
+        if (window.ChannelVoiceParticipants && this.currentChannelId) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            instance.updateSidebarForChannel(this.currentChannelId);
         }
     }
 

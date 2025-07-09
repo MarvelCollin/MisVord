@@ -482,8 +482,22 @@ class VoiceManager {
             console.warn('[VoiceManager] Failed to parse participant metaData:', e);
         }
         
+        // Ensure consistent identifier across local & server lists by storing user_id
+        let userIdField = participant.id;
+        try {
+            if (participant.metaData) {
+                const meta = typeof participant.metaData === 'string' ? JSON.parse(participant.metaData) : participant.metaData;
+                if (meta && meta.user_id) {
+                    userIdField = String(meta.user_id);
+                }
+            }
+        } catch (e) {
+            // Already logged above – ignore
+        }
+
         this.participants.set(participant.id, {
             id: participant.id,
+            user_id: userIdField, // new field for unified identity
             name: participant.displayName || participant.name,
             username: participant.displayName || participant.name,
             avatar_url: avatarUrl,
