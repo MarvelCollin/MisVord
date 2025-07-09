@@ -672,8 +672,8 @@ class VoiceManager {
             }
         }
         
-        // Create new meeting
-        const customMeetingId = `voice_channel_${channelId}_${Date.now()}`;
+        // Create (or reuse) deterministic meeting ID for this channel
+        const customMeetingId = `voice_channel_${channelId}`;
         
         try {
             const response = await fetch('https://api.videosdk.live/v2/rooms', {

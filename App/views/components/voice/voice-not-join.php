@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
     const connectingView = document.getElementById('connectingView');
-    const channelId = '<?php echo htmlspecialchars($channelId ?? ''); ?>';
-    const channelName = '<?php echo htmlspecialchars($channelName); ?>';
+    const initialChannelId = '<?php echo htmlspecialchars($channelId ?? ''); ?>';
+    const initialChannelName = '<?php echo htmlspecialchars($channelName); ?>';
     
     if (joinBtn) {
         joinBtn.addEventListener('click', async function() {
@@ -57,7 +57,15 @@ document.addEventListener('DOMContentLoaded', function() {
             joinBtn.disabled = true;
             
             try {
-                await window.voiceFacade.join(channelId, channelName, { skipJoinSound: true });
+                // Determine the current voice channel id/name dynamically in case of channel switch
+                const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+                const currentChannelId = metaChannelId || window.voiceManager?.currentChannelId || initialChannelId;
+                const channelEl = document.querySelector(`[data-channel-id="${currentChannelId}"]`);
+                const currentChannelName = channelEl?.querySelector('.channel-name')?.textContent?.trim() ||
+                                        channelEl?.getAttribute('data-channel-name') ||
+                                        initialChannelName;
+
+                await window.voiceFacade.join(currentChannelId, currentChannelName, { skipJoinSound: true });
                 
                 MusicLoaderStatic.stopCallSound();
                 MusicLoaderStatic.playJoinVoiceSound();

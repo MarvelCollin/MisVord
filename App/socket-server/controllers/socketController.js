@@ -436,13 +436,9 @@ function setup(io) {
 
             if (!existingMeeting || !existingMeeting.meeting_id) {
                 // No existing meeting - create new meeting ID if not provided
-                if (!meeting_id) {
-                    finalMeetingId = `voice_channel_${channel_id}_${Date.now()}`;
-                    isNewMeeting = true;
-                } else {
-                    finalMeetingId = meeting_id;
-                    isNewMeeting = true;
-                }
+                // Determine deterministic meeting ID for this channel
+                finalMeetingId = meeting_id || `voice_channel_${channel_id}`;
+                isNewMeeting = true;
                 
                 console.log(`🆕 [VOICE-PARTICIPANT] Creating new voice meeting:`, {
                 channelId: channel_id,
