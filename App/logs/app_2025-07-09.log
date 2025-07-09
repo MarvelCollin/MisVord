@@ -1,0 +1,3 @@
+[2025-07-09 03:32:02] DEBUG [285330] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-09 03:32:02] INFO [285330] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-09 03:32:02] DEBUG [285330] DB Query: SELECT * FROM users WHERE  username = ? LIMIT 1 - Duration: 42.23ms - Context: {"bindings":["titibot"],"found":true,"db_query":"SELECT * FROM users WHERE  username = ? LIMIT 1","db_duration":0.042233943939208984}

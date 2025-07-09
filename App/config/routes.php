@@ -1668,6 +1668,8 @@ Route::post('/api/chat/save-bot-message', function() {
     $controller->saveBotMessageFromSocket();
 });
 
+
+
 Route::post('/api/debug/socket-input', function() {
     $controller = new DebugController();
     return $controller->testSocketInput();

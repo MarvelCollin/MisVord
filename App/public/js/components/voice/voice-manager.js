@@ -69,32 +69,10 @@ class VoiceManager {
             window.globalSocketManager.io.on('bot-voice-participant-left', (data) => {
                 this.handleBotParticipantLeft(data);
             });
-            
-            // Listen for participant avatar data
-            window.globalSocketManager.io.on('participant-data-response', (data) => {
-                const { participant_id, data: pdata } = data;
-                if (!participant_id || !pdata) return;
-                const participant = this.participants.get(participant_id);
-                if (participant) {
-                    participant.avatar_url = pdata.avatar_url || participant.avatar_url;
-                    // Dispatch update event so UI can refresh avatar
-                    window.dispatchEvent(new CustomEvent('participantAvatarUpdated', {
-                        detail: {
-                            participantId: participant_id,
-                            avatarUrl: participant.avatar_url
-                        }
-                    }));
-                    // Update sidebar if needed
-                    if (window.ChannelVoiceParticipants) {
-                        const manager = window.ChannelVoiceParticipants.getInstance();
-                        if (manager) {
-                            manager.updateSidebar();
-                        }
-                    }
-                }
-            });
         } else {
-            window.addEventListener('globalSocketReady', () => this.setupBotEventListeners());
+            window.addEventListener('globalSocketReady', () => {
+                this.setupBotEventListeners();
+            });
         }
     }
     
@@ -121,6 +99,11 @@ class VoiceManager {
             window.dispatchEvent(new CustomEvent('participantJoined', {
                 detail: { participant: botId, data: this.botParticipants.get(botId) }
             }));
+            
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(channelId);
+            }
         }
     }
     
@@ -130,30 +113,38 @@ class VoiceManager {
         
         const botId = `bot-${participant.user_id}`;
         if (this.botParticipants.has(botId)) {
+            const botData = this.botParticipants.get(botId);
+            const channelId = botData.channelId;
+            
             this.botParticipants.delete(botId);
             this.participants.delete(botId);
             
             window.dispatchEvent(new CustomEvent('participantLeft', {
                 detail: { participant: botId }
             }));
+            
+            if (window.ChannelVoiceParticipants && channelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(channelId);
+            }
         }
     }
     
-    async joinVoice(channelId, channelName) {
+    async joinVoice(channelId, channelName, options = {}) {
         if (this.isConnected) {
             if (this.currentChannelId === channelId) return;
             await this.leaveVoice();
         }
         
+        const { skipJoinSound = false } = options;
+        
         try {
             this.currentChannelId = channelId;
             this.currentChannelName = channelName;
             
-            // Check unified voice state first
             const voiceState = window.localStorageManager?.getUnifiedVoiceState();
             let meetingId = null;
             
-            // If there's a stored meeting ID for this channel, use it
             if (voiceState && voiceState.channelId === channelId && voiceState.meetingId && voiceState.isConnected) {
                 meetingId = voiceState.meetingId;
                 console.log(`🔄 [VOICE-MANAGER] Using stored meeting ID from unified voice state:`, {
@@ -162,7 +153,6 @@ class VoiceManager {
                     storedState: voiceState
                 });
             } else {
-                // Get or create meeting ID from server
                 meetingId = await this.getOrCreateMeeting(channelId);
                 console.log(`🆕 [VOICE-MANAGER] Got meeting ID from server:`, {
                     channelId,
@@ -171,6 +161,8 @@ class VoiceManager {
             }
             
             const userName = this.getUserName();
+            const userAvatar = document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png';
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content || 'unknown';
             
             VideoSDK.config(this.authToken);
             
@@ -178,7 +170,11 @@ class VoiceManager {
                 meetingId: meetingId,
                 name: userName,
                 micEnabled: true,
-                webcamEnabled: false
+                webcamEnabled: false,
+                metaData: {
+                    user_id: currentUserId,
+                    avatar_url: userAvatar
+                }
             });
             
             this.setupMeetingEvents();
@@ -187,12 +183,6 @@ class VoiceManager {
             this.isConnected = true;
             this.currentMeetingId = meetingId;
             
-            // Play join sound
-            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playJoinVoiceSound) {
-                window.MusicLoaderStatic.playJoinVoiceSound();
-            }
-            
-            // Update unified voice state
             this.updateUnifiedVoiceState({
                 isConnected: true,
                 channelId: channelId,
@@ -209,6 +199,10 @@ class VoiceManager {
                 detail: { channelId, channelName, meetingId }
             }));
             
+            if (!skipJoinSound && window.MusicLoaderStatic) {
+                window.MusicLoaderStatic.playJoinVoiceSound();
+            }
+            
         } catch (error) {
             console.error('Failed to join voice:', error);
             this.cleanup();
@@ -220,15 +214,14 @@ class VoiceManager {
         if (!this.isConnected) return;
         
         try {
+            if (window.MusicLoaderStatic) {
+                window.MusicLoaderStatic.playDisconnectVoiceSound();
+            }
+            
             this.notifySocketServer('leave');
             
             if (this.meeting) {
                 await this.meeting.leave();
-            }
-            
-            // Play disconnect sound
-            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playDisconnectVoiceSound) {
-                window.MusicLoaderStatic.playDisconnectVoiceSound();
             }
             
             this.cleanup();
@@ -351,38 +344,38 @@ class VoiceManager {
     handleParticipantJoined(participant) {
         if (!participant || this.participants.has(participant.id)) return;
         
-        // Get user avatar from socket or global user data
         let avatarUrl = '/public/assets/common/default-profile-picture.png';
-        
-        // Check if we have socket data with avatar
-        if (window.globalSocketManager?.io && participant.id) {
-            // Request avatar data through socket if needed
-            window.globalSocketManager.io.emit('get-participant-data', { 
-                participant_id: participant.id 
-            });
+        try {
+            if (participant.metaData) {
+                const meta = typeof participant.metaData === 'string' ? JSON.parse(participant.metaData) : participant.metaData;
+                if (meta && meta.avatar_url) {
+                    avatarUrl = meta.avatar_url;
+                }
+            }
+        } catch (e) {
+            console.warn('[VoiceManager] Failed to parse participant metaData:', e);
         }
         
         this.participants.set(participant.id, {
             id: participant.id,
             name: participant.displayName || participant.name,
             username: participant.displayName || participant.name,
+            avatar_url: avatarUrl,
             isBot: false,
             isLocal: participant.id === this.localParticipant?.id,
-            streams: new Map(),
-            avatar_url: avatarUrl
+            streams: new Map()
         });
         
         this.setupStreamHandlers(participant);
         
         window.dispatchEvent(new CustomEvent('participantJoined', {
-            detail: { 
-                participant: participant.id, 
-                data: {
-                    ...participant,
-                    avatar_url: avatarUrl
-                }
-            }
+            detail: { participant: participant.id, data: this.participants.get(participant.id) }
         }));
+        
+        if (window.ChannelVoiceParticipants && this.currentChannelId) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            instance.updateSidebarForChannel(this.currentChannelId);
+        }
     }
     
     handleParticipantLeft(participant) {
@@ -393,6 +386,11 @@ class VoiceManager {
         window.dispatchEvent(new CustomEvent('participantLeft', {
             detail: { participant: participant.id }
         }));
+        
+        if (window.ChannelVoiceParticipants && this.currentChannelId) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            instance.updateSidebarForChannel(this.currentChannelId);
+        }
     }
     
     setupStreamHandlers(participant) {
@@ -434,19 +432,9 @@ class VoiceManager {
         if (this._micOn) {
             this.meeting.muteMic();
             this._micOn = false;
-            
-            // Play mute sound
-            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playDiscordMuteSound) {
-                window.MusicLoaderStatic.playDiscordMuteSound();
-            }
         } else {
             this.meeting.unmuteMic();
             this._micOn = true;
-            
-            // Play unmute sound
-            if (window.MusicLoaderStatic && window.MusicLoaderStatic.playDiscordUnmuteSound) {
-                window.MusicLoaderStatic.playDiscordUnmuteSound();
-            }
         }
         
         window.dispatchEvent(new CustomEvent('voiceStateChanged', {

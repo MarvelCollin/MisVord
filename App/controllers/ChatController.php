@@ -362,7 +362,24 @@ class ChatController extends BaseController
         if ($channel->server_id != 0) {
             $membership = $this->userServerMembershipRepository->findByUserAndServer($userId, $channel->server_id);
             if (!$membership) {
-                return $this->internalForbidden('You are not a member of this server');
+                // Check if this is a bot user - bots can auto-join servers
+                $query = new Query();
+                $botUser = $query->table('users')
+                    ->where('id', $userId)
+                    ->where('status', 'bot')
+                    ->first();
+                
+                if (!$botUser) {
+                    return $this->internalForbidden('You are not a member of this server');
+                }
+                
+                // Auto-add bot to server
+                try {
+                    $this->userServerMembershipRepository->addMembership($userId, $channel->server_id, 'member');
+                } catch (Exception $e) {
+                    error_log("Failed to auto-add bot to server: " . $e->getMessage());
+                    return $this->internalForbidden('Bot could not be added to server');
+                }
             }
         }
 
@@ -463,7 +480,24 @@ class ChatController extends BaseController
             return $this->internalNotFound('Chat room not found');
         }
         if (!$this->chatRoomRepository->isParticipant($chatRoomId, $userId)) {
-            return $this->internalForbidden('You are not a participant in this chat');
+            // Check if this is a bot user - bots can auto-join chat rooms
+            $query = new Query();
+            $botUser = $query->table('users')
+                ->where('id', $userId)
+                ->where('status', 'bot')
+                ->first();
+            
+            if (!$botUser) {
+                return $this->internalForbidden('You are not a participant in this chat');
+            }
+            
+            // Auto-add bot to chat room
+            try {
+                $this->chatRoomRepository->addParticipant($chatRoomId, $userId);
+            } catch (Exception $e) {
+                error_log("Failed to auto-add bot to chat room: " . $e->getMessage());
+                return $this->internalForbidden('Bot could not be added to chat room');
+            }
         }
 
         // Ensure reply_message_id is null or a valid integer
@@ -913,19 +947,7 @@ class ChatController extends BaseController
         $messageId = is_array($message) ? $message['id'] : $message->id;
         $userStatus = is_array($message) ? ($message['user_status'] ?? null) : null;
 
-        if ($userStatus === 'bot') {
-            error_log("[BOT-DEBUG] formatMessage processing bot message: ID $messageId, user_id: $userId");
-        }
-
         $user = $this->userRepository->find($userId);
-
-        if ($userStatus === 'bot') {
-            if ($user) {
-                error_log("[BOT-DEBUG] formatMessage found bot user: {$user->username} (status: {$user->status})");
-            } else {
-                error_log("[BOT-DEBUG] formatMessage ERROR: Bot user $userId not found in userRepository->find()");
-            }
-        }
 
         $username = $user ? $user->username : 'Unknown User';
         $avatarUrl = $user && $user->avatar_url ? $user->avatar_url :
@@ -948,7 +970,6 @@ class ChatController extends BaseController
 
         if ($userStatus === 'bot') {
             $formatted['user_status'] = 'bot';
-            error_log("[BOT-DEBUG] formatMessage successfully formatted bot message: ID $messageId, username: $username");
         }
 
 
@@ -1787,10 +1808,9 @@ class ChatController extends BaseController
                     'temp_message_id' => $tempMessageId
                 ], 'Message saved successfully');
             } else {
-                // Always return JSON response, even for errors
-                header('Content-Type: application/json');
-                echo json_encode($result);
-                exit;
+                error_log("Bot message save failed with result: " . json_encode($result));
+                $errorMessage = isset($result['message']) ? $result['message'] : 'Failed to save bot message';
+                return $this->serverError($errorMessage);
             }
         } catch (Exception $e) {
             error_log("Error saving bot message: " . $e->getMessage());
@@ -1920,4 +1940,6 @@ class ChatController extends BaseController
     {
         return $this->internalError($message, $code);
     }
+
+
 }

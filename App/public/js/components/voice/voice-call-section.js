@@ -3,6 +3,9 @@
  * Handles the voice control buttons (mic, camera, deafen, screen share)
  * in the voice call interface
  */
+
+import MusicLoaderStatic from '/public/js/utils/music-loader-static.js';
+
 class VoiceCallSection {
     constructor() {
         this.micBtn = null;
@@ -48,8 +51,17 @@ class VoiceCallSection {
         if (this.micBtn) {
             this.micBtn.addEventListener("click", () => {
                 if (window.voiceManager) {
-                    const state = window.voiceManager.toggleMic();
-                    this.updateMicButton(state);
+                    const currentState = window.voiceManager.getMicState();
+                    const newState = window.voiceManager.toggleMic();
+                    this.updateMicButton(newState);
+                    
+                    if (newState !== currentState) {
+                        if (newState) {
+                            MusicLoaderStatic.playDiscordUnmuteSound();
+                        } else {
+                            MusicLoaderStatic.playDiscordMuteSound();
+                        }
+                    }
                 }
             });
         }
@@ -90,6 +102,7 @@ class VoiceCallSection {
         if (this.disconnectBtn) {
             this.disconnectBtn.addEventListener("click", () => {
                 if (window.voiceManager) {
+                    MusicLoaderStatic.playDisconnectVoiceSound();
                     window.voiceManager.leaveVoice();
                 }
             });
@@ -125,17 +138,6 @@ class VoiceCallSection {
                 this.syncWithVoiceState(state);
             });
         }
-
-        window.addEventListener("participantAvatarUpdated", (e) => {
-            const { participantId, avatarUrl } = e.detail;
-            const element = this.participantElements.get(participantId);
-            if (element) {
-                const imgEl = element.querySelector('.participant-avatar img');
-                if (imgEl) {
-                    imgEl.src = avatarUrl;
-                }
-            }
-        });
     }
     
     setupSocketListeners() {
@@ -168,6 +170,10 @@ class VoiceCallSection {
         
         // Update UI to show connected state
         this.updateConnectionStatus(true);
+        
+        if (!event.detail.skipJoinSound) {
+            MusicLoaderStatic.playJoinVoiceSound();
+        }
     }
     
     handleVoiceDisconnect(event) {
@@ -256,6 +262,11 @@ class VoiceCallSection {
             this.participantElements.set(participant, element);
             this.updateGridLayout();
             this.updateParticipantCount();
+            
+            if (window.ChannelVoiceParticipants && this.currentChannelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(this.currentChannelId);
+            }
         }
     }
     
@@ -267,6 +278,11 @@ class VoiceCallSection {
             this.participantElements.delete(participant);
             this.updateGridLayout();
             this.updateParticipantCount();
+            
+            if (window.ChannelVoiceParticipants && this.currentChannelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(this.currentChannelId);
+            }
         }
     }
     
@@ -293,6 +309,12 @@ class VoiceCallSection {
             this.participantElements.set(botId, element);
             this.updateGridLayout();
             this.updateParticipantCount();
+            
+            const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
+            if (window.ChannelVoiceParticipants && targetChannelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(targetChannelId);
+            }
         }
     }
     
@@ -307,6 +329,12 @@ class VoiceCallSection {
             this.participantElements.delete(botId);
             this.updateGridLayout();
             this.updateParticipantCount();
+            
+            const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
+            if (window.ChannelVoiceParticipants && targetChannelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(targetChannelId);
+            }
         }
     }
     
@@ -361,26 +389,22 @@ class VoiceCallSection {
         const isLocal = data?.isLocal || (participantId === window.voiceManager?.localParticipant?.id);
         const isBot = data?.isBot || participantId.startsWith('bot-');
         const avatarUrl = data?.avatar_url || '/public/assets/common/default-profile-picture.png';
+        const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
+        const showImage = isBot || hasCustomAvatar;
         
         div.innerHTML = `
             <div class="participant-video-overlay hidden absolute inset-0 rounded-lg overflow-hidden z-20">
                 <video class="w-full h-full object-cover rounded-lg" autoplay muted playsinline></video>
                 <div class="video-overlay-info absolute bottom-2 left-2 right-2 bg-black/70 backdrop-blur-sm rounded px-2 py-1">
-                    <span class="text-white text-sm font-medium truncate">${name}${isLocal ? " (You)" : ""}</span>
+                    <span class="text-white text-sm font-medium truncate">${name}${isLocal ? ' (You)' : ''}</span>
                 </div>
             </div>
-            
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
                 <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative overflow-hidden">
-                    <img src="${avatarUrl}" 
-                         alt="${name}" 
-                         class="w-full h-full object-cover rounded-full"
-                         onerror="this.onerror=null; this.src='/public/assets/common/default-profile-picture.png';">
+                    ${showImage ? `<img src="${avatarUrl}" alt="${name}" class="w-full h-full object-cover rounded-full" onerror="this.src='/public/assets/common/default-profile-picture.png'">` : `<span>${this.getInitials(name)}</span>`}
                     ${isBot ? '<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white text-xs"></i></div>' : ''}
                 </div>
-                <span class="participant-name text-white text-sm font-medium text-center mb-2 max-w-full truncate">
-                    ${name}${isLocal ? " (You)" : ""}${isBot ? " (Bot)" : ""}
-                </span>
+                <span class="participant-name text-white text-sm font-medium text-center mb-2 max-w-full truncate">${name}${isLocal ? ' (You)' : ''}${isBot ? ' (Bot)' : ''}</span>
                 ${isBot ? '<div class="music-status text-xs text-[#5865f2] text-center"><i class="fas fa-music mr-1"></i>Ready to play music</div>' : ''}
             </div>
         `;

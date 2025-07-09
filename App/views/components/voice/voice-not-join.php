@@ -34,7 +34,9 @@ $channelId = $GLOBALS['activeChannelId'] ?? null;
     </div>
 </div>
 
-<script>
+<script type="module">
+import MusicLoaderStatic from '/public/js/utils/music-loader-static.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     const joinBtn = document.getElementById('joinBtn');
     const joinView = document.getElementById('joinView');
@@ -49,21 +51,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
+            MusicLoaderStatic.playCallSound();
+            
             joinBtn.disabled = true;
             
             try {
-                await window.voiceManager.joinVoice(channelId, channelName);
+                await window.voiceManager.joinVoice(channelId, channelName, { skipJoinSound: true });
+                
+                MusicLoaderStatic.stopCallSound();
+                MusicLoaderStatic.playJoinVoiceSound();
                 
                 joinView.classList.add('hidden');
                 connectingView.classList.remove('hidden');
                 
                 window.dispatchEvent(new CustomEvent('voiceConnect', {
-                    detail: { channelId, channelName }
+                    detail: { channelId, channelName, skipJoinSound: true }
                 }));
                 
             } catch (error) {
                 console.error('Failed to join voice:', error);
                 joinBtn.disabled = false;
+                
+                MusicLoaderStatic.stopCallSound();
                 
                 if (window.showToast) {
                     window.showToast('Failed to join voice channel', 'error');
@@ -76,6 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (joinBtn) joinBtn.disabled = false;
         if (joinView) joinView.classList.remove('hidden');
         if (connectingView) connectingView.classList.add('hidden');
+        
+        MusicLoaderStatic.stopCallSound();
     });
 });
 </script>

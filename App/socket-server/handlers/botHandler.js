@@ -142,7 +142,8 @@ class BotHandler extends EventEmitter {
             username,
             userId: data.user_id,
             channelId: data.channel_id,
-            roomId: data.room_id
+            roomId: data.room_id,
+            tempMessageId: data.id
         });
         
         const messageId = data.id || `${data.user_id}-${data.channel_id || data.room_id}-${data.content}`;
@@ -188,6 +189,61 @@ class BotHandler extends EventEmitter {
 
         const isTitiBotCommand = content.startsWith('/titibot');
         
+        if (isTitiBotCommand) {
+            console.log(`🤖 [BOT-DEBUG] TitiBot command detected, waiting for message to be saved to database:`, {
+                tempMessageId: data.id,
+                command: content
+            });
+            
+            this.waitForMessageSaved(io, data, messageType, botId, username, content);
+            return;
+        }
+    }
+
+    static waitForMessageSaved(io, originalData, messageType, botId, username, content) {
+        const tempMessageId = originalData.id;
+        const timeout = setTimeout(() => {
+            console.warn(`⚠️ [BOT-DEBUG] Timeout waiting for message to be saved, proceeding anyway:`, {
+                tempMessageId,
+                command: content
+            });
+            this.processBotCommand(io, originalData, messageType, botId, username, content, null);
+        }, 5000);
+
+        const messageUpdatedHandler = (updateData) => {
+            if (updateData.temp_message_id === tempMessageId) {
+                clearTimeout(timeout);
+                io.off('message_id_updated', messageUpdatedHandler);
+                
+                console.log(`✅ [BOT-DEBUG] Original message saved, proceeding with bot response:`, {
+                    tempId: tempMessageId,
+                    realId: updateData.real_message_id,
+                    command: content
+                });
+                
+                const updatedData = {
+                    ...originalData,
+                    id: updateData.real_message_id,
+                    message_id: updateData.real_message_id
+                };
+                
+                this.processBotCommand(io, updatedData, messageType, botId, username, content, updateData.real_message_id);
+            }
+        };
+
+        io.on('message_id_updated', messageUpdatedHandler);
+    }
+
+    static async processBotCommand(io, data, messageType, botId, username, content, realMessageId) {
+        console.log(`🤖 [BOT-DEBUG] Processing bot command:`, {
+            command: content,
+            realMessageId,
+            botId,
+            username
+        });
+
+        let voiceChannelToJoin = null;
+        
         const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue', 'join'];
         const commandKeyword = content.split(' ')[1] || '';
         const requiresVoice = voiceRequiredCommands.includes(commandKeyword);
@@ -201,9 +257,9 @@ class BotHandler extends EventEmitter {
             return;
         }
 
-        if (content.toLowerCase() === '/titibot ping') {
+        if (content === '/titibot ping') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
-        } else if (content.toLowerCase().startsWith('/titibot play ')) {
+        } else if (content.startsWith('/titibot play ')) {
             const songName = content.substring('/titibot play '.length).trim();
 
             if (voiceChannelToJoin) {
@@ -213,7 +269,7 @@ class BotHandler extends EventEmitter {
             }
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
-        } else if (content.toLowerCase() === '/titibot stop') {
+        } else if (content === '/titibot stop') {
             let channelIdForLeave = voiceChannelToJoin;
             if (!channelIdForLeave) {
                 for (const key of this.botVoiceParticipants.keys()) {
@@ -228,14 +284,14 @@ class BotHandler extends EventEmitter {
             }
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
-        } else if (content.toLowerCase() === '/titibot next') {
+        } else if (content === '/titibot next') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'next');
-        } else if (content.toLowerCase() === '/titibot prev') {
+        } else if (content === '/titibot prev') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'prev');
-        } else if (content.toLowerCase().startsWith('/titibot queue ')) {
+        } else if (content.startsWith('/titibot queue ')) {
             const songName = content.substring('/titibot queue '.length).trim();
             await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
-        } else if (content.toLowerCase().startsWith('/titibot help')) {
+        } else if (content.startsWith('/titibot help')) {
             await this.sendBotResponse(io, data, messageType, botId, username, 'help');
         }
     }
@@ -419,7 +475,7 @@ class BotHandler extends EventEmitter {
         const indonesiaTime = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));
         const currentTimestamp = indonesiaTime.toISOString();
 
-        const replyIdForDB = (originalMessage.id && !isNaN(originalMessage.id) && originalMessage.id !== '') 
+        const replyIdForDB = (originalMessage.id && !isNaN(originalMessage.id) && originalMessage.id !== '' && !originalMessage.id.toString().startsWith('temp-')) 
             ? parseInt(originalMessage.id) 
             : null;
         const botMessageData = {

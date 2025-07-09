@@ -18,17 +18,14 @@ class ChannelVoiceParticipants {
         window.addEventListener('bot-voice-participant-joined', (e) => this.handleBotJoined(e));
         window.addEventListener('bot-voice-participant-left', (e) => this.handleBotLeft(e));
         
-        // Listen for unified voice state changes
         window.addEventListener('voiceStateChanged', (e) => this.handleVoiceStateChanged(e));
         
-        // Listen for voice meeting updates
         if (window.globalSocketManager?.io) {
             this.attachSocketEvents();
         } else {
             window.addEventListener('globalSocketReady', () => this.attachSocketEvents());
         }
         
-        // Listen for local storage changes
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener((state) => {
                 this.syncWithVoiceState(state);
@@ -45,27 +42,19 @@ class ChannelVoiceParticipants {
         if (!state) return;
         
         if (state.isConnected && state.channelId) {
-            // Update participant count for the connected channel
             this.updateChannelCount(state.channelId, null);
-            
-            // Update sidebar if it's the current channel
-            if (window.voiceManager && window.voiceManager.currentChannelId === state.channelId) {
-                this.updateSidebar();
-            }
+            this.updateSidebarForChannel(state.channelId);
         } else {
-            // Clear all participant counts when disconnected
-            this.clearAllParticipantCounts();
+            this.clearCurrentUserParticipantCounts();
         }
     }
     
     initializeVoiceState() {
-        // Sync with current unified voice state
         if (window.localStorageManager) {
             const voiceState = window.localStorageManager.getUnifiedVoiceState();
             this.syncWithVoiceState(voiceState);
         }
         
-        // Validate current state with server
         setTimeout(() => {
             this.validateCurrentState();
         }, 1000);
@@ -76,10 +65,29 @@ class ChannelVoiceParticipants {
         
         const voiceState = window.localStorageManager.getUnifiedVoiceState();
         if (voiceState.isConnected && voiceState.channelId) {
-            // Check if the server still has this meeting
             window.globalSocketManager.io.emit('check-voice-meeting', { 
                 channel_id: voiceState.channelId 
             });
+        }
+    }
+    
+    clearCurrentUserParticipantCounts() {
+        const currentVoiceState = window.localStorageManager?.getUnifiedVoiceState();
+        const currentUserChannelId = currentVoiceState?.channelId;
+        
+        if (currentUserChannelId) {
+            const currentChannelCountEl = document.querySelector(`[data-channel-id="${currentUserChannelId}"] .voice-user-count`);
+            const currentChannelContainer = document.querySelector(`.voice-participants[data-channel-id="${currentUserChannelId}"]`);
+            
+            if (currentChannelCountEl) {
+                currentChannelCountEl.textContent = '0';
+                currentChannelCountEl.classList.add('hidden');
+            }
+            
+            if (currentChannelContainer) {
+                currentChannelContainer.classList.add('hidden');
+                currentChannelContainer.innerHTML = '';
+            }
         }
     }
     
@@ -104,26 +112,13 @@ class ChannelVoiceParticipants {
         
         socket.on('voice-meeting-update', (data) => {
             if (data.action === 'join' || data.action === 'leave') {
-                // Update participant display for the specific channel
-                if (data.channel_id && data.participants) {
-                    this.updateChannelParticipants(data.channel_id, data.participants);
-                } else {
-                    this.updateSidebar();
-                    this.updateAllChannelCounts();
+                if (data.channel_id) {
+                    this.updateChannelCount(data.channel_id, data.participant_count);
+                    this.updateSidebarForChannel(data.channel_id);
                 }
+                this.updateAllChannelCounts();
             }
             
-            // Update participant counts based on meeting updates
-            if (data.channel_id) {
-                this.updateChannelCount(data.channel_id, data.participant_count);
-                
-                // Update sidebar if it's the current channel
-                if (window.voiceManager && window.voiceManager.currentChannelId === data.channel_id) {
-                    this.updateSidebar();
-                }
-            }
-            
-            // Sync with unified voice state if it's our own update
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
             if (data.user_id === currentUserId && window.localStorageManager) {
                 const currentState = window.localStorageManager.getUnifiedVoiceState();
@@ -151,23 +146,20 @@ class ChannelVoiceParticipants {
         socket.on('voice-meeting-status', (data) => {
             if (data.has_meeting && data.channel_id) {
                 this.updateChannelCount(data.channel_id, data.participant_count || 0);
-                
-                // Update participant display if we have participant data
-                if (data.participants) {
-                    this.updateChannelParticipants(data.channel_id, data.participants);
-                }
             }
         });
         
         socket.on('bot-voice-participant-joined', (data) => {
             if (data.participant && data.channelId) {
                 this.updateChannelCount(data.channelId, null);
+                this.updateSidebarForChannel(data.channelId);
             }
         });
         
         socket.on('bot-voice-participant-left', (data) => {
             if (data.participant && data.channelId) {
                 this.updateChannelCount(data.channelId, null);
+                this.updateSidebarForChannel(data.channelId);
             }
         });
     }
@@ -178,30 +170,20 @@ class ChannelVoiceParticipants {
             const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
             if (container) {
                 container.classList.remove('hidden');
-                this.updateSidebar();
+                this.updateSidebarForChannel(channelId);
             }
         }
     }
     
     handleVoiceDisconnect() {
-        document.querySelectorAll('.voice-participants').forEach(container => {
-            container.classList.add('hidden');
-            container.innerHTML = '';
-        });
-        
-        document.querySelectorAll('.voice-user-count').forEach(count => {
-            count.textContent = '0';
-            count.classList.add('hidden');
-        });
+        this.clearCurrentUserParticipantCounts();
     }
     
     handleBotJoined(event) {
         const { participant } = event.detail;
         if (participant && participant.channelId) {
             this.updateChannelCount(participant.channelId, null);
-            if (window.voiceManager && window.voiceManager.currentChannelId === participant.channelId) {
-                this.updateSidebar();
-            }
+            this.updateSidebarForChannel(participant.channelId);
         }
     }
     
@@ -209,31 +191,59 @@ class ChannelVoiceParticipants {
         const { participant } = event.detail;
         if (participant && participant.channelId) {
             this.updateChannelCount(participant.channelId, null);
-            if (window.voiceManager && window.voiceManager.currentChannelId === participant.channelId) {
-                this.updateSidebar();
-            }
+            this.updateSidebarForChannel(participant.channelId);
         }
     }
     
     updateSidebar() {
-        if (!window.voiceManager || !window.voiceManager.currentChannelId) return;
+        if (window.voiceManager && window.voiceManager.currentChannelId) {
+            this.updateSidebarForChannel(window.voiceManager.currentChannelId);
+        }
+    }
+    
+    updateSidebarForChannel(channelId) {
+        if (!channelId) return;
         
-        const channelId = window.voiceManager.currentChannelId;
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
         
         container.innerHTML = '';
         
-        const allParticipants = window.voiceManager.getAllParticipants();
-        allParticipants.forEach((data, id) => {
-            const element = this.createParticipantElement(data);
-            container.appendChild(element);
-        });
+        let participantCount = 0;
         
-        this.updateChannelCount(channelId, allParticipants.size);
+        if (window.voiceManager && window.voiceManager.currentChannelId === channelId) {
+            const allParticipants = window.voiceManager.getAllParticipants();
+            allParticipants.forEach((data, id) => {
+                const element = this.createParticipantElement(data);
+                container.appendChild(element);
+                participantCount++;
+            });
+        }
         
-        if (allParticipants.size > 0) {
+        if (window.BotComponent && window.BotComponent.voiceBots) {
+            window.BotComponent.voiceBots.forEach((botData, botId) => {
+                if (botData.channel_id === channelId) {
+                    const element = this.createParticipantElement({
+                        id: botId,
+                        user_id: botData.bot_id,
+                        name: botData.username || 'TitiBot',
+                        username: botData.username || 'TitiBot',
+                        avatar_url: '/public/assets/landing-page/robot.webp',
+                        isBot: true,
+                        isLocal: false
+                    });
+                    container.appendChild(element);
+                    participantCount++;
+                }
+            });
+        }
+        
+        this.updateChannelCount(channelId, participantCount);
+        
+        if (participantCount > 0) {
             container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
         }
     }
     
@@ -336,32 +346,6 @@ class ChannelVoiceParticipants {
                 }
             });
         }
-    }
-
-    updateChannelParticipants(channelId, participants) {
-        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (participants && participants.length > 0) {
-            participants.forEach(participant => {
-                const element = this.createParticipantElement({
-                    id: participant.user_id,
-                    user_id: participant.user_id,
-                    name: participant.username,
-                    username: participant.username,
-                    isBot: participant.isBot || false,
-                    avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png'
-                });
-                container.appendChild(element);
-            });
-            container.classList.remove('hidden');
-        } else {
-            container.classList.add('hidden');
-        }
-        
-        this.updateChannelCount(channelId, participants.length);
     }
     
     static getInstance() {

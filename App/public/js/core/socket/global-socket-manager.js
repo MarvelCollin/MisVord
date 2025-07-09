@@ -1385,25 +1385,27 @@ class GlobalSocketManager {
     }
     
     handleVoiceMeetingStatus(data) {
-
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance.handleVoiceMeetingUpdate) {
-                instance.handleVoiceMeetingUpdate({
-                    channel_id: data.channel_id,
-                    participant_count: data.participant_count,
-                    participants: data.participants || []
-                });
+            if (data.channel_id) {
+                instance.updateChannelCount(data.channel_id, data.participant_count);
+                instance.updateSidebarForChannel(data.channel_id);
             }
         }
     }
 
     handleVoiceMeetingUpdate(data) {
-
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
-            if (instance.handleVoiceMeetingUpdate) {
-                instance.handleVoiceMeetingUpdate(data);
+            if (data.channel_id) {
+                if (data.action === 'join' || data.action === 'leave' || data.action === 'registered') {
+                    instance.updateChannelCount(data.channel_id, data.participant_count);
+                    instance.updateSidebarForChannel(data.channel_id);
+                    
+                    if (data.action === 'leave' || data.action === 'join') {
+                        instance.updateAllChannelCounts();
+                    }
+                }
             }
         }
     }

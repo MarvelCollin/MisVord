@@ -17,15 +17,20 @@ function isChatPage() {
     const currentPath = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
     
+
+    
     if (currentPath === '/home' || currentPath.startsWith('/home/')) {
         if (currentPath.includes('/friends')) {
+
             return false;
         }
         
         if (currentPath.includes('/channels/dm/')) {
+
             return true;
         }
         
+
         return false;
     }
     
@@ -576,10 +581,6 @@ class ChatSection {
 
         document.addEventListener('channelContentLoaded', this.handleChannelContentLoaded);
 
-        if (window.location.pathname.includes('/channels/dm/')) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-        }
-
         if (!this.chatType || !this.targetId) {
             this.chatType = this.detectChatType();
             
@@ -611,22 +612,16 @@ class ChatSection {
                 if (this.messageHandler) {
                     this.messageHandler.ensureFallbackStyles();
                 }
-
-                if (this.chatType === 'direct') {
-                    const chatSection = document.querySelector('.chat-section');
-                    if (chatSection) {
-                        chatSection.style.display = 'flex';
-                        chatSection.style.visibility = 'visible';
-                    }
-                }
             
                 this.joinSocketRoom();
                 
+                // Ensure chat container is cleared before loading messages
                 const messagesContainer = this.getMessagesContainer();
                 if (messagesContainer) {
                     messagesContainer.innerHTML = '';
                 }
                 
+                // Show skeleton while loading
                 this.showChatSkeleton();
                 
                 await this.loadMessages();
