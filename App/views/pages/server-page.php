@@ -51,7 +51,7 @@ $additional_js = [
     'components/messaging/chat-section',
     // voice-dependency-loader removed - functionality merged into voice-manager
     'components/voice/voice-manager',
-    'components/voice/global-voice-indicator',
+    // global-voice-indicator removed (now handled within voice-manager)
     'components/bot/bot',
     'components/servers/server-dropdown',
 

@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (joinBtn) {
         joinBtn.addEventListener('click', async function() {
-            if (!window.voiceManager && !window.voiceFacade) {
+            if (!window.voiceFacade) {
                 console.error('Voice system not available');
                 return;
             }
@@ -57,22 +57,13 @@ document.addEventListener('DOMContentLoaded', function() {
             joinBtn.disabled = true;
             
             try {
-                if (window.voiceFacade) {
-                    await window.voiceFacade.join(channelId, channelName, { skipJoinSound: true });
-                } else {
-                    await window.voiceManager.joinVoice(channelId, channelName, { skipJoinSound: true });
-                }
+                await window.voiceFacade.join(channelId, channelName, { skipJoinSound: true });
                 
                 MusicLoaderStatic.stopCallSound();
                 MusicLoaderStatic.playJoinVoiceSound();
                 
                 joinView.classList.add('hidden');
                 connectingView.classList.remove('hidden');
-                
-                window.dispatchEvent(new CustomEvent('voiceConnect', {
-                    detail: { channelId, channelName, skipJoinSound: true }
-                }));
-                
             } catch (error) {
                 console.error('Failed to join voice:', error);
                 joinBtn.disabled = false;

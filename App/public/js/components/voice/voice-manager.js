@@ -192,10 +192,14 @@ class VoiceManager {
         }
     }
     
-    async joinVoice(channelId, channelName, options = {}) {
+    /**
+     * @private
+     * Internal method used only by VoiceFacade
+     */
+    async _joinVoice(channelId, channelName, options = {}) {
         if (this.isConnected) {
             if (this.currentChannelId === channelId) return;
-            await this.leaveVoice();
+            await this._leaveVoice();
         }
         
         const { skipJoinSound = false } = options;
@@ -272,6 +276,56 @@ class VoiceManager {
         }
     }
 
+    /**
+     * @private
+     * Internal method used only by VoiceFacade
+     */
+    async _leaveVoice() {
+        if (!this.isConnected) return;
+        
+        try {
+            if (window.MusicLoaderStatic) {
+                window.MusicLoaderStatic.playDisconnectVoiceSound();
+            }
+            
+            this.notifySocketServer('leave');
+            
+            if (this.meeting) {
+                await this.meeting.leave();
+            }
+            
+            this.cleanup();
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.clearVoiceState();
+            } else {
+                this.updateUnifiedVoiceState({
+                    isConnected: false,
+                    channelId: null,
+                    channelName: null,
+                    meetingId: null,
+                    connectionTime: null,
+                    disconnectionTime: Date.now()
+                });
+            }
+            
+            window.dispatchEvent(new CustomEvent('voiceDisconnect', {
+                detail: { 
+                    channelId: null,
+                    channelName: null,
+                    meetingId: null
+                }
+            }));
+            
+        } catch (error) {
+            console.error('Failed to leave voice:', error);
+        }
+    }
+    
+    // Compatibility aliases for VoiceFacade
+    async joinVoice(...args) { return this._joinVoice(...args); }
+    async leaveVoice(...args) { return this._leaveVoice(...args); }
+    
     syncChannelWithUnifiedState() {
         if (!window.localStorageManager) return;
         
@@ -323,50 +377,6 @@ class VoiceManager {
             this.currentChannelId = voiceState.channelId;
             this.currentChannelName = voiceState.channelName;
             this.currentMeetingId = voiceState.meetingId;
-        }
-    }
-    
-    async leaveVoice() {
-        if (!this.isConnected) return;
-        
-        try {
-            if (window.MusicLoaderStatic) {
-                window.MusicLoaderStatic.playDisconnectVoiceSound();
-            }
-            
-            this.notifySocketServer('leave');
-            
-            if (this.meeting) {
-                await this.meeting.leave();
-            }
-            
-            this.cleanup();
-            
-            // Update unified voice state
-            this.updateUnifiedVoiceState({
-                isConnected: false,
-                channelId: null,
-                channelName: null,
-                meetingId: null,
-                connectionTime: null
-            });
-            
-            window.dispatchEvent(new CustomEvent('voiceDisconnect', {
-                detail: { channelId: this.currentChannelId }
-            }));
-            
-        } catch (error) {
-            console.error('Failed to leave voice:', error);
-            this.cleanup();
-            
-            // Still update state even if leaving failed
-            this.updateUnifiedVoiceState({
-                isConnected: false,
-                channelId: null,
-                channelName: null,
-                meetingId: null,
-                connectionTime: null
-            });
         }
     }
     

@@ -44,38 +44,42 @@ class LocalStorageManager {
     cleanupStaleVoiceConnections() {
         const voiceState = this.getUnifiedVoiceState();
         
-        // If localStorage says we're connected, but this is a fresh page load
         if (voiceState.isConnected) {
-            console.log('🧹 [LOCAL-STORAGE] Detected stale voice connection, cleaning up:', {
-                channelId: voiceState.channelId,
-                meetingId: voiceState.meetingId,
-                since: voiceState.connectionTime ? new Date(voiceState.connectionTime).toLocaleTimeString() : 'unknown'
-            });
+            const now = Date.now();
+            const connectionTime = voiceState.connectionTime || 0;
+            const timeSinceConnection = now - connectionTime;
             
-            // Mark as disconnected with a reason
-            this.setUnifiedVoiceState({
-                ...voiceState,
-                isConnected: false,
-                disconnectionReason: 'stale_connection_cleanup',
-                disconnectionTime: Date.now()
-            });
-            
-            // Try to notify server about the stale connection
-            setTimeout(() => {
-                if (window.globalSocketManager?.io && window.globalSocketManager.isConnected) {
-                    try {
-                        window.globalSocketManager.io.emit('unregister-voice-meeting', {
-                            channel_id: voiceState.channelId,
-                            meeting_id: voiceState.meetingId,
-                            force_disconnect: true,
-                            reason: 'stale_connection_cleanup'
-                        });
-                        console.log('✅ [LOCAL-STORAGE] Notified server about stale voice connection');
-                    } catch (error) {
-                        console.error('Error notifying server about stale voice connection:', error);
+            if (timeSinceConnection > 1000) {
+                console.log('🧹 [LOCAL-STORAGE] Detected stale voice connection, cleaning up:', {
+                    channelId: voiceState.channelId,
+                    meetingId: voiceState.meetingId,
+                    since: voiceState.connectionTime ? new Date(voiceState.connectionTime).toLocaleTimeString() : 'unknown',
+                    timeSinceConnection: Math.round(timeSinceConnection / 1000) + 's'
+                });
+                
+                this.setUnifiedVoiceState({
+                    ...voiceState,
+                    isConnected: false,
+                    disconnectionReason: 'stale_connection_cleanup',
+                    disconnectionTime: now
+                });
+                
+                setTimeout(() => {
+                    if (window.globalSocketManager?.io && window.globalSocketManager.isConnected) {
+                        try {
+                            window.globalSocketManager.io.emit('unregister-voice-meeting', {
+                                channel_id: voiceState.channelId,
+                                meeting_id: voiceState.meetingId,
+                                force_disconnect: true,
+                                reason: 'stale_connection_cleanup'
+                            });
+                            console.log('✅ [LOCAL-STORAGE] Notified server about stale voice connection');
+                        } catch (error) {
+                            console.error('Error notifying server about stale voice connection:', error);
+                        }
                     }
-                }
-            }, 2000); // Wait for socket to be ready
+                }, 2000);
+            }
         }
     }
 
@@ -239,6 +243,29 @@ class LocalStorageManager {
     setUnifiedVoiceState(state) {
         const current = this.getUnifiedVoiceState();
         const updated = { ...current, ...state };
+
+        // If user is not connected and there is no channel/meeting, remove the key entirely
+        if (updated.isConnected === false && !updated.channelId && !updated.meetingId) {
+            this.remove(this.keys.UNIFIED_VOICE_STATE);
+            this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); // sends default state
+            return true;
+        }
+        
+        if (updated.isConnected !== current.isConnected || 
+            updated.channelId !== current.channelId || 
+            updated.meetingId !== current.meetingId) {
+            
+            if (window.voiceFacade) {
+                const voiceFacadeState = window.voiceFacade.getCurrentState();
+                if (voiceFacadeState.channelId !== updated.channelId) {
+                    console.warn('⚠️ [LOCAL-STORAGE] Voice state mismatch detected:', {
+                        localStorage: updated.channelId,
+                        voiceFacade: voiceFacadeState.channelId
+                    });
+                    return false;
+                }
+            }
+        }
         
         const success = this.set(this.keys.UNIFIED_VOICE_STATE, updated);
         
@@ -273,6 +300,11 @@ class LocalStorageManager {
                 }
             }));
             
+            if (window.ChannelVoiceParticipants && state.channelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(state.channelId);
+            }
+            
             this.debounceTimers.delete(debounceKey);
         }, 50));
     }
@@ -294,15 +326,15 @@ class LocalStorageManager {
     }
 
     clearVoiceState() {
+        const currentState = this.getUnifiedVoiceState();
         return this.setUnifiedVoiceState({
-            isMuted: false,
-            isDeafened: false,
-            volume: 100,
+            ...currentState,
             isConnected: false,
             channelId: null,
             channelName: null,
             meetingId: null,
-            connectionTime: null
+            connectionTime: null,
+            disconnectionTime: Date.now()
         });
     }
 

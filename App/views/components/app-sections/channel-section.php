@@ -85,6 +85,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             <?php endif; ?>
         </div>
     </div>
+    <?php require_once dirname(__DIR__) . '/common/user-profile.php'; ?>
 </div>
 
 <script>

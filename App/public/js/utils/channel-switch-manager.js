@@ -47,26 +47,28 @@ class SimpleChannelSwitcher {
         if (this.isLoading || this.currentChannelId === channelId) return;
         
         this.isLoading = true;
-        this.currentChannelId = channelId;
-        this.currentChannelType = channelType;
-        
-        this.updateActiveChannel(channelId);
-        this.showSection(channelType);
-        
-        if (updateHistory) {
-            this.updateURL(channelId, channelType);
+        try {
+            this.currentChannelId = channelId;
+            this.currentChannelType = channelType;
+            
+            this.updateActiveChannel(channelId);
+            this.showSection(channelType);
+            
+            if (updateHistory) {
+                this.updateURL(channelId, channelType);
+            }
+            
+            this.updateMetaTags(channelId, channelType);
+            this.updateChannelHeader(channelId, channelType);
+            
+            if (channelType === 'text') {
+                await this.initializeTextChannel(channelId);
+            } else if (channelType === 'voice') {
+                await this.initializeVoiceChannel(channelId);
+            }
+        } finally {
+            this.isLoading = false;
         }
-        
-        this.updateMetaTags(channelId, channelType);
-        this.updateChannelHeader(channelId, channelType);
-        
-        if (channelType === 'text') {
-            await this.initializeTextChannel(channelId);
-        } else if (channelType === 'voice') {
-            await this.initializeVoiceChannel(channelId);
-        }
-        
-        this.isLoading = false;
     }
     
     updateActiveChannel(channelId) {
@@ -168,6 +170,7 @@ class SimpleChannelSwitcher {
         this.showSkeleton();
         
         try {
+            await this.ensureChatSectionReady();
             if (window.chatSection) {
                 await window.chatSection.switchToChannel(channelId, 'text');
             }
@@ -182,24 +185,18 @@ class SimpleChannelSwitcher {
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 'Voice Channel';
         
-        // Update current channel context but DO NOT auto-join the voice call.
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = channelId;
             window.voiceManager.currentChannelName = channelName;
-            // Intentionally not calling joinVoice here to let the user decide when to join.
         }
         
-        if (window.unifiedVoiceStateManager) {
-            window.unifiedVoiceStateManager.setState({
-                channelId: channelId,
-                channelName: channelName,
-                isViewingDifferentChannel: false
-            });
-        }
-        
-        // Also update the localStorage directly to ensure consistency
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
+            
+            if (!currentState.isConnected) {
+                window.localStorageManager.clearVoiceState();
+            }
+            
             window.localStorageManager.setUnifiedVoiceState({
                 ...currentState,
                 channelId: channelId,
@@ -207,9 +204,39 @@ class SimpleChannelSwitcher {
             });
         }
         
-        // Ensure the "join" view is visible (in case we navigated from another voice channel)
         document.getElementById('voice-not-join-container')?.classList.remove('hidden');
         document.getElementById('voice-call-container')?.classList.add('hidden');
+        
+        await this.ensureVoiceCallSectionReady();
+        if (window.voiceCallSection && typeof window.voiceCallSection.ensureChannelSync === 'function') {
+            window.voiceCallSection.ensureChannelSync();
+        }
+    }
+    
+    async ensureChatSectionReady() {
+        // Guarantee that window.chatSection exists and is initialized before we try to switch
+        if (window.chatSection) return;
+        if (typeof window.initializeChatSection === 'function') {
+            try {
+                await window.initializeChatSection();
+            } catch (e) {
+                console.warn('[SimpleChannelSwitcher] initializeChatSection failed:', e);
+            }
+        }
+        let tries = 0;
+        while (!window.chatSection && tries < 40) { // wait up to ~4s
+            await new Promise(r => setTimeout(r, 100));
+            tries++;
+        }
+    }
+    
+    async ensureVoiceCallSectionReady() {
+        if (window.voiceCallSection) return;
+        let tries = 0;
+        while (!window.voiceCallSection && tries < 40) {
+            await new Promise(r => setTimeout(r, 100));
+            tries++;
+        }
     }
     
     showSkeleton() {

@@ -103,13 +103,9 @@ class VoiceCallSection {
         
         if (this.disconnectBtn) {
             this.disconnectBtn.addEventListener("click", () => {
-                if (window.voiceFacade) {
-                    MusicLoaderStatic.playDisconnectVoiceSound();
-                    window.voiceFacade.leave();
-                } else if (window.voiceManager) {
-                    MusicLoaderStatic.playDisconnectVoiceSound();
-                    window.voiceManager.leaveVoice();
-                }
+                if (!window.voiceFacade) return;
+                MusicLoaderStatic.playDisconnectVoiceSound();
+                window.voiceFacade.leave();
             });
         }
     }
@@ -188,7 +184,7 @@ class VoiceCallSection {
             finalChannelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
                               channelElement?.getAttribute('data-channel-name') || 
                               channelName || 'Voice Channel';
-        }
+        } 
         // Or if there's a mismatch with meta tag
         else if (metaChannelId && metaChannelId !== channelId && document.querySelector(`[data-channel-id="${metaChannelId}"][data-channel-type="voice"]`)) {
             console.warn(`⚠️ [VOICE-CALL-SECTION] Channel ID mismatch in handleVoiceConnect: event=${channelId}, meta=${metaChannelId}`);
@@ -227,17 +223,6 @@ class VoiceCallSection {
                 channelName: finalChannelName,
                 meetingId: meetingId,
                 connectionTime: Date.now()
-            });
-        }
-        
-        if (window.unifiedVoiceStateManager) {
-            const currentState = window.unifiedVoiceStateManager.getState() || {};
-            window.unifiedVoiceStateManager.setState({
-                ...currentState,
-                channelId: finalChannelId,
-                channelName: finalChannelName,
-                meetingId: meetingId,
-                isConnected: true
             });
         }
         
@@ -301,129 +286,51 @@ class VoiceCallSection {
             this.currentChannelName = null;
             this.currentMeetingId = null;
             this.updateConnectionStatus(false);
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.clearVoiceState();
+            }
         }
     }
     
     ensureChannelSync() {
-        // Priority order: URL > Meta tag > Unified state > Voice manager
         const urlParams = new URLSearchParams(window.location.search);
         const urlChannelId = urlParams.get('channel');
         const urlChannelType = urlParams.get('type');
         const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
-        const unifiedState = window.unifiedVoiceStateManager?.getState();
         
         let determinedChannelId = null;
         let determinedChannelName = null;
         
-        // URL takes highest priority
         if (urlChannelType === 'voice' && urlChannelId) {
             determinedChannelId = urlChannelId;
             const channelElement = document.querySelector(`[data-channel-id="${urlChannelId}"]`);
-            determinedChannelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
-                                    channelElement?.getAttribute('data-channel-name') || 
-                                    'Voice Channel';
+            determinedChannelName = this.getChannelName(channelElement);
         } 
-        // Then meta tag if it exists
         else if (metaChannelId) {
             determinedChannelId = metaChannelId;
             const channelElement = document.querySelector(`[data-channel-id="${metaChannelId}"]`);
-            determinedChannelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
-                                    channelElement?.getAttribute('data-channel-name') || 
-                                    'Voice Channel';
-        }
-        // Then unified state if it exists
-        else if (unifiedState?.channelId) {
-            determinedChannelId = unifiedState.channelId;
-            determinedChannelName = unifiedState.channelName || 'Voice Channel';
-        }
-        // Finally voice manager as fallback
-        else if (window.voiceManager?.currentChannelId) {
-            determinedChannelId = window.voiceManager.currentChannelId;
-            determinedChannelName = window.voiceManager.currentChannelName || 'Voice Channel';
+            determinedChannelName = this.getChannelName(channelElement);
         }
         
         if (determinedChannelId) {
-            console.log(`✅ [VOICE-CALL-SECTION] Channel sync determined: ${determinedChannelId} (${determinedChannelName})`);
-            
-            // Update all systems with this single source of truth
             this.currentChannelId = determinedChannelId;
             this.currentChannelName = determinedChannelName;
-            
-            if (window.voiceManager) {
-                window.voiceManager.currentChannelId = determinedChannelId;
-                window.voiceManager.currentChannelName = determinedChannelName;
-            }
-            
-            if (window.unifiedVoiceStateManager) {
-                const currentState = window.unifiedVoiceStateManager.getState() || {};
-                window.unifiedVoiceStateManager.setState({
-                    ...currentState,
-                    channelId: determinedChannelId,
-                    channelName: determinedChannelName
-                });
-            }
-            
-            // Also ensure localStorage directly matches this source of truth
-            this.syncUnifiedVoiceStateWithCurrentChannel();
-            
             return true;
         }
         
         return false;
     }
-    
-    syncUnifiedVoiceStateWithCurrentChannel() {
-        if (!window.localStorageManager || !this.currentChannelId) return;
-        
-        const currentState = window.localStorageManager.getUnifiedVoiceState();
-        
-        // Check if either channel ID or meeting ID are different
-        if (currentState.channelId !== this.currentChannelId || 
-            (this.currentMeetingId && currentState.meetingId !== this.currentMeetingId)) {
-            
-            console.log(`🔄 [VOICE-CALL-SECTION] Syncing unified voice state with current channel:`, {
-                channelId: {
-                    current: this.currentChannelId,
-                    storage: currentState.channelId
-                },
-                meetingId: {
-                    current: this.currentMeetingId,
-                    storage: currentState.meetingId
-                }
-            });
-            
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
-                channelId: this.currentChannelId,
-                channelName: this.currentChannelName,
-                meetingId: this.currentMeetingId || currentState.meetingId
-            });
-        }
+
+    getChannelName(channelElement) {
+        return channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
+               channelElement?.getAttribute('data-channel-name') || 
+               'Voice Channel';
     }
-    
-    updateConnectionStatus(isConnected) {
-        const connectionInfo = document.querySelector('.voice-connection-info');
-        if (connectionInfo) {
-            if (isConnected && this.currentChannelName) {
-                connectionInfo.textContent = `Connected to ${this.currentChannelName}`;
-                connectionInfo.classList.add('connected');
-                connectionInfo.classList.remove('disconnected');
-            } else {
-                connectionInfo.textContent = 'Not connected';
-                connectionInfo.classList.add('disconnected');
-                connectionInfo.classList.remove('connected');
-            }
-        }
-    }
-    
-    getCurrentUserId() {
-        return document.querySelector('meta[name="user-id"]')?.content || 
-               window.currentUserId;
-    }
-    
+
     handleParticipantJoined(event) {
         const { participant, data } = event.detail;
-        if (this.participantElements.has(participant)) return;
+        if (!participant || this.participantElements.has(participant)) return;
         
         const element = this.createParticipantElement(participant, data);
         const grid = document.getElementById("participantGrid");
@@ -439,9 +346,11 @@ class VoiceCallSection {
             }
         }
     }
-    
+
     handleParticipantLeft(event) {
         const { participant } = event.detail;
+        if (!participant) return;
+        
         const element = this.participantElements.get(participant);
         if (element) {
             element.remove();
@@ -455,7 +364,7 @@ class VoiceCallSection {
             }
         }
     }
-    
+
     handleBotParticipantJoined(event) {
         const { participant } = event.detail;
         if (!participant || !participant.user_id) return;
@@ -699,6 +608,27 @@ class VoiceCallSection {
             countEl.textContent = count.toString();
         }
     }
+
+    updateConnectionStatus(isConnected) {
+        const connectionInfo = document.querySelector('.voice-connection-info');
+        if (!connectionInfo) return;
+
+        if (isConnected && this.currentChannelName) {
+            connectionInfo.textContent = `Connected to ${this.currentChannelName}`;
+            connectionInfo.classList.add('connected');
+            connectionInfo.classList.remove('disconnected');
+
+            if (window.ChannelVoiceParticipants && this.currentChannelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(this.currentChannelId);
+            }
+        } else {
+            connectionInfo.textContent = 'Not connected';
+            connectionInfo.classList.add('disconnected');
+            connectionInfo.classList.remove('connected');
+            this.clearGrid();
+        }
+    }
     
     updateBotParticipantStatus(botId, statusText) {
         const element = this.participantElements.get(`bot-${botId}`);
@@ -714,9 +644,14 @@ class VoiceCallSection {
         const grid = document.getElementById("participantGrid");
         if (grid) {
             grid.innerHTML = "";
+            this.participantElements.clear();
+            this.updateParticipantCount();
+            
+            if (window.ChannelVoiceParticipants && this.currentChannelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(this.currentChannelId);
+            }
         }
-        this.participantElements.clear();
-        this.updateParticipantCount();
     }
     
     syncButtonStates() {
@@ -841,6 +776,10 @@ class VoiceCallSection {
     getInitials(name) {
         if (!name) return "?";
         return name.split(" ").map(w => w.charAt(0).toUpperCase()).slice(0, 2).join("");
+    }
+
+    getCurrentUserId() {
+        return document.querySelector('meta[name="user-id"]')?.content || window.currentUserId;
     }
 
     initializeVoiceState() {
