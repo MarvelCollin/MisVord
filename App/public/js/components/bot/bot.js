@@ -55,6 +55,7 @@ class BotComponent {
                     channel_id: participant.channelId || participant.channel_id,
                     joinedAt: Date.now()
                 });
+                console.log(`🤖 [BOT-COMPONENT] Bot joined voice:`, participant.username, 'in channel', participant.channelId);
             }
         });
 
@@ -63,6 +64,25 @@ class BotComponent {
             
             if (participant && participant.user_id) {
                 this.voiceBots.delete(participant.user_id);
+                console.log(`🤖 [BOT-COMPONENT] Bot left voice:`, participant.username);
+            }
+        });
+
+        // Also listen for voice-meeting-update events to track bots using the same flow as users
+        io.on('voice-meeting-update', (data) => {
+            if (data.isBot && data.user_id) {
+                if (data.action === 'join') {
+                    this.voiceBots.set(data.user_id, {
+                        user_id: data.user_id,
+                        username: data.username,
+                        channel_id: data.channel_id,
+                        joinedAt: data.timestamp || Date.now()
+                    });
+                    console.log(`🤖 [BOT-COMPONENT] Bot joined via meeting update:`, data.username, 'in channel', data.channel_id);
+                } else if (data.action === 'leave') {
+                    this.voiceBots.delete(data.user_id);
+                    console.log(`🤖 [BOT-COMPONENT] Bot left via meeting update:`, data.username);
+                }
             }
         });
     }

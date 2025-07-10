@@ -245,33 +245,35 @@ class BotHandler extends EventEmitter {
         let voiceChannelToJoin = null;
         
         const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue', 'join'];
+        const leaveCommands = ['stop', 'leave'];
         const commandKeyword = content.split(' ')[1] || '';
         const requiresVoice = voiceRequiredCommands.includes(commandKeyword);
+        const requiresLeave = leaveCommands.includes(commandKeyword);
 
         if (data.voice_context && data.voice_context.voice_channel_id) {
             voiceChannelToJoin = data.voice_context.voice_channel_id;
         }
 
-        if (requiresVoice && !voiceChannelToJoin) {
+        if (requiresVoice && !voiceChannelToJoin && !requiresLeave) {
             await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
             return;
         }
 
         if (content === '/titibot ping') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
-        } else if (content.startsWith('/titibot play ')) {
-            const songName = content.substring('/titibot play '.length).trim();
-
+        } else if (content === '/titibot join') {
+            // Command-triggered join
             if (voiceChannelToJoin) {
-                await this.ensureBotInVoiceChannel(io, botId, username, voiceChannelToJoin);
+                await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'join_success');
             } else {
-                console.warn(`⚠️ [BOT-DEBUG] No voice channel context for PLAY command - music will play without bot joining`);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
             }
-            
-            await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
-        } else if (content === '/titibot stop') {
+        } else if (content === '/titibot leave') {
+            // Command-triggered leave
             let channelIdForLeave = voiceChannelToJoin;
             if (!channelIdForLeave) {
+                // Find bot's current channel
                 for (const key of this.botVoiceParticipants.keys()) {
                     if (key.startsWith(`${botId}-`)) {
                         channelIdForLeave = key.split('-')[1];
@@ -280,9 +282,24 @@ class BotHandler extends EventEmitter {
                 }
             }
             if (channelIdForLeave) {
-                this.removeBotFromVoiceChannel(io, botId, channelIdForLeave);
+                await this.leaveBotFromVoiceChannel(io, botId, channelIdForLeave);
+                await this.sendBotResponse(io, data, messageType, botId, username, 'leave_success');
+            } else {
+                await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice_to_leave');
+            }
+        } else if (content.startsWith('/titibot play ')) {
+            const songName = content.substring('/titibot play '.length).trim();
+
+            if (voiceChannelToJoin) {
+                await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
+            } else {
+                console.warn(`⚠️ [BOT-DEBUG] No voice channel context for PLAY command - music will play without bot joining`);
             }
             
+            await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
+        } else if (content === '/titibot stop') {
+            // Only stop the music, don't leave the voice channel
+            // Bot stays in voice channel but stops playing music
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content === '/titibot next') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'next');
@@ -296,14 +313,25 @@ class BotHandler extends EventEmitter {
         }
     }
 
-    static async ensureBotInVoiceChannel(io, botId, username, channelId) {
+    static async joinBotToVoiceChannel(io, botId, username, channelId) {
         const botParticipantKey = `${botId}-${channelId}`;
         
+        // Check if bot is already in this channel
         if (this.botVoiceParticipants.has(botParticipantKey)) {
+            console.log(`🤖 [BOT-JOIN] Bot ${botId} already in channel ${channelId}`);
             return;
         }
 
-        // Ensure bot is registered and has avatar
+        // Check if bot is in a different channel and leave first
+        for (const [key, participant] of this.botVoiceParticipants.entries()) {
+            if (key.startsWith(`${botId}-`) && participant.channelId !== channelId) {
+                console.log(`🤖 [BOT-JOIN] Bot ${botId} leaving channel ${participant.channelId} to join ${channelId}`);
+                await this.leaveBotFromVoiceChannel(io, botId, participant.channelId);
+                break;
+            }
+        }
+
+        // Ensure bot is registered
         if (!this.bots.has(botId)) {
             await this.registerBot(botId, username);
         }
@@ -311,96 +339,208 @@ class BotHandler extends EventEmitter {
         const botData = this.bots.get(botId);
         const avatarUrl = botData?.avatar_url || '/public/assets/landing-page/robot.webp';
 
-        const botParticipantData = {
-            id: `bot-voice-${botId}`,
-            user_id: botId.toString(),
-            username: username,
-            avatar_url: avatarUrl,
-            isBot: true,
-            channelId: channelId,
-            channel_id: channelId,
-            meetingId: `voice_channel_${channelId}`,
-            joinedAt: Date.now(),
-            status: 'Ready to play music' // Store the status message for consistency
-        };
+        try {
+            // Create a virtual socket client for the bot
+            const virtualBotClient = {
+                id: `bot-${botId}-${channelId}`,
+                data: {
+                    user_id: botId,
+                    username: username,
+                    isBot: true,
+                    authenticated: true,
+                    avatar_url: avatarUrl
+                },
+                join: async (room) => {
+                    console.log(`🤖 [BOT-JOIN] Virtual bot client joined room: ${room}`);
+                },
+                leave: async (room) => {
+                    console.log(`🤖 [BOT-LEAVE] Virtual bot client left room: ${room}`);
+                },
+                emit: (event, data) => {
+                    console.log(`🤖 [BOT-EVENT] Virtual bot client emitted: ${event}`, data);
+                }
+            };
 
-        this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
+            // Use the same registration flow as normal users
+            const registrationData = {
+                channel_id: channelId,
+                meeting_id: `voice_channel_${channelId}`,
+                username: username,
+                broadcast: true
+            };
 
-        VoiceConnectionTracker.addBotToVoice(botId, channelId, `voice_channel_${channelId}`, username);
+            console.log(`🤖 [BOT-JOIN] Registering bot voice meeting:`, {
+                botId,
+                channelId,
+                meetingId: registrationData.meeting_id
+            });
 
-        const voiceChannelRoom = `voice_channel_${channelId}`;
-        
-        // Send the same complete data structure when bot first joins
-        const eventData = {
-            participant: {
-                id: botParticipantData.id,
-                user_id: botParticipantData.user_id,
-                username: botParticipantData.username,
-                avatar_url: botParticipantData.avatar_url,
+            // Simulate the same registration process
+            const roomManager = require('../services/roomManager');
+            const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
+
+            // Add to voice tracker (same as user)
+            VoiceConnectionTracker.addBotToVoice(
+                botId, 
+                channelId, 
+                registrationData.meeting_id, 
+                username
+            );
+
+            // Add to room manager (same as user)
+            roomManager.addVoiceMeeting(channelId, registrationData.meeting_id, virtualBotClient.id);
+
+            // Join voice channel room (same as user)
+            await virtualBotClient.join(`voice_channel_${channelId}`);
+
+            // Create bot participant data
+            const botParticipantData = {
+                id: `bot-voice-${botId}`,
+                user_id: botId.toString(),
+                username: username,
+                avatar_url: avatarUrl,
                 isBot: true,
                 channelId: channelId,
                 channel_id: channelId,
-                meetingId: botParticipantData.meetingId,
-                joinedAt: botParticipantData.joinedAt,
-                status: botParticipantData.status
-            },
-            channelId: channelId,
-            meetingId: `voice_channel_${channelId}`
-        };
-        
-        // Broadcast to multiple rooms to ensure all viewers (including spectators) receive the event
-        io.to(voiceChannelRoom).emit('bot-voice-participant-joined', eventData); // Voice participants
-        io.to(`channel-${channelId}`).emit('bot-voice-participant-joined', eventData); // Text channel viewers
-        io.emit('bot-voice-participant-joined', eventData); // Global broadcast for safety
-        
-        console.log(`🤖 [BOT-HANDLER] Bot joined voice - broadcasting to multiple rooms:`, {
-            botId,
-            channelId,
-            targetRooms: [voiceChannelRoom, `channel-${channelId}`, 'global']
-        });
+                meetingId: registrationData.meeting_id,
+                joinedAt: Date.now(),
+                status: 'Ready to play music'
+            };
+
+            // Store in bot participants
+            this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
+
+            // Get participant count (same as user)
+            const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
+            const participantCount = participants.length;
+
+            // Broadcast join event (same as user flow)
+            const joinEventData = {
+                channel_id: channelId,
+                meeting_id: registrationData.meeting_id,
+                participant_count: participantCount,
+                action: 'join',
+                user_id: botId,
+                username: username,
+                avatar_url: avatarUrl,
+                isBot: true,
+                timestamp: Date.now()
+            };
+
+            // Broadcast to multiple rooms (same as user)
+            io.emit('voice-meeting-update', joinEventData);
+            io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', joinEventData);
+            io.to(`channel-${channelId}`).emit('voice-meeting-update', joinEventData);
+
+            // Also emit bot-specific event for UI
+            const botEventData = {
+                participant: botParticipantData,
+                channelId: channelId,
+                meetingId: registrationData.meeting_id
+            };
+
+            io.to(`voice_channel_${channelId}`).emit('bot-voice-participant-joined', botEventData);
+            io.to(`channel-${channelId}`).emit('bot-voice-participant-joined', botEventData);
+
+            console.log(`🤖 [BOT-JOIN] Bot ${botId} successfully joined voice channel ${channelId} using user flow`);
+
+        } catch (error) {
+            console.error(`❌ [BOT-JOIN] Failed to join bot ${botId} to channel ${channelId}:`, error);
+            throw error;
+        }
     }
 
-    static removeBotFromVoiceChannel(io, botId, channelId) {
+    static async leaveBotFromVoiceChannel(io, botId, channelId) {
         const botParticipantKey = `${botId}-${channelId}`;
         
         if (!this.botVoiceParticipants.has(botParticipantKey)) {
-            console.log(`🤖 [BOT-HANDLER] Bot ${botId} not found in channel ${channelId} - already removed`);
+            console.log(`🤖 [BOT-LEAVE] Bot ${botId} not found in channel ${channelId} - already removed`);
             return;
         }
 
-        // Safety check: Only remove bot if no human participants are left
+        try {
+            const botParticipantData = this.botVoiceParticipants.get(botParticipantKey);
+            const virtualBotClientId = `bot-${botId}-${channelId}`;
+
+            console.log(`🤖 [BOT-LEAVE] Starting bot leave process:`, {
+                botId,
+                channelId,
+                meetingId: botParticipantData.meetingId
+            });
+
+            // Use the same unregistration flow as normal users
+            const roomManager = require('../services/roomManager');
+            const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
+
+            // Remove from room manager (same as user)
+            const result = roomManager.removeVoiceMeeting(channelId, virtualBotClientId);
+
+            // Remove from voice tracker (same as user)
+            VoiceConnectionTracker.removeBotFromVoice(botId, channelId);
+
+            // Remove from bot participants
+            this.botVoiceParticipants.delete(botParticipantKey);
+
+            // Get updated participant count
+            const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
+            const participantCount = participants.length;
+
+            // Broadcast leave event (same as user flow)
+            const leaveEventData = {
+                channel_id: channelId,
+                meeting_id: botParticipantData.meetingId,
+                participant_count: participantCount,
+                action: 'leave',
+                user_id: botId,
+                username: botParticipantData.username,
+                isBot: true,
+                timestamp: Date.now(),
+                reason: 'command_triggered'
+            };
+
+            // Broadcast to multiple rooms (same as user)
+            io.emit('voice-meeting-update', leaveEventData);
+            io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', leaveEventData);
+            io.to(`channel-${channelId}`).emit('voice-meeting-update', leaveEventData);
+
+            // Also emit bot-specific event for UI
+            const botEventData = {
+                participant: botParticipantData,
+                channelId: channelId,
+                meetingId: botParticipantData.meetingId
+            };
+
+            io.to(`voice_channel_${channelId}`).emit('bot-voice-participant-left', botEventData);
+            io.to(`channel-${channelId}`).emit('bot-voice-participant-left', botEventData);
+
+            console.log(`🤖 [BOT-LEAVE] Bot ${botId} successfully left voice channel ${channelId} using user flow`);
+
+        } catch (error) {
+            console.error(`❌ [BOT-LEAVE] Failed to remove bot ${botId} from channel ${channelId}:`, error);
+            throw error;
+        }
+    }
+
+    // Keep old method for backward compatibility but make it use new flow
+    static async ensureBotInVoiceChannel(io, botId, username, channelId) {
+        return await this.joinBotToVoiceChannel(io, botId, username, channelId);
+    }
+
+    // Keep old method for backward compatibility but make it use new flow
+    static removeBotFromVoiceChannel(io, botId, channelId) {
+        console.log(`🤖 [BOT-HANDLER] removeBotFromVoiceChannel called - delegating to leaveBotFromVoiceChannel`);
+        
+        // Check if this is an auto-removal (no humans left) vs command-triggered
         const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
         const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channelId);
         
         if (humanParticipants.length > 0) {
-            console.log(`🤖 [BOT-HANDLER] Refusing to remove bot ${botId} from channel ${channelId} - ${humanParticipants.length} human participants still present:`, 
-                humanParticipants.map(p => p.username).join(', '));
+            console.log(`🤖 [BOT-HANDLER] Refusing auto-removal of bot ${botId} from channel ${channelId} - ${humanParticipants.length} human participants still present`);
             return;
         }
 
-        console.log(`🤖 [BOT-HANDLER] Removing bot ${botId} from channel ${channelId} - no human participants left`);
-
-        const botParticipant = this.botVoiceParticipants.get(botParticipantKey);
-        this.botVoiceParticipants.delete(botParticipantKey);
-
-        VoiceConnectionTracker.removeBotFromVoice(botId, channelId);
-
-        const voiceChannelRoom = `voice_channel_${channelId}`;
-        const eventData = {
-            participant: botParticipant,
-            channelId: channelId
-        };
-        
-        // Broadcast bot leave to multiple rooms to ensure all viewers receive the event
-        io.to(voiceChannelRoom).emit('bot-voice-participant-left', eventData); // Voice participants
-        io.to(`channel-${channelId}`).emit('bot-voice-participant-left', eventData); // Text channel viewers
-        io.emit('bot-voice-participant-left', eventData); // Global broadcast for safety
-        
-        console.log(`🤖 [BOT-HANDLER] Bot left voice - broadcasting to multiple rooms:`, {
-            botId,
-            channelId,
-            targetRooms: [voiceChannelRoom, `channel-${channelId}`, 'global']
-        });
+        // Use the new leave flow for consistency
+        this.leaveBotFromVoiceChannel(io, botId, channelId);
     }
 
     static async sendBotResponse(io, originalMessage, messageType, botId, username, command, parameter = null) {
@@ -424,11 +564,25 @@ class BotHandler extends EventEmitter {
             case 'help':
                 responseContent = `🤖 **TitiBot Commands:**
 📻 **/titibot ping** - Cek apakah botnya aktif
+🎵 **/titibot join** - Join ke voice channel
+👋 **/titibot leave** - Leave dari voice channel
 🎵 **/titibot play [song]** - Nyanyi musig 
-⏹️ **/titibot stop** - Stop musig
+⏹️ **/titibot stop** - Stop musig (tetap di voice channel)
 ⏭️ **/titibot next** - Nyanyi musig selanjutnya
 ⏮️ **/titibot prev** - Nyanyi musig sebelumnya
 ➕ **/titibot queue [song]** - Tambahin ke list`;
+                break;
+
+            case 'join_success':
+                responseContent = '🎤 Haloo! Saya udah masuk ke voice channel nih, siap nyanyi!';
+                break;
+
+            case 'leave_success':
+                responseContent = '👋 Dah dah! Saya keluar dulu dari voice channel ya~';
+                break;
+
+            case 'not_in_voice_to_leave':
+                responseContent = '❌ Saya ga ada di voice channel manapun nih, gabisa keluar dong';
                 break;
 
             case 'play':
@@ -449,7 +603,7 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'stop':
-                responseContent = '⏹️ Yah dimatiin';
+                responseContent = '⏹️ Musig dihentikan! Saya tetap di voice channel ya~';
                 musicData = { action: 'stop' };
                 break;
 
