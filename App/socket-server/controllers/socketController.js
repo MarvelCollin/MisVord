@@ -495,6 +495,9 @@ function setup(io) {
                 
                 // Emit to voice channel room
                 io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
+                
+                // ALWAYS emit to channel room for spectators
+                io.to(`channel-${channel_id}`).emit('voice-meeting-update', updateData);
 
                 // Broadcast globally if it's a new meeting or first participant
                 if (broadcast || isNewMeeting || participantCount === 1) {
@@ -565,6 +568,22 @@ function setup(io) {
                     })),
                     timestamp: Date.now(),
                     source: 'force_refresh'
+                });
+                
+                // Also ensure spectators in channel room get immediate updates
+                participants.forEach(participant => {
+                    io.to(`channel-${data.channel_id}`).emit('voice-meeting-update', {
+                        channel_id: data.channel_id,
+                        action: 'already_registered',
+                        user_id: participant.userId,
+                        username: participant.username,
+                        avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png',
+                        meeting_id: participant.meetingId,
+                        participant_count: participants.length,
+                        isBot: participant.isBot,
+                        timestamp: Date.now(),
+                        source: 'force_refresh_broadcast'
+                    });
                 });
                 
                 console.log(`📊 [FORCE-REFRESH] Sent updated participant list for channel ${data.channel_id}: ${participants.length} participants`);
@@ -812,6 +831,11 @@ function handleCheckVoiceMeeting(io, client, data) {
                 timestamp: Date.now()
             });
         });
+        
+        // Ensure spectators get real-time data by joining channel room
+        if (!client.rooms.has(`channel-${channel_id}`)) {
+            client.join(`channel-${channel_id}`);
+        }
     }
     
     // Send existing bot participants using full data from BotHandler
@@ -822,10 +846,8 @@ function handleCheckVoiceMeeting(io, client, data) {
     if (existingBotParticipants.length > 0) {
         console.log(`🤖 [VOICE-PARTICIPANT] Sending ${existingBotParticipants.length} existing bot participants for recovery`);
         
-        // Use setTimeout to ensure client socket listeners are ready
         setTimeout(() => {
             existingBotParticipants.forEach(botParticipant => {
-                // Ensure bot data has complete information from bot registry
                 const botData = BotHandler.bots.get(parseInt(botParticipant.user_id));
                 const completeAvatarUrl = botData?.avatar_url || botParticipant.avatar_url || '/public/assets/landing-page/robot.webp';
                 
@@ -840,12 +862,11 @@ function handleCheckVoiceMeeting(io, client, data) {
                         channel_id: channel_id,
                         meetingId: botParticipant.meetingId,
                         joinedAt: botParticipant.joinedAt,
-                        // Include any status or additional data that was set when bot first joined
                         status: botParticipant.status || 'Ready to play music'
                     },
                     channelId: channel_id,
                     meetingId: `voice_channel_${channel_id}`,
-                    isRecovery: true // Flag to indicate this is a recovery event
+                    isRecovery: true
                 };
                 
                 client.emit('bot-voice-participant-joined', recoveryBotData);
@@ -1214,13 +1235,8 @@ function setupStaleConnectionChecker(io) {
                 const socket = io.sockets.sockets.get(socketId);
                 
                 if (!socket) {
-
                     staleParticipants.push(socketId);
                 } else if (socket.data?.lastHeartbeat && (now - socket.data.lastHeartbeat) > staleTimeout) {
-
-                    staleParticipants.push(socketId);
-                } else if (!socket.data?.lastHeartbeat && socket.data?.user_id) {
-
                     staleParticipants.push(socketId);
                 }
             });

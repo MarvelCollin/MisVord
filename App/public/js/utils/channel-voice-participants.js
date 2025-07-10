@@ -16,12 +16,10 @@ class ChannelVoiceParticipants {
             this.createDebugPanel();
         }
         
-        // Set up periodic cleanup to detect and fix stale participants
         setInterval(() => {
             this.cleanupStaleParticipants();
-        }, 30000); // Run every 30 seconds
+        }, 30000);
         
-        // Also run cleanup when page becomes visible (user returns from another tab)
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 setTimeout(() => {
@@ -29,6 +27,10 @@ class ChannelVoiceParticipants {
                 }, 1000);
             }
         });
+        
+        setTimeout(() => {
+            this.requestAllChannelStatusWithRetry();
+        }, 2000);
     }
     
     setupEventListeners() {
@@ -50,7 +52,15 @@ class ChannelVoiceParticipants {
 
         // Re-request participant lists once socket is authenticated (ensures data after reload)
         window.addEventListener('socketAuthenticated', () => {
-            this.requestAllChannelStatus();
+            // Force refresh all channels after authentication
+            setTimeout(() => {
+                this.requestAllChannelStatus();
+                // Also force refresh current voice channel if connected
+                const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+                if (voiceState?.isConnected && voiceState?.channelId) {
+                    this.forceRefreshChannel(voiceState.channelId);
+                }
+            }, 500);
         });
         
         if (window.localStorageManager) {
@@ -179,6 +189,14 @@ class ChannelVoiceParticipants {
                 });
             }, 200);
         }
+        
+        // Always join all voice channel rooms for spectator updates
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId && window.globalSocketManager?.isReady()) {
+                window.globalSocketManager.joinRoom('channel', channelId);
+            }
+        });
     }
     
     clearCurrentUserParticipantCounts() {
@@ -239,10 +257,10 @@ class ChannelVoiceParticipants {
                         username: data.username || 'Unknown',
                         avatar_url: data.avatar_url || '/public/assets/common/default-profile-picture.png'
                     });
-                    console.log(`➕ [EXTERNAL-PARTICIPANTS] Added participant ${data.user_id} to channel ${chan}`);
+                    console.log(`➕ [EXTERNAL-PARTICIPANTS] Added participant ${data.user_id} to channel ${chan} (source: ${data.source || 'unknown'})`);
                 } else if (data.action === 'leave') {
                     const removed = map.delete(data.user_id);
-                    console.log(`🗑️ [EXTERNAL-PARTICIPANTS] ${removed ? 'Removed' : 'Attempted to remove'} participant ${data.user_id} from channel ${chan}`);
+                    console.log(`🗑️ [EXTERNAL-PARTICIPANTS] ${removed ? 'Removed' : 'Attempted to remove'} participant ${data.user_id} from channel ${chan} (source: ${data.source || 'unknown'})`);
                     
                     // Force immediate UI update for participant leaves to prevent stale display
                     this.updateSidebarForChannel(chan, 'full');
@@ -296,12 +314,12 @@ class ChannelVoiceParticipants {
         socket.on('voice-meeting-status', (data) => {
             if (!data || !data.channel_id) return;
 
-            // hydrate external participant map from full status payload
             if (data.participants && Array.isArray(data.participants)) {
                 if (!this.externalParticipants.has(data.channel_id)) {
                     this.externalParticipants.set(data.channel_id, new Map());
                 }
                 const map = this.externalParticipants.get(data.channel_id);
+                map.clear();
                 data.participants.forEach(p => {
                     if (!p || !p.user_id) return;
                     map.set(p.user_id, {
@@ -310,19 +328,22 @@ class ChannelVoiceParticipants {
                         avatar_url: p.avatar_url || '/public/assets/common/default-profile-picture.png'
                     });
                 });
+                console.log(`🔄 [EXTERNAL-PARTICIPANTS] Refreshed ${data.participants.length} participants for channel ${data.channel_id} (source: ${data.source || 'unknown'})`);
             }
 
-            // update count & sidebar visibility
             this.updateChannelCount(data.channel_id, data.participant_count || 0);
-            this.updateSidebarForChannel(data.channel_id);
+            this.updateSidebarForChannel(data.channel_id, 'full');
 
-            // Persist meeting ID on DOM element for future joins
             if (data.meeting_id) {
                 const channelEl = document.querySelector(`[data-channel-id="${data.channel_id}"]`);
                 if (channelEl) {
                     channelEl.setAttribute('data-meeting-id', data.meeting_id);
                 }
             }
+            
+            setTimeout(() => {
+                this.updateSidebarForChannel(data.channel_id, 'validate');
+            }, 100);
         });
         
         socket.on('bot-voice-participant-joined', (data) => {
@@ -640,11 +661,24 @@ class ChannelVoiceParticipants {
     }
     
     loadInitialState() {
-        this.requestAllChannelStatus();
+        this.requestAllChannelStatusWithRetry();
         
         setTimeout(() => {
             this.loadExistingBotParticipants();
         }, 1000);
+    }
+
+    requestAllChannelStatusWithRetry(attempt = 0) {
+        if (window.globalSocketManager?.io && window.globalSocketManager.isAuthenticated) {
+            this.requestAllChannelStatus();
+            return;
+        }
+        
+        if (attempt < 10) {
+            setTimeout(() => {
+                this.requestAllChannelStatusWithRetry(attempt + 1);
+            }, 200 + (attempt * 100));
+        }
     }
 
     requestAllChannelStatus() {
@@ -654,6 +688,7 @@ class ChannelVoiceParticipants {
         document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
             const channelId = channel.getAttribute('data-channel-id');
             if (channelId) {
+                window.globalSocketManager.joinRoom('channel', channelId);
                 window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
             }
         });
@@ -795,6 +830,14 @@ class ChannelVoiceParticipants {
                 }
             }
         }
+        
+        // Force refresh all voice channels to sync spectator data
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId && window.globalSocketManager?.isReady()) {
+                window.globalSocketManager.joinRoom('channel', channelId);
+            }
+        });
     }
 
     updateParticipantContainer(container, renderList) {

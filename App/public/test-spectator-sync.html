@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spectator Reload Test</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background: #d4edda; border: 1px solid #c3e6cb; }
+        .participant { padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 3px; }
+        button { padding: 10px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Spectator Reload Test</h1>
+    <div id="status" class="status">Connecting...</div>
+    <div>
+        <button onclick="testReload()">Simulate Page Reload</button>
+        <button onclick="testChannelJoin()">Test Channel Join</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <h3>Voice Participants:</h3>
+    <div id="participants"></div>
+    
+    <h3>Event Log:</h3>
+    <div id="log" style="max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;"></div>
+    
+    <script>
+        const socket = io();
+        const statusDiv = document.getElementById('status');
+        const participantDiv = document.getElementById('participants');
+        const logDiv = document.getElementById('log');
+        let testChannelId = '1';
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        socket.on('connect', () => {
+            statusDiv.textContent = 'Connected to server';
+            statusDiv.className = 'status connected';
+            log('🔌 Connected to socket server');
+            
+            socket.emit('join-channel', { channel_id: testChannelId });
+            log(`📡 Joined channel ${testChannelId} as spectator`);
+        });
+        
+        socket.on('voice-meeting-update', (data) => {
+            log(`🎤 Voice meeting update: ${JSON.stringify(data)}`);
+            if (data.channelId == testChannelId || data.channel_id == testChannelId) {
+                updateParticipantDisplay(data.participants || []);
+            }
+        });
+        
+        socket.on('voice-meeting-status', (data) => {
+            log(`📊 Voice meeting status: ${JSON.stringify(data)}`);
+            if (data.channel_id == testChannelId) {
+                updateParticipantDisplay(data.participants || []);
+            }
+        });
+        
+        function updateParticipantDisplay(participants) {
+            participantDiv.innerHTML = '';
+            
+            if (!participants || participants.length === 0) {
+                participantDiv.innerHTML = '<div class="participant">No participants in voice</div>';
+                return;
+            }
+            
+            participants.forEach(participant => {
+                const div = document.createElement('div');
+                div.className = 'participant';
+                div.innerHTML = `
+                    <strong>${participant.username}</strong> 
+                    (ID: ${participant.user_id || participant.userId})
+                    ${participant.isBot ? ' [BOT]' : ''}
+                `;
+                participantDiv.appendChild(div);
+            });
+            
+            log(`👥 Updated participant display: ${participants.length} participants`);
+        }
+        
+        function testReload() {
+            log('🔄 Simulating page reload...');
+            socket.emit('check-voice-meeting', { channel_id: testChannelId });
+            log(`📡 Requested voice meeting status for channel ${testChannelId}`);
+        }
+        
+        function testChannelJoin() {
+            log('🚪 Simulating channel join...');
+            socket.emit('join-channel', { channel_id: testChannelId });
+            setTimeout(() => {
+                socket.emit('check-voice-meeting', { channel_id: testChannelId });
+            }, 200);
+            log(`📡 Joined channel and requested status`);
+        }
+        
+        function clearLog() {
+            logDiv.innerHTML = '';
+        }
+    </script>
+</body>
+</html>
