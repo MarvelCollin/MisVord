@@ -2,6 +2,103 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Fallback styles for voice control buttons when Tailwind classes fail */
+#micBtn, #videoBtn, #deafenBtn, #screenBtn, #ticTacToeBtn, #disconnectBtn {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    border-radius: 50% !important;
+    border: none !important;
+    color: white !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.15s ease !important;
+    outline: none !important;
+    user-select: none !important;
+    margin: 0 8px !important;
+    flex-shrink: 0 !important;
+}
+
+#micBtn {
+    background-color: #4f545c !important;
+}
+
+#micBtn:hover {
+    background-color: #ed4245 !important;
+}
+
+#micBtn.muted {
+    background-color: #ed4245 !important;
+}
+
+#videoBtn {
+    background-color: #4f545c !important;
+}
+
+#videoBtn:hover {
+    background-color: #3ba55c !important;
+}
+
+#videoBtn.active {
+    background-color: #3ba55c !important;
+}
+
+#deafenBtn {
+    background-color: #4f545c !important;
+}
+
+#deafenBtn:hover {
+    background-color: #ed4245 !important;
+}
+
+#deafenBtn.deafened {
+    background-color: #ed4245 !important;
+}
+
+#screenBtn {
+    background-color: #4f545c !important;
+}
+
+#screenBtn:hover {
+    background-color: #5865f2 !important;
+}
+
+#screenBtn.screen-sharing {
+    background-color: #5865f2 !important;
+}
+
+#ticTacToeBtn {
+    background-color: #4f545c !important;
+}
+
+#ticTacToeBtn:hover {
+    background-color: #8b5cf6 !important;
+}
+
+#disconnectBtn {
+    background-color: #ed4245 !important;
+}
+
+#disconnectBtn:hover {
+    background-color: #da373c !important;
+}
+
+/* Voice controls container styling */
+.voice-controls {
+    background-color: #36393f !important;
+    border-top: 1px solid #202225 !important;
+    padding: 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 16px !important;
+    min-height: 80px !important;
+}
+
 .video-participant-card {
     background: #1e1f22 !important;
     border-radius: 12px !important;
@@ -455,17 +552,24 @@
     }
     
     .voice-control-btn {
-        width: 40px !important;
-        height: 40px !important;
+        width: 48px !important;
+        height: 48px !important;
         flex-shrink: 0 !important;
+        min-width: 48px !important;
+        min-height: 48px !important;
+        border-radius: 50% !important;
+        background-color: #4f545c !important;
+        color: white !important;
+        border: none !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        transition: all 0.15s ease !important;
+        margin: 0 4px !important;
     }
     
     .voice-control-btn i {
-        font-size: 14px !important;
-    }
-    
-    .voice-tooltip {
-        display: none !important;
+        font-size: 16px !important;
     }
     
     .scroll-indicator {
@@ -512,10 +616,23 @@
 
 /* Discord-style additions */
 .voice-control-btn {
-    position: relative;
-    border: none;
-    outline: none;
-    cursor: pointer;
+    position: relative !important;
+    border: none !important;
+    outline: none !important;
+    cursor: pointer !important;
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.15s ease !important;
+    background-color: #4f545c !important;
+    color: white !important;
+}
+
+.voice-control-btn:hover {
+    transform: scale(1.05) !important;
 }
 
 .voice-control-btn.active {
@@ -534,6 +651,35 @@
     background-color: #5865f2 !important;
 }
 
+/* Specific button hover states */
+.voice-control-btn.mic-btn:hover:not(.muted) {
+    background-color: #ed4245 !important;
+}
+
+.voice-control-btn.video-btn:hover:not(.active) {
+    background-color: #3ba55c !important;
+}
+
+.voice-control-btn.deafen-btn:hover:not(.deafened) {
+    background-color: #ed4245 !important;
+}
+
+.voice-control-btn.screen-btn:hover:not(.screen-sharing) {
+    background-color: #5865f2 !important;
+}
+
+.voice-control-btn.tic-tac-toe-btn:hover {
+    background-color: #8b5cf6 !important;
+}
+
+.voice-control-btn.disconnect-btn {
+    background-color: #ed4245 !important;
+}
+
+.voice-control-btn.disconnect-btn:hover {
+    background-color: #da373c !important;
+}
+
 /* Tooltips */
 .voice-tooltip {
     position: absolute;
@@ -548,8 +694,9 @@
     font-weight: 600;
     white-space: nowrap;
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.2s ease;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
     z-index: 1000;
 }
 
@@ -565,6 +712,7 @@
 
 .voice-control-btn:hover .voice-tooltip {
     opacity: 1;
+    visibility: visible;
 }
 
 /* Enhanced voice participant styling */

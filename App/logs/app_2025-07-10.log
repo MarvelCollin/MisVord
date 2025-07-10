@@ -91,3 +91,570 @@
 [2025-07-10 11:05:17] INFO [d6d955] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:05:17"}
 [2025-07-10 11:05:17] WARNING [d6d955] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
 [2025-07-10 11:05:17] INFO [d812ad] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:05:17"}
+[2025-07-10 11:26:14] INFO [678921] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:14"}
+[2025-07-10 11:26:14] DEBUG [678921] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:14] DEBUG [678921] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:14] INFO [678921] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:15] INFO [76f8ad] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:15"}
+[2025-07-10 11:26:15] DEBUG [76f8ad] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:15] DEBUG [76f8ad] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:15] INFO [76f8ad] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:16] INFO [86b6b1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:16"}
+[2025-07-10 11:26:16] DEBUG [86b6b1] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:16] DEBUG [86b6b1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:16] INFO [86b6b1] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:17] INFO [96bc2f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:17"}
+[2025-07-10 11:26:17] DEBUG [96bc2f] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:17] DEBUG [96bc2f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:17] INFO [96bc2f] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:18] INFO [a6bf4e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:18"}
+[2025-07-10 11:26:18] DEBUG [a6bf4e] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:18] DEBUG [a6bf4e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:18] INFO [a6bf4e] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:19] INFO [b6cb83] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:19"}
+[2025-07-10 11:26:19] DEBUG [b6cb83] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:19] DEBUG [b6cb83] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:19] INFO [b6cb83] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:20] INFO [c67ff5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:20"}
+[2025-07-10 11:26:20] DEBUG [c67ff5] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:20] DEBUG [c67ff5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:20] INFO [c67ff5] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:21] INFO [d6b6c6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:21"}
+[2025-07-10 11:26:21] DEBUG [d6b6c6] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:21] DEBUG [d6b6c6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:21] INFO [d6b6c6] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:22] INFO [e67fe5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:22"}
+[2025-07-10 11:26:22] DEBUG [e67fe5] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:22] DEBUG [e67fe5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:22] INFO [e67fe5] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:23] INFO [f6dbbd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:23"}
+[2025-07-10 11:26:23] DEBUG [f6dbbd] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:23] DEBUG [f6dbbd] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:23] INFO [f6dbbd] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:24] INFO [068896] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:24"}
+[2025-07-10 11:26:24] DEBUG [068896] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:24] DEBUG [068896] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:24] INFO [068896] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:24] INFO [078f7c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:24"}
+[2025-07-10 11:26:24] DEBUG [078f7c] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:24] DEBUG [078f7c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:24] INFO [078f7c] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:27] INFO [36a256] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:27"}
+[2025-07-10 11:26:27] DEBUG [36a256] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:27] DEBUG [36a256] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:27] INFO [36a256] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:27] INFO [37c661] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:27"}
+[2025-07-10 11:26:27] DEBUG [37c661] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:27] DEBUG [37c661] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:27] INFO [37c661] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:32] INFO [86819f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:32"}
+[2025-07-10 11:26:32] DEBUG [86819f] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:32] DEBUG [86819f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:32] INFO [86819f] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:32] INFO [8759cd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:32"}
+[2025-07-10 11:26:32] DEBUG [8759cd] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:32] DEBUG [8759cd] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:32] INFO [8759cd] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:37] INFO [d68642] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:37"}
+[2025-07-10 11:26:37] DEBUG [d68642] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:37] DEBUG [d68642] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:37] INFO [d68642] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:37] INFO [d753af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:37"}
+[2025-07-10 11:26:37] DEBUG [d753af] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:37] DEBUG [d753af] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:37] INFO [d753af] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:42] INFO [26afe1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:42"}
+[2025-07-10 11:26:42] DEBUG [26afe1] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:42] DEBUG [26afe1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:42] INFO [26afe1] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:42] INFO [2875f6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:42"}
+[2025-07-10 11:26:42] DEBUG [2875f6] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:42] DEBUG [2875f6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:42] INFO [2875f6] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:47] INFO [76ffe5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:47"}
+[2025-07-10 11:26:47] DEBUG [76ffe5] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:47] DEBUG [76ffe5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:47] INFO [76ffe5] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:47] INFO [791740] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:47"}
+[2025-07-10 11:26:47] DEBUG [791740] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:47] DEBUG [791740] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:47] INFO [791740] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:52] INFO [c6e387] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:52"}
+[2025-07-10 11:26:52] DEBUG [c6e387] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:52] DEBUG [c6e387] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:52] INFO [c6e387] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:52] INFO [c91f6e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:52"}
+[2025-07-10 11:26:52] DEBUG [c91f6e] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:52] DEBUG [c91f6e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:52] INFO [c91f6e] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:57] INFO [16b61a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:57"}
+[2025-07-10 11:26:57] DEBUG [16b61a] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:57] DEBUG [16b61a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:57] INFO [16b61a] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:26:57] INFO [184d3c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:26:57"}
+[2025-07-10 11:26:57] DEBUG [184d3c] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:26:57] DEBUG [184d3c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:26:57] INFO [184d3c] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:02] INFO [66d0c7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:02"}
+[2025-07-10 11:27:02] DEBUG [66d0c7] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:02] DEBUG [66d0c7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:02] INFO [66d0c7] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:02] INFO [695940] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:02"}
+[2025-07-10 11:27:02] DEBUG [695940] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:02] DEBUG [695940] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:02] INFO [695940] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:07] INFO [b6c50e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:07"}
+[2025-07-10 11:27:07] DEBUG [b6c50e] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:07] DEBUG [b6c50e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:07] INFO [b6c50e] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:07] INFO [b8c2df] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:07"}
+[2025-07-10 11:27:07] DEBUG [b8c2df] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:07] DEBUG [b8c2df] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:07] INFO [b8c2df] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:12] INFO [06b517] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:12"}
+[2025-07-10 11:27:12] DEBUG [06b517] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:12] DEBUG [06b517] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:12] INFO [06b517] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:12] INFO [083d53] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:12"}
+[2025-07-10 11:27:12] DEBUG [083d53] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:12] DEBUG [083d53] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:12] INFO [083d53] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:17] INFO [56b1a7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:17"}
+[2025-07-10 11:27:17] DEBUG [56b1a7] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:17] DEBUG [56b1a7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:17] INFO [56b1a7] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:17] INFO [587ed5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:17"}
+[2025-07-10 11:27:17] DEBUG [587ed5] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:17] DEBUG [587ed5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:17] INFO [587ed5] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:22] INFO [a6db4e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:22"}
+[2025-07-10 11:27:22] DEBUG [a6db4e] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:22] DEBUG [a6db4e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:22] INFO [a6db4e] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:22] INFO [a93862] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:22"}
+[2025-07-10 11:27:22] DEBUG [a93862] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:22] DEBUG [a93862] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:22] INFO [a93862] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:27] INFO [f689a1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:27"}
+[2025-07-10 11:27:27] DEBUG [f689a1] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:27] DEBUG [f689a1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:27] INFO [f689a1] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:27] INFO [f7c356] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:27"}
+[2025-07-10 11:27:27] DEBUG [f7c356] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:27] DEBUG [f7c356] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:27] INFO [f7c356] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:32] INFO [467e32] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:32"}
+[2025-07-10 11:27:32] DEBUG [467e32] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:32] DEBUG [467e32] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:32] INFO [467e32] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:32] INFO [4714ca] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:32"}
+[2025-07-10 11:27:32] DEBUG [4714ca] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:32] DEBUG [4714ca] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:32] INFO [4714ca] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:37] INFO [9681b4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:37"}
+[2025-07-10 11:27:37] DEBUG [9681b4] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:37] DEBUG [9681b4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:37] INFO [9681b4] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:37] INFO [9777d8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:37"}
+[2025-07-10 11:27:37] DEBUG [9777d8] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:37] DEBUG [9777d8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:37] INFO [9777d8] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:42] INFO [e6a9c3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:42"}
+[2025-07-10 11:27:42] DEBUG [e6a9c3] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:42] DEBUG [e6a9c3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:42] INFO [e6a9c3] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:42] INFO [e79969] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:42"}
+[2025-07-10 11:27:42] DEBUG [e79969] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:42] DEBUG [e79969] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:42] INFO [e79969] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:47] INFO [36b41b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:47"}
+[2025-07-10 11:27:47] DEBUG [36b41b] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:47] DEBUG [36b41b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:47] INFO [36b41b] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:47] INFO [378ca5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:47"}
+[2025-07-10 11:27:47] DEBUG [378ca5] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:47] DEBUG [378ca5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:47] INFO [378ca5] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:52] INFO [869fc7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:52"}
+[2025-07-10 11:27:52] DEBUG [869fc7] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:52] DEBUG [869fc7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:52] INFO [869fc7] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:52] INFO [87cb56] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:52"}
+[2025-07-10 11:27:52] DEBUG [87cb56] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:52] DEBUG [87cb56] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:52] INFO [87cb56] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:57] INFO [d6a542] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:57"}
+[2025-07-10 11:27:57] DEBUG [d6a542] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:57] DEBUG [d6a542] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:57] INFO [d6a542] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:27:57] INFO [d836bb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:27:57"}
+[2025-07-10 11:27:57] DEBUG [d836bb] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:27:57] DEBUG [d836bb] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:27:57] INFO [d836bb] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:02] INFO [26af58] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:02"}
+[2025-07-10 11:28:02] DEBUG [26af58] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:02] DEBUG [26af58] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:02] INFO [26af58] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:02] INFO [27a30c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:02"}
+[2025-07-10 11:28:02] DEBUG [27a30c] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:02] DEBUG [27a30c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:02] INFO [27a30c] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:07] INFO [769b3a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:07"}
+[2025-07-10 11:28:07] DEBUG [769b3a] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:07] DEBUG [769b3a] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:07] INFO [769b3a] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:07] INFO [77ab02] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:07"}
+[2025-07-10 11:28:07] DEBUG [77ab02] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:07] DEBUG [77ab02] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:07] INFO [77ab02] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:12] INFO [c67c4d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:12"}
+[2025-07-10 11:28:12] DEBUG [c67c4d] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:12] DEBUG [c67c4d] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:12] INFO [c67c4d] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:12] INFO [c73434] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:12"}
+[2025-07-10 11:28:12] DEBUG [c73434] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:12] DEBUG [c73434] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:12] INFO [c73434] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:17] INFO [1692d6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:17"}
+[2025-07-10 11:28:17] DEBUG [1692d6] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:17] DEBUG [1692d6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:17] INFO [1692d6] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:17] INFO [176d53] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:17"}
+[2025-07-10 11:28:17] DEBUG [176d53] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:17] DEBUG [176d53] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:17] INFO [176d53] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:22] INFO [6688aa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:22"}
+[2025-07-10 11:28:22] DEBUG [6688aa] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:22] DEBUG [6688aa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:22] INFO [6688aa] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:22] INFO [672e66] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:22"}
+[2025-07-10 11:28:22] DEBUG [672e66] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:22] DEBUG [672e66] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:22] INFO [672e66] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:27] INFO [b6a464] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:27"}
+[2025-07-10 11:28:27] DEBUG [b6a464] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:27] DEBUG [b6a464] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:27] INFO [b6a464] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:27] INFO [b7f356] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:27"}
+[2025-07-10 11:28:27] DEBUG [b7f356] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:27] DEBUG [b7f356] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:27] INFO [b7f356] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:32] INFO [06b1f1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:32"}
+[2025-07-10 11:28:32] DEBUG [06b1f1] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:32] DEBUG [06b1f1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:32] INFO [06b1f1] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:32] INFO [080056] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:32"}
+[2025-07-10 11:28:32] DEBUG [080056] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:32] DEBUG [080056] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:32] INFO [080056] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:37] INFO [568e78] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:37"}
+[2025-07-10 11:28:37] DEBUG [568e78] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:37] DEBUG [568e78] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:37] INFO [568e78] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:37] INFO [5774ef] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:37"}
+[2025-07-10 11:28:37] DEBUG [5774ef] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:37] DEBUG [5774ef] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:37] INFO [5774ef] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:42] INFO [a679d7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:42"}
+[2025-07-10 11:28:42] DEBUG [a679d7] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:42] DEBUG [a679d7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:42] INFO [a679d7] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:42] INFO [a720ac] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:42"}
+[2025-07-10 11:28:42] DEBUG [a720ac] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:42] DEBUG [a720ac] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:42] INFO [a720ac] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:47] INFO [f69772] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:47"}
+[2025-07-10 11:28:47] DEBUG [f69772] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:47] DEBUG [f69772] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:47] INFO [f69772] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:47] INFO [f76eea] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:47"}
+[2025-07-10 11:28:47] DEBUG [f76eea] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:47] DEBUG [f76eea] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:47] INFO [f76eea] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:52] INFO [469b55] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:52"}
+[2025-07-10 11:28:52] DEBUG [469b55] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:52] DEBUG [469b55] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:52] INFO [469b55] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:52] INFO [47fcf8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:52"}
+[2025-07-10 11:28:52] DEBUG [47fcf8] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:52] DEBUG [47fcf8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:52] INFO [47fcf8] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:57] INFO [969499] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:57"}
+[2025-07-10 11:28:57] DEBUG [969499] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:57] DEBUG [969499] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:57] INFO [969499] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:28:57] INFO [97a413] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:28:57"}
+[2025-07-10 11:28:57] DEBUG [97a413] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:28:57] DEBUG [97a413] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:28:57] INFO [97a413] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:02] INFO [e6b964] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:02"}
+[2025-07-10 11:29:02] DEBUG [e6b964] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:02] DEBUG [e6b964] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:02] INFO [e6b964] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:02] INFO [e7d985] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:02"}
+[2025-07-10 11:29:02] DEBUG [e7d985] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:02] DEBUG [e7d985] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:02] INFO [e7d985] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:07] INFO [368114] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:07"}
+[2025-07-10 11:29:07] DEBUG [368114] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:07] DEBUG [368114] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:07] INFO [368114] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:07] INFO [371ddc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:07"}
+[2025-07-10 11:29:07] DEBUG [371ddc] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:07] DEBUG [371ddc] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:07] INFO [371ddc] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:12] INFO [86f972] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:12"}
+[2025-07-10 11:29:12] DEBUG [86f972] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:12] DEBUG [86f972] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:12] INFO [86f972] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:12] INFO [8826d4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:12"}
+[2025-07-10 11:29:12] DEBUG [8826d4] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:12] DEBUG [8826d4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:12] INFO [8826d4] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:17] INFO [d71c16] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:17"}
+[2025-07-10 11:29:17] DEBUG [d71c16] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:17] DEBUG [d71c16] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:17] INFO [d71c16] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:17] INFO [d880f7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:17"}
+[2025-07-10 11:29:17] DEBUG [d880f7] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:17] DEBUG [d880f7] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:17] INFO [d880f7] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:22] INFO [26b9e2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:22"}
+[2025-07-10 11:29:22] DEBUG [26b9e2] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:22] DEBUG [26b9e2] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:22] INFO [26b9e2] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:22] INFO [2868ed] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:22"}
+[2025-07-10 11:29:22] DEBUG [2868ed] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:22] DEBUG [2868ed] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:22] INFO [2868ed] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:27] INFO [76cb60] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:27"}
+[2025-07-10 11:29:27] DEBUG [76cb60] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:27] DEBUG [76cb60] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:27] INFO [76cb60] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:27] INFO [77d6e6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:27"}
+[2025-07-10 11:29:27] DEBUG [77d6e6] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:27] DEBUG [77d6e6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:27] INFO [77d6e6] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:32] INFO [c6bac0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:32"}
+[2025-07-10 11:29:32] DEBUG [c6bac0] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:32] DEBUG [c6bac0] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:32] INFO [c6bac0] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:32] INFO [c7d8d1] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:32"}
+[2025-07-10 11:29:32] DEBUG [c7d8d1] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:32] DEBUG [c7d8d1] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:32] INFO [c7d8d1] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:37] INFO [16a36f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:37"}
+[2025-07-10 11:29:37] DEBUG [16a36f] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:37] DEBUG [16a36f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:37] INFO [16a36f] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:37] INFO [178e4e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:37"}
+[2025-07-10 11:29:37] DEBUG [178e4e] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:37] DEBUG [178e4e] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:37] INFO [178e4e] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:42] INFO [66b0a2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:42"}
+[2025-07-10 11:29:42] DEBUG [66b0a2] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:42] DEBUG [66b0a2] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:42] INFO [66b0a2] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:42] INFO [67d146] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:42"}
+[2025-07-10 11:29:42] DEBUG [67d146] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:42] DEBUG [67d146] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:42] INFO [67d146] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:47] INFO [b6b7a6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:47"}
+[2025-07-10 11:29:47] DEBUG [b6b7a6] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:47] DEBUG [b6b7a6] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:47] INFO [b6b7a6] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:47] INFO [b7c7d3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:47"}
+[2025-07-10 11:29:47] DEBUG [b7c7d3] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:47] DEBUG [b7c7d3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:47] INFO [b7c7d3] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:52] INFO [069fc8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:52"}
+[2025-07-10 11:29:52] DEBUG [069fc8] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:52] DEBUG [069fc8] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:52] INFO [069fc8] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:52] INFO [077ea3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:52"}
+[2025-07-10 11:29:52] DEBUG [077ea3] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:52] DEBUG [077ea3] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:52] INFO [077ea3] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:57] INFO [56b9df] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:57"}
+[2025-07-10 11:29:57] DEBUG [56b9df] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:57] DEBUG [56b9df] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:57] INFO [56b9df] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:29:57] INFO [583593] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:29:57"}
+[2025-07-10 11:29:57] DEBUG [583593] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:29:57] DEBUG [583593] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:29:57] INFO [583593] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:02] INFO [a698ee] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:02"}
+[2025-07-10 11:30:02] DEBUG [a698ee] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:02] DEBUG [a698ee] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:02] INFO [a698ee] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:02] INFO [a7c791] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:02"}
+[2025-07-10 11:30:02] DEBUG [a7c791] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:02] DEBUG [a7c791] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:02] INFO [a7c791] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:07] INFO [f68dfe] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:07"}
+[2025-07-10 11:30:07] DEBUG [f68dfe] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:07] DEBUG [f68dfe] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:07] INFO [f68dfe] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:07] INFO [f77c96] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:07"}
+[2025-07-10 11:30:07] DEBUG [f77c96] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:07] DEBUG [f77c96] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:07] INFO [f77c96] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:12] INFO [46aac9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:12"}
+[2025-07-10 11:30:12] DEBUG [46aac9] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:12] DEBUG [46aac9] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:12] INFO [46aac9] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:12] INFO [47ff40] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:12"}
+[2025-07-10 11:30:12] DEBUG [47ff40] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:12] DEBUG [47ff40] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:12] INFO [47ff40] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:17] INFO [96a206] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:17"}
+[2025-07-10 11:30:17] DEBUG [96a206] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:17] DEBUG [96a206] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:17] INFO [96a206] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:17] INFO [97caa4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:17"}
+[2025-07-10 11:30:17] DEBUG [97caa4] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:17] DEBUG [97caa4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:17] INFO [97caa4] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:22] INFO [e6c370] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:22"}
+[2025-07-10 11:30:22] DEBUG [e6c370] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:22] DEBUG [e6c370] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:22] INFO [e6c370] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:22] INFO [e7f5ed] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:22"}
+[2025-07-10 11:30:22] DEBUG [e7f5ed] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:22] DEBUG [e7f5ed] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:22] INFO [e7f5ed] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:27] INFO [369294] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:27"}
+[2025-07-10 11:30:27] DEBUG [369294] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:27] DEBUG [369294] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:27] INFO [369294] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:27] INFO [3776b4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:27"}
+[2025-07-10 11:30:27] DEBUG [3776b4] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:27] DEBUG [3776b4] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:27] INFO [3776b4] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:32] INFO [86a027] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:32"}
+[2025-07-10 11:30:32] DEBUG [86a027] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:32] DEBUG [86a027] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:32] INFO [86a027] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:32] INFO [87ca73] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:32"}
+[2025-07-10 11:30:32] DEBUG [87ca73] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:32] DEBUG [87ca73] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:32] INFO [87ca73] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:37] INFO [d683cf] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:37"}
+[2025-07-10 11:30:37] DEBUG [d683cf] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:37] DEBUG [d683cf] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:37] INFO [d683cf] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:37] INFO [d781ce] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:37"}
+[2025-07-10 11:30:37] DEBUG [d781ce] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:37] DEBUG [d781ce] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:37] INFO [d781ce] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:42] INFO [26ae0c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:42"}
+[2025-07-10 11:30:42] DEBUG [26ae0c] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:42] DEBUG [26ae0c] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:42] INFO [26ae0c] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:42] INFO [2842d5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:42"}
+[2025-07-10 11:30:42] DEBUG [2842d5] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:42] DEBUG [2842d5] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:42] INFO [2842d5] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:46] INFO [6770fa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:46"}
+[2025-07-10 11:30:46] DEBUG [6770fa] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:46] DEBUG [6770fa] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:46] INFO [6770fa] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:47] INFO [76b192] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:47"}
+[2025-07-10 11:30:47] DEBUG [76b192] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:47] DEBUG [76b192] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:47] INFO [76b192] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:49] INFO [90102b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [91cf29] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] DEBUG [91cf29] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/3?channel=6&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-10 11:30:49] DEBUG [91cf29] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:49] INFO [91cf29] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:49] INFO [92e51b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] DEBUG [92e51b] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:49] DEBUG [92e51b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:49] INFO [92e51b] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:49] INFO [943b67] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] DEBUG [943b67] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login?redirect=%2Fserver%2F3%3Fchannel%3D6%26type%3Dvoice","request_method":"GET","is_ajax":"no"}
+[2025-07-10 11:30:49] DEBUG [943b67] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:49] INFO [943b67] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:49] INFO [97385f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] DEBUG [97385f] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:49] DEBUG [97385f] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:49] INFO [97385f] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:49] INFO [9823f4] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [984894] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [9871f7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [99f123] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] WARNING [99f123] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:49] INFO [9b4cc6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [9d9b58] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [9de058] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [9e2d25] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [9e6340] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [9e8b2b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:49] INFO [9ebecb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:49"}
+[2025-07-10 11:30:50] DEBUG [9ebecb] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/3?channel=6&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-10 11:30:50] DEBUG [9ebecb] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:50] INFO [9ebecb] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:50] INFO [a0a895] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a0c818] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] DEBUG [a0c818] Controller instantiated - Context: {"controller":"UserController","request_uri":"/api/users/bulk-nitro-status","request_method":"POST","is_ajax":"no"}
+[2025-07-10 11:30:50] DEBUG [a0c818] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:50] INFO [a0c818] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:50] INFO [a1aa8f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a1d7a5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a1fdc7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a22ddb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a24c6b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] DEBUG [a24c6b] Controller instantiated - Context: {"controller":"AuthenticationController","request_uri":"/login?redirect=%2Fserver%2F3%3Fchannel%3D6%26type%3Dvoice","request_method":"GET","is_ajax":"no"}
+[2025-07-10 11:30:50] DEBUG [a24c6b] Connecting to database - Context: {"host":"localhost","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-10 11:30:50] INFO [a24c6b] Database connected successfully - Context: {"database":"misvord"}
+[2025-07-10 11:30:50] INFO [a4b2c8] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] WARNING [a4b2c8] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:50] INFO [a63f0c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a6621e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a682a2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a6a8cd] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a6c63d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a6e1da] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a6fee7] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a72048] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [a89629] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] WARNING [a89629] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:50] INFO [a9d788] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [ab5d8f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [ab9da0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:50] INFO [af3807] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:50"}
+[2025-07-10 11:30:51] INFO [b05c3d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [b34702] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [b526d0] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] WARNING [b526d0] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:51] INFO [b80207] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] WARNING [b80207] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:51] INFO [ba2146] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [ba7eea] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [baaaa6] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [bacc03] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [baeeef] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [bb30ff] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [bb6711] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [be35de] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [bebf87] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:51] INFO [bf32ca] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:51"}
+[2025-07-10 11:30:52] INFO [c18352] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c3b50e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c3d953] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c3f4ac] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] WARNING [c3f4ac] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:52] INFO [c6b37f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c6dd01] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c6fde2] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c72430] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] WARNING [c72430] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:52] INFO [c8652f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c883af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [c9f932] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] INFO [cb524f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] WARNING [cb524f] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:52] INFO [cd1e95] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}
+[2025-07-10 11:30:52] WARNING [cd1e95] PHP Warning: Cannot modify header information - headers already sent by (output started at C:\BINUS\CASEMAKE\MisVord - BP WDP 25-2\App\views\layout\head.php:120) - Context: {"file":"C:\\BINUS\\CASEMAKE\\MisVord - BP WDP 25-2\\App\\public\\router.php","line":65,"severity":2}
+[2025-07-10 11:30:52] INFO [cee383] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-10 11:30:52"}

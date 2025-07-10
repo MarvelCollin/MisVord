@@ -31,7 +31,100 @@ class VoiceCallSection {
         }
     }
     
+    fixButtonStyling() {
+        const buttons = ['micBtn', 'videoBtn', 'deafenBtn', 'screenBtn', 'ticTacToeBtn', 'disconnectBtn'];
+        
+        buttons.forEach(btnId => {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+
+            const styles = {
+                width: '48px',
+                height: '48px',
+                minWidth: '48px',
+                minHeight: '48px',
+                borderRadius: '50%',
+                border: 'none',
+                outline: 'none',
+                color: 'white',
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+                userSelect: 'none',
+                flexShrink: '0',
+                margin: '0 8px'
+            };
+
+            Object.assign(btn.style, styles);
+            this.setButtonBackgroundColor(btn, btnId);
+        });
+    }
+
+    setButtonBackgroundColor(btn, btnId) {
+        const colorMap = {
+            'micBtn': '#4f545c',
+            'videoBtn': '#4f545c', 
+            'deafenBtn': '#4f545c',
+            'screenBtn': '#4f545c',
+            'ticTacToeBtn': '#4f545c',
+            'disconnectBtn': '#ed4245'
+        };
+
+        if (colorMap[btnId]) {
+            btn.style.backgroundColor = colorMap[btnId];
+        }
+
+        btn.addEventListener('mouseenter', () => {
+            const hoverColors = {
+                'micBtn': '#ed4245',
+                'videoBtn': '#3ba55c',
+                'deafenBtn': '#ed4245', 
+                'screenBtn': '#5865f2',
+                'ticTacToeBtn': '#8b5cf6',
+                'disconnectBtn': '#da373c'
+            };
+
+            if (hoverColors[btnId] && !btn.classList.contains('active') && !btn.classList.contains('muted')) {
+                btn.style.backgroundColor = hoverColors[btnId];
+                btn.style.transform = 'scale(1.05)';
+            }
+        });
+
+        btn.addEventListener('mouseleave', () => {
+            if (!btn.classList.contains('active') && !btn.classList.contains('muted')) {
+                btn.style.backgroundColor = colorMap[btnId];
+            }
+            btn.style.transform = 'scale(1)';
+        });
+    }
+
+    hideTooltips() {
+        const tooltips = document.querySelectorAll('.voice-tooltip');
+        tooltips.forEach(tooltip => {
+            tooltip.style.opacity = '0';
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.position = 'absolute';
+        });
+    }
+
+    ensureIconsVisible() {
+        const icons = document.querySelectorAll('.voice-control-btn i');
+        icons.forEach(icon => {
+            icon.style.display = 'block';
+            icon.style.fontSize = '16px';
+            icon.style.color = 'white';
+            icon.style.pointerEvents = 'none';
+        });
+    }
+    
     setup() {
+        this.fixButtonStyling();
+        this.hideTooltips(); 
+        this.ensureIconsVisible();
+        
         this.bindControls();
         this.bindEvents();
         this.initializeVoiceState();
