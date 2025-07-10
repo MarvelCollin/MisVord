@@ -193,15 +193,20 @@ class SimpleChannelSwitcher {
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             
-            if (!currentState.isConnected) {
+            // Don't clear voice state during channel switches - only update channel info
+            // Only clear if user is genuinely not connected
+            if (!currentState.isConnected && !window.voiceManager?.isConnected) {
                 window.localStorageManager.clearVoiceState();
+            } else {
+                // Preserve connection state when switching channels
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    channelId: channelId,
+                    channelName: channelName,
+                    // Preserve isConnected if VoiceManager says we're connected
+                    isConnected: window.voiceManager?.isConnected || currentState.isConnected
+                });
             }
-            
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
-                channelId: channelId,
-                channelName: channelName
-            });
         }
         
         // Check if user is already connected to voice before deciding which UI to show
@@ -216,7 +221,8 @@ class SimpleChannelSwitcher {
             voiceManagerChannelId: window.voiceManager?.currentChannelId,
             voiceManagerConnected: window.voiceManager?.isConnected,
             storageChannelId: voiceState?.channelId,
-            storageConnected: voiceState?.isConnected
+            storageConnected: voiceState?.isConnected,
+            participantCount: window.voiceManager?.getAllParticipants?.()?.size || 0
         });
         
         if (isConnectedToVoice || isConnectedInStorage) {
@@ -238,6 +244,8 @@ class SimpleChannelSwitcher {
         
         // If user is already connected, ensure the voice call section is properly initialized
         if (isConnectedToVoice || isConnectedInStorage) {
+            console.log(`🔄 [CHANNEL-SWITCHER] User already connected - syncing UI without sidebar refresh`);
+            
             // Trigger a voiceConnect event to ensure all components are in sync
             if (window.voiceManager?.currentMeetingId) {
                 window.dispatchEvent(new CustomEvent('voiceConnect', {
@@ -246,14 +254,22 @@ class SimpleChannelSwitcher {
                         channelName: channelName,
                         meetingId: window.voiceManager.currentMeetingId,
                         skipJoinSound: true,
+                        skipSidebarRefresh: true, // Don't refresh sidebar on channel switch
                         source: 'channelSwitch'
                     }
                 }));
             }
             
-            // Update voice call section connection status
+            // Update voice call section connection status (but skip sidebar refresh)
             if (window.voiceCallSection && typeof window.voiceCallSection.updateConnectionStatus === 'function') {
-                window.voiceCallSection.updateConnectionStatus(true);
+                // Call with skipSidebarRefresh flag
+                window.voiceCallSection.updateConnectionStatus(true, true);
+            }
+            
+            // Ensure participant container is visible for this channel
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.ensureParticipantsVisible(channelId);
             }
         }
     }

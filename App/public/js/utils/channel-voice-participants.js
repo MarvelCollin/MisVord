@@ -67,13 +67,78 @@ class ChannelVoiceParticipants {
         }
     }
     
+    ensureParticipantsVisible(channelId) {
+        if (!channelId) return;
+        
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) return;
+        
+        // Check if we have participants for this channel but container is empty or hidden
+        const hasLocalParticipants = window.voiceManager &&
+            window.voiceManager.currentChannelId === channelId &&
+            window.voiceManager.isConnected &&
+            window.voiceManager.getAllParticipants &&
+            window.voiceManager.getAllParticipants().size > 0;
+            
+        const hasExternalParticipants = this.externalParticipants.has(channelId) &&
+            this.externalParticipants.get(channelId).size > 0;
+            
+        const hasBotParticipants = window.BotComponent && 
+            window.BotComponent.voiceBots &&
+            Array.from(window.BotComponent.voiceBots.values()).some(bot => bot.channel_id === channelId);
+        
+        const hasAnyParticipants = hasLocalParticipants || hasExternalParticipants || hasBotParticipants;
+        
+        console.log(`👀 [CHANNEL-VOICE-PARTICIPANTS] Ensuring participants visible for channel ${channelId}:`, {
+            hasLocalParticipants,
+            hasExternalParticipants, 
+            hasBotParticipants,
+            containerEmpty: container.children.length === 0,
+            containerHidden: container.classList.contains('hidden')
+        });
+        
+        // If we have participants but container is empty, do a light refresh
+        if (hasAnyParticipants && container.children.length === 0) {
+            console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Container empty but participants exist - doing light refresh`);
+            this.updateSidebarForChannel(channelId, 'append');
+        }
+        
+        // Always ensure container visibility matches participant presence
+        if (hasAnyParticipants) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+        
+        // Update channel count to match current state
+        this.updateChannelCount(channelId, null);
+    }
+    
     syncWithVoiceState(state) {
         if (!state) return;
         
-        if (state.isConnected && state.channelId) {
-            this.updateChannelCount(state.channelId, null);
-            this.updateSidebarForChannel(state.channelId);
-        } else {
+        console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] syncWithVoiceState called:`, {
+            stateConnected: state.isConnected,
+            stateChannelId: state.channelId,
+            voiceManagerConnected: window.voiceManager?.isConnected,
+            voiceManagerChannelId: window.voiceManager?.currentChannelId
+        });
+        
+        // Only clear participants if we're truly disconnected from voice
+        // Don't clear just because localStorage state is temporarily inconsistent
+        const isActuallyConnected = state.isConnected && state.channelId;
+        const isVoiceManagerConnected = window.voiceManager?.isConnected && window.voiceManager?.currentChannelId;
+        
+        if (isActuallyConnected || isVoiceManagerConnected) {
+            const activeChannelId = state.channelId || window.voiceManager?.currentChannelId;
+            if (activeChannelId) {
+                this.updateChannelCount(activeChannelId, null);
+                // Only refresh sidebar if there are actual changes, not on every state sync
+                // this.updateSidebarForChannel(activeChannelId);
+            }
+        } else if (!isVoiceManagerConnected && !state.isConnected) {
+            // Only clear if both localStorage AND voiceManager say we're disconnected
+            console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Both sources confirm disconnection - clearing participants`);
             this.clearCurrentUserParticipantCounts();
         }
     }
@@ -101,8 +166,16 @@ class ChannelVoiceParticipants {
     }
     
     clearCurrentUserParticipantCounts() {
+        // Don't clear participants if VoiceManager says we're still connected
+        if (window.voiceManager?.isConnected) {
+            console.log(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Skipping participant clear - VoiceManager still connected`);
+            return;
+        }
+        
         const currentVoiceState = window.localStorageManager?.getUnifiedVoiceState();
         const currentUserChannelId = currentVoiceState?.channelId;
+        
+        console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Clearing participants for channel:`, currentUserChannelId);
         
         if (currentUserChannelId) {
             const currentChannelCountEl = document.querySelector(`[data-channel-id="${currentUserChannelId}"] .voice-user-count`);
@@ -248,18 +321,27 @@ class ChannelVoiceParticipants {
     }
     
     handleVoiceConnect(event) {
-        const { channelId } = event.detail;
+        const { channelId, skipSidebarRefresh } = event.detail;
         if (!channelId) return;
 
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
 
+        // Always ensure the container is visible
         container.classList.remove('hidden');
         
-        // Set a timeout to ensure we eventually render even if no events arrive
-        setTimeout(() => {
-            this.updateSidebarForChannel(channelId);
-        }, 1500);
+        // Only refresh sidebar if not explicitly skipped (channel switches vs actual voice actions)
+        if (!skipSidebarRefresh) {
+            console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Voice connect - refreshing sidebar for channel ${channelId}`);
+            // Set a timeout to ensure we eventually render even if no events arrive
+            setTimeout(() => {
+                this.updateSidebarForChannel(channelId);
+            }, 1500);
+        } else {
+            console.log(`⏭️ [CHANNEL-VOICE-PARTICIPANTS] Voice connect - skipping sidebar refresh (channel switch)`);
+            // Even when skipping refresh, ensure participants are visible if they exist
+            this.ensureParticipantsVisible(channelId);
+        }
     }
     
     handleVoiceDisconnect() {

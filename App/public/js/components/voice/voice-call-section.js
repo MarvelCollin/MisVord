@@ -665,7 +665,7 @@ class VoiceCallSection {
         }
     }
 
-    updateConnectionStatus(isConnected) {
+    updateConnectionStatus(isConnected, skipSidebarRefresh = false) {
         const connectionInfo = document.querySelector('.voice-connection-info');
         if (!connectionInfo) return;
 
@@ -674,9 +674,14 @@ class VoiceCallSection {
             connectionInfo.classList.add('connected');
             connectionInfo.classList.remove('disconnected');
 
-            if (window.ChannelVoiceParticipants && this.currentChannelId) {
+            // Only refresh sidebar if not skipped (for actual voice actions, not UI switches)
+            if (!skipSidebarRefresh && window.ChannelVoiceParticipants && this.currentChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.updateSidebarForChannel(this.currentChannelId);
+            } else if (skipSidebarRefresh && window.ChannelVoiceParticipants && this.currentChannelId) {
+                // When skipping refresh, just ensure participants are visible
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.ensureParticipantsVisible(this.currentChannelId);
             }
         } else {
             connectionInfo.textContent = 'Not connected';
