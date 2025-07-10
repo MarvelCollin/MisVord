@@ -101,9 +101,28 @@ class VoiceCallSection {
         });
     }
 
+    ensureIconsVisible() {
+        const icons = document.querySelectorAll('.voice-control-btn i');
+        icons.forEach(icon => {
+            icon.style.display = 'block';
+            icon.style.fontSize = '16px';
+            icon.style.color = 'white';
+            icon.style.pointerEvents = 'none';
+        });
+    }
+
+    removeDebugPanel() {
+        // Remove any existing voice debug panels to reduce clutter
+        const existingPanel = document.getElementById('voice-debug-panel');
+        if (existingPanel) {
+            existingPanel.remove();
+        }
+    }
+
     setup() {
         this.fixButtonStyling();
         this.ensureIconsVisible();
+        this.removeDebugPanel(); // Remove any existing debug panel
         
         this.bindControls();
         this.bindEvents();
@@ -826,6 +845,7 @@ class VoiceCallSection {
         if (!this.micBtn) return;
         
         const icon = this.micBtn.querySelector("i");
+        if (!icon) return; // Add null check for icon
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
@@ -842,6 +862,7 @@ class VoiceCallSection {
         if (!this.videoBtn) return;
         
         const icon = this.videoBtn.querySelector("i");
+        if (!icon) return; // Add null check for icon
         
         if (isOn) {
             icon.className = "fas fa-video text-sm";
@@ -858,6 +879,7 @@ class VoiceCallSection {
         if (!this.deafenBtn) return;
         
         const icon = this.deafenBtn.querySelector("i");
+        if (!icon) return; // Add null check for icon
         
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
@@ -874,16 +896,14 @@ class VoiceCallSection {
         if (!this.screenBtn) return;
         
         const icon = this.screenBtn.querySelector("i");
-        const tooltip = this.screenBtn.querySelector(".voice-tooltip");
+        if (!icon) return; // Add null check for icon
         
         if (isOn) {
             icon.className = "fas fa-stop text-sm";
-            tooltip.textContent = "Stop Sharing";
             this.screenBtn.classList.remove("bg-[#4f545c]");
             this.screenBtn.classList.add("bg-[#5865f2]");
         } else {
             icon.className = "fas fa-desktop text-sm";
-            tooltip.textContent = "Share Screen";
             this.screenBtn.classList.remove("bg-[#5865f2]");
             this.screenBtn.classList.add("bg-[#4f545c]");
         }

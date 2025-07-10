@@ -637,47 +637,50 @@ class ChannelVoiceParticipants {
     // ------------------------
 
     createDebugPanel() {
-        if (this.debugPanel) return;
-        this.debugPanel = document.createElement('div');
-        this.debugPanel.id = 'voice-debug-panel';
-        Object.assign(this.debugPanel.style, {
-            position: 'fixed',
-            bottom: '10px',
-            right: '10px',
-            maxWidth: '300px',
-            maxHeight: '200px',
-            overflowY: 'auto',
-            background: 'rgba(0,0,0,0.7)',
-            color: '#fff',
-            fontSize: '12px',
-            padding: '8px',
-            borderRadius: '4px',
-            zIndex: '9999',
-            whiteSpace: 'pre-line'
-        });
-        this.debugPanel.textContent = 'Voice Debug Panel';
-        document.body.appendChild(this.debugPanel);
-        this.updateDebugPanel();
+        // Debug panel disabled to reduce visual clutter
+        // if (this.debugPanel) return;
+        // this.debugPanel = document.createElement('div');
+        // this.debugPanel.id = 'voice-debug-panel';
+        // Object.assign(this.debugPanel.style, {
+        //     position: 'fixed',
+        //     bottom: '10px',
+        //     right: '10px',
+        //     maxWidth: '300px',
+        //     maxHeight: '200px',
+        //     overflowY: 'auto',
+        //     background: 'rgba(0,0,0,0.7)',
+        //     color: '#fff',
+        //     fontSize: '12px',
+        //     padding: '8px',
+        //     borderRadius: '4px',
+        //     zIndex: '9999',
+        //     whiteSpace: 'pre-line'
+        // });
+        // this.debugPanel.textContent = 'Voice Debug Panel';
+        // document.body.appendChild(this.debugPanel);
+        // this.updateDebugPanel();
     }
 
     updateDebugPanel() {
-        if (!this.debugPanel) return;
-        const lines = [];
-        this.externalParticipants.forEach((map, chan) => {
-            const names = Array.from(map.values()).map(p => p.username || 'Unknown').join(', ');
-            lines.push(`Channel ${chan}: ${names}`);
-        });
-        if (window.voiceManager && window.voiceManager.isConnected) {
-            const chanId = window.voiceManager.currentChannelId;
-            if (chanId) {
-                const localNames = [];
-                window.voiceManager.getAllParticipants().forEach(p => {
-                    localNames.push(p.username || p.name || 'Unknown');
-                });
-                lines.push(`Local Chan ${chanId}: ${localNames.join(', ')}`);
-            }
-        }
-        this.debugPanel.innerHTML = lines.length ? lines.join('<br>') : 'No participants';
+        // Debug panel disabled - no update needed
+        return;
+        // if (!this.debugPanel) return;
+        // const lines = [];
+        // this.externalParticipants.forEach((map, chan) => {
+        //     const names = Array.from(map.values()).map(p => p.username || 'Unknown').join(', ');
+        //     lines.push(`Channel ${chan}: ${names}`);
+        // });
+        // if (window.voiceManager && window.voiceManager.isConnected) {
+        //     const chanId = window.voiceManager.currentChannelId;
+        //     if (chanId) {
+        //         const localNames = [];
+        //         window.voiceManager.getAllParticipants().forEach(p => {
+        //             localNames.push(p.username || p.name || 'Unknown');
+        //         });
+        //         lines.push(`Local Chan ${chanId}: ${localNames.join(', ')}`);
+        //     }
+        // }
+        // this.debugPanel.innerHTML = lines.length ? lines.join('<br>') : 'No participants';
     }
     
     static getInstance() {
