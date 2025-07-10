@@ -37,6 +37,9 @@
 .animate-pulse {
   animation: pulse 1.5s ease-in-out infinite;
   background-color: #36393f !important;
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .skeleton-loader {
@@ -45,6 +48,21 @@
   overflow: hidden;
   animation-fill-mode: forwards;
   transition: opacity 0.3s ease-out;
+  outline: none !important;
+  border: none !important;
+}
+
+/* Prevent focus on all skeleton elements */
+.skeleton-loader *,
+#channel-skeleton-loading *,
+#chat-skeleton-loading *,
+#dm-skeleton-loading *,
+#group-skeleton-loading * {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: none;
+  user-select: none;
 }
 
 .server-list-skeleton {

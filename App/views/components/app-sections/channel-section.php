@@ -21,18 +21,18 @@ $categories = $GLOBALS['serverCategories'] ?? [];
     </div>
 
     <div class="channel-wrapper flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800">
-        <div id="channel-skeleton-loading" class="p-2 space-y-4">
+        <div id="channel-skeleton-loading" class="p-2 space-y-4" style="outline: none !important; border: none !important;">
             <?php for ($i = 0; $i < 3; $i++): ?>
                 <div class="space-y-0.5">
                     <div class="flex items-center px-2 py-1">
-                        <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 animate-pulse"></div>
-                        <div class="h-3.5 bg-gray-700 rounded w-24 animate-pulse"></div>
+                        <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 animate-pulse" style="outline: none !important; border: none !important;"></div>
+                        <div class="h-3.5 bg-gray-700 rounded w-24 animate-pulse" style="outline: none !important; border: none !important;"></div>
                     </div>
                     <div class="ml-2 space-y-0.5">
                         <?php for ($j = 0; $j < 3; $j++): ?>
                             <div class="flex items-center py-1 px-2">
-                                <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 animate-pulse"></div>
-                                <div class="h-3.5 bg-gray-700 rounded w-20 animate-pulse"></div>
+                                <div class="h-2.5 w-2.5 bg-gray-700 rounded-sm mr-2 animate-pulse" style="outline: none !important; border: none !important;"></div>
+                                <div class="h-3.5 bg-gray-700 rounded w-20 animate-pulse" style="outline: none !important; border: none !important;"></div>
                             </div>
                         <?php endfor; ?>
                     </div>
