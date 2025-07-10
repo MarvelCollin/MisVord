@@ -75,52 +75,102 @@ class ActivityHandler {
         client.data.ticTacToeReady = ready;
         
         const roomClients = io.sockets.adapter.rooms.get(roomName);
-        const players = [];
-        let readyCount = 0;
+        const allPlayers = [];
+        const readyPlayers = [];
+        const lobbyPlayers = [];
         
         if (roomClients) {
             roomClients.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
                 if (socket && socket.data && socket.data.user_id) {
                     const isReady = socket.data.ticTacToeReady || false;
-                    players.push({
+                    const playerData = {
                         user_id: socket.data.user_id,
                         username: socket.data.username,
                         avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
-                        ready: isReady
-                    });
-                    if (isReady) readyCount++;
+                        ready: isReady,
+                        socketId: socketId
+                    };
+                    
+                    allPlayers.push(playerData);
+                    
+                    if (isReady && !socket.data.ticTacToeInGame) {
+                        readyPlayers.push(playerData);
+                    }
+                    
+                    if (!socket.data.ticTacToeInGame) {
+                        lobbyPlayers.push(playerData);
+                    }
                 }
             });
         }
+        
+        const readyCount = readyPlayers.length;
+        const canStart = readyCount >= 2;
         
         io.to(roomName).emit('tic-tac-toe-ready-update', {
             player: {
                 user_id: client.data.user_id,
                 ready: ready
             },
-            players: players,
+            players: lobbyPlayers,
             ready_count: readyCount,
-            can_start: readyCount === 2 && players.length === 2
+            can_start: canStart,
+            lobby_count: lobbyPlayers.length
         });
         
-        if (readyCount === 2 && players.length === 2) {
+        if (canStart) {
+            const gamePlayers = readyPlayers.slice(0, 2);
+            const gameRoomName = `tic-tac-toe-game-${server_id}-${Date.now()}`;
+            
             const gameData = {
-                players: players,
-                current_turn: players[0].user_id,
+                players: gamePlayers.map(p => ({
+                    user_id: p.user_id,
+                    username: p.username,
+                    avatar_url: p.avatar_url,
+                    ready: true
+                })),
+                current_turn: gamePlayers[0].user_id,
                 board: Array(9).fill(null),
                 game_id: `game-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                started_at: Date.now()
+                started_at: Date.now(),
+                room_name: gameRoomName
             };
             
-            roomClients.forEach(socketId => {
-                const socket = io.sockets.sockets.get(socketId);
+            gamePlayers.forEach(player => {
+                const socket = io.sockets.sockets.get(player.socketId);
                 if (socket) {
                     socket.data.ticTacToeGameData = gameData;
+                    socket.data.ticTacToeInGame = true;
+                    socket.data.ticTacToeGameRoom = gameRoomName;
+                    socket.join(gameRoomName);
                 }
             });
             
-            io.to(roomName).emit('tic-tac-toe-game-start', gameData);
+            io.to(gameRoomName).emit('tic-tac-toe-game-start', gameData);
+            
+            const remainingLobbyPlayers = allPlayers.filter(p => 
+                !gamePlayers.some(gp => gp.user_id === p.user_id)
+            ).map(p => ({
+                user_id: p.user_id,
+                username: p.username,
+                avatar_url: p.avatar_url,
+                ready: p.ready && !gamePlayers.some(gp => gp.user_id === p.user_id)
+            }));
+            
+            remainingLobbyPlayers.forEach(player => {
+                const socket = io.sockets.sockets.get(player.socketId);
+                if (socket) {
+                    socket.data.ticTacToeReady = false;
+                }
+            });
+            
+            io.to(roomName).emit('tic-tac-toe-game-started-update', {
+                message: `${gamePlayers[0].username} vs ${gamePlayers[1].username} started playing!`,
+                players: remainingLobbyPlayers,
+                game_players: gamePlayers.map(p => p.username),
+                lobby_count: remainingLobbyPlayers.length
+            });
         }
     }
     
@@ -128,9 +178,15 @@ class ActivityHandler {
         const { position } = data;
         const server_id = client.data.ticTacToeServerId;
         const gameData = client.data.ticTacToeGameData;
+        const gameRoomName = client.data.ticTacToeGameRoom;
         
-        if (!server_id || !gameData) {
-            client.emit('tic-tac-toe-error', { message: 'Game not found' });
+        if (!server_id || !gameData || !gameRoomName) {
+            client.emit('tic-tac-toe-error', { message: 'Game not found or not in a game' });
+            return;
+        }
+        
+        if (!client.data.ticTacToeInGame) {
+            client.emit('tic-tac-toe-error', { message: 'You are not in an active game' });
             return;
         }
         
@@ -150,11 +206,10 @@ class ActivityHandler {
         gameData.board[position] = symbol;
         gameData.current_turn = gameData.players[1 - playerIndex].user_id;
         
-        const roomName = `tic-tac-toe-server-${server_id}`;
-        const roomClients = io.sockets.adapter.rooms.get(roomName);
+        const gameRoomClients = io.sockets.adapter.rooms.get(gameRoomName);
         
-        if (roomClients) {
-            roomClients.forEach(socketId => {
+        if (gameRoomClients) {
+            gameRoomClients.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
                 if (socket) {
                     socket.data.ticTacToeGameData = gameData;
@@ -162,7 +217,7 @@ class ActivityHandler {
             });
         }
 
-        io.to(roomName).emit('tic-tac-toe-move-made', {
+        io.to(gameRoomName).emit('tic-tac-toe-move-made', {
             position: position,
             symbol: symbol,
             board: gameData.board,
@@ -183,7 +238,7 @@ class ActivityHandler {
             gameData.finished_at = Date.now();
             
             setTimeout(() => {
-                io.to(roomName).emit('tic-tac-toe-game-end', {
+                io.to(gameRoomName).emit('tic-tac-toe-game-end', {
                     board: gameData.board,
                     winner: winner,
                     is_draw: isDraw,
@@ -192,12 +247,15 @@ class ActivityHandler {
                     winning_positions: winner ? this.getWinningPositions(gameData.board) : null
                 });
                 
-                if (roomClients) {
-                    roomClients.forEach(socketId => {
+                if (gameRoomClients) {
+                    gameRoomClients.forEach(socketId => {
                         const socket = io.sockets.sockets.get(socketId);
                         if (socket) {
-                            socket.data.ticTacToeReady = false;
+                            socket.data.ticTacToeInGame = false;
                             socket.data.ticTacToeGameData = null;
+                            socket.data.ticTacToeGameRoom = null;
+                            socket.data.ticTacToeReady = false;
+                            socket.leave(gameRoomName);
                         }
                     });
                 }
@@ -212,6 +270,8 @@ class ActivityHandler {
         
         const user_id = client.data.user_id;
         const username = client.data.username;
+        const isInGame = client.data.ticTacToeInGame;
+        const gameRoomName = client.data.ticTacToeGameRoom;
         
         userService.updatePresence(user_id, 'online', { type: 'idle' });
         io.emit('user-presence-update', {
@@ -223,13 +283,38 @@ class ActivityHandler {
         
         const roomName = `tic-tac-toe-server-${server_id}`;
         
+        if (isInGame && gameRoomName) {
+            const gameRoomClients = io.sockets.adapter.rooms.get(gameRoomName);
+            if (gameRoomClients && gameRoomClients.size > 1) {
+                client.to(gameRoomName).emit('tic-tac-toe-game-abandoned', {
+                    player: {
+                        user_id: client.data.user_id,
+                        username: client.data.username
+                    },
+                    reason: 'player_left'
+                });
+                
+                gameRoomClients.forEach(socketId => {
+                    const socket = io.sockets.sockets.get(socketId);
+                    if (socket && socket.id !== client.id) {
+                        socket.data.ticTacToeInGame = false;
+                        socket.data.ticTacToeGameData = null;
+                        socket.data.ticTacToeGameRoom = null;
+                        socket.data.ticTacToeReady = false;
+                        socket.leave(gameRoomName);
+                    }
+                });
+            }
+            client.leave(gameRoomName);
+        }
+        
         const roomClientsForLeave = io.sockets.adapter.rooms.get(roomName);
         const remainingPlayers = [];
         
         if (roomClientsForLeave) {
             roomClientsForLeave.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
-                if (socket && socket.data && socket.data.user_id && socket.id !== client.id) {
+                if (socket && socket.data && socket.data.user_id && socket.id !== client.id && !socket.data.ticTacToeInGame) {
                     remainingPlayers.push({
                         user_id: socket.data.user_id,
                         username: socket.data.username,
@@ -245,21 +330,18 @@ class ActivityHandler {
                 user_id: client.data.user_id,
                 username: client.data.username
             },
-            players: remainingPlayers
+            players: remainingPlayers,
+            lobby_count: remainingPlayers.length
         });
         
         const roomClients = io.sockets.adapter.rooms.get(roomName);
         if (roomClients && roomClients.size > 1) {
             roomClients.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
-                if (socket && socket.id !== client.id) {
+                if (socket && socket.id !== client.id && !socket.data.ticTacToeInGame) {
                     socket.data.ticTacToeReady = false;
                     socket.data.ticTacToeGameData = null;
                 }
-            });
-            
-            client.to(roomName).emit('tic-tac-toe-game-reset', {
-                reason: 'player_left'
             });
         }
         
@@ -267,6 +349,8 @@ class ActivityHandler {
         client.data.ticTacToeReady = false;
         client.data.ticTacToeGameData = null;
         client.data.ticTacToeServerId = null;
+        client.data.ticTacToeInGame = false;
+        client.data.ticTacToeGameRoom = null;
     }
     
     static checkWinner(board) {
@@ -305,28 +389,26 @@ class ActivityHandler {
 
     static handleTicTacToePlayAgainRequest(io, client, data) {
         const server_id = client.data.ticTacToeServerId;
+        const gameRoomName = client.data.ticTacToeGameRoom;
         
-        if (!server_id) {
-            client.emit('tic-tac-toe-error', { message: 'Not in a tic-tac-toe room' });
+        if (!server_id || !gameRoomName) {
+            client.emit('tic-tac-toe-error', { message: 'Not in a game to play again' });
             return;
         }
         
-        const roomName = `tic-tac-toe-server-${server_id}`;
-        const roomClients = io.sockets.adapter.rooms.get(roomName);
+        const gameRoomClients = io.sockets.adapter.rooms.get(gameRoomName);
         
-        if (!roomClients || roomClients.size !== 2) {
+        if (!gameRoomClients || gameRoomClients.size !== 2) {
             client.emit('tic-tac-toe-error', { message: 'Need exactly 2 players for play again' });
             return;
         }
-        
-
         
         client.data.ticTacToePlayAgainRequest = true;
         
         const players = [];
         const playAgainRequests = [];
         
-        roomClients.forEach(socketId => {
+        gameRoomClients.forEach(socketId => {
             const socket = io.sockets.sockets.get(socketId);
             if (socket && socket.data && socket.data.user_id) {
                 players.push({
@@ -338,38 +420,39 @@ class ActivityHandler {
                 
                 const hasRequest = socket.data.ticTacToePlayAgainRequest || false;
                 playAgainRequests.push(hasRequest);
-
             }
         });
         
         const bothWantPlayAgain = playAgainRequests.every(request => request === true);
-
         
         if (bothWantPlayAgain) {
-
+            const newGameRoomName = `tic-tac-toe-game-${server_id}-${Date.now()}`;
             
             const gameData = {
                 players: players,
                 current_turn: players[Math.floor(Math.random() * 2)].user_id,
                 board: Array(9).fill(null),
                 game_id: `game-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                started_at: Date.now()
+                started_at: Date.now(),
+                room_name: newGameRoomName
             };
             
-            roomClients.forEach(socketId => {
+            gameRoomClients.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
                 if (socket) {
+                    socket.leave(gameRoomName);
+                    socket.join(newGameRoomName);
                     socket.data.ticTacToeGameData = gameData;
+                    socket.data.ticTacToeGameRoom = newGameRoomName;
                     socket.data.ticTacToePlayAgainRequest = false;
                     socket.data.ticTacToeReady = true;
+                    socket.data.ticTacToeInGame = true;
                 }
             });
             
-
-            io.to(roomName).emit('tic-tac-toe-game-start', gameData);
+            io.to(newGameRoomName).emit('tic-tac-toe-game-start', gameData);
         } else {
-
-            client.to(roomName).emit('tic-tac-toe-play-again-request', {
+            client.to(gameRoomName).emit('tic-tac-toe-play-again-request', {
                 player: {
                     user_id: client.data.user_id,
                     username: client.data.username
@@ -381,17 +464,17 @@ class ActivityHandler {
     static handleTicTacToePlayAgainResponse(io, client, data) {
         const { accepted } = data;
         const server_id = client.data.ticTacToeServerId;
+        const gameRoomName = client.data.ticTacToeGameRoom;
         
-        if (!server_id) {
-            client.emit('tic-tac-toe-error', { message: 'Not in a tic-tac-toe room' });
+        if (!server_id || !gameRoomName) {
+            client.emit('tic-tac-toe-error', { message: 'Not in a game to respond to play again' });
             return;
         }
         
-        const roomName = `tic-tac-toe-server-${server_id}`;
-        const roomClients = io.sockets.adapter.rooms.get(roomName);
+        const gameRoomClients = io.sockets.adapter.rooms.get(gameRoomName);
         
-        if (!roomClients || roomClients.size !== 2) {
-            client.emit('tic-tac-toe-error', { message: 'Need exactly 2 players for play again' });
+        if (!gameRoomClients || gameRoomClients.size !== 2) {
+            client.emit('tic-tac-toe-error', { message: 'Need exactly 2 players for play again response' });
             return;
         }
         
@@ -399,7 +482,7 @@ class ActivityHandler {
             const players = [];
             let bothWantPlayAgain = true;
             
-            roomClients.forEach(socketId => {
+            gameRoomClients.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
                 if (socket && socket.data && socket.data.user_id) {
                     players.push({
@@ -420,24 +503,30 @@ class ActivityHandler {
             });
             
             if (bothWantPlayAgain) {
+                const newGameRoomName = `tic-tac-toe-game-${server_id}-${Date.now()}`;
+                
                 const gameData = {
                     players: players,
                     current_turn: players[Math.floor(Math.random() * 2)].user_id,
                     board: Array(9).fill(null),
                     game_id: `game-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                    started_at: Date.now()
+                    started_at: Date.now(),
+                    room_name: newGameRoomName
                 };
                 
-                roomClients.forEach(socketId => {
+                gameRoomClients.forEach(socketId => {
                     const socket = io.sockets.sockets.get(socketId);
                     if (socket) {
+                        socket.leave(gameRoomName);
+                        socket.join(newGameRoomName);
                         socket.data.ticTacToeGameData = gameData;
+                        socket.data.ticTacToeGameRoom = newGameRoomName;
                     }
                 });
                 
-                io.to(roomName).emit('tic-tac-toe-game-start', gameData);
+                io.to(newGameRoomName).emit('tic-tac-toe-game-start', gameData);
             } else {
-                io.to(roomName).emit('tic-tac-toe-play-again-accepted', {
+                io.to(gameRoomName).emit('tic-tac-toe-play-again-accepted', {
                     player: {
                         user_id: client.data.user_id,
                         username: client.data.username
@@ -445,18 +534,44 @@ class ActivityHandler {
                 });
             }
         } else {
-            roomClients.forEach(socketId => {
+            gameRoomClients.forEach(socketId => {
                 const socket = io.sockets.sockets.get(socketId);
                 if (socket) {
                     socket.data.ticTacToePlayAgainRequest = false;
+                    socket.data.ticTacToeInGame = false;
+                    socket.data.ticTacToeGameData = null;
+                    socket.data.ticTacToeGameRoom = null;
+                    socket.data.ticTacToeReady = false;
+                    socket.leave(gameRoomName);
                 }
             });
             
-            io.to(roomName).emit('tic-tac-toe-play-again-declined', {
+            io.to(gameRoomName).emit('tic-tac-toe-play-again-declined', {
                 player: {
                     user_id: client.data.user_id,
                     username: client.data.username
                 }
+            });
+            
+            const roomName = `tic-tac-toe-server-${server_id}`;
+            const remainingLobbyPlayers = [];
+            
+            gameRoomClients.forEach(socketId => {
+                const socket = io.sockets.sockets.get(socketId);
+                if (socket && socket.data && socket.data.user_id) {
+                    remainingLobbyPlayers.push({
+                        user_id: socket.data.user_id,
+                        username: socket.data.username,
+                        avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                        ready: false
+                    });
+                }
+            });
+            
+            io.to(roomName).emit('tic-tac-toe-returned-to-lobby', {
+                players: remainingLobbyPlayers,
+                message: 'Game ended - returned to lobby',
+                lobby_count: remainingLobbyPlayers.length
             });
         }
     }

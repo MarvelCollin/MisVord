@@ -327,32 +327,37 @@ class TicTacToeModal {
                     </div>
                 </div>
                 
-                <div id="tic-tac-toe-content" class="px-6 pb-6">
-                    <div id="welcome-section" class="text-center">
-                        <div class="mb-6">
-                            <div class="relative mb-4">
-                                <div class="w-20 h-20 mx-auto bg-[#5865f2] rounded-full flex items-center justify-center shadow-md">
-                                    <i class="fas fa-chess-board text-2xl text-white"></i>
+                <div id="tic-tac-toe-content" class="px-6 pb-6">                        <div id="welcome-section" class="text-center">
+                            <div class="mb-6">
+                                <div class="relative mb-4">
+                                    <div class="w-20 h-20 mx-auto bg-[#5865f2] rounded-full flex items-center justify-center shadow-md">
+                                        <i class="fas fa-chess-board text-2xl text-white"></i>
+                                    </div>
+                                </div>
+                                <h3 class="text-xl font-bold text-white mb-3">
+                                    Welcome to the Lobby!
+                                </h3>
+                                <p class="text-[#b9bbbe] text-sm mb-2">Get ready to play...</p>
+                                <div id="lobby-info" class="text-[#72767d] text-xs bg-[#2b2d31] px-3 py-2 rounded-lg">
+                                    Players in lobby: 0
                                 </div>
                             </div>
-                            <h3 class="text-xl font-bold text-white mb-3">
-                                Welcome to the Game!
-                            </h3>
-                            <p class="text-[#b9bbbe] text-sm">Get ready to play...</p>
+                            
+                            <div id="player-list" class="space-y-3 mb-6">
+                            </div>
+                            
+                            <div id="game-controls" class="space-y-4">
+                                <button id="ready-button" class="ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200">
+                                    <span class="relative z-10">Ready to Play</span>
+                                </button>
+                                <button id="play-button" class="play-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200 hidden">
+                                    <span class="relative z-10">Start Game</span>
+                                </button>
+                                <div class="text-[#72767d] text-xs mt-2">
+                                    First 2 ready players will start the game automatically
+                                </div>
+                            </div>
                         </div>
-                        
-                        <div id="player-list" class="space-y-3 mb-6">
-                        </div>
-                        
-                        <div id="game-controls" class="space-y-4">
-                            <button id="ready-button" class="ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200">
-                                <span class="relative z-10">Ready to Play</span>
-                            </button>
-                            <button id="play-button" class="play-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200 hidden">
-                                <span class="relative z-10">Start Game</span>
-                            </button>
-                        </div>
-                    </div>
                     
                     <div id="game-section" class="hidden">
                         <div id="game-info" class="text-center mb-6">
@@ -780,10 +785,39 @@ class TicTacToeModal {
         io.on('tic-tac-toe-ready-update', (data) => {
             this.updatePlayerList(data.players);
             const playButton = document.getElementById('play-button');
-            if (data.can_start) {
-                playButton.classList.remove('hidden');
+            const lobbyInfo = document.getElementById('lobby-info');
+            
+            if (lobbyInfo) {
+                lobbyInfo.textContent = `Players in lobby: ${data.lobby_count || data.players.length} | Ready: ${data.ready_count}`;
+            }
+            
+            if (data.can_start && data.ready_count >= 2) {
+                if (playButton) {
+                    playButton.innerHTML = '<span class="relative z-10">Starting Game...</span>';
+                    playButton.disabled = true;
+                }
             } else {
+                if (playButton) {
+                    playButton.classList.add('hidden');
+                }
+            }
+        });
+        io.on('tic-tac-toe-game-started-update', (data) => {
+            if (window.showToast) {
+                window.showToast(data.message, 'info');
+            }
+            this.updatePlayerList(data.players);
+            
+            const lobbyInfo = document.getElementById('lobby-info');
+            if (lobbyInfo) {
+                lobbyInfo.textContent = `Players in lobby: ${data.lobby_count} | Game: ${data.game_players.join(' vs ')}`;
+            }
+            
+            const playButton = document.getElementById('play-button');
+            if (playButton) {
                 playButton.classList.add('hidden');
+                playButton.disabled = false;
+                playButton.innerHTML = '<span class="relative z-10">Start Game</span>';
             }
         });
         io.on('tic-tac-toe-game-start', (data) => {
@@ -873,10 +907,47 @@ class TicTacToeModal {
         });
         io.on('tic-tac-toe-player-left', (data) => {
             if (window.showToast) {
-                window.showToast(`${data.player.username} left the game`, 'info');
+                window.showToast(`${data.player.username} left the lobby`, 'info');
             }
             if (data.players) {
                 this.updatePlayerList(data.players);
+            }
+            
+            const lobbyInfo = document.getElementById('lobby-info');
+            if (lobbyInfo && data.lobby_count !== undefined) {
+                lobbyInfo.textContent = `Players in lobby: ${data.lobby_count}`;
+            }
+        });
+        io.on('tic-tac-toe-game-abandoned', (data) => {
+            if (window.showToast) {
+                window.showToast(`${data.player.username} abandoned the game!`, 'warning');
+            }
+            
+            const gameResult = document.getElementById('game-result');
+            const winnerText = document.getElementById('winner-text');
+            
+            if (gameResult && winnerText) {
+                winnerText.textContent = `${data.player.username} left - You win by default!`;
+                winnerText.className = 'text-2xl font-bold mb-6 text-green-400';
+                gameResult.classList.remove('hidden');
+            }
+            
+            this.currentGameData = null;
+        });
+        io.on('tic-tac-toe-returned-to-lobby', (data) => {
+            if (window.showToast) {
+                window.showToast(data.message, 'info');
+            }
+            
+            document.getElementById('game-section').classList.add('hidden');
+            document.getElementById('welcome-section').classList.remove('hidden');
+            
+            this.updatePlayerList(data.players);
+            this.currentGameData = null;
+            
+            const lobbyInfo = document.getElementById('lobby-info');
+            if (lobbyInfo) {
+                lobbyInfo.textContent = `Players in lobby: ${data.lobby_count}`;
             }
         });
     }
