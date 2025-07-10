@@ -300,9 +300,12 @@ class LocalStorageManager {
                 }
             }));
             
+            // Use append mode for participant updates when possible
             if (window.ChannelVoiceParticipants && state.channelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                instance.updateSidebarForChannel(state.channelId);
+                // Use append mode for background updates, full mode for disconnections
+                const updateMode = state.isConnected ? 'append' : 'full';
+                instance.updateSidebarForChannel(state.channelId, updateMode);
             }
             
             this.debounceTimers.delete(debounceKey);

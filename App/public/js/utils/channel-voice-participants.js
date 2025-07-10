@@ -18,8 +18,8 @@ class ChannelVoiceParticipants {
     }
     
     setupEventListeners() {
-        window.addEventListener('participantJoined', (e) => this.updateSidebar());
-        window.addEventListener('participantLeft', (e) => this.updateSidebar());
+        window.addEventListener('participantJoined', (e) => this.handleParticipantJoined(e));
+        window.addEventListener('participantLeft', (e) => this.handleParticipantLeft(e));
         window.addEventListener('voiceConnect', (e) => this.handleVoiceConnect(e));
         window.addEventListener('voiceDisconnect', () => this.handleVoiceDisconnect());
         
@@ -49,6 +49,22 @@ class ChannelVoiceParticipants {
     handleVoiceStateChanged(event) {
         const { state, source } = event.detail;
         this.syncWithVoiceState(state);
+    }
+    
+    handleParticipantJoined(event) {
+        console.log('🎯 [CHANNEL-VOICE-PARTICIPANTS] Participant joined - using append mode');
+        if (window.voiceManager && window.voiceManager.currentChannelId) {
+            // Use append mode for joins to avoid UI refresh
+            this.updateSidebarForChannel(window.voiceManager.currentChannelId, 'append');
+        }
+    }
+    
+    handleParticipantLeft(event) {
+        console.log('🎯 [CHANNEL-VOICE-PARTICIPANTS] Participant left - using full refresh');
+        if (window.voiceManager && window.voiceManager.currentChannelId) {
+            // Use full refresh for leaves to remove the participant
+            this.updateSidebarForChannel(window.voiceManager.currentChannelId, 'full');
+        }
     }
     
     syncWithVoiceState(state) {
@@ -239,43 +255,11 @@ class ChannelVoiceParticipants {
         if (!container) return;
 
         container.classList.remove('hidden');
-
-        // Show skeleton loader while we wait for participant data
-        this.showSkeletonLoader(channelId);
         
         // Set a timeout to ensure we eventually render even if no events arrive
         setTimeout(() => {
             this.updateSidebarForChannel(channelId);
         }, 1500);
-    }
-    
-    /**
-     * Shows a skeleton loading animation in the voice participants sidebar
-     * @param {string} channelId - The channel to show loading for
-     */
-    showSkeletonLoader(channelId) {
-        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-        if (!container) return;
-        
-        // Mark this channel as in loading state
-        this.loadingState.set(channelId, true);
-        
-        // Clear existing content
-        container.innerHTML = '';
-        
-        // Add 1-2 skeleton loaders
-        for (let i = 0; i < 2; i++) {
-            const skeleton = document.createElement('div');
-            skeleton.className = 'voice-participant-card skeleton-loader bg-[#2f3136] rounded-lg p-2 flex items-center space-x-3 border border-[#40444b]';
-            skeleton.innerHTML = `
-                <div class="skeleton-circle w-8 h-8 rounded-full bg-[#202225] animate-pulse"></div>
-                <div class="flex flex-col flex-grow">
-                    <div class="skeleton-text h-4 w-24 bg-[#202225] rounded animate-pulse mb-1"></div>
-                    <div class="skeleton-text h-3 w-16 bg-[#202225] rounded animate-pulse"></div>
-                </div>
-            `;
-            container.appendChild(skeleton);
-        }
     }
     
     handleVoiceDisconnect() {
@@ -284,66 +268,82 @@ class ChannelVoiceParticipants {
     
     handleBotJoined(event) {
         const { participant } = event.detail;
+        console.log('🤖 [CHANNEL-VOICE-PARTICIPANTS] Bot joined - using append mode');
         if (participant && participant.channelId) {
             this.updateChannelCount(participant.channelId, null);
-            this.updateSidebarForChannel(participant.channelId);
+            // Use append mode for bot joins
+            this.updateSidebarForChannel(participant.channelId, 'append');
         }
     }
     
     handleBotLeft(event) {
         const { participant } = event.detail;
+        console.log('🤖 [CHANNEL-VOICE-PARTICIPANTS] Bot left - using full refresh');
         if (participant && participant.channelId) {
             this.updateChannelCount(participant.channelId, null);
-            this.updateSidebarForChannel(participant.channelId);
+            // Use full refresh for bot leaves
+            this.updateSidebarForChannel(participant.channelId, 'full');
         }
     }
     
-    updateSidebar() {
+    updateSidebar(mode = 'full') {
         if (window.voiceManager && window.voiceManager.currentChannelId) {
-            this.debouncedUpdateSidebar(window.voiceManager.currentChannelId);
+            this.debouncedUpdateSidebar(window.voiceManager.currentChannelId, mode);
         }
     }
     
-    debouncedUpdateSidebar(channelId) {
+    debouncedUpdateSidebar(channelId, mode = 'full') {
         // Debounce rapid updates to prevent flicker
-        const debounceKey = `sidebar-${channelId}`;
+        const debounceKey = `sidebar-${channelId}-${mode}`;
         
         if (this.updateTimers.has(debounceKey)) {
             clearTimeout(this.updateTimers.get(debounceKey));
         }
         
         this.updateTimers.set(debounceKey, setTimeout(() => {
-            this.updateSidebarForChannel(channelId);
+            this.updateSidebarForChannel(channelId, mode);
             this.updateTimers.delete(debounceKey);
-        }, 100)); // 100ms debounce to prevent excessive updates
+        }, mode === 'append' ? 50 : 100)); // Faster for appends, slower for full refreshes
     }
     
-    updateSidebarForChannel(channelId) {
+    updateSidebarForChannel(channelId, mode = 'full') {
         if (!channelId) return;
         
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
         
-        // Remove loading state
-        this.loadingState.delete(channelId);
-        
         // Build a list first so we know if clearing is safe
         const renderList = [];
+        const participantIds = new Set(); // Track unique participants
 
-        const useLocalList = window.voiceManager &&
+        console.log(`🔍 [CHANNEL-VOICE-PARTICIPANTS] Building participant list for channel ${channelId}`);
+
+        // ALWAYS include local participants if we're connected to this channel
+        const isConnectedToChannel = window.voiceManager &&
             window.voiceManager.currentChannelId === channelId &&
             window.voiceManager.isConnected &&
-            window.voiceManager.getAllParticipants &&
-            window.voiceManager.getAllParticipants().size > 0;
+            window.voiceManager.getAllParticipants;
 
-        if (useLocalList) {
+        if (isConnectedToChannel) {
+            const localCount = window.voiceManager.getAllParticipants().size;
+            console.log(`📍 [CHANNEL-VOICE-PARTICIPANTS] Found ${localCount} local participants`);
             window.voiceManager.getAllParticipants().forEach(data => {
-                renderList.push(data);
+                const participantId = String(data.user_id || data.id);
+                if (!participantIds.has(participantId)) {
+                    renderList.push(data);
+                    participantIds.add(participantId);
+                    console.log(`➕ [LOCAL] Added participant ${participantId} (${data.name || data.username})`);
+                }
             });
-        } else {
-            const map = this.externalParticipants.get(channelId);
-            if (map) {
-                map.forEach((pData, uid) => {
+        }
+
+        // ALSO include external participants (server-side data) to ensure sync
+        const map = this.externalParticipants.get(channelId);
+        if (map) {
+            console.log(`🌐 [CHANNEL-VOICE-PARTICIPANTS] Found ${map.size} external participants`);
+            map.forEach((pData, uid) => {
+                const participantId = String(uid);
+                if (!participantIds.has(participantId)) {
                     renderList.push({
                         id: uid,
                         user_id: uid,
@@ -353,9 +353,13 @@ class ChannelVoiceParticipants {
                         isBot: false,
                         isLocal: false
                     });
-                });
-            }
+                    participantIds.add(participantId);
+                    console.log(`➕ [EXTERNAL] Added participant ${participantId} (${pData.username})`);
+                }
+            });
         }
+
+        console.log(`✅ [CHANNEL-VOICE-PARTICIPANTS] Final participant list: ${renderList.length} participants for channel ${channelId}`);
 
         // merge in bots
         if (window.BotComponent && window.BotComponent.voiceBots) {
@@ -375,25 +379,31 @@ class ChannelVoiceParticipants {
         }
 
         // Check if content actually changed before updating to prevent flicker
-        const currentParticipants = Array.from(container.querySelectorAll('.voice-participant-card:not(.skeleton-loader)'));
+        const currentParticipants = Array.from(container.querySelectorAll('.voice-participant-card'));
         const currentIds = currentParticipants.map(el => el.getAttribute('data-user-id')).filter(id => id);
         const newIds = renderList.map(p => String(p.user_id || p.id));
         
-        // Compare arrays to see if anything actually changed
-        const hasChanges = currentIds.length !== newIds.length || 
-                          !currentIds.every(id => newIds.includes(id)) ||
-                          !newIds.every(id => currentIds.includes(id));
+        // Use append-only mode for joins, full refresh for leaves or explicit full updates
+        if (mode === 'append') {
+            // Only append new participants that don't exist
+            this.appendNewParticipants(container, renderList, currentIds);
+        } else {
+            // Compare arrays to see if anything actually changed
+            const hasChanges = currentIds.length !== newIds.length || 
+                              !currentIds.every(id => newIds.includes(id)) ||
+                              !newIds.every(id => currentIds.includes(id));
 
-        // If nothing to render and nothing is currently shown, do nothing
-        if (renderList.length === 0 && currentIds.length === 0) {
-            return;
-        }
+            // If nothing to render and nothing is currently shown, do nothing
+            if (renderList.length === 0 && currentIds.length === 0) {
+                return;
+            }
 
-        // Only update if there are actual changes
-        if (hasChanges || renderList.length === 0) {
-            // Safe to refresh UI
-            // Incremental DOM diff – avoid full clear to eliminate flicker
-            this.updateParticipantContainer(container, renderList);
+            // Only update if there are actual changes
+            if (hasChanges || renderList.length === 0) {
+                // Safe to refresh UI
+                // Incremental DOM diff – avoid full clear to eliminate flicker
+                this.updateParticipantContainer(container, renderList);
+            }
         }
 
         const participantCount = renderList.length;
@@ -464,22 +474,44 @@ class ChannelVoiceParticipants {
     }
     
     calculateChannelParticipantCount(channelId) {
+        const participantIds = new Set();
         let count = 0;
         
-        const localListReady = window.voiceManager &&
+        // Count local participants if connected to this channel
+        const isConnectedToChannel = window.voiceManager &&
             window.voiceManager.currentChannelId === channelId &&
             window.voiceManager.isConnected &&
-            window.voiceManager.getAllParticipants &&
-            window.voiceManager.getAllParticipants().size > 0;
+            window.voiceManager.getAllParticipants;
 
-        if (localListReady) {
-            count = window.voiceManager.getAllParticipants().size;
+        if (isConnectedToChannel) {
+            window.voiceManager.getAllParticipants().forEach(data => {
+                const participantId = String(data.user_id || data.id);
+                if (!participantIds.has(participantId)) {
+                    participantIds.add(participantId);
+                    count++;
+                }
+            });
+        }
+
+        // Also count external participants (server-side data)
+        const externalMap = this.externalParticipants.get(channelId);
+        if (externalMap) {
+            externalMap.forEach((pData, uid) => {
+                const participantId = String(uid);
+                if (!participantIds.has(participantId)) {
+                    participantIds.add(participantId);
+                    count++;
+                }
+            });
         }
         
+        // Count bots separately
         if (window.BotComponent && window.BotComponent.voiceBots) {
             window.BotComponent.voiceBots.forEach((botData, botId) => {
                 if (botData.channel_id === channelId) {
-                    if (!window.voiceManager || window.voiceManager.currentChannelId !== channelId) {
+                    // Only count bots if we're not already counting them from local participants
+                    const botParticipantId = `bot-${botData.bot_id || botId}`;
+                    if (!participantIds.has(botParticipantId)) {
                         count++;
                     }
                 }
@@ -586,11 +618,8 @@ class ChannelVoiceParticipants {
     updateParticipantContainer(container, renderList) {
         if (!container) return;
         
-        // Remove any skeleton loaders first
-        container.querySelectorAll('.skeleton-loader').forEach(el => el.remove());
-        
         // Collect current DOM state
-        const existingElements = Array.from(container.querySelectorAll('.voice-participant-card:not(.skeleton-loader)'));
+        const existingElements = Array.from(container.querySelectorAll('.voice-participant-card'));
         const str = (v) => v != null ? String(v) : '';
         const existingMap = new Map(); // id -> element
         
@@ -647,6 +676,46 @@ class ChannelVoiceParticipants {
                 existingMap.set(pid, el);
             }
         });
+    }
+
+    appendNewParticipants(container, renderList, currentIds) {
+        if (!container) return;
+        
+        console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Using append-only mode - no UI refresh`);
+        
+        const currentIdsSet = new Set(currentIds);
+        let newParticipantsAdded = 0;
+        
+        // Only append participants that don't already exist
+        renderList.forEach(participant => {
+            const participantId = String(participant.user_id || participant.id);
+            
+            if (!currentIdsSet.has(participantId)) {
+                console.log(`➕ [CHANNEL-VOICE-PARTICIPANTS] Appending new participant ${participantId}`);
+                
+                const element = this.createParticipantElement(participant);
+                
+                // Start with invisible for smooth animation
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(10px)';
+                element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+                
+                // Append to container
+                container.appendChild(element);
+                
+                // Trigger smooth slide-in animation
+                setTimeout(() => {
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }, 50);
+                
+                newParticipantsAdded++;
+            }
+        });
+        
+        if (newParticipantsAdded > 0) {
+            console.log(`✅ [CHANNEL-VOICE-PARTICIPANTS] Appended ${newParticipantsAdded} new participants without refresh`);
+        }
     }
 }
 

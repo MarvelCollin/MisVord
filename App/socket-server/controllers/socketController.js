@@ -461,7 +461,7 @@ function setup(io) {
                 await client.join(voiceChannelRoom);
                 
                 // Add user to voice tracker
-                VoiceConnectionTracker.addUserToVoice(userId, channel_id, finalMeetingId, username || client.data?.username);
+                VoiceConnectionTracker.addUserToVoice(userId, channel_id, finalMeetingId, username || client.data?.username, client.data?.avatar_url);
                 
                 // Add to room manager
                 roomManager.addVoiceMeeting(channel_id, finalMeetingId, client.id);
@@ -475,6 +475,7 @@ function setup(io) {
                     action: 'join',
                     user_id: userId,
                     username: username || client.data?.username,
+                    avatar_url: client.data?.avatar_url || '/public/assets/common/default-profile-picture.png',
                     meeting_id: finalMeetingId,
                     server_id: server_id,
                     participant_count: participantCount,
@@ -770,6 +771,7 @@ function handleCheckVoiceMeeting(io, client, data) {
                 action: 'already_registered',
                 user_id: participant.userId,
                 username: participant.username,
+                avatar_url: participant.avatar_url || '/public/assets/common/default-profile-picture.png',
                 meeting_id: participant.meetingId,
                 participant_count: participantCount,
                 isBot: participant.isBot,

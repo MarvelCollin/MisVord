@@ -229,44 +229,9 @@ class VoiceCallSection {
         // Update UI to show connected state
         this.updateConnectionStatus(true);
         
-        // Show loading skeleton in the grid
-        this.showGridLoadingSkeleton();
-        
         if (!event.detail.skipJoinSound) {
             MusicLoaderStatic.playJoinVoiceSound();
         }
-    }
-    
-    /**
-     * Shows a skeleton loading animation in the participant grid
-     * while waiting for participants to load
-     */
-    showGridLoadingSkeleton() {
-        const grid = document.getElementById("participantGrid");
-        if (!grid) return;
-        
-        // Clear any existing content
-        grid.innerHTML = '';
-        
-        // Create a skeleton card for yourself (joining user)
-        const skeleton = document.createElement("div");
-        skeleton.className = "participant-card skeleton-loader bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b]";
-        skeleton.innerHTML = `
-            <div class="skeleton-avatar w-16 h-16 rounded-full bg-[#202225] animate-pulse mb-3"></div>
-            <div class="skeleton-name h-4 w-24 bg-[#202225] rounded animate-pulse mb-2"></div>
-            <div class="skeleton-status h-3 w-16 bg-[#202225] rounded animate-pulse"></div>
-        `;
-        
-        grid.appendChild(skeleton);
-        this.updateGridLayout();
-        
-        // Set a timeout to clear skeletons if no participants arrive
-        setTimeout(() => {
-            const skeletons = grid.querySelectorAll('.skeleton-loader');
-            if (skeletons.length > 0 && this.participantElements.size === 0) {
-                skeletons.forEach(el => el.remove());
-            }
-        }, 3000);
     }
     
     handleVoiceDisconnect(event) {
@@ -367,28 +332,18 @@ class VoiceCallSection {
         const { participant, data } = event.detail;
         if (!participant || this.participantElements.has(participant)) return;
         
+        console.log('🎯 [VOICE-CALL-SECTION] Participant joined - using append mode (no grid refresh)');
+        
         // Get grid element
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
-        // Remove any skeleton loaders when real participants arrive with smooth transition
-        const skeletons = grid.querySelectorAll('.skeleton-loader');
-        if (skeletons.length > 0) {
-            skeletons.forEach(skeleton => {
-                skeleton.style.transition = 'opacity 0.2s ease-out';
-                skeleton.style.opacity = '0';
-                setTimeout(() => {
-                    if (skeleton.parentNode) skeleton.remove();
-                }, 200);
-            });
-        }
-        
         const element = this.createParticipantElement(participant, data);
         
-        // Add smooth fade-in animation for new participants
+        // Add smooth slide-in animation for new participants (no refresh)
         element.style.opacity = '0';
-        element.style.transform = 'scale(0.95)';
-        element.style.transition = 'opacity 0.3s ease-in, transform 0.3s ease-in';
+        element.style.transform = 'translateY(20px) scale(0.9)';
+        element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
         
         grid.appendChild(element);
         this.participantElements.set(participant, element);
@@ -396,15 +351,16 @@ class VoiceCallSection {
         // Trigger smooth entrance animation
         setTimeout(() => {
             element.style.opacity = '1';
-            element.style.transform = 'scale(1)';
+            element.style.transform = 'translateY(0) scale(1)';
         }, 10);
         
         this.updateGridLayout();
         this.updateParticipantCount();
         
+        // Update sidebar using append mode
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
             const instance = window.ChannelVoiceParticipants.getInstance();
-            instance.updateSidebarForChannel(this.currentChannelId);
+            instance.updateSidebarForChannel(this.currentChannelId, 'append');
         }
     }
 
@@ -412,12 +368,14 @@ class VoiceCallSection {
         const { participant } = event.detail;
         if (!participant) return;
         
+        console.log('🎯 [VOICE-CALL-SECTION] Participant left - removing from grid');
+        
         const element = this.participantElements.get(participant);
         if (element) {
             // Add smooth fade-out animation before removing
             element.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
             element.style.opacity = '0';
-            element.style.transform = 'scale(0.95)';
+            element.style.transform = 'translateY(-20px) scale(0.9)';
             
             setTimeout(() => {
                 if (element.parentNode) {
@@ -427,9 +385,10 @@ class VoiceCallSection {
                 this.updateGridLayout();
                 this.updateParticipantCount();
                 
+                // Update sidebar using full refresh for leaves
                 if (window.ChannelVoiceParticipants && this.currentChannelId) {
                     const instance = window.ChannelVoiceParticipants.getInstance();
-                    instance.updateSidebarForChannel(this.currentChannelId);
+                    instance.updateSidebarForChannel(this.currentChannelId, 'full');
                 }
             }, 300);
         }
@@ -438,6 +397,8 @@ class VoiceCallSection {
     handleBotParticipantJoined(event) {
         const { participant } = event.detail;
         if (!participant || !participant.user_id) return;
+        
+        console.log('🤖 [VOICE-CALL-SECTION] Bot joined - using append mode (no grid refresh)');
         
         const botId = `bot-${participant.user_id}`;
         if (this.participantElements.has(botId)) return;
@@ -454,15 +415,28 @@ class VoiceCallSection {
         const element = this.createParticipantElement(botId, botData);
         const grid = document.getElementById("participantGrid");
         if (grid) {
+            // Add smooth bot entrance animation
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px) scale(0.8)';
+            element.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            
             grid.appendChild(element);
             this.participantElements.set(botId, element);
+            
+            // Bot gets special glow entrance
+            setTimeout(() => {
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0) scale(1)';
+            }, 50);
+            
             this.updateGridLayout();
             this.updateParticipantCount();
             
             const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
             if (window.ChannelVoiceParticipants && targetChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                instance.updateSidebarForChannel(targetChannelId);
+                // Use append mode for bot joins
+                instance.updateSidebarForChannel(targetChannelId, 'append');
             }
         }
     }
@@ -471,18 +445,30 @@ class VoiceCallSection {
         const { participant } = event.detail;
         if (!participant || !participant.user_id) return;
         
+        console.log('🤖 [VOICE-CALL-SECTION] Bot left - removing from grid');
+        
         const botId = `bot-${participant.user_id}`;
         const element = this.participantElements.get(botId);
         if (element) {
-            element.remove();
-            this.participantElements.delete(botId);
-            this.updateGridLayout();
-            this.updateParticipantCount();
+            // Bot gets special exit animation
+            element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(-30px) scale(0.7)';
+            
+            setTimeout(() => {
+                if (element.parentNode) {
+                    element.remove();
+                }
+                this.participantElements.delete(botId);
+                this.updateGridLayout();
+                this.updateParticipantCount();
+            }, 400);
             
             const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
             if (window.ChannelVoiceParticipants && targetChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                instance.updateSidebarForChannel(targetChannelId);
+                // Use full refresh for bot leaves
+                instance.updateSidebarForChannel(targetChannelId, 'full');
             }
         }
     }

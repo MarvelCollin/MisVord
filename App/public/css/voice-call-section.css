@@ -807,3 +807,68 @@
     text-align: center;
     backdrop-filter: blur(10px);
 }
+
+/* Append-only join animations */
+.participant-card.joining {
+    animation: smoothJoinSlideIn 0.4s ease-out forwards !important;
+}
+
+.participant-card.leaving {
+    animation: smoothLeaveSlideOut 0.3s ease-out forwards !important;
+}
+
+@keyframes smoothJoinSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes smoothLeaveSlideOut {
+    0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.9);
+    }
+}
+
+/* Bot special entrance animation */
+.bot-entrance-glow {
+    animation: botJoinGlow 1s ease-out !important;
+    box-shadow: 0 0 30px rgba(88, 101, 242, 0.8) !important;
+}
+
+@keyframes botJoinGlow {
+    0% {
+        box-shadow: 0 0 0 rgba(88, 101, 242, 0);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(88, 101, 242, 1);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(88, 101, 242, 0.3);
+    }
+}
+
+/* Sidebar append-only animations */
+.voice-participant-card.appending {
+    animation: sidebarSlideIn 0.4s ease-out forwards !important;
+}
+
+@keyframes sidebarSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
