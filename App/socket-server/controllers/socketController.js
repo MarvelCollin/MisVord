@@ -781,24 +781,50 @@ function handleCheckVoiceMeeting(io, client, data) {
         });
     }
     
-    const botParticipants = VoiceConnectionTracker.getBotParticipants(channel_id);
-    if (botParticipants.length > 0) {
-        botParticipants.forEach(botParticipant => {
-            client.emit('bot-voice-participant-joined', {
-                participant: {
-                    user_id: botParticipant.userId,
-                    username: botParticipant.username,
-                    avatar_url: '/public/assets/landing-page/robot.webp',
-                    isBot: true,
+    // Send existing bot participants using full data from BotHandler
+    const BotHandler = require('../handlers/botHandler');
+    const existingBotParticipants = Array.from(BotHandler.botVoiceParticipants.values())
+        .filter(bot => bot.channelId === channel_id || bot.channel_id === channel_id);
+    
+    if (existingBotParticipants.length > 0) {
+        console.log(`🤖 [VOICE-PARTICIPANT] Sending ${existingBotParticipants.length} existing bot participants for recovery`);
+        
+        // Use setTimeout to ensure client socket listeners are ready
+        setTimeout(() => {
+            existingBotParticipants.forEach(botParticipant => {
+                // Ensure bot data has complete information from bot registry
+                const botData = BotHandler.bots.get(parseInt(botParticipant.user_id));
+                const completeAvatarUrl = botData?.avatar_url || botParticipant.avatar_url || '/public/assets/landing-page/robot.webp';
+                
+                const recoveryBotData = {
+                    participant: {
+                        id: botParticipant.id,
+                        user_id: botParticipant.user_id,
+                        username: botParticipant.username,
+                        avatar_url: completeAvatarUrl,
+                        isBot: true,
+                        channelId: channel_id,
+                        channel_id: channel_id,
+                        meetingId: botParticipant.meetingId,
+                        joinedAt: botParticipant.joinedAt,
+                        // Include any status or additional data that was set when bot first joined
+                        status: botParticipant.status || 'Ready to play music'
+                    },
                     channelId: channel_id,
-                    channel_id: channel_id,
-                    meetingId: botParticipant.meetingId,
-                    joinedAt: botParticipant.joinedAt
-                },
-                channelId: channel_id,
-                meetingId: botParticipant.meetingId
+                    meetingId: `voice_channel_${channel_id}`,
+                    isRecovery: true // Flag to indicate this is a recovery event
+                };
+                
+                client.emit('bot-voice-participant-joined', recoveryBotData);
+                
+                console.log(`🔄 [VOICE-PARTICIPANT] Sent bot recovery data:`, {
+                    botId: botParticipant.user_id,
+                    username: botParticipant.username,
+                    avatarUrl: completeAvatarUrl,
+                    channelId: channel_id
+                });
             });
-        });
+        }, 100); // Small delay to ensure client is ready
     }
 }
 
@@ -850,24 +876,48 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             
             client.leave(`voice_channel_${channel_id}`);
 
-            
+            // Handle bot cleanup if no HUMAN participants left (bots should stay if humans are present)
+            const BotHandler = require('../handlers/botHandler');
             const titiBotId = BotHandler.getTitiBotId();
-            if (titiBotId && result.participant_count === 0) {
-                BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
-
+            if (titiBotId) {
+                const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channel_id);
+                const humanCount = humanParticipants.length;
+                
+                console.log(`🤖 [VOICE-UNREGISTER] Checking bot cleanup - Human participants remaining: ${humanCount}`);
+                
+                if (humanCount === 0) {
+                    BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
+                    console.log(`🤖 [VOICE-UNREGISTER] Removed TitiBot from channel ${channel_id} - no human participants left`);
+                } else {
+                    console.log(`🤖 [VOICE-UNREGISTER] TitiBot staying in channel ${channel_id} - ${humanCount} human participants remaining`);
+                }
             }
         }
         
 
         
 
-        io.emit('voice-meeting-update', {
+        // Broadcast voice leave to multiple rooms to ensure all viewers get the update
+        const leaveEventData = {
             channel_id,
             meeting_id: roomManagerMeeting.meeting_id,
             participant_count: result.participant_count,
             action: 'leave',
             user_id: user_id,
-            username: username
+            username: username,
+            timestamp: Date.now()
+        };
+        
+        // Broadcast to multiple rooms to ensure spectators get the update
+        io.emit('voice-meeting-update', leaveEventData); // Global broadcast
+        io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // Voice participants
+        io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // Text channel spectators
+        
+        console.log(`📢 [VOICE-UNREGISTER] Broadcasted voice leave event to multiple rooms:`, {
+            channelId: channel_id,
+            userId: user_id,
+            participantCount: result.participant_count,
+            targetRooms: ['global', `voice_channel_${channel_id}`, `channel-${channel_id}`]
         });
     } else {
         console.warn(`⚠️ [VOICE-PARTICIPANT] No voice meeting found for channel ${channel_id}`);
@@ -954,7 +1004,7 @@ function handleDisconnect(io, client) {
             // Broadcast voice meeting update to notify other clients
             const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
             if (roomManagerMeeting) {
-                io.emit('voice-meeting-update', {
+                const leaveEventData = {
                     channel_id: channel_id,
                     meeting_id: roomManagerMeeting.meeting_id,
                     participant_count: result ? result.participant_count : 0,
@@ -962,21 +1012,36 @@ function handleDisconnect(io, client) {
                     user_id: user_id,
                     username: username,
                     timestamp: Date.now()
-                });
+                };
                 
-                console.log(`📢 [DISCONNECT] Broadcasted voice leave event:`, {
+                // Broadcast to multiple rooms to ensure spectators get the update
+                io.emit('voice-meeting-update', leaveEventData); // Global broadcast
+                io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // Voice participants
+                io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // Text channel spectators
+                
+                console.log(`📢 [DISCONNECT] Broadcasted voice leave event to multiple rooms:`, {
                     channelId: channel_id,
                     userId: user_id,
-                    participantCount: result ? result.participant_count : 0
+                    participantCount: result ? result.participant_count : 0,
+                    targetRooms: ['global', `voice_channel_${channel_id}`, `channel-${channel_id}`]
                 });
             }
             
-            // Handle bot cleanup if no participants left
+            // Handle bot cleanup if no HUMAN participants left (bots should stay if humans are present)
             const BotHandler = require('../handlers/botHandler');
             const titiBotId = BotHandler.getTitiBotId();
-            if (titiBotId && result && result.participant_count === 0) {
-                BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
-                console.log(`🤖 [DISCONNECT] Removed TitiBot from empty channel ${channel_id}`);
+            if (titiBotId) {
+                const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channel_id);
+                const humanCount = humanParticipants.length;
+                
+                console.log(`🤖 [DISCONNECT] Checking bot cleanup - Human participants remaining: ${humanCount}`);
+                
+                if (humanCount === 0) {
+                    BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
+                    console.log(`🤖 [DISCONNECT] Removed TitiBot from channel ${channel_id} - no human participants left`);
+                } else {
+                    console.log(`🤖 [DISCONNECT] TitiBot staying in channel ${channel_id} - ${humanCount} human participants remaining`);
+                }
             }
         }
 

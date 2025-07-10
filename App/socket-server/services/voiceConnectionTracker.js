@@ -35,6 +35,7 @@ class VoiceConnectionTracker {
             channelId: channelId,
             meetingId: meetingId,
             username: username,
+            avatar_url: '/public/assets/landing-page/robot.webp', // Default bot avatar
             joinedAt: Date.now(),
             isConnected: true,
             isBot: true

@@ -198,6 +198,14 @@ class SimpleChannelSwitcher {
             console.log(`🔌 [CHANNEL-SWITCHER] Joining socket room for voice channel: ${channelId}`);
             window.globalSocketManager.joinRoom('channel', channelId);
             
+            // Also request immediate voice meeting status to get current participants
+            setTimeout(() => {
+                console.log(`🔄 [CHANNEL-SWITCHER] Requesting voice meeting status for channel: ${channelId}`);
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: channelId 
+                });
+            }, 200);
+            
             // Force refresh all presence data after joining the room
             setTimeout(async () => {
                 console.log(`🔄 [CHANNEL-SWITCHER] Refreshing presence data for voice channel: ${channelId}`);

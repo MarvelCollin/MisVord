@@ -139,21 +139,29 @@ class VoiceManager {
     }
     
     handleBotParticipantJoined(data) {
-        const { participant, channelId } = data;
+        const { participant, channelId, isRecovery } = data;
         if (!participant || !participant.user_id) return;
         
         if (channelId === this.currentChannelId) {
             const botId = `bot-${participant.user_id}`;
+            
+            // Ensure bot has proper avatar URL
+            let avatarUrl = participant.avatar_url;
+            if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
+                avatarUrl = '/public/assets/landing-page/robot.webp';
+            }
+            
             this.botParticipants.set(botId, {
                 id: botId,
                 user_id: participant.user_id,
                 name: participant.username || 'TitiBot',
                 username: participant.username || 'TitiBot',
-                avatar_url: participant.avatar_url || '/public/assets/landing-page/robot.webp',
+                avatar_url: avatarUrl,
                 isBot: true,
                 isLocal: false,
                 streams: new Map(),
-                channelId: channelId
+                channelId: channelId,
+                status: participant.status || 'Ready to play music' // Include status for consistency
             });
             
             this.participants.set(botId, this.botParticipants.get(botId));
@@ -164,8 +172,19 @@ class VoiceManager {
             
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                instance.updateSidebarForChannel(channelId);
+                // Use append mode for regular joins, full refresh for recovery to ensure proper display
+                const updateMode = isRecovery ? 'full' : 'append';
+                setTimeout(() => {
+                    instance.updateSidebarForChannel(channelId, updateMode);
+                }, isRecovery ? 100 : 0); // Small delay for recovery to ensure DOM is ready
             }
+            
+            console.log(`🤖 [VOICE-MANAGER] Bot participant ${isRecovery ? 'recovered' : 'joined'}:`, {
+                botId,
+                username: participant.username,
+                channelId,
+                isRecovery: !!isRecovery
+            });
         }
     }
     

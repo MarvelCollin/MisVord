@@ -303,16 +303,25 @@ class BotHandler extends EventEmitter {
             return;
         }
 
+        // Ensure bot is registered and has avatar
+        if (!this.bots.has(botId)) {
+            await this.registerBot(botId, username);
+        }
+
+        const botData = this.bots.get(botId);
+        const avatarUrl = botData?.avatar_url || '/public/assets/landing-page/robot.webp';
+
         const botParticipantData = {
             id: `bot-voice-${botId}`,
             user_id: botId.toString(),
             username: username,
-            avatar_url: this.bots.get(botId)?.avatar_url || '/public/assets/landing-page/robot.webp',
+            avatar_url: avatarUrl,
             isBot: true,
             channelId: channelId,
             channel_id: channelId,
             meetingId: `voice_channel_${channelId}`,
-            joinedAt: Date.now()
+            joinedAt: Date.now(),
+            status: 'Ready to play music' // Store the status message for consistency
         };
 
         this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
@@ -321,16 +330,33 @@ class BotHandler extends EventEmitter {
 
         const voiceChannelRoom = `voice_channel_${channelId}`;
         
-        io.to(voiceChannelRoom).emit('bot-voice-participant-joined', {
-            participant: botParticipantData,
+        // Send the same complete data structure when bot first joins
+        const eventData = {
+            participant: {
+                id: botParticipantData.id,
+                user_id: botParticipantData.user_id,
+                username: botParticipantData.username,
+                avatar_url: botParticipantData.avatar_url,
+                isBot: true,
+                channelId: channelId,
+                channel_id: channelId,
+                meetingId: botParticipantData.meetingId,
+                joinedAt: botParticipantData.joinedAt,
+                status: botParticipantData.status
+            },
             channelId: channelId,
             meetingId: `voice_channel_${channelId}`
-        });
+        };
         
-        io.to(`channel-${channelId}`).emit('bot-voice-participant-joined', {
-            participant: botParticipantData,
-            channelId: channelId,
-            meetingId: `voice_channel_${channelId}`
+        // Broadcast to multiple rooms to ensure all viewers (including spectators) receive the event
+        io.to(voiceChannelRoom).emit('bot-voice-participant-joined', eventData); // Voice participants
+        io.to(`channel-${channelId}`).emit('bot-voice-participant-joined', eventData); // Text channel viewers
+        io.emit('bot-voice-participant-joined', eventData); // Global broadcast for safety
+        
+        console.log(`🤖 [BOT-HANDLER] Bot joined voice - broadcasting to multiple rooms:`, {
+            botId,
+            channelId,
+            targetRooms: [voiceChannelRoom, `channel-${channelId}`, 'global']
         });
     }
 
@@ -338,8 +364,21 @@ class BotHandler extends EventEmitter {
         const botParticipantKey = `${botId}-${channelId}`;
         
         if (!this.botVoiceParticipants.has(botParticipantKey)) {
+            console.log(`🤖 [BOT-HANDLER] Bot ${botId} not found in channel ${channelId} - already removed`);
             return;
         }
+
+        // Safety check: Only remove bot if no human participants are left
+        const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
+        const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channelId);
+        
+        if (humanParticipants.length > 0) {
+            console.log(`🤖 [BOT-HANDLER] Refusing to remove bot ${botId} from channel ${channelId} - ${humanParticipants.length} human participants still present:`, 
+                humanParticipants.map(p => p.username).join(', '));
+            return;
+        }
+
+        console.log(`🤖 [BOT-HANDLER] Removing bot ${botId} from channel ${channelId} - no human participants left`);
 
         const botParticipant = this.botVoiceParticipants.get(botParticipantKey);
         this.botVoiceParticipants.delete(botParticipantKey);
@@ -352,8 +391,16 @@ class BotHandler extends EventEmitter {
             channelId: channelId
         };
         
-        io.to(voiceChannelRoom).emit('bot-voice-participant-left', eventData);
-        io.to(`channel-${channelId}`).emit('bot-voice-participant-left', eventData);
+        // Broadcast bot leave to multiple rooms to ensure all viewers receive the event
+        io.to(voiceChannelRoom).emit('bot-voice-participant-left', eventData); // Voice participants
+        io.to(`channel-${channelId}`).emit('bot-voice-participant-left', eventData); // Text channel viewers
+        io.emit('bot-voice-participant-left', eventData); // Global broadcast for safety
+        
+        console.log(`🤖 [BOT-HANDLER] Bot left voice - broadcasting to multiple rooms:`, {
+            botId,
+            channelId,
+            targetRooms: [voiceChannelRoom, `channel-${channelId}`, 'global']
+        });
     }
 
     static async sendBotResponse(io, originalMessage, messageType, botId, username, command, parameter = null) {

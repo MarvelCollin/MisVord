@@ -511,7 +511,8 @@ class VoiceCallSection {
             isBot: true,
             user_id: participant.user_id,
             avatar_url: participant.avatar_url || '/public/assets/landing-page/robot.webp',
-            channelId: participant.channelId || participant.channel_id
+            channelId: participant.channelId || participant.channel_id,
+            status: participant.status || 'Ready to play music' // Include status for consistency
         };
         
         const element = this.createParticipantElement(botId, botData);
@@ -628,6 +629,7 @@ class VoiceCallSection {
         const avatarUrl = data?.avatar_url || '/public/assets/common/default-profile-picture.png';
         const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
         const showImage = isBot || hasCustomAvatar;
+        const botStatus = data?.status || 'Ready to play music'; // Use the status from bot data
         
         // Add double-click event listener for fullscreen modal
         div.addEventListener('dblclick', (e) => {
@@ -648,7 +650,7 @@ class VoiceCallSection {
                     ${isBot ? '<div class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white text-xs"></i></div>' : ''}
                 </div>
                 <span class="participant-name text-white text-sm font-medium text-center mb-2 max-w-full truncate">${name}${isLocal ? ' (You)' : ''}${isBot ? ' (Bot)' : ''}</span>
-                ${isBot ? '<div class="music-status text-xs text-[#5865f2] text-center"><i class="fas fa-music mr-1"></i>Ready to play music</div>' : ''}
+                ${isBot ? `<div class="music-status text-xs text-[#5865f2] text-center"><i class="fas fa-music mr-1"></i>${botStatus}</div>` : ''}
             </div>
         `;
         

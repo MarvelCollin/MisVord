@@ -151,9 +151,19 @@ class ChannelVoiceParticipants {
         
         const voiceState = window.localStorageManager.getUnifiedVoiceState();
         if (voiceState.isConnected && voiceState.channelId) {
-            window.globalSocketManager.io.emit('check-voice-meeting', { 
-                channel_id: voiceState.channelId 
-            });
+            console.log(`🔍 [CHANNEL-VOICE-PARTICIPANTS] Validating state for channel ${voiceState.channelId}`);
+            
+            // Ensure we're in the correct socket room for the channel
+            if (window.globalSocketManager.isReady()) {
+                window.globalSocketManager.joinRoom('channel', voiceState.channelId);
+            }
+            
+            // Request current voice meeting status
+            setTimeout(() => {
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: voiceState.channelId 
+                });
+            }, 200);
         }
     }
     
@@ -215,8 +225,14 @@ class ChannelVoiceParticipants {
                         username: data.username || 'Unknown',
                         avatar_url: data.avatar_url || '/public/assets/common/default-profile-picture.png'
                     });
+                    console.log(`➕ [EXTERNAL-PARTICIPANTS] Added participant ${data.user_id} to channel ${chan}`);
                 } else if (data.action === 'leave') {
-                    map.delete(data.user_id);
+                    const removed = map.delete(data.user_id);
+                    console.log(`🗑️ [EXTERNAL-PARTICIPANTS] ${removed ? 'Removed' : 'Attempted to remove'} participant ${data.user_id} from channel ${chan}`);
+                    
+                    // Force immediate UI update for participant leaves to prevent stale display
+                    this.updateSidebarForChannel(chan, 'full');
+                    this.updateChannelCount(chan, null);
                 }
             }
             // update counts + sidebar for all actions that reflect an existing participant
@@ -439,12 +455,13 @@ class ChannelVoiceParticipants {
                 if (botData.channel_id === channelId) {
                     renderList.push({
                         id: botId,
-                        user_id: botData.bot_id,
+                        user_id: botData.user_id || botData.bot_id,
                         name: botData.username || 'TitiBot',
                         username: botData.username || 'TitiBot',
-                        avatar_url: '/public/assets/landing-page/robot.webp',
+                        avatar_url: botData.avatar_url || '/public/assets/landing-page/robot.webp',
                         isBot: true,
-                        isLocal: false
+                        isLocal: false,
+                        status: botData.status || 'Ready to play music'
                     });
                 }
             });
@@ -501,24 +518,30 @@ class ChannelVoiceParticipants {
         div.className = 'voice-participant-card bg-[#2f3136] rounded-lg p-2 flex items-center space-x-3 border border-[#40444b] hover:border-[#5865f2] transition-all duration-200';
         div.setAttribute('data-user-id', participant.user_id || participant.id);
 
-        const avatarUrl = participant.avatar_url || '/public/assets/common/default-profile-picture.png';
+        // Ensure bot avatars are properly handled
+        let avatarUrl = participant.avatar_url || '/public/assets/common/default-profile-picture.png';
+        if (participant.isBot && (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png')) {
+            avatarUrl = '/public/assets/landing-page/robot.webp';
+        }
+        
         const displayName = participant.name || participant.username || 'Unknown';
         const isBot = participant.isBot || false;
         const isSelf = participant.isSelf || false;
+        const botStatus = participant.status || 'Ready to play music'; // Use the status from bot data
 
         const avatarHTML = `
             <div class="relative">
                 <img src="${avatarUrl}"
                      alt="${displayName}"
                      class="w-8 h-8 rounded-full object-cover bg-[#5865f2]"
-                     onerror="this.src='/public/assets/common/default-profile-picture.png'">
+                     onerror="this.src='${isBot ? '/public/assets/landing-page/robot.webp' : '/public/assets/common/default-profile-picture.png'}'">
                 ${isBot ? `<div class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#5865f2] rounded-full flex items-center justify-center"><i class="fas fa-robot text-white" style="font-size: 6px;"></i></div>` : ''}
             </div>`;
 
         const nameHTML = `
             <div class="flex flex-col min-w-0">
                 <span class="participant-name text-white text-sm font-medium truncate max-w-[140px]">${displayName}${isSelf ? ' (You)' : ''}${isBot ? ' (Bot)' : ''}</span>
-                ${isBot ? '<span class="text-xs text-[#5865f2] flex items-center"><i class="fas fa-music mr-1"></i>Ready to play music</span>' : ''}
+                ${isBot ? `<span class="text-xs text-[#5865f2] flex items-center"><i class="fas fa-music mr-1"></i>${botStatus}</span>` : ''}
             </div>`;
 
         div.innerHTML = avatarHTML + nameHTML;
