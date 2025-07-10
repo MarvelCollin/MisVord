@@ -361,9 +361,31 @@ class VoiceCallSection {
     
     handleVoiceMeetingStatus(data) {
         console.log(`📊 [VOICE-CALL-SECTION] Voice meeting status:`, data);
-        
+
         if (data.has_meeting && data.meeting_id) {
             this.currentMeetingId = data.meeting_id;
+        }
+
+        // Always re-render the participant grid from the server's participants array
+        if (Array.isArray(data.participants)) {
+            const grid = document.getElementById("participantGrid");
+            if (grid) {
+                // Remove all current participant elements
+                grid.innerHTML = "";
+                this.participantElements = new Map();
+
+                // Add each participant from the server
+                data.participants.forEach((participant) => {
+                    // Use user_id or id as the unique key
+                    const participantId = participant.user_id || participant.id || participant;
+                    const element = this.createParticipantElement(participantId, participant);
+                    grid.appendChild(element);
+                    this.participantElements.set(participantId, element);
+                });
+
+                this.updateGridLayout();
+                this.updateParticipantCount();
+            }
         }
     }
     
