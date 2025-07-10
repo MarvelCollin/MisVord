@@ -13,6 +13,8 @@ class VoiceCallSection {
         this.disconnectBtn = null;
         
         this.participantElements = new Map();
+        this.currentModal = null;
+        this.modalEscListener = null;
         
         this.currentChannelId = null;
         this.currentChannelName = null;
@@ -370,6 +372,14 @@ class VoiceCallSection {
         
         console.log('🎯 [VOICE-CALL-SECTION] Participant left - removing from grid');
         
+        // Close modal if it's for this participant
+        if (this.currentModal) {
+            const modalParticipantId = this.currentModal.getAttribute('data-participant-id');
+            if (modalParticipantId === participant) {
+                this.closeParticipantModal();
+            }
+        }
+        
         const element = this.participantElements.get(participant);
         if (element) {
             // Add smooth fade-out animation before removing
@@ -527,6 +537,12 @@ class VoiceCallSection {
         const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
         const showImage = isBot || hasCustomAvatar;
         
+        // Add double-click event listener for fullscreen modal
+        div.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            this.openParticipantModal(participantId, data, 'participant');
+        });
+        
         div.innerHTML = `
             <div class="participant-video-overlay hidden absolute inset-0 rounded-lg overflow-hidden z-20">
                 <video class="w-full h-full object-cover rounded-lg" autoplay muted playsinline></video>
@@ -606,6 +622,12 @@ class VoiceCallSection {
                 <video class="w-full h-full object-contain" autoplay muted playsinline></video>
             </div>
         `;
+        
+        // Add double-click event listener for fullscreen modal
+        card.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            this.openParticipantModal(participantId, { displayName: participantName }, 'screenshare');
+        });
         
         const video = card.querySelector("video");
         if (video && stream) {
@@ -702,6 +724,9 @@ class VoiceCallSection {
     }
     
     clearGrid() {
+        // Close any open modal
+        this.closeParticipantModal();
+        
         const grid = document.getElementById("participantGrid");
         if (grid) {
             grid.innerHTML = "";
@@ -841,6 +866,173 @@ class VoiceCallSection {
 
     getCurrentUserId() {
         return document.querySelector('meta[name="user-id"]')?.content || window.currentUserId;
+    }
+
+    openParticipantModal(participantId, data, type = 'participant') {
+        // Close any existing modal
+        this.closeParticipantModal();
+        
+        const name = data?.displayName || data?.name || data?.username || "Unknown";
+        const isLocal = data?.isLocal || (participantId === window.voiceManager?.localParticipant?.id);
+        const isBot = data?.isBot || participantId.startsWith('bot-');
+        const avatarUrl = data?.avatar_url || '/public/assets/common/default-profile-picture.png';
+        const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
+        const showImage = isBot || hasCustomAvatar;
+        
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.id = 'participant-fullscreen-modal';
+        overlay.className = 'fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center backdrop-blur-sm';
+        overlay.style.animation = 'modalFadeIn 0.3s ease-out';
+        
+        // Create modal content based on type
+        let modalContent = '';
+        
+        if (type === 'screenshare') {
+            // Screen share modal
+            const originalCard = document.querySelector(`[data-screen-share-id="${participantId}"]`);
+            const originalVideo = originalCard?.querySelector('video');
+            
+            modalContent = `
+                <div class="modal-content bg-[#1e1f22] rounded-2xl p-6 max-w-6xl max-h-[90vh] w-[90vw] h-[80vh] flex flex-col relative border-2 border-[#5865f2] shadow-2xl">
+                    <button class="modal-close-btn absolute top-4 right-4 w-10 h-10 bg-[#ed4245] hover:bg-[#dc2626] rounded-full flex items-center justify-center text-white transition-all duration-200 z-10">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                    
+                    <div class="modal-header mb-4 flex items-center justify-center">
+                        <i class="fas fa-desktop text-[#5865f2] text-lg mr-3"></i>
+                        <h3 class="text-white text-xl font-semibold">${name} - Screen Share</h3>
+                    </div>
+                    
+                    <div class="modal-video-container flex-1 bg-black rounded-lg overflow-hidden flex items-center justify-center">
+                        <video class="w-full h-full object-contain" autoplay muted playsinline ${originalVideo?.srcObject ? '' : 'hidden'}></video>
+                        <div class="video-placeholder ${originalVideo?.srcObject ? 'hidden' : ''} text-white text-center">
+                            <i class="fas fa-desktop text-6xl text-[#5865f2] mb-4"></i>
+                            <p class="text-lg">Screen share content will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            // Participant modal (user/bot/camera)
+            const originalCard = this.participantElements.get(participantId);
+            const hasVideo = originalCard?.querySelector('.participant-video-overlay:not(.hidden)');
+            const originalVideo = originalCard?.querySelector('video');
+            
+            modalContent = `
+                <div class="modal-content bg-[#2f3136] rounded-2xl p-8 max-w-4xl max-h-[90vh] w-[80vw] flex flex-col items-center justify-center relative border-2 border-[#5865f2] shadow-2xl">
+                    <button class="modal-close-btn absolute top-4 right-4 w-10 h-10 bg-[#ed4245] hover:bg-[#dc2626] rounded-full flex items-center justify-center text-white transition-all duration-200 z-10">
+                        <i class="fas fa-times text-sm"></i>
+                    </button>
+                    
+                    ${hasVideo ? `
+                        <div class="modal-video-container w-full h-[70vh] bg-black rounded-xl overflow-hidden flex items-center justify-center mb-6">
+                            <video class="w-full h-full object-cover rounded-xl" autoplay muted playsinline></video>
+                        </div>
+                    ` : `
+                        <div class="modal-avatar-container mb-6">
+                            <div class="w-48 h-48 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-6xl relative overflow-hidden border-4 border-[#7289da] shadow-lg">
+                                ${showImage ? `<img src="${avatarUrl}" alt="${name}" class="w-full h-full object-cover rounded-full" onerror="this.src='/public/assets/common/default-profile-picture.png'">` : `<span>${this.getInitials(name)}</span>`}
+                                ${isBot ? '<div class="absolute -bottom-2 -right-2 w-12 h-12 bg-[#5865f2] rounded-full flex items-center justify-center border-4 border-[#2f3136]"><i class="fas fa-robot text-white text-lg"></i></div>' : ''}
+                            </div>
+                        </div>
+                    `}
+                    
+                    <div class="modal-info text-center">
+                        <h3 class="text-white text-3xl font-bold mb-2">${name}${isLocal ? ' (You)' : ''}${isBot ? ' (Bot)' : ''}</h3>
+                        ${isBot ? '<p class="text-[#5865f2] text-lg mb-4"><i class="fas fa-music mr-2"></i>Ready to play music</p>' : ''}
+                        <div class="flex items-center justify-center space-x-6 text-[#b9bbbe]">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-[#3ba55c] rounded-full"></div>
+                                <span>Connected</span>
+                            </div>
+                            ${hasVideo ? '<div class="flex items-center space-x-2"><i class="fas fa-video text-[#3ba55c]"></i><span>Camera On</span></div>' : ''}
+                            ${type === 'screenshare' ? '<div class="flex items-center space-x-2"><i class="fas fa-desktop text-[#5865f2]"></i><span>Screen Sharing</span></div>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        overlay.innerHTML = modalContent;
+        
+        // Add click outside to close
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                this.closeParticipantModal();
+            }
+        });
+        
+        // Add close button event
+        const closeBtn = overlay.querySelector('.modal-close-btn');
+        closeBtn.addEventListener('click', () => {
+            this.closeParticipantModal();
+        });
+        
+        // Copy video stream if exists
+        const modalVideo = overlay.querySelector('video');
+        if (modalVideo) {
+            let originalVideo = null;
+            
+            if (type === 'screenshare') {
+                const originalCard = document.querySelector(`[data-screen-share-id="${participantId}"]`);
+                originalVideo = originalCard?.querySelector('video');
+            } else {
+                const originalCard = this.participantElements.get(participantId);
+                originalVideo = originalCard?.querySelector('.participant-video-overlay video');
+            }
+            
+            if (originalVideo && originalVideo.srcObject) {
+                modalVideo.srcObject = originalVideo.srcObject;
+                modalVideo.play().catch(() => {});
+                
+                // Show video, hide placeholder
+                modalVideo.classList.remove('hidden');
+                const placeholder = overlay.querySelector('.video-placeholder');
+                if (placeholder) placeholder.classList.add('hidden');
+            }
+        }
+        
+        // Add to DOM
+        document.body.appendChild(overlay);
+        
+        // Add ESC key listener
+        this.modalEscListener = (e) => {
+            if (e.key === 'Escape') {
+                this.closeParticipantModal();
+            }
+        };
+        document.addEventListener('keydown', this.modalEscListener);
+        
+        // Store reference for cleanup
+        this.currentModal = overlay;
+    }
+    
+    closeParticipantModal() {
+        const modal = document.getElementById('participant-fullscreen-modal') || this.currentModal;
+        if (modal) {
+            // Clean up video streams
+            const modalVideo = modal.querySelector('video');
+            if (modalVideo) {
+                modalVideo.srcObject = null;
+            }
+            
+            // Add fade out animation
+            modal.style.animation = 'modalFadeOut 0.2s ease-out';
+            setTimeout(() => {
+                if (modal.parentNode) {
+                    modal.remove();
+                }
+            }, 200);
+        }
+        
+        // Remove ESC listener
+        if (this.modalEscListener) {
+            document.removeEventListener('keydown', this.modalEscListener);
+            this.modalEscListener = null;
+        }
+        
+        this.currentModal = null;
     }
 
     initializeVoiceState() {

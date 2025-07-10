@@ -27,9 +27,189 @@
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
-    background: #000 !important;
-    display: block !important;
-    border-radius: inherit !important;
+    ba/* Sidebar append-only animations */
+.voice-participant-card.appending {
+    animation: sidebarSlideIn 0.4s ease-out forwards !important;
+}
+
+@keyframes sidebarSlideIn {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Participant Modal Styles */
+#participant-fullscreen-modal {
+    backdrop-filter: blur(8px) !important;
+    z-index: 9999 !important;
+}
+
+#participant-fullscreen-modal .modal-content {
+    transform: scale(0.95) !important;
+    transition: transform 0.3s ease-out !important;
+}
+
+#participant-fullscreen-modal.show .modal-content {
+    transform: scale(1) !important;
+}
+
+.modal-close-btn {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+.modal-close-btn:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+.modal-avatar-container .w-48 {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
+    transition: transform 0.3s ease !important;
+}
+
+.modal-avatar-container .w-48:hover {
+    transform: scale(1.05) !important;
+}
+
+.modal-video-container {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+    border: 2px solid rgba(88, 101, 242, 0.3) !important;
+    transition: border-color 0.3s ease !important;
+}
+
+.modal-video-container:hover {
+    border-color: rgba(88, 101, 242, 0.6) !important;
+}
+
+.video-placeholder {
+    transition: all 0.3s ease !important;
+}
+
+/* Modal Animations */
+@keyframes modalFadeIn {
+    0% {
+        opacity: 0 !important;
+        transform: scale(0.9) !important;
+    }
+    100% {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+    }
+}
+
+@keyframes modalFadeOut {
+    0% {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+    }
+    100% {
+        opacity: 0 !important;
+        transform: scale(0.9) !important;
+    }
+}
+
+/* Enhanced participant card cursor */
+.participant-card {
+    cursor: pointer !important;
+    user-select: none !important;
+    position: relative !important;
+}
+
+.participant-card:hover {
+    cursor: pointer !important;
+}
+
+.participant-card:hover::after {
+    content: "Double-click to expand" !important;
+    position: absolute !important;
+    top: -35px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    color: white !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    opacity: 0 !important;
+    animation: tooltipFadeIn 0.3s ease-out 0.5s forwards !important;
+    z-index: 100 !important;
+    pointer-events: none !important;
+}
+
+.participant-card:hover::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    border: 5px solid transparent !important;
+    border-top-color: rgba(0, 0, 0, 0.9) !important;
+    opacity: 0 !important;
+    animation: tooltipFadeIn 0.3s ease-out 0.5s forwards !important;
+    z-index: 100 !important;
+    pointer-events: none !important;
+}
+
+.screen-share-card {
+    cursor: pointer !important;
+    user-select: none !important;
+    position: relative !important;
+}
+
+.screen-share-card:hover {
+    cursor: pointer !important;
+}
+
+.screen-share-card:hover::after {
+    content: "Double-click to expand" !important;
+    position: absolute !important;
+    top: -35px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    color: white !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    opacity: 0 !important;
+    animation: tooltipFadeIn 0.3s ease-out 0.5s forwards !important;
+    z-index: 100 !important;
+    pointer-events: none !important;
+}
+
+.screen-share-card:hover::before {
+    content: "" !important;
+    position: absolute !important;
+    top: -10px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    border: 5px solid transparent !important;
+    border-top-color: rgba(0, 0, 0, 0.9) !important;
+    opacity: 0 !important;
+    animation: tooltipFadeIn 0.3s ease-out 0.5s forwards !important;
+    z-index: 100 !important;
+    pointer-events: none !important;
+}
+
+@keyframes tooltipFadeIn {
+    0% {
+        opacity: 0 !important;
+        transform: translateX(-50%) translateY(5px) !important;
+    }
+    100% {
+        opacity: 1 !important;
+        transform: translateX(-50%) translateY(0) !important;
+    }
 }
 
 .participant-video {
