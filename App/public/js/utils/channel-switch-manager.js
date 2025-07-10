@@ -48,6 +48,14 @@ class SimpleChannelSwitcher {
         
         this.isLoading = true;
         try {
+            // Clean up previous channel socket room if switching channels
+            if (this.currentChannelId && this.currentChannelId !== channelId) {
+                console.log(`🚪 [CHANNEL-SWITCHER] Leaving previous channel room: ${this.currentChannelId}`);
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    window.globalSocketManager.leaveRoom('channel', this.currentChannelId);
+                }
+            }
+            
             this.currentChannelId = channelId;
             this.currentChannelType = channelType;
             
@@ -184,6 +192,79 @@ class SimpleChannelSwitcher {
     async initializeVoiceChannel(channelId) {
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 'Voice Channel';
+        
+        // CRITICAL FIX: Join socket room for voice channel to receive presence updates
+        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+            console.log(`🔌 [CHANNEL-SWITCHER] Joining socket room for voice channel: ${channelId}`);
+            window.globalSocketManager.joinRoom('channel', channelId);
+            
+            // Force refresh all presence data after joining the room
+            setTimeout(async () => {
+                console.log(`🔄 [CHANNEL-SWITCHER] Refreshing presence data for voice channel: ${channelId}`);
+                
+                // Force emit get-online-users first
+                if (window.globalSocketManager?.io) {
+                    window.globalSocketManager.io.emit('get-online-users');
+                    console.log(`📡 [CHANNEL-SWITCHER] Requested fresh online users from server`);
+                }
+                
+                // Wait a bit for server response, then refresh local data
+                setTimeout(async () => {
+                    // Refresh FriendsManager online users
+                    if (window.FriendsManager) {
+                        const friendsManager = window.FriendsManager.getInstance();
+                        // Clear cache first to force fresh data
+                        friendsManager.cache.onlineUsers = null;
+                        await friendsManager.getOnlineUsers(true);
+                        console.log(`✅ [CHANNEL-SWITCHER] Friends presence refreshed`);
+                    }
+                    
+                    // Refresh GlobalPresenceManager
+                    if (window.globalPresenceManager) {
+                        window.globalPresenceManager.updateActiveNow();
+                        console.log(`✅ [CHANNEL-SWITCHER] Active Now presence refreshed`);
+                    }
+                    
+                    // Force participant section update
+                    if (window.updateParticipantDisplay) {
+                        window.updateParticipantDisplay();
+                        console.log(`✅ [CHANNEL-SWITCHER] Participant display refreshed`);
+                    }
+                    
+                    // Trigger custom event for other components
+                    window.dispatchEvent(new CustomEvent('presenceDataRefreshed', {
+                        detail: { channelId: channelId, source: 'voiceChannelSwitch' }
+                    }));
+                    
+                }, 800);
+            }, 300);
+        } else {
+            console.warn('⚠️ [CHANNEL-SWITCHER] Socket not ready, will retry joining room after socket is ready');
+            // Retry when socket becomes ready
+            window.addEventListener('globalSocketReady', () => {
+                if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                    console.log(`🔌 [CHANNEL-SWITCHER] Retrying socket room join for voice channel: ${channelId}`);
+                    window.globalSocketManager.joinRoom('channel', channelId);
+                    
+                    // Also refresh presence data when retrying
+                    setTimeout(async () => {
+                        if (window.FriendsManager) {
+                            const friendsManager = window.FriendsManager.getInstance();
+                            await friendsManager.getOnlineUsers(true);
+                        }
+                        if (window.globalPresenceManager) {
+                            window.globalPresenceManager.updateActiveNow();
+                        }
+                        if (window.updateParticipantDisplay) {
+                            window.updateParticipantDisplay();
+                        }
+                        if (window.globalSocketManager?.io) {
+                            window.globalSocketManager.io.emit('get-online-users');
+                        }
+                    }, 500);
+                }
+            }, { once: true });
+        }
         
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = channelId;

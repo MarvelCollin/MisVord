@@ -50,7 +50,7 @@ foreach ($members as $member) {
 
 <div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-screen" style="overflow: auto;">
     <div class="h-12 border-b border-gray-800 flex items-center px-4 relative">
-        <div class="relative w-full">
+        <div class="relative flex-1">
             <input type="text" 
                    placeholder="Search messages in server" 
                    class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 pr-8 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all" 
@@ -60,6 +60,13 @@ foreach ($members as $member) {
                 <i class="fas fa-spinner fa-spin text-gray-500 text-xs hidden" id="search-loading"></i>
             </div>
         </div>
+        
+        <!-- Refresh Presence Button -->
+        <button onclick="window.forceRefreshAllPresenceData()" 
+                class="ml-2 p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-all" 
+                title="Refresh presence data">
+            <i class="fas fa-sync-alt text-xs"></i>
+        </button>
         
         <div id="search-results-dropdown" class="absolute top-full left-0 right-0 bg-[#2b2d31] border border-gray-700 rounded-lg mt-1 max-h-80 overflow-y-auto shadow-lg z-50 hidden">
             <div id="search-results-content">
@@ -173,6 +180,16 @@ function setupVoiceEventListeners() {
         scheduleUpdate();
     });
     
+    // Listen for socket room changes to refresh presence data
+    window.addEventListener('socketRoomJoined', (event) => {
+        console.log('🏠 [PARTICIPANT] Socket room joined, refreshing participant display', event.detail);
+        
+        // Force refresh all presence data when joining a new room
+        setTimeout(async () => {
+            await window.forceRefreshAllPresenceData();
+        }, 500);
+    });
+    
     setInterval(() => {
         validateOwnPresence();
     }, 4000);
@@ -251,6 +268,47 @@ function scheduleUpdate() {
         updateParticipantDisplay();
     }, 50);
 }
+
+// Global function to force refresh all presence data
+window.forceRefreshAllPresenceData = async function() {
+    console.log('🔄 [PARTICIPANT] Force refreshing all presence data...');
+    
+    try {
+        // Refresh FriendsManager online users
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            await friendsManager.getOnlineUsers(true);
+            console.log('✅ [PARTICIPANT] Friends presence refreshed');
+        }
+        
+        // Refresh GlobalPresenceManager
+        if (window.globalPresenceManager) {
+            window.globalPresenceManager.updateActiveNow();
+            console.log('✅ [PARTICIPANT] Active Now presence refreshed');
+        }
+        
+        // Emit socket event to get fresh presence data
+        if (window.globalSocketManager?.io) {
+            window.globalSocketManager.io.emit('get-online-users');
+            console.log('📡 [PARTICIPANT] Requested fresh online users from server');
+        }
+        
+        // Update participant display
+        updateParticipantDisplay();
+        console.log('✅ [PARTICIPANT] Participant display refreshed');
+        
+        // Show toast notification
+        if (window.showToast) {
+            window.showToast('Presence data refreshed', 'success', 2000);
+        }
+        
+    } catch (error) {
+        console.error('❌ [PARTICIPANT] Error refreshing presence data:', error);
+        if (window.showToast) {
+            window.showToast('Failed to refresh presence data', 'error', 3000);
+        }
+    }
+};
 
 function getStatusClass(status, activityDetails) {
 
@@ -909,6 +967,52 @@ window.testParticipantGroups = function() {
     }
     
     return testMembers;
+};
+
+// Debug function to test presence refresh
+window.testPresenceRefresh = async function() {
+    console.log('🧪 [DEBUG] Testing presence refresh...');
+    
+    if (window.showToast) {
+        window.showToast('Testing presence refresh...', 'info', 2000);
+    }
+    
+    // Force refresh all presence data
+    await window.forceRefreshAllPresenceData();
+    
+    // Wait a bit and check results
+    setTimeout(() => {
+        const participantCount = document.querySelectorAll('.user-profile-trigger').length;
+        const onlineCount = document.querySelectorAll('.bg-discord-green, .bg-yellow-500').length;
+        
+        console.log('🧪 [DEBUG] Presence refresh test results:', {
+            totalParticipants: participantCount,
+            onlineParticipants: onlineCount,
+            friendsManagerCache: window.FriendsManager?.getInstance()?.cache?.onlineUsers || {},
+            socketConnected: window.globalSocketManager?.isConnected || false,
+            socketAuthenticated: window.globalSocketManager?.isAuthenticated || false
+        });
+        
+        if (window.showToast) {
+            window.showToast(`Presence test: ${onlineCount}/${participantCount} online`, 'success', 4000);
+        }
+    }, 2000);
+    
+    return true;
+};
+
+window.debugPresenceState = function() {
+    console.log('🔍 [DEBUG] Current presence state:', {
+        friendsManagerExists: !!window.FriendsManager,
+        friendsManagerOnlineUsers: window.FriendsManager?.getInstance()?.cache?.onlineUsers || {},
+        globalPresenceManagerExists: !!window.globalPresenceManager,
+        socketConnected: window.globalSocketManager?.isConnected || false,
+        socketAuthenticated: window.globalSocketManager?.isAuthenticated || false,
+        socketRooms: window.globalSocketManager?.joinedRooms || new Set(),
+        totalMembers: allMembers?.length || 0,
+        participantElements: document.querySelectorAll('.user-profile-trigger').length,
+        onlineElements: document.querySelectorAll('.bg-discord-green, .bg-yellow-500').length
+    });
 };
 
 </script>

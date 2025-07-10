@@ -795,9 +795,7 @@ class GlobalSocketManager {
             channels: Array.from(this.joinedChannels),
             dms: Array.from(this.joinedDMRooms),
             all: Array.from(this.joinedRooms)
-        });
-        
-
+        });        
         window.dispatchEvent(new CustomEvent('socketRoomJoined', {
             detail: {
                 roomType: roomType,
@@ -805,6 +803,12 @@ class GlobalSocketManager {
                 roomName: roomName
             }
         }));
+        
+        // Immediately request fresh presence data after joining a room
+        setTimeout(() => {
+            console.log(`📡 [SOCKET] Requesting fresh online users after joining room: ${roomName}`);
+            this.io.emit('get-online-users');
+        }, 200);
         
         return true;
     }
