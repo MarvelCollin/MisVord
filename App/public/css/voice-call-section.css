@@ -1168,28 +1168,3 @@
         transform: translateY(0);
     }
 }
-
-/* Duplicate card detection styling (for debugging) */
-.participant-card[data-user-id] {
-    position: relative !important;
-}
-
-.participant-card.duplicate {
-    border: 2px solid #ed4245 !important;
-    background: rgba(237, 66, 69, 0.1) !important;
-}
-
-.participant-card.duplicate::before {
-    content: "DUPLICATE" !important;
-    position: absolute !important;
-    top: 2px !important;
-    right: 2px !important;
-    background: #ed4245 !important;
-    color: white !important;
-    font-size: 8px !important;
-    padding: 2px 4px !important;
-    border-radius: 3px !important;
-    font-weight: bold !important;
-    z-index: 100 !important;
-    pointer-events: none !important;
-}
