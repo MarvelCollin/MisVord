@@ -57,6 +57,7 @@ class ActivityHandler {
                 avatar_url: avatar_url,
                 ready: false
             },
+            players: currentPlayers,
             total_players: currentPlayers.length
         });
     }
@@ -222,11 +223,29 @@ class ActivityHandler {
         
         const roomName = `tic-tac-toe-server-${server_id}`;
         
+        const roomClientsForLeave = io.sockets.adapter.rooms.get(roomName);
+        const remainingPlayers = [];
+        
+        if (roomClientsForLeave) {
+            roomClientsForLeave.forEach(socketId => {
+                const socket = io.sockets.sockets.get(socketId);
+                if (socket && socket.data && socket.data.user_id && socket.id !== client.id) {
+                    remainingPlayers.push({
+                        user_id: socket.data.user_id,
+                        username: socket.data.username,
+                        avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                        ready: socket.data.ticTacToeReady || false
+                    });
+                }
+            });
+        }
+        
         client.to(roomName).emit('tic-tac-toe-player-left', {
             player: {
                 user_id: client.data.user_id,
                 username: client.data.username
-            }
+            },
+            players: remainingPlayers
         });
         
         const roomClients = io.sockets.adapter.rooms.get(roomName);

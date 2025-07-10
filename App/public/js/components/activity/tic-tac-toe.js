@@ -776,7 +776,7 @@ class TicTacToeModal {
 
         
         io.on('tic-tac-toe-joined', (data) => this.updatePlayerList(data.players));
-        io.on('tic-tac-toe-player-joined', (data) => this.updatePlayerList([data.player]));
+        io.on('tic-tac-toe-player-joined', (data) => this.updatePlayerList(data.players || [data.player]));
         io.on('tic-tac-toe-ready-update', (data) => {
             this.updatePlayerList(data.players);
             const playButton = document.getElementById('play-button');
@@ -870,6 +870,14 @@ class TicTacToeModal {
                 window.showToast(`${data.player.username} declined to play again`, 'warning');
             }
             this.resetPlayAgainButton();
+        });
+        io.on('tic-tac-toe-player-left', (data) => {
+            if (window.showToast) {
+                window.showToast(`${data.player.username} left the game`, 'info');
+            }
+            if (data.players) {
+                this.updatePlayerList(data.players);
+            }
         });
     }
 
