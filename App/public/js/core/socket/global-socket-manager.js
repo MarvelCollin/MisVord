@@ -937,10 +937,6 @@ class GlobalSocketManager {
             : (sessionStorage.getItem('isInVoiceCall') === 'true');
 
         if (inVoice && (!activityDetails || !activityDetails.type || !activityDetails.type.toLowerCase().includes('in voice'))) {
-            console.warn(`%c[PRESENCE LOCK] Blocked presence update from "${source}". User is in a voice call.`, 'color: #ff4d4d; font-weight: bold;', {
-                attemptedStatus: status,
-                attemptedActivity: activityDetails
-            });
             return false;
         }
 

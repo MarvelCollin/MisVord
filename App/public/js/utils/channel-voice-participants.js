@@ -117,13 +117,6 @@ class ChannelVoiceParticipants {
     syncWithVoiceState(state) {
         if (!state) return;
         
-        console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] syncWithVoiceState called:`, {
-            stateConnected: state.isConnected,
-            stateChannelId: state.channelId,
-            voiceManagerConnected: window.voiceManager?.isConnected,
-            voiceManagerChannelId: window.voiceManager?.currentChannelId
-        });
-        
         // Only clear participants if we're truly disconnected from voice
         // Don't clear just because localStorage state is temporarily inconsistent
         const isActuallyConnected = state.isConnected && state.channelId;
