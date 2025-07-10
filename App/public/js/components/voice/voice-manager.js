@@ -515,8 +515,9 @@ class VoiceManager {
             // Already logged above – ignore
         }
 
-        // Use user_id as the key for consistent deduplication
-        const participantKey = userIdField;
+        // Use participant.id as the key to maintain compatibility with VideoSDK streams
+        // Store user_id for deduplication but keep SDK id as the primary key
+        const participantKey = participant.id;
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
         const isLocalUser = currentUserId && String(userIdField) === currentUserId;
         
@@ -547,16 +548,10 @@ class VoiceManager {
     handleParticipantLeft(participant) {
         if (!participant) return;
         
-        // Find participant by SDK id and get the user_id key
-        let participantKey = null;
-        for (const [key, data] of this.participants.entries()) {
-            if (data.id === participant.id) {
-                participantKey = key;
-                break;
-            }
-        }
+        // Use participant.id directly since that's our key now
+        const participantKey = participant.id;
         
-        if (participantKey) {
+        if (this.participants.has(participantKey)) {
             this.participants.delete(participantKey);
             
             window.dispatchEvent(new CustomEvent('participantLeft', {
@@ -574,6 +569,7 @@ class VoiceManager {
         if (!participant) return;
         
         participant.on('stream-enabled', (stream) => {
+            // Find participant by SDK id since that's our key now
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.set(stream.kind, stream);
@@ -589,6 +585,7 @@ class VoiceManager {
         });
         
         participant.on('stream-disabled', (stream) => {
+            // Find participant by SDK id since that's our key now
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.delete(stream.kind);
