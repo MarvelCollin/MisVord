@@ -109,10 +109,11 @@ class VoiceManager {
                 // Attempt to send beacon to server for more reliable disconnect
                 if (navigator.sendBeacon && window.location.origin) {
                     try {
-                        const disconnectEndpoint = `${window.location.origin}/api/voice/disconnect`;
+                        const disconnectEndpoint = `${window.location.origin}/public/api/voice/disconnect.php`;
                         const data = new FormData();
                         data.append('channel_id', this.currentChannelId || '');
                         data.append('meeting_id', this.currentMeetingId || '');
+                        data.append('user_id', document.querySelector('meta[name="user-id"]')?.content || '');
                         navigator.sendBeacon(disconnectEndpoint, data);
                     } catch (error) {
                         console.error('Error sending beacon during page unload:', error);

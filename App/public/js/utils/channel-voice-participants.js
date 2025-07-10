@@ -15,6 +15,20 @@ class ChannelVoiceParticipants {
         } else {
             this.createDebugPanel();
         }
+        
+        // Set up periodic cleanup to detect and fix stale participants
+        setInterval(() => {
+            this.cleanupStaleParticipants();
+        }, 30000); // Run every 30 seconds
+        
+        // Also run cleanup when page becomes visible (user returns from another tab)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                setTimeout(() => {
+                    this.cleanupStaleParticipants();
+                }, 1000);
+            }
+        });
     }
     
     setupEventListeners() {
@@ -713,6 +727,76 @@ class ChannelVoiceParticipants {
         return window._channelVoiceParticipants;
     }
 
+    /**
+     * Force refresh participant list from server for a specific channel
+     * This helps clean up any stale UI state that might not have been properly updated
+     */
+    forceRefreshChannel(channelId) {
+        if (!channelId || !window.globalSocketManager?.io) return;
+        
+        console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Force refreshing participants for channel ${channelId}`);
+        
+        // Request fresh participant list from server
+        window.globalSocketManager.io.emit('force-refresh-voice-participants', {
+            channel_id: channelId
+        });
+        
+        // Also clear any potentially stale external participant data
+        if (this.externalParticipants.has(channelId)) {
+            console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Clearing stale external participants for channel ${channelId}`);
+            this.externalParticipants.delete(channelId);
+        }
+        
+        // Force UI refresh after a brief delay to allow server response
+        setTimeout(() => {
+            this.updateSidebarForChannel(channelId, 'full');
+        }, 100);
+    }
+
+    /**
+     * Detect and clean up stale participants across all channels
+     * Call this periodically or when suspicious state is detected
+     */
+    cleanupStaleParticipants() {
+        console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Running stale participant cleanup`);
+        
+        // Check each channel with participants
+        this.externalParticipants.forEach((participantMap, channelId) => {
+            if (participantMap.size > 0) {
+                // If we have external participants but no visible container, something might be wrong
+                const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+                if (!container) {
+                    console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Found external participants for channel ${channelId} but no container - clearing`);
+                    this.externalParticipants.delete(channelId);
+                    return;
+                }
+                
+                // Check if container is completely empty despite having participant data
+                if (container.children.length === 0) {
+                    console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Empty container despite external participants for channel ${channelId} - forcing refresh`);
+                    this.forceRefreshChannel(channelId);
+                }
+            }
+        });
+        
+        // Also check if we're supposed to be connected to voice but have no participants showing
+        if (window.voiceManager?.isConnected && window.voiceManager?.currentChannelId) {
+            const currentChannelId = window.voiceManager.currentChannelId;
+            const container = document.querySelector(`.voice-participants[data-channel-id="${currentChannelId}"]`);
+            
+            if (container && container.children.length === 0) {
+                const hasLocalParticipants = window.voiceManager.getAllParticipants().size > 0;
+                const hasExternalParticipants = this.externalParticipants.has(currentChannelId) && 
+                                                this.externalParticipants.get(currentChannelId).size > 0;
+                
+                if (hasLocalParticipants || hasExternalParticipants) {
+                    console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Connected to voice but no participants showing - forcing refresh`);
+                    this.forceRefreshChannel(currentChannelId);
+                }
+            }
+        }
+    }
+
     updateParticipantContainer(container, renderList) {
         if (!container) return;
         
@@ -822,3 +906,18 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.ChannelVoiceParticipants = ChannelVoiceParticipants;
+
+// Expose cleanup methods globally for debugging
+window.forceRefreshVoiceParticipants = (channelId) => {
+    const instance = ChannelVoiceParticipants.getInstance();
+    if (channelId) {
+        instance.forceRefreshChannel(channelId);
+    } else {
+        instance.cleanupStaleParticipants();
+    }
+};
+
+window.cleanupAllVoiceParticipants = () => {
+    const instance = ChannelVoiceParticipants.getInstance();
+    instance.cleanupStaleParticipants();
+};

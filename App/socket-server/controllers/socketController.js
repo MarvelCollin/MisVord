@@ -539,14 +539,47 @@ function setup(io) {
             }
         });
         
+        client.on('force-refresh-voice-participants', (data) => {
+            console.log(`🔄 [FORCE-REFRESH] Force refresh voice participants from ${client.id}:`, {
+                channelId: data.channel_id,
+                userId: client.data?.user_id
+            });
+            
+            if (data.channel_id) {
+                // Send updated participant list to the requesting client
+                const participants = VoiceConnectionTracker.getChannelParticipants(data.channel_id);
+                const roomManagerMeeting = roomManager.getVoiceMeeting(data.channel_id);
+                
+                client.emit('voice-meeting-status', {
+                    channel_id: data.channel_id,
+                    has_meeting: participants.length > 0 || (roomManagerMeeting && roomManagerMeeting.participants.size > 0),
+                    meeting_id: roomManagerMeeting?.meeting_id || `voice_channel_${data.channel_id}`,
+                    participant_count: participants.length,
+                    participants: participants.map(p => ({
+                        user_id: p.userId,
+                        username: p.username || 'Unknown',
+                        avatar_url: p.avatar_url || '/public/assets/common/default-profile-picture.png',
+                        meeting_id: p.meetingId,
+                        joined_at: p.joinedAt,
+                        isBot: p.isBot || false
+                    })),
+                    timestamp: Date.now(),
+                    source: 'force_refresh'
+                });
+                
+                console.log(`📊 [FORCE-REFRESH] Sent updated participant list for channel ${data.channel_id}: ${participants.length} participants`);
+            }
+        });
+        
         client.on('unregister-voice-meeting', (data) => {
             console.log(`🎤 [VOICE-PARTICIPANT] Voice meeting unregistration from ${client.id}:`, {
                 channelId: data.channel_id,
                 userId: client.data?.user_id,
-                username: client.data?.username
+                username: client.data?.username,
+                forceDisconnect: data.force_disconnect
             });
             
-            if (!client.data?.authenticated) {
+            if (!client.data?.authenticated && !data.force_disconnect) {
                 console.warn('⚠️ [VOICE-PARTICIPANT] Proceeding without authentication');
             }
             handleUnregisterVoiceMeeting(io, client, data);
@@ -832,14 +865,15 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     console.log(`🎤 [VOICE-PARTICIPANT] Voice meeting unregistration from ${client.id}:`, {
         channelId: data.channel_id,
         userId: client.data?.user_id,
-        username: client.data?.username
+        username: client.data?.username,
+        forceDisconnect: data.force_disconnect
     });
     
-    if (!client.data?.authenticated) {
-        console.warn('⚠️ [VOICE-PARTICIPANT] Proceeding without authentication');
+    if (!client.data?.authenticated && !data.force_disconnect) {
+        console.warn('⚠️ [VOICE-PARTICIPANT] Proceeding without authentication for force disconnect');
     }
     
-    const { channel_id } = data;
+    const { channel_id, force_disconnect } = data;
     const user_id = client.data?.user_id;
     const username = client.data?.username;
     
@@ -849,15 +883,22 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         return;
     }
 
+    // Get meeting info BEFORE any removal operations
     const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
+    const userVoiceConnection = user_id ? VoiceConnectionTracker.getUserVoiceConnection(user_id) : null;
+    
+    // Determine meeting ID from available sources
+    let meetingId = roomManagerMeeting?.meeting_id || 
+                   userVoiceConnection?.meetingId || 
+                   `voice_channel_${channel_id}`;
+    
     if (roomManagerMeeting) {
-        if (!roomManagerMeeting.participants.has(client.id)) {
-
-            return;
+        if (!force_disconnect && !roomManagerMeeting.participants.has(client.id)) {
+            console.log(`⚠️ [VOICE-PARTICIPANT] Client ${client.id} not in meeting participants, but proceeding with cleanup`);
         }
         
+        // Remove from room manager
         const result = roomManager.removeVoiceMeeting(channel_id, client.id);
-
         
         if (user_id) {
             const currentPresence = userService.getPresence(user_id);
@@ -873,10 +914,10 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             
             VoiceConnectionTracker.removeUserFromVoice(user_id);
 
-            
+            // Leave the voice channel room
             client.leave(`voice_channel_${channel_id}`);
 
-            // Handle bot cleanup if no HUMAN participants left (bots should stay if humans are present)
+            // Handle bot cleanup if no HUMAN participants left
             const BotHandler = require('../handlers/botHandler');
             const titiBotId = BotHandler.getTitiBotId();
             if (titiBotId) {
@@ -894,18 +935,16 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             }
         }
         
-
-        
-
-        // Broadcast voice leave to multiple rooms to ensure all viewers get the update
+        // ALWAYS broadcast voice leave event regardless of authentication or participant state
         const leaveEventData = {
             channel_id,
-            meeting_id: roomManagerMeeting.meeting_id,
-            participant_count: result.participant_count,
+            meeting_id: meetingId,
+            participant_count: result ? result.participant_count : 0,
             action: 'leave',
-            user_id: user_id,
-            username: username,
-            timestamp: Date.now()
+            user_id: user_id || 'unknown',
+            username: username || 'Unknown User',
+            timestamp: Date.now(),
+            reason: force_disconnect ? 'force_disconnect' : 'manual_disconnect'
         };
         
         // Broadcast to multiple rooms to ensure spectators get the update
@@ -915,12 +954,41 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         
         console.log(`📢 [VOICE-UNREGISTER] Broadcasted voice leave event to multiple rooms:`, {
             channelId: channel_id,
-            userId: user_id,
-            participantCount: result.participant_count,
-            targetRooms: ['global', `voice_channel_${channel_id}`, `channel-${channel_id}`]
+            userId: user_id || 'unknown',
+            participantCount: result ? result.participant_count : 0,
+            targetRooms: ['global', `voice_channel_${channel_id}`, `channel-${channel_id}`],
+            forceDisconnect: !!force_disconnect
         });
     } else {
-        console.warn(`⚠️ [VOICE-PARTICIPANT] No voice meeting found for channel ${channel_id}`);
+        console.warn(`⚠️ [VOICE-PARTICIPANT] No voice meeting found for channel ${channel_id}, but broadcasting leave event anyway`);
+        
+        // Even if no meeting is found, broadcast a leave event to ensure cleanup
+        if (user_id) {
+            VoiceConnectionTracker.removeUserFromVoice(user_id);
+            client.leave(`voice_channel_${channel_id}`);
+            
+            const leaveEventData = {
+                channel_id,
+                meeting_id: meetingId,
+                participant_count: 0,
+                action: 'leave',
+                user_id: user_id,
+                username: username || 'Unknown User',
+                timestamp: Date.now(),
+                reason: force_disconnect ? 'force_disconnect_no_meeting' : 'manual_disconnect_no_meeting'
+            };
+            
+            // Broadcast to ensure cleanup on client side
+            io.emit('voice-meeting-update', leaveEventData);
+            io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData);
+            io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData);
+            
+            console.log(`📢 [VOICE-UNREGISTER] Broadcasted orphan voice leave event:`, {
+                channelId: channel_id,
+                userId: user_id,
+                reason: 'no_meeting_found'
+            });
+        }
     }
 }
 
@@ -980,6 +1048,10 @@ function handleDisconnect(io, client) {
                 meetingId: userVoiceConnection.meetingId
             });
             
+            // Get meeting info BEFORE removing from room manager
+            const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
+            const meetingId = roomManagerMeeting?.meeting_id || userVoiceConnection.meetingId;
+            
             // Remove from voice tracker
             VoiceConnectionTracker.removeUserFromVoice(user_id);
             
@@ -1001,31 +1073,31 @@ function handleDisconnect(io, client) {
             // Leave the voice channel room
             client.leave(`voice_channel_${channel_id}`);
             
-            // Broadcast voice meeting update to notify other clients
-            const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
-            if (roomManagerMeeting) {
-                const leaveEventData = {
-                    channel_id: channel_id,
-                    meeting_id: roomManagerMeeting.meeting_id,
-                    participant_count: result ? result.participant_count : 0,
-                    action: 'leave',
-                    user_id: user_id,
-                    username: username,
-                    timestamp: Date.now()
-                };
-                
-                // Broadcast to multiple rooms to ensure spectators get the update
-                io.emit('voice-meeting-update', leaveEventData); // Global broadcast
-                io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // Voice participants
-                io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // Text channel spectators
-                
-                console.log(`📢 [DISCONNECT] Broadcasted voice leave event to multiple rooms:`, {
-                    channelId: channel_id,
-                    userId: user_id,
-                    participantCount: result ? result.participant_count : 0,
-                    targetRooms: ['global', `voice_channel_${channel_id}`, `channel-${channel_id}`]
-                });
-            }
+            // ALWAYS broadcast voice leave event regardless of meeting state
+            // This ensures spectators see the participant removal even if it was the last participant
+            const leaveEventData = {
+                channel_id: channel_id,
+                meeting_id: meetingId,
+                participant_count: result ? result.participant_count : 0,
+                action: 'leave',
+                user_id: user_id,
+                username: username,
+                timestamp: Date.now()
+            };
+            
+            // Broadcast to multiple rooms to ensure spectators get the update
+            io.emit('voice-meeting-update', leaveEventData); // Global broadcast
+            io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // Voice participants
+            io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // Text channel spectators
+            
+            console.log(`📢 [DISCONNECT] Broadcasted voice leave event to multiple rooms:`, {
+                channelId: channel_id,
+                userId: user_id,
+                participantCount: result ? result.participant_count : 0,
+                meetingId: meetingId,
+                targetRooms: ['global', `voice_channel_${channel_id}`, `channel-${channel_id}`],
+                wasLastParticipant: result.participant_count === 0
+            });
             
             // Handle bot cleanup if no HUMAN participants left (bots should stay if humans are present)
             const BotHandler = require('../handlers/botHandler');
@@ -1154,19 +1226,64 @@ function setupStaleConnectionChecker(io) {
             });
             
             staleParticipants.forEach(socketId => {
+                console.log(`🧹 [STALE-CONNECTION] Cleaning up stale participant in channel ${meeting.channel_id}:`, {
+                    socketId,
+                    meetingId: meeting.meeting_id
+                });
 
-
-                /*
+                // Get meeting info BEFORE removing
+                const meetingId = meeting.meeting_id;
+                
+                // Find user info from the socket or voice tracker
+                const socket = io.sockets.sockets.get(socketId);
+                let userId = socket?.data?.user_id;
+                let username = socket?.data?.username;
+                
+                // If no socket data, try to find from voice tracker
+                if (!userId) {
+                    const trackerParticipants = VoiceConnectionTracker.getChannelParticipants(meeting.channel_id);
+                    const trackerParticipant = trackerParticipants.find(p => p.socketId === socketId);
+                    if (trackerParticipant) {
+                        userId = trackerParticipant.userId;
+                        username = trackerParticipant.username;
+                    }
+                }
+                
+                // Remove from room manager and voice tracker
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, socketId);
-                ...
-                io.emit('voice-meeting-update', {...});
+                if (userId) {
+                    VoiceConnectionTracker.removeUserFromVoice(userId);
+                }
+                
+                // Broadcast stale participant removal
+                const leaveEventData = {
+                    channel_id: meeting.channel_id,
+                    meeting_id: meetingId,
+                    participant_count: result ? result.participant_count : 0,
+                    action: 'leave',
+                    user_id: userId || 'unknown',
+                    username: username || 'Unknown User',
+                    timestamp: Date.now(),
+                    reason: 'stale_connection_cleanup'
+                };
+                
+                // Broadcast to ensure spectators see the removal
+                io.emit('voice-meeting-update', leaveEventData);
+                io.to(`voice_channel_${meeting.channel_id}`).emit('voice-meeting-update', leaveEventData);
+                io.to(`channel-${meeting.channel_id}`).emit('voice-meeting-update', leaveEventData);
+                
                 cleanedConnections++;
-                */
+                
+                console.log(`📢 [STALE-CONNECTION] Broadcasted stale participant removal:`, {
+                    channelId: meeting.channel_id,
+                    userId: userId || 'unknown',
+                    participantCount: result ? result.participant_count : 0
+                });
             });
         }
         
         if (cleanedConnections > 0) {
-
+            console.log(`🧹 [STALE-CONNECTION] Cleaned up ${cleanedConnections} stale voice connections`);
         }
     }, 30000);
 }
