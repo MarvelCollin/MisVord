@@ -131,7 +131,6 @@ class ChannelVoiceParticipants {
             }
         } else if (!isVoiceManagerConnected && !state.isConnected) {
             // Only clear if both localStorage AND voiceManager say we're disconnected
-            console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Both sources confirm disconnection - clearing participants`);
             this.clearCurrentUserParticipantCounts();
         }
     }
@@ -167,8 +166,6 @@ class ChannelVoiceParticipants {
         
         const currentVoiceState = window.localStorageManager?.getUnifiedVoiceState();
         const currentUserChannelId = currentVoiceState?.channelId;
-        
-        console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Clearing participants for channel:`, currentUserChannelId);
         
         if (currentUserChannelId) {
             const currentChannelCountEl = document.querySelector(`[data-channel-id="${currentUserChannelId}"] .voice-user-count`);

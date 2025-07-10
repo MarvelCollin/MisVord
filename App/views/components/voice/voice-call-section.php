@@ -73,11 +73,6 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
                 <div class="voice-tooltip">Play Tic Mac Voe</div>
             </button>
 
-            <button id="musicBtn" class="voice-control-btn music-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#00d166] text-white transition-all duration-150 flex items-center justify-center group" onclick="window.musicPlayer?.showSearchModal()">
-                <i class="fas fa-music text-sm"></i>
-                <div class="voice-tooltip">Music Player</div>
-            </button>
-
             <div class="w-px h-6 bg-[#4f545c]"></div>
 
             <button id="disconnectBtn" class="voice-control-btn disconnect-btn w-10 h-10 rounded-full bg-[#ed4245] hover:bg-[#da373c] text-white transition-all duration-150 flex items-center justify-center group">
