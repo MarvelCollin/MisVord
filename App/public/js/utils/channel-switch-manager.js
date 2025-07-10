@@ -204,12 +204,57 @@ class SimpleChannelSwitcher {
             });
         }
         
-        document.getElementById('voice-not-join-container')?.classList.remove('hidden');
-        document.getElementById('voice-call-container')?.classList.add('hidden');
+        // Check if user is already connected to voice before deciding which UI to show
+        const isConnectedToVoice = window.voiceManager?.isConnected && 
+                                   window.voiceManager?.currentChannelId === channelId;
+        const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+        const isConnectedInStorage = voiceState?.isConnected && voiceState?.channelId === channelId;
+        
+        console.log(`🔍 [CHANNEL-SWITCHER] Voice connection check for channel ${channelId}:`, {
+            isConnectedToVoice,
+            isConnectedInStorage,
+            voiceManagerChannelId: window.voiceManager?.currentChannelId,
+            voiceManagerConnected: window.voiceManager?.isConnected,
+            storageChannelId: voiceState?.channelId,
+            storageConnected: voiceState?.isConnected
+        });
+        
+        if (isConnectedToVoice || isConnectedInStorage) {
+            // User is already connected to this voice channel - show call interface
+            console.log(`✅ [CHANNEL-SWITCHER] User already connected - showing call interface`);
+            document.getElementById('voice-not-join-container')?.classList.add('hidden');
+            document.getElementById('voice-call-container')?.classList.remove('hidden');
+        } else {
+            // User is not connected - show join interface
+            console.log(`🔌 [CHANNEL-SWITCHER] User not connected - showing join interface`);
+            document.getElementById('voice-not-join-container')?.classList.remove('hidden');
+            document.getElementById('voice-call-container')?.classList.add('hidden');
+        }
         
         await this.ensureVoiceCallSectionReady();
         if (window.voiceCallSection && typeof window.voiceCallSection.ensureChannelSync === 'function') {
             window.voiceCallSection.ensureChannelSync();
+        }
+        
+        // If user is already connected, ensure the voice call section is properly initialized
+        if (isConnectedToVoice || isConnectedInStorage) {
+            // Trigger a voiceConnect event to ensure all components are in sync
+            if (window.voiceManager?.currentMeetingId) {
+                window.dispatchEvent(new CustomEvent('voiceConnect', {
+                    detail: {
+                        channelId: channelId,
+                        channelName: channelName,
+                        meetingId: window.voiceManager.currentMeetingId,
+                        skipJoinSound: true,
+                        source: 'channelSwitch'
+                    }
+                }));
+            }
+            
+            // Update voice call section connection status
+            if (window.voiceCallSection && typeof window.voiceCallSection.updateConnectionStatus === 'function') {
+                window.voiceCallSection.updateConnectionStatus(true);
+            }
         }
     }
     
