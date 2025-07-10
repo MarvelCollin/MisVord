@@ -748,6 +748,7 @@ function handleCheckVoiceMeeting(io, client, data) {
         participants: participants.map(p => ({
             user_id: p.userId,
             username: p.username || 'Unknown',
+            avatar_url: p.avatar_url || '/public/assets/common/default-profile-picture.png',
             meeting_id: p.meetingId,
             joined_at: p.joinedAt,
             isBot: p.isBot || false
@@ -898,7 +899,11 @@ function handleDisconnect(io, client) {
         const user_id = client.data.user_id;
         const username = client.data.username;
         
-
+        console.log(`🔌 [DISCONNECT] User disconnecting:`, {
+            userId: user_id,
+            username: username,
+            clientId: client.id
+        });
         
         userSockets.delete(client.id);
         
@@ -908,26 +913,75 @@ function handleDisconnect(io, client) {
         const userOffline = roomManager.removeUserSocket(user_id, client.id);
         
         if (userOffline) {
-
+            console.log(`👋 [DISCONNECT] User ${user_id} going offline`);
             userService.markUserDisconnecting(user_id, username);
         } else {
-
+            console.log(`🔄 [DISCONNECT] User ${user_id} still has other connections`);
         }
         
-        const allVoiceMeetings = roomManager.getAllVoiceMeetings();
-        for (const meeting of allVoiceMeetings) {
-            if (meeting.participants.has(client.id)) {
-
-
-                /*
-                const result = roomManager.removeVoiceMeeting(meeting.channel_id, client.id);
-
-                */
+        // Check if user was in any voice meetings and clean up
+        const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(user_id);
+        if (userVoiceConnection) {
+            const channel_id = userVoiceConnection.channelId;
+            
+            console.log(`🎤 [DISCONNECT] Cleaning up voice connection:`, {
+                userId: user_id,
+                channelId: channel_id,
+                meetingId: userVoiceConnection.meetingId
+            });
+            
+            // Remove from voice tracker
+            VoiceConnectionTracker.removeUserFromVoice(user_id);
+            
+            // Remove from room manager
+            const result = roomManager.removeVoiceMeeting(channel_id, client.id);
+            
+            // Update presence to remove voice status
+            const currentPresence = userService.getPresence(user_id);
+            if (currentPresence && currentPresence.activity_details?.type && currentPresence.activity_details.type.startsWith('In Voice - ')) {
+                userService.updatePresence(user_id, 'online', { type: 'idle' }, username);
+                io.emit('user-presence-update', {
+                    user_id: user_id,
+                    username: username,
+                    status: 'online',
+                    activity_details: { type: 'idle' }
+                });
+            }
+            
+            // Leave the voice channel room
+            client.leave(`voice_channel_${channel_id}`);
+            
+            // Broadcast voice meeting update to notify other clients
+            const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
+            if (roomManagerMeeting) {
+                io.emit('voice-meeting-update', {
+                    channel_id: channel_id,
+                    meeting_id: roomManagerMeeting.meeting_id,
+                    participant_count: result ? result.participant_count : 0,
+                    action: 'leave',
+                    user_id: user_id,
+                    username: username,
+                    timestamp: Date.now()
+                });
+                
+                console.log(`📢 [DISCONNECT] Broadcasted voice leave event:`, {
+                    channelId: channel_id,
+                    userId: user_id,
+                    participantCount: result ? result.participant_count : 0
+                });
+            }
+            
+            // Handle bot cleanup if no participants left
+            const BotHandler = require('../handlers/botHandler');
+            const titiBotId = BotHandler.getTitiBotId();
+            if (titiBotId && result && result.participant_count === 0) {
+                BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
+                console.log(`🤖 [DISCONNECT] Removed TitiBot from empty channel ${channel_id}`);
             }
         }
 
     } else {
-
+        console.log(`🔌 [DISCONNECT] Anonymous client disconnected: ${client.id}`);
     }
 }
 
