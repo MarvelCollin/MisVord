@@ -297,10 +297,6 @@ window.forceRefreshAllPresenceData = async function() {
         updateParticipantDisplay();
         console.log('✅ [PARTICIPANT] Participant display refreshed');
         
-        // Show toast notification
-        if (window.showToast) {
-            window.showToast('Presence data refreshed', 'success', 2000);
-        }
         
     } catch (error) {
         console.error('❌ [PARTICIPANT] Error refreshing presence data:', error);
@@ -935,10 +931,6 @@ window.testParticipantScroll = async function(numberOfTestMembers = 20) {
     }
     
 
-    
-    if (window.showToast) {
-        window.showToast(`Added ${numberOfTestMembers + 1} test members to verify scrolling`, 'success');
-    }
     
     return mockMembers;
 };

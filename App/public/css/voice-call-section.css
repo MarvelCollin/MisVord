@@ -680,40 +680,8 @@
     background-color: #da373c !important;
 }
 
-/* Tooltips */
-.voice-tooltip {
-    position: absolute;
-    bottom: 120%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #18191c;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
-    z-index: 1000;
-}
-
-.voice-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: #18191c;
-}
-
-.voice-control-btn:hover .voice-tooltip {
-    opacity: 1;
-    visibility: visible;
-}
+/* Tooltips - Using component tooltip system */
+/* Old tooltip styles removed since we're using the tooltip.php component */
 
 /* Enhanced voice participant styling */
 .voice-participant-avatar.speaking {

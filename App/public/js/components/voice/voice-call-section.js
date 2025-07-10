@@ -101,28 +101,8 @@ class VoiceCallSection {
         });
     }
 
-    hideTooltips() {
-        const tooltips = document.querySelectorAll('.voice-tooltip');
-        tooltips.forEach(tooltip => {
-            tooltip.style.opacity = '0';
-            tooltip.style.visibility = 'hidden';
-            tooltip.style.position = 'absolute';
-        });
-    }
-
-    ensureIconsVisible() {
-        const icons = document.querySelectorAll('.voice-control-btn i');
-        icons.forEach(icon => {
-            icon.style.display = 'block';
-            icon.style.fontSize = '16px';
-            icon.style.color = 'white';
-            icon.style.pointerEvents = 'none';
-        });
-    }
-    
     setup() {
         this.fixButtonStyling();
-        this.hideTooltips(); 
         this.ensureIconsVisible();
         
         this.bindControls();
@@ -846,16 +826,13 @@ class VoiceCallSection {
         if (!this.micBtn) return;
         
         const icon = this.micBtn.querySelector("i");
-        const tooltip = this.micBtn.querySelector(".voice-tooltip");
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
-            tooltip.textContent = "Mute";
             this.micBtn.classList.remove("bg-[#ed4245]");
             this.micBtn.classList.add("bg-[#4f545c]");
         } else {
             icon.className = "fas fa-microphone-slash text-sm";
-            tooltip.textContent = "Unmute";
             this.micBtn.classList.remove("bg-[#4f545c]");
             this.micBtn.classList.add("bg-[#ed4245]");
         }
@@ -865,16 +842,13 @@ class VoiceCallSection {
         if (!this.videoBtn) return;
         
         const icon = this.videoBtn.querySelector("i");
-        const tooltip = this.videoBtn.querySelector(".voice-tooltip");
         
         if (isOn) {
             icon.className = "fas fa-video text-sm";
-            tooltip.textContent = "Turn Off Camera";
             this.videoBtn.classList.remove("bg-[#4f545c]");
             this.videoBtn.classList.add("bg-[#3ba55c]");
         } else {
             icon.className = "fas fa-video-slash text-sm";
-            tooltip.textContent = "Turn On Camera";
             this.videoBtn.classList.remove("bg-[#3ba55c]");
             this.videoBtn.classList.add("bg-[#4f545c]");
         }
@@ -884,16 +858,13 @@ class VoiceCallSection {
         if (!this.deafenBtn) return;
         
         const icon = this.deafenBtn.querySelector("i");
-        const tooltip = this.deafenBtn.querySelector(".voice-tooltip");
         
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
-            tooltip.textContent = "Undeafen";
             this.deafenBtn.classList.remove("bg-[#4f545c]");
             this.deafenBtn.classList.add("bg-[#ed4245]");
         } else {
             icon.className = "fas fa-headphones text-sm";
-            tooltip.textContent = "Deafen";
             this.deafenBtn.classList.remove("bg-[#ed4245]");
             this.deafenBtn.classList.add("bg-[#4f545c]");
         }

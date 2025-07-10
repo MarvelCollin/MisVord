@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../../components/common/tooltip.php';
+
 $activeChannelId = $GLOBALS['activeChannelId'] ?? null;
 $activeChannel = $GLOBALS['activeChannel'] ?? null;
 $userName = $_SESSION['username'] ?? 'Anonymous';
@@ -48,37 +50,55 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
     <div class="voice-controls bg-[#36393f] border-t border-[#202225] p-2">
         <div class="flex items-center justify-center space-x-4">
-            <button id="micBtn" class="voice-control-btn mic-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#ed4245] text-white transition-all duration-150 flex items-center justify-center group">
-                <i class="fas fa-microphone text-sm"></i>
-                <div class="voice-tooltip">Mute</div>
-            </button>
+            <?php echo tooltip(
+                '<button id="micBtn" class="voice-control-btn mic-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#ed4245] text-white transition-all duration-150 flex items-center justify-center">
+                    <i class="fas fa-microphone text-sm"></i>
+                </button>',
+                'Mute',
+                'top'
+            ); ?>
 
-            <button id="deafenBtn" class="voice-control-btn deafen-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#ed4245] text-white transition-all duration-150 flex items-center justify-center group">
-                <i class="fas fa-headphones text-sm"></i>
-                <div class="voice-tooltip">Deafen</div>
-            </button>
+            <?php echo tooltip(
+                '<button id="deafenBtn" class="voice-control-btn deafen-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#ed4245] text-white transition-all duration-150 flex items-center justify-center">
+                    <i class="fas fa-headphones text-sm"></i>
+                </button>',
+                'Deafen',
+                'top'
+            ); ?>
 
-            <button id="videoBtn" class="voice-control-btn video-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#3ba55c] text-white transition-all duration-150 flex items-center justify-center group">
-                <i class="fas fa-video-slash text-sm"></i>
-                <div class="voice-tooltip">Turn On Camera</div>
-            </button>
+            <?php echo tooltip(
+                '<button id="videoBtn" class="voice-control-btn video-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#3ba55c] text-white transition-all duration-150 flex items-center justify-center">
+                    <i class="fas fa-video-slash text-sm"></i>
+                </button>',
+                'Turn On Camera',
+                'top'
+            ); ?>
 
-            <button id="screenBtn" class="voice-control-btn screen-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#5865f2] text-white transition-all duration-150 flex items-center justify-center group">
-                <i class="fas fa-desktop text-sm"></i>
-                <div class="voice-tooltip">Share Screen</div>
-            </button>
+            <?php echo tooltip(
+                '<button id="screenBtn" class="voice-control-btn screen-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#5865f2] text-white transition-all duration-150 flex items-center justify-center">
+                    <i class="fas fa-desktop text-sm"></i>
+                </button>',
+                'Share Screen',
+                'top'
+            ); ?>
 
-            <button id="ticTacToeBtn" class="voice-control-btn tic-tac-toe-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#8b5cf6] text-white transition-all duration-150 flex items-center justify-center group">
-                <i class="fas fa-chess-board text-sm"></i>
-                <div class="voice-tooltip">Play Tic Mac Voe</div>
-            </button>
+            <?php echo tooltip(
+                '<button id="ticTacToeBtn" class="voice-control-btn tic-tac-toe-btn w-10 h-10 rounded-full bg-[#4f545c] hover:bg-[#8b5cf6] text-white transition-all duration-150 flex items-center justify-center">
+                    <i class="fas fa-chess-board text-sm"></i>
+                </button>',
+                'Play Tic Mac Voe',
+                'top'
+            ); ?>
 
             <div class="w-px h-6 bg-[#4f545c]"></div>
 
-            <button id="disconnectBtn" class="voice-control-btn disconnect-btn w-10 h-10 rounded-full bg-[#ed4245] hover:bg-[#da373c] text-white transition-all duration-150 flex items-center justify-center group">
-                <i class="fas fa-phone-slash text-sm"></i>
-                <div class="voice-tooltip">Leave</div>
-            </button>
+            <?php echo tooltip(
+                '<button id="disconnectBtn" class="voice-control-btn disconnect-btn w-10 h-10 rounded-full bg-[#ed4245] hover:bg-[#da373c] text-white transition-all duration-150 flex items-center justify-center">
+                    <i class="fas fa-phone-slash text-sm"></i>
+                </button>',
+                'Leave',
+                'top'
+            ); ?>
         </div>
     </div>
 
