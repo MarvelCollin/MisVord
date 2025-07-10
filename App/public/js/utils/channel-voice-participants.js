@@ -2,7 +2,7 @@ class ChannelVoiceParticipants {
     constructor() {
         this.externalParticipants = new Map(); 
         this.debugPanel = null; 
-        this.loadingState = new Map(); // Tracks channels with active loading skeletons
+        this.updateTimers = new Map(); // Debounce timers for updates
         this.init();
     }
     
@@ -300,8 +300,22 @@ class ChannelVoiceParticipants {
     
     updateSidebar() {
         if (window.voiceManager && window.voiceManager.currentChannelId) {
-            this.updateSidebarForChannel(window.voiceManager.currentChannelId);
+            this.debouncedUpdateSidebar(window.voiceManager.currentChannelId);
         }
+    }
+    
+    debouncedUpdateSidebar(channelId) {
+        // Debounce rapid updates to prevent flicker
+        const debounceKey = `sidebar-${channelId}`;
+        
+        if (this.updateTimers.has(debounceKey)) {
+            clearTimeout(this.updateTimers.get(debounceKey));
+        }
+        
+        this.updateTimers.set(debounceKey, setTimeout(() => {
+            this.updateSidebarForChannel(channelId);
+            this.updateTimers.delete(debounceKey);
+        }, 100)); // 100ms debounce to prevent excessive updates
     }
     
     updateSidebarForChannel(channelId) {
@@ -360,23 +374,40 @@ class ChannelVoiceParticipants {
             });
         }
 
-        // If nothing to render, keep previous display to avoid flicker
-        if (renderList.length === 0) {
+        // Check if content actually changed before updating to prevent flicker
+        const currentParticipants = Array.from(container.querySelectorAll('.voice-participant-card:not(.skeleton-loader)'));
+        const currentIds = currentParticipants.map(el => el.getAttribute('data-user-id')).filter(id => id);
+        const newIds = renderList.map(p => String(p.user_id || p.id));
+        
+        // Compare arrays to see if anything actually changed
+        const hasChanges = currentIds.length !== newIds.length || 
+                          !currentIds.every(id => newIds.includes(id)) ||
+                          !newIds.every(id => currentIds.includes(id));
+
+        // If nothing to render and nothing is currently shown, do nothing
+        if (renderList.length === 0 && currentIds.length === 0) {
             return;
         }
 
-        // Safe to refresh UI
-        // Incremental DOM diff – avoid full clear to eliminate flicker
-        this.updateParticipantContainer(container, renderList);
+        // Only update if there are actual changes
+        if (hasChanges || renderList.length === 0) {
+            // Safe to refresh UI
+            // Incremental DOM diff – avoid full clear to eliminate flicker
+            this.updateParticipantContainer(container, renderList);
+        }
 
         const participantCount = renderList.length;
         
         this.updateChannelCount(channelId, participantCount);
         
         if (participantCount > 0) {
-            container.classList.remove('hidden');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+            }
         } else {
-            container.classList.add('hidden');
+            if (!container.classList.contains('hidden')) {
+                container.classList.add('hidden');
+            }
         }
 
         // Refresh debug panel each time sidebar updates
@@ -555,34 +586,64 @@ class ChannelVoiceParticipants {
     updateParticipantContainer(container, renderList) {
         if (!container) return;
         
-        // Remove any skeleton loaders
+        // Remove any skeleton loaders first
         container.querySelectorAll('.skeleton-loader').forEach(el => el.remove());
         
         // Collect current DOM state
         const existingElements = Array.from(container.querySelectorAll('.voice-participant-card:not(.skeleton-loader)'));
         const str = (v) => v != null ? String(v) : '';
         const existingMap = new Map(); // id -> element
+        
         existingElements.forEach(el => {
-            existingMap.set(str(el.getAttribute('data-user-id')), el);
+            const userId = str(el.getAttribute('data-user-id'));
+            if (userId) {
+                existingMap.set(userId, el);
+            }
         });
 
         // Build a map of desired state keyed by participant id (as string)
         const desiredIds = renderList.map(p => str(p.user_id || p.id));
+        const desiredSet = new Set(desiredIds);
 
-        // Remove elements that are no longer in the desired list
+        // Only remove elements that are definitely not in the new list
+        // Use smooth fade-out animation to reduce flicker
         existingMap.forEach((el, id) => {
-            if (!desiredIds.includes(id)) {
-                el.remove();
+            if (!desiredSet.has(id)) {
+                console.log(`🗑️ [CHANNEL-VOICE-PARTICIPANTS] Removing participant ${id} from sidebar`);
+                el.style.transition = 'opacity 0.2s ease-out';
+                el.style.opacity = '0';
+                setTimeout(() => {
+                    if (el.parentNode) {
+                        el.remove();
+                    }
+                }, 200);
                 existingMap.delete(id);
             }
         });
 
-        // Append missing participants in the order of renderList
-        renderList.forEach(p => {
+        // Add missing participants with smooth fade-in animation
+        renderList.forEach((p, index) => {
             const pid = str(p.user_id || p.id);
             if (!existingMap.has(pid)) {
+                console.log(`➕ [CHANNEL-VOICE-PARTICIPANTS] Adding participant ${pid} to sidebar`);
                 const el = this.createParticipantElement(p);
-                container.appendChild(el);
+                
+                // Start with invisible element
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.3s ease-in';
+                
+                // Insert in correct position to maintain order
+                if (index < container.children.length) {
+                    container.insertBefore(el, container.children[index]);
+                } else {
+                    container.appendChild(el);
+                }
+                
+                // Trigger smooth fade-in after a brief delay
+                setTimeout(() => {
+                    el.style.opacity = '1';
+                }, 10);
+                
                 existingMap.set(pid, el);
             }
         });

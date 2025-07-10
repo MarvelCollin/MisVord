@@ -371,12 +371,34 @@ class VoiceCallSection {
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
-        // Remove any skeleton loaders when real participants arrive
-        grid.querySelectorAll('.skeleton-loader').forEach(el => el.remove());
+        // Remove any skeleton loaders when real participants arrive with smooth transition
+        const skeletons = grid.querySelectorAll('.skeleton-loader');
+        if (skeletons.length > 0) {
+            skeletons.forEach(skeleton => {
+                skeleton.style.transition = 'opacity 0.2s ease-out';
+                skeleton.style.opacity = '0';
+                setTimeout(() => {
+                    if (skeleton.parentNode) skeleton.remove();
+                }, 200);
+            });
+        }
         
         const element = this.createParticipantElement(participant, data);
+        
+        // Add smooth fade-in animation for new participants
+        element.style.opacity = '0';
+        element.style.transform = 'scale(0.95)';
+        element.style.transition = 'opacity 0.3s ease-in, transform 0.3s ease-in';
+        
         grid.appendChild(element);
         this.participantElements.set(participant, element);
+        
+        // Trigger smooth entrance animation
+        setTimeout(() => {
+            element.style.opacity = '1';
+            element.style.transform = 'scale(1)';
+        }, 10);
+        
         this.updateGridLayout();
         this.updateParticipantCount();
         
@@ -392,15 +414,24 @@ class VoiceCallSection {
         
         const element = this.participantElements.get(participant);
         if (element) {
-            element.remove();
-            this.participantElements.delete(participant);
-            this.updateGridLayout();
-            this.updateParticipantCount();
+            // Add smooth fade-out animation before removing
+            element.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
+            element.style.opacity = '0';
+            element.style.transform = 'scale(0.95)';
             
-            if (window.ChannelVoiceParticipants && this.currentChannelId) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-                instance.updateSidebarForChannel(this.currentChannelId);
-            }
+            setTimeout(() => {
+                if (element.parentNode) {
+                    element.remove();
+                }
+                this.participantElements.delete(participant);
+                this.updateGridLayout();
+                this.updateParticipantCount();
+                
+                if (window.ChannelVoiceParticipants && this.currentChannelId) {
+                    const instance = window.ChannelVoiceParticipants.getInstance();
+                    instance.updateSidebarForChannel(this.currentChannelId);
+                }
+            }, 300);
         }
     }
 
