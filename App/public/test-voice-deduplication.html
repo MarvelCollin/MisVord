@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="user-id" content="123">
+    <meta name="channel-id" content="456">
+    <meta name="meeting-id" content="test-meeting">
+    <title>Voice Deduplication Test</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/voice-call-section.css">
+</head>
+<body class="bg-gray-900 text-white p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Voice Call Deduplication Test</h1>
+        
+        <div class="mb-6">
+            <button id="add-participant" class="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded mr-2">Add Participant</button>
+            <button id="add-duplicate" class="bg-red-500 hover:bg-red-600 px-4 py-2 rounded mr-2">Add Duplicate</button>
+            <button id="clear-all" class="bg-gray-500 hover:bg-gray-600 px-4 py-2 rounded mr-2">Clear All</button>
+            <button id="test-cleanup" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded mr-2">Test Cleanup</button>
+            <button id="verify-deduplication" class="bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded">Verify System</button>
+        </div>
+
+        <div class="mb-4">
+            <span class="text-sm text-gray-400">Participant count: </span>
+            <span id="participant-count" class="text-white font-bold">0</span>
+        </div>
+
+        <div id="voice-participants-grid" class="voice-participants-grid">
+        </div>
+
+        <div class="mt-8">
+            <h2 class="text-xl font-bold mb-4">Test Log</h2>
+            <div id="test-log" class="bg-gray-800 p-4 rounded text-sm max-h-60 overflow-y-auto">
+                <div class="text-green-400">Test initialized</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/components/voice/voice-call-section.js"></script>
+    <script src="js/verify-voice-deduplication.js"></script>
+    <script>
+        let testParticipantId = 1;
+        let testUserIdCounter = 1;
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-red-400' : 
+                         type === 'success' ? 'text-green-400' : 
+                         type === 'warning' ? 'text-yellow-400' : 'text-gray-300';
+            
+            logElement.innerHTML += `<div class="${color}">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateParticipantCount() {
+            const count = document.querySelectorAll('.participant-card').length;
+            document.getElementById('participant-count').textContent = count;
+        }
+
+        function createTestParticipant(userId = null, duplicate = false) {
+            const actualUserId = userId || testUserIdCounter++;
+            const participantId = duplicate ? `duplicate-${testParticipantId}` : `participant-${testParticipantId}`;
+            testParticipantId++;
+
+            return {
+                id: participantId,
+                user_id: actualUserId,
+                displayName: `Test User ${actualUserId}${duplicate ? ' (Duplicate)' : ''}`,
+                profilePicture: `https://ui-avatars.com/api/?name=User${actualUserId}&background=random`,
+                isLocal: false,
+                isMuted: Math.random() > 0.5,
+                isVideoEnabled: Math.random() > 0.5,
+                isSpeaking: false
+            };
+        }
+
+        document.getElementById('add-participant').addEventListener('click', () => {
+            const participant = createTestParticipant();
+            log(`Adding participant: ${participant.displayName} (ID: ${participant.id}, User ID: ${participant.user_id})`);
+            
+            if (window.voiceCallSection && window.voiceCallSection.handleParticipantJoined) {
+                window.voiceCallSection.handleParticipantJoined(participant);
+                updateParticipantCount();
+                log(`Participant added successfully`, 'success');
+            } else {
+                log('Voice call section not available', 'error');
+            }
+        });
+
+        document.getElementById('add-duplicate').addEventListener('click', () => {
+            const existingCards = document.querySelectorAll('.participant-card[data-user-id]');
+            if (existingCards.length === 0) {
+                log('No existing participants to duplicate', 'warning');
+                return;
+            }
+
+            const randomCard = existingCards[Math.floor(Math.random() * existingCards.length)];
+            const existingUserId = parseInt(randomCard.getAttribute('data-user-id'));
+            
+            const participant = createTestParticipant(existingUserId, true);
+            log(`Adding duplicate participant: ${participant.displayName} (ID: ${participant.id}, User ID: ${participant.user_id})`);
+            
+            if (window.voiceCallSection && window.voiceCallSection.handleParticipantJoined) {
+                window.voiceCallSection.handleParticipantJoined(participant);
+                updateParticipantCount();
+                log(`Duplicate participant attempt completed`, 'warning');
+            } else {
+                log('Voice call section not available', 'error');
+            }
+        });
+
+        document.getElementById('clear-all').addEventListener('click', () => {
+            if (window.voiceCallSection && window.voiceCallSection.clearGrid) {
+                window.voiceCallSection.clearGrid();
+                updateParticipantCount();
+                log('All participants cleared', 'success');
+            } else {
+                log('Voice call section not available', 'error');
+            }
+        });
+
+        document.getElementById('test-cleanup').addEventListener('click', () => {
+            if (window.voiceCallSection && window.voiceCallSection.removeDuplicateCards) {
+                const beforeCount = document.querySelectorAll('.participant-card').length;
+                window.voiceCallSection.removeDuplicateCards();
+                const afterCount = document.querySelectorAll('.participant-card').length;
+                const removedCount = beforeCount - afterCount;
+                
+                updateParticipantCount();
+                log(`Cleanup completed: ${removedCount} duplicates removed (${beforeCount} → ${afterCount})`, 'success');
+            } else {
+                log('Voice call section not available', 'error');
+            }
+        });
+
+        document.getElementById('verify-deduplication').addEventListener('click', () => {
+            if (window.verifyVoiceCallDeduplication) {
+                log('Running deduplication verification...', 'info');
+                const result = window.verifyVoiceCallDeduplication();
+                
+                if (result.isClean) {
+                    log(`✅ Verification passed: ${result.totalCards} cards, ${result.uniqueUsers} unique users, no duplicates`, 'success');
+                } else {
+                    log(`⚠️ Verification found issues: ${result.duplicateUsers} users with ${result.duplicateCards} duplicate cards`, 'warning');
+                }
+            } else {
+                log('Verification function not available', 'error');
+            }
+        });
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.voiceCallSection) {
+                    log('Voice call section loaded successfully', 'success');
+                    updateParticipantCount();
+                } else {
+                    log('Voice call section failed to load', 'error');
+                }
+            }, 500);
+        });
+    </script>
+</body>
+</html>

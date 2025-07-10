@@ -15,6 +15,7 @@ class VoiceCallSection {
         this.participantElements = new Map();
         this.currentModal = null;
         this.modalEscListener = null;
+        this.duplicateCleanupInterval = null;
         
         this.currentChannelId = null;
         this.currentChannelName = null;
@@ -122,7 +123,7 @@ class VoiceCallSection {
     setup() {
         this.fixButtonStyling();
         this.ensureIconsVisible();
-        this.removeDebugPanel(); // Remove any existing debug panel
+        this.removeDebugPanel();
         
         this.bindControls();
         this.bindEvents();
@@ -130,10 +131,20 @@ class VoiceCallSection {
         this.ensureChannelSync();
         this.syncButtonStates();
         
+        // Remove any duplicate participant cards
+        setTimeout(() => {
+            this.removeDuplicateCards();
+        }, 100);
+        
         // Call ensureChannelSync again after a delay to ensure everything is in sync
         setTimeout(() => {
             this.ensureChannelSync();
         }, 500);
+        
+        // Set up periodic duplicate cleanup
+        this.duplicateCleanupInterval = setInterval(() => {
+            this.removeDuplicateCards();
+        }, 5000); // Check every 5 seconds
     }
     
     bindControls() {
@@ -366,18 +377,22 @@ class VoiceCallSection {
             this.currentMeetingId = data.meeting_id;
         }
 
-        // Always re-render the participant grid from the server's participants array
         if (Array.isArray(data.participants)) {
             const grid = document.getElementById("participantGrid");
             if (grid) {
-                // Remove all current participant elements
                 grid.innerHTML = "";
                 this.participantElements = new Map();
 
-                // Add each participant from the server
+                const uniqueParticipants = new Map();
                 data.participants.forEach((participant) => {
-                    // Use user_id or id as the unique key
-                    const participantId = participant.user_id || participant.id || participant;
+                    const userId = participant.user_id || participant.id;
+                    if (userId && !uniqueParticipants.has(userId)) {
+                        uniqueParticipants.set(userId, participant);
+                    }
+                });
+
+                uniqueParticipants.forEach((participant) => {
+                    const participantId = participant.user_id || participant.id;
                     const element = this.createParticipantElement(participantId, participant);
                     grid.appendChild(element);
                     this.participantElements.set(participantId, element);
@@ -448,15 +463,24 @@ class VoiceCallSection {
         const { participant, data } = event.detail;
         if (!participant || this.participantElements.has(participant)) return;
         
-        console.log('🎯 [VOICE-CALL-SECTION] Participant joined - using append mode (no grid refresh)');
+        // Check for duplicate users by user_id to prevent multiple cards for same person
+        const userId = data?.user_id || data?.id;
+        if (userId) {
+            // Find existing participant with same user_id
+            for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
+                const existingUserId = existingElement.getAttribute('data-user-id');
+                if (existingUserId === String(userId)) {
+                    console.log(`🔄 [VOICE-CALL-SECTION] Skipping duplicate participant - user ${userId} already exists as ${existingParticipantId}`);
+                    return;
+                }
+            }
+        }
         
-        // Get grid element
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
         const element = this.createParticipantElement(participant, data);
         
-        // Add smooth slide-in animation for new participants (no refresh)
         element.style.opacity = '0';
         element.style.transform = 'translateY(20px) scale(0.9)';
         element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
@@ -464,7 +488,6 @@ class VoiceCallSection {
         grid.appendChild(element);
         this.participantElements.set(participant, element);
         
-        // Trigger smooth entrance animation
         setTimeout(() => {
             element.style.opacity = '1';
             element.style.transform = 'translateY(0) scale(1)';
@@ -473,7 +496,6 @@ class VoiceCallSection {
         this.updateGridLayout();
         this.updateParticipantCount();
         
-        // Update sidebar using append mode
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             instance.updateSidebarForChannel(this.currentChannelId, 'append');
@@ -522,10 +544,22 @@ class VoiceCallSection {
         const { participant } = event.detail;
         if (!participant || !participant.user_id) return;
         
-        console.log('🤖 [VOICE-CALL-SECTION] Bot joined - using append mode (no grid refresh)');
-        
         const botId = `bot-${participant.user_id}`;
+        
         if (this.participantElements.has(botId)) return;
+        
+        // Check for duplicate bots by user_id to prevent multiple cards for same bot
+        const userId = participant.user_id;
+        if (userId) {
+            // Find existing participant with same user_id
+            for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
+                const existingUserId = existingElement.getAttribute('data-user-id');
+                if (existingUserId === String(userId)) {
+                    console.log(`🔄 [VOICE-CALL-SECTION] Skipping duplicate bot - user ${userId} already exists as ${existingParticipantId}`);
+                    return;
+                }
+            }
+        }
         
         const botData = {
             displayName: participant.username || 'TitiBot',
@@ -534,13 +568,12 @@ class VoiceCallSection {
             user_id: participant.user_id,
             avatar_url: participant.avatar_url || '/public/assets/landing-page/robot.webp',
             channelId: participant.channelId || participant.channel_id,
-            status: participant.status || 'Ready to play music' // Include status for consistency
+            status: participant.status || 'Ready to play music'
         };
         
         const element = this.createParticipantElement(botId, botData);
         const grid = document.getElementById("participantGrid");
         if (grid) {
-            // Add smooth bot entrance animation
             element.style.opacity = '0';
             element.style.transform = 'translateY(20px) scale(0.8)';
             element.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
@@ -548,7 +581,6 @@ class VoiceCallSection {
             grid.appendChild(element);
             this.participantElements.set(botId, element);
             
-            // Bot gets special glow entrance
             setTimeout(() => {
                 element.style.opacity = '1';
                 element.style.transform = 'translateY(0) scale(1)';
@@ -645,13 +677,19 @@ class VoiceCallSection {
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
         div.setAttribute("data-participant-id", participantId);
         
+        // Add user_id attribute for deduplication
+        const userId = data?.user_id || data?.id;
+        if (userId) {
+            div.setAttribute("data-user-id", String(userId));
+        }
+        
         const name = data?.displayName || data?.name || data?.username || "Unknown";
         const isLocal = data?.isLocal || (participantId === window.voiceManager?.localParticipant?.id);
         const isBot = data?.isBot || participantId.startsWith('bot-');
         const avatarUrl = data?.avatar_url || '/public/assets/common/default-profile-picture.png';
         const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
         const showImage = isBot || hasCustomAvatar;
-        const botStatus = data?.status || 'Ready to play music'; // Use the status from bot data
+        const botStatus = data?.status || 'Ready to play music';
         
         // Add double-click event listener for fullscreen modal
         div.addEventListener('dblclick', (e) => {
@@ -843,6 +881,12 @@ class VoiceCallSection {
         // Close any open modal
         this.closeParticipantModal();
         
+        // Clear duplicate cleanup interval
+        if (this.duplicateCleanupInterval) {
+            clearInterval(this.duplicateCleanupInterval);
+            this.duplicateCleanupInterval = null;
+        }
+        
         const grid = document.getElementById("participantGrid");
         if (grid) {
             grid.innerHTML = "";
@@ -853,6 +897,43 @@ class VoiceCallSection {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.updateSidebarForChannel(this.currentChannelId);
             }
+        }
+    }
+    
+    removeDuplicateCards() {
+        const grid = document.getElementById("participantGrid");
+        if (!grid) return;
+        
+        const seenUserIds = new Set();
+        const cardsToRemove = [];
+        
+        // Check all participant cards for duplicates
+        const cards = grid.querySelectorAll('.participant-card');
+        cards.forEach(card => {
+            const userId = card.getAttribute('data-user-id');
+            const participantId = card.getAttribute('data-participant-id');
+            
+            if (userId) {
+                if (seenUserIds.has(userId)) {
+                    // This is a duplicate - mark for removal
+                    cardsToRemove.push({ card, participantId });
+                    console.log(`🗑️ [VOICE-CALL-SECTION] Found duplicate card for user ${userId}, removing participant ${participantId}`);
+                } else {
+                    seenUserIds.add(userId);
+                }
+            }
+        });
+        
+        // Remove duplicate cards
+        cardsToRemove.forEach(({ card, participantId }) => {
+            card.remove();
+            this.participantElements.delete(participantId);
+        });
+        
+        if (cardsToRemove.length > 0) {
+            console.log(`✅ [VOICE-CALL-SECTION] Removed ${cardsToRemove.length} duplicate cards`);
+            this.updateGridLayout();
+            this.updateParticipantCount();
         }
     }
     

@@ -515,21 +515,27 @@ class VoiceManager {
             // Already logged above – ignore
         }
 
-        this.participants.set(participant.id, {
+        // Use user_id as the key for consistent deduplication
+        const participantKey = userIdField;
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        const isLocalUser = currentUserId && String(userIdField) === currentUserId;
+        
+        this.participants.set(participantKey, {
             id: participant.id,
-            user_id: userIdField, // new field for unified identity
+            user_id: userIdField,
             name: participant.displayName || participant.name,
             username: participant.displayName || participant.name,
             avatar_url: avatarUrl,
             isBot: false,
             isLocal: participant.id === this.localParticipant?.id,
+            isSelf: isLocalUser,
             streams: new Map()
         });
         
         this.setupStreamHandlers(participant);
         
         window.dispatchEvent(new CustomEvent('participantJoined', {
-            detail: { participant: participant.id, data: this.participants.get(participant.id) }
+            detail: { participant: participantKey, data: this.participants.get(participantKey) }
         }));
         
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
@@ -541,11 +547,22 @@ class VoiceManager {
     handleParticipantLeft(participant) {
         if (!participant) return;
         
-        this.participants.delete(participant.id);
+        // Find participant by SDK id and get the user_id key
+        let participantKey = null;
+        for (const [key, data] of this.participants.entries()) {
+            if (data.id === participant.id) {
+                participantKey = key;
+                break;
+            }
+        }
         
-        window.dispatchEvent(new CustomEvent('participantLeft', {
-            detail: { participant: participant.id }
-        }));
+        if (participantKey) {
+            this.participants.delete(participantKey);
+            
+            window.dispatchEvent(new CustomEvent('participantLeft', {
+                detail: { participant: participantKey }
+            }));
+        }
         
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
             const instance = window.ChannelVoiceParticipants.getInstance();

@@ -76,17 +76,13 @@ class ChannelVoiceParticipants {
     }
     
     handleParticipantJoined(event) {
-        console.log('🎯 [CHANNEL-VOICE-PARTICIPANTS] Participant joined - using append mode');
         if (window.voiceManager && window.voiceManager.currentChannelId) {
-            // Use append mode for joins to avoid UI refresh
             this.updateSidebarForChannel(window.voiceManager.currentChannelId, 'append');
         }
     }
     
     handleParticipantLeft(event) {
-        console.log('🎯 [CHANNEL-VOICE-PARTICIPANTS] Participant left - using full refresh');
         if (window.voiceManager && window.voiceManager.currentChannelId) {
-            // Use full refresh for leaves to remove the participant
             this.updateSidebarForChannel(window.voiceManager.currentChannelId, 'full');
         }
     }
@@ -391,20 +387,16 @@ class ChannelVoiceParticipants {
     
     handleBotJoined(event) {
         const { participant } = event.detail;
-        console.log('🤖 [CHANNEL-VOICE-PARTICIPANTS] Bot joined - using append mode');
         if (participant && participant.channelId) {
             this.updateChannelCount(participant.channelId, null);
-            // Use append mode for bot joins
             this.updateSidebarForChannel(participant.channelId, 'append');
         }
     }
     
     handleBotLeft(event) {
         const { participant } = event.detail;
-        console.log('🤖 [CHANNEL-VOICE-PARTICIPANTS] Bot left - using full refresh');
         if (participant && participant.channelId) {
             this.updateChannelCount(participant.channelId, null);
-            // Use full refresh for bot leaves
             this.updateSidebarForChannel(participant.channelId, 'full');
         }
     }
@@ -448,22 +440,18 @@ class ChannelVoiceParticipants {
             window.voiceManager.getAllParticipants;
 
         if (isConnectedToChannel) {
-            const localCount = window.voiceManager.getAllParticipants().size;
-            console.log(`📍 [CHANNEL-VOICE-PARTICIPANTS] Found ${localCount} local participants`);
             window.voiceManager.getAllParticipants().forEach(data => {
                 const participantId = String(data.user_id || data.id);
                 if (!participantIds.has(participantId)) {
                     renderList.push(data);
                     participantIds.add(participantId);
-                    console.log(`➕ [LOCAL] Added participant ${participantId} (${data.name || data.username})`);
                 }
             });
         }
 
-        // ALSO include external participants (server-side data) to ensure sync
+        // ALSO include external participants (server-side data) but only if NOT locally connected
         const map = this.externalParticipants.get(channelId);
-        if (map) {
-            console.log(`🌐 [CHANNEL-VOICE-PARTICIPANTS] Found ${map.size} external participants`);
+        if (map && !isConnectedToChannel) {
             map.forEach((pData, uid) => {
                 const participantId = String(uid);
                 if (!participantIds.has(participantId)) {
@@ -477,12 +465,11 @@ class ChannelVoiceParticipants {
                         isLocal: false
                     });
                     participantIds.add(participantId);
-                    console.log(`➕ [EXTERNAL] Added participant ${participantId} (${pData.username})`);
                 }
             });
         }
 
-        console.log(`✅ [CHANNEL-VOICE-PARTICIPANTS] Final participant list: ${renderList.length} participants for channel ${channelId}`);
+        console.log(`✅ [CHANNEL-VOICE-PARTICIPANTS] Rendering ${renderList.length} participants for channel ${channelId}`);
 
         // merge in bots
         if (window.BotComponent && window.BotComponent.voiceBots) {
@@ -561,7 +548,8 @@ class ChannelVoiceParticipants {
         
         const displayName = participant.name || participant.username || 'Unknown';
         const isBot = participant.isBot || false;
-        const isSelf = participant.isSelf || false;
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        const isSelf = !isBot && currentUserId && (String(participant.user_id) === currentUserId || String(participant.id) === currentUserId);
         const botStatus = participant.status || 'Ready to play music'; // Use the status from bot data
 
         const avatarHTML = `
@@ -621,18 +609,18 @@ class ChannelVoiceParticipants {
                     count++;
                 }
             });
-        }
-
-        // Also count external participants (server-side data)
-        const externalMap = this.externalParticipants.get(channelId);
-        if (externalMap) {
-            externalMap.forEach((pData, uid) => {
-                const participantId = String(uid);
-                if (!participantIds.has(participantId)) {
-                    participantIds.add(participantId);
-                    count++;
-                }
-            });
+        } else {
+            // Only count external participants if NOT connected to this channel (spectator mode)
+            const externalMap = this.externalParticipants.get(channelId);
+            if (externalMap) {
+                externalMap.forEach((pData, uid) => {
+                    const participantId = String(uid);
+                    if (!participantIds.has(participantId)) {
+                        participantIds.add(participantId);
+                        count++;
+                    }
+                });
+            }
         }
         
         // Count bots separately

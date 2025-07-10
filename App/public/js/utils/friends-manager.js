@@ -149,6 +149,10 @@ class FriendsManager {
     handleUserOnline(data) {
         const standardizedData = this.standardizePresenceData(data);
         if (standardizedData.user_id && standardizedData.username) {
+            // Ensure onlineUsers is always an object
+            if (!this.cache.onlineUsers || typeof this.cache.onlineUsers !== 'object') {
+                this.cache.onlineUsers = {};
+            }
             this.cache.onlineUsers[standardizedData.user_id] = standardizedData;
             this.notify('user-online', standardizedData);
         }
@@ -156,6 +160,10 @@ class FriendsManager {
 
     handleUserOffline(data) {
         const standardizedData = this.standardizePresenceData(data);
+        // Ensure onlineUsers is always an object
+        if (!this.cache.onlineUsers || typeof this.cache.onlineUsers !== 'object') {
+            this.cache.onlineUsers = {};
+        }
         if (standardizedData.user_id && this.cache.onlineUsers[standardizedData.user_id]) {
             delete this.cache.onlineUsers[standardizedData.user_id];
             this.notify('user-offline', standardizedData);
@@ -165,6 +173,11 @@ class FriendsManager {
     handlePresenceUpdate(data) {
         const standardizedData = this.standardizePresenceData(data);
         if (standardizedData.user_id && standardizedData.username) {
+            // Ensure onlineUsers is always an object
+            if (!this.cache.onlineUsers || typeof this.cache.onlineUsers !== 'object') {
+                this.cache.onlineUsers = {};
+            }
+            
             if (standardizedData.status === 'offline' || standardizedData.status === 'invisible') {
                 if (this.cache.onlineUsers[standardizedData.user_id]) {
                     delete this.cache.onlineUsers[standardizedData.user_id];
