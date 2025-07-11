@@ -319,9 +319,25 @@ Route::get('/api/debug/servers/([0-9]+)/channels', function($serverId) {
 });
 
 Route::post('/api/servers/create', function() {
-    require_once __DIR__ . '/../controllers/ServerController.php';
-    $controller = new ServerController();
-    return $controller->create();
+    try {
+        require_once __DIR__ . '/../controllers/ServerController.php';
+        $controller = new ServerController();
+        return $controller->create();
+    } catch (Exception $e) {
+        error_log("Server creation error: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
+        http_response_code(500);
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'error' => [
+                'code' => 500,
+                'message' => 'Server creation failed: ' . $e->getMessage()
+            ],
+            'timestamp' => date('Y-m-d H:i:s')
+        ]);
+        exit;
+    }
 });
 
 Route::post('/servers/create', function() {

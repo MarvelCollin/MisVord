@@ -42,19 +42,19 @@ async function initializeTitiBot() {
 socketController.setup(io);
 
 const PORT = process.env.SOCKET_PORT || 1002;
+const HOST = process.env.SOCKET_BIND_HOST || '0.0.0.0';
 
-server.listen(PORT, async () => {
-
-
+server.listen(PORT, HOST, async () => {
+    console.log(`🚀 [STARTUP] Socket server running on ${HOST}:${PORT}`);
+    console.log(`🌐 [STARTUP] CORS origins: ${process.env.CORS_ALLOWED_ORIGINS || '*'}`);
     
     setTimeout(async () => {
-
         const botInitialized = await initializeTitiBot();
         
         if (botInitialized) {
-
+            console.log('✅ [STARTUP] TitiBot initialization complete');
         } else {
-
+            console.log('⚠️ [STARTUP] TitiBot initialization failed');
         }
     }, 2000);
 });

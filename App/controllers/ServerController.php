@@ -165,7 +165,7 @@ class ServerController extends BaseController
             $serverData = [
                 'name' => $input['name'],
                 'description' => $input['description'],
-                'is_public' => !empty($input['is_public']) && $input['is_public'] !== '0',
+                'is_public' => (isset($input['is_public']) && $input['is_public'] === '1') ? 1 : 0,
                 'category' => $input['category']
             ];
 
@@ -1140,8 +1140,9 @@ class ServerController extends BaseController
             }
             
             if (isset($input['is_public'])) {
-                $server->is_public = (bool)$input['is_public'];
-                $changes['is_public'] = (bool)$input['is_public'];
+                $boolValue = ($input['is_public'] === '1' || $input['is_public'] === 'true' || $input['is_public'] === true) ? 1 : 0;
+                $server->is_public = $boolValue;
+                $changes['is_public'] = $boolValue;
                 $updated = true;
             }
             
@@ -1294,7 +1295,7 @@ class ServerController extends BaseController
 
         try {
             $oldPublic = $server->is_public;
-            $server->is_public = isset($input['is_public']) ? (bool)$input['is_public'] : false;
+            $server->is_public = isset($input['is_public']) ? (($input['is_public'] === '1' || $input['is_public'] === 'true' || $input['is_public'] === true) ? 1 : 0) : 0;
 
             if ($server->save()) {
                 $this->logActivity('server_public_updated', [

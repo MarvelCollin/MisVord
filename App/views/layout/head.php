@@ -45,8 +45,20 @@ $socketSecure = EnvLoader::get('SOCKET_SECURE', 'false');
 $domain = EnvLoader::get('DOMAIN', 'localhost');
 $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
 
-// For frontend, use domain instead of container name
-$frontendSocketHost = ($socketHost === 'socket') ? $domain : $socketHost;
+// Get current request host to determine connection strategy
+$currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+// Determine the correct socket host for frontend connection
+$frontendSocketHost = $socketHost;
+
+// Use the configured socket host directly since server now binds to 0.0.0.0
+if ($socketHost === 'socket') {
+    // Docker container name, use domain instead
+    $frontendSocketHost = $domain;
+} else {
+    // Use configured socket host as-is
+    $frontendSocketHost = $socketHost;
+}
 ?>
 
 <meta name="socket-host" content="<?php echo htmlspecialchars($frontendSocketHost); ?>">

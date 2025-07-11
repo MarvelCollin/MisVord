@@ -30,7 +30,7 @@ class ServerRepository extends Repository {
     public function getFormattedServersForUser($userId) {
         return $this->getForUser($userId);
     }
-      public function createWithOwner($data, $ownerId) {
+      public function createWithOwner($data, $ownerId) {        
         $query = new Query();
         
         try {
@@ -45,13 +45,15 @@ class ServerRepository extends Repository {
                 throw new Exception('Failed to create server');
             }
             
-            $membershipResult = $query->table('user_server_memberships')->insert([
+            $membershipData = [
                 'user_id' => $ownerId,
                 'server_id' => $serverId,
                 'role' => 'owner',
                 'created_at' => date('Y-m-d H:i:s'),
                 'updated_at' => date('Y-m-d H:i:s')
-            ]);
+            ];
+            
+            $membershipResult = $query->table('user_server_memberships')->insert($membershipData);
             
             if (!$membershipResult) {
                 throw new Exception('Failed to create server ownership');
@@ -59,7 +61,9 @@ class ServerRepository extends Repository {
             
             $query->commit();
             
-            return $this->find($serverId);
+            $server = $this->find($serverId);
+            
+            return $server;
             
         } catch (Exception $e) {
             $query->rollback();
