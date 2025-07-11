@@ -1,6 +1,7 @@
 const roomManager = require('../services/roomManager');
 const AuthHandler = require('./authHandler');
 const eventValidator = require('../services/eventValidator');
+const { buildApiUrl } = require('../config/env');
 
 class MessageHandler {
     static forwardMessage(io, client, eventName, data) {
@@ -197,8 +198,8 @@ class MessageHandler {
             });
             
             const apiEndpoint = eventName === 'reaction-added' 
-                ? `http://app:1001/api/messages/${data.message_id}/reactions`
-                : `http://app:1001/api/messages/${data.message_id}/reactions`;
+                ? buildApiUrl(`/api/messages/${data.message_id}/reactions`)
+                : buildApiUrl(`/api/messages/${data.message_id}/reactions`);
             
             const method = eventName === 'reaction-added' ? 'POST' : 'DELETE';
             
@@ -456,7 +457,7 @@ class MessageHandler {
             if (data.reply_message_id) {
 
                 try {
-                    const replyResponse = await fetch(`http://app:1001/api/messages/${data.reply_message_id}`, {
+                    const replyResponse = await fetch(buildApiUrl(`/api/messages/${data.reply_message_id}`), {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
@@ -599,7 +600,7 @@ class MessageHandler {
             try {
 
 
-                const debugResponse = await fetch('http://app:1001/api/debug/test-socket-save', {
+                const debugResponse = await fetch(buildApiUrl('/api/debug/test-socket-save'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -624,7 +625,7 @@ class MessageHandler {
                 }
                 
 
-                const response = await fetch('http://app:1001/api/chat/save-message', {
+                const response = await fetch(buildApiUrl('/api/chat/save-message'), {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -963,7 +964,7 @@ class MessageHandler {
                             'X-Socket-Token': 'socket-server-internal-auth-2025'
                         };
 
-                        const response = await fetch(`http://app:1001/api/socket/servers/${context.server_id}/members`, {
+                        const response = await fetch(buildApiUrl(`/api/socket/servers/${context.server_id}/members`), {
                             method: 'GET',
                             headers: headers
                         });
@@ -1045,7 +1046,7 @@ class MessageHandler {
                     'X-Socket-Token': 'socket-server-internal-auth-2025'
                 };
 
-                const response = await fetch(`http://app:1001/api/socket/channels/${notificationPayload.target_id}/users-by-role`, {
+                const response = await fetch(buildApiUrl(`/api/socket/channels/${notificationPayload.target_id}/users-by-role`), {
                     method: 'GET',
                     headers: headers
                 });
@@ -1167,7 +1168,7 @@ class MessageHandler {
 
 
                 
-                const channelResponse = await fetch(`http://app:1001/api/socket/channels/${channelId}`, {
+                const channelResponse = await fetch(buildApiUrl(`/api/socket/channels/${channelId}`), {
                     method: 'GET',
                     headers: headers
                 });

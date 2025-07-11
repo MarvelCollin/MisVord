@@ -1,6 +1,7 @@
 const roomManager = require('../services/roomManager');
 const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
 const EventEmitter = require('events');
+const { buildApiUrl } = require('../config/env');
 
 class BotHandler extends EventEmitter {
     static bots = new Map();
@@ -771,7 +772,7 @@ class BotHandler extends EventEmitter {
             };
             
             console.log(`🌐 [BOT-DEBUG] Making HTTP request to save bot message:`, {
-                url: `http://app:1001${options.path}`,
+                url: buildApiUrl(options.path),
                 headers: options.headers
             });
             
