@@ -948,53 +948,56 @@ class MessageHandler {
         for (const mention of messageData.mentions) {
             if (mention.type === 'all') {
                 const allMentionPayload = { ...notificationPayload, type: 'all' };
-
-                if (notificationPayload.target_type === 'channel' && context.server_id) {
-                    console.log('📧 [MENTION-NOTIFICATIONS] Processing @all mention for server:', context.server_id);
-                    
+                
+                console.log('📧 [ALL-MENTION] Processing @all mention:', {
+                    server_id: context.server_id,
+                    sender_user_id: messageData.user_id,
+                    total_sockets: io.sockets.sockets.size
+                });
+                
+                if (context.server_id) {
                     try {
+                        const headers = {
+                            'Content-Type': 'application/json',
+                            'User-Agent': 'SocketServer/1.0',
+                            'X-Socket-Token': 'socket-server-internal-auth-2025'
+                        };
+
                         const response = await fetch(`http://app:1001/api/socket/servers/${context.server_id}/members`, {
                             method: 'GET',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'User-Agent': 'SocketServer/1.0',
-                                'X-Socket-Token': 'socket-server-internal-auth-2025'
-                            }
+                            headers: headers
                         });
 
                         if (response.ok) {
                             const result = await response.json();
-                            if (result.success && result.data) {
-                                const serverMembers = result.data;
-                                let notificationsSent = 0;
+                            const serverMembers = result.success ? result.data : [];
+                            
+                            console.log('📧 [ALL-MENTION] Server members found:', serverMembers.length);
+                            
+                            let notifiedCount = 0;
+                            for (const socket of io.sockets.sockets.values()) {
+                                const socketUserId = socket.data?.user_id?.toString();
                                 
-                                for (const socket of io.sockets.sockets.values()) {
-                                    const socketUserId = socket.data?.user_id;
-                                    if (socketUserId && socketUserId.toString() !== messageData.user_id.toString()) {
-                                        const isMember = serverMembers.some(member => 
-                                            member.user_id?.toString() === socketUserId.toString()
-                                        );
-                                        if (isMember) {
-                                            socket.emit('mention_notification', allMentionPayload);
-                                            notificationsSent++;
-                                        }
+                                if (socketUserId && socketUserId !== messageData.user_id.toString()) {
+                                    const isMember = serverMembers.some(member => 
+                                        member.user_id?.toString() === socketUserId
+                                    );
+                                    
+                                    if (isMember) {
+                                        socket.emit('mention_notification', allMentionPayload);
+                                        notifiedCount++;
                                     }
                                 }
-                                console.log(`📧 [MENTION-NOTIFICATIONS] Sent @all notification to ${notificationsSent} server members`);
-                            } else {
-                                console.error('❌ [MENTION-NOTIFICATIONS] Failed to fetch server members:', result.message);
-                                if (targetRoom) {
-                                    client.to(targetRoom).emit('mention_notification', allMentionPayload);
-                                }
                             }
+                            console.log('📧 [ALL-MENTION] Notified users count:', notifiedCount);
                         } else {
-                            console.error('❌ [MENTION-NOTIFICATIONS] Server members API error:', response.status);
+                            console.error('❌ [ALL-MENTION] Failed to fetch server members:', response.status);
                             if (targetRoom) {
                                 client.to(targetRoom).emit('mention_notification', allMentionPayload);
                             }
                         }
                     } catch (error) {
-                        console.error('❌ [MENTION-NOTIFICATIONS] Error fetching server members:', error);
+                        console.error('❌ [ALL-MENTION] Error fetching server members:', error);
                         if (targetRoom) {
                             client.to(targetRoom).emit('mention_notification', allMentionPayload);
                         }

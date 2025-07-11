@@ -1169,25 +1169,18 @@ class GlobalSocketManager {
                 return;
             }
             
-
-            
             let shouldNotify = false;
             let mentionType = '';
             
             if (data.type === 'all') {
                 shouldNotify = true;
                 mentionType = '@all';
-
             } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
                 shouldNotify = true;
                 mentionType = `@${this.username}`;
-
             }
             
             if (shouldNotify) {
-                this.showGlobalMentionNotification(data, mentionType);
-                this.playGlobalMentionSound();
-                
                 window.dispatchEvent(new CustomEvent('globalMentionReceived', {
                     detail: {
                         data: data,
@@ -1198,62 +1191,6 @@ class GlobalSocketManager {
             }
         } catch (error) {
             console.error('❌ [GLOBAL-SOCKET] Error handling global mention notification:', error);
-        }
-    }
-    
-    showGlobalMentionNotification(data, mentionType) {
-        try {
-            const isCurrentChat = this.isCurrentlyViewingChat(data);
-            
-            if (isCurrentChat) {
-
-                return;
-            }
-            
-            const channelName = data.channel_name || `Channel ${data.channel_id || data.room_id}`;
-            const notificationText = `${data.username} mentioned you with ${mentionType} in ${channelName}`;
-            const avatarUrl = data.avatar_url || '/public/assets/common/default-profile-picture.png';
-            
-
-            
-            if (window.showToast) {
-                if (window.notificationToast && typeof window.notificationToast.mention === 'function') {
-                    window.notificationToast.mention(notificationText, {
-                        avatar: avatarUrl,
-                        title: 'New Mention',
-                        duration: 8000
-                    });
-                } else {
-                    window.showToast(notificationText, 'mention', 8000);
-                }
-            }
-            
-            if (document.hidden && 'Notification' in window) {
-                if (Notification.permission === 'granted') {
-                    const notification = new Notification('New Mention', {
-                        body: notificationText,
-                        icon: avatarUrl,
-                        tag: `mention-${data.message_id || Date.now()}`,
-                        requireInteraction: false
-                    });
-                    
-                    notification.onclick = () => {
-                        window.focus();
-                        this.navigateToMention(data);
-                        notification.close();
-                    };
-                    
-                    setTimeout(() => notification.close(), 10000);
-                } else if (Notification.permission === 'default') {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === 'granted') {
-                            this.showGlobalMentionNotification(data, mentionType);
-                        }
-                    });
-                }
-            }
-        } catch (error) {
-            console.error('❌ [GLOBAL-SOCKET] Error showing global mention notification:', error);
         }
     }
     
@@ -1306,17 +1243,6 @@ class GlobalSocketManager {
         }
     }
     
-    playGlobalMentionSound() {
-        try {
-            const audio = new Audio('/public/assets/sound/discordo_sound.mp3');
-            audio.volume = 0.7;
-            audio.play().catch(e => {
-
-            });
-        } catch (error) {
-
-        }
-    }
     
     handleMentionNotification(data) {
         this.handleGlobalMentionNotification(data);

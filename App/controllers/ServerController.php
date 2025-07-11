@@ -1432,14 +1432,13 @@ class ServerController extends BaseController
 
     public function getServerMembersForSocket($serverId)
     {
-        header('Content-Type: application/json');
-
-        if (!$this->isValidSocketRequest()) {
-            return $this->forbidden('Unauthorized socket request');
-        }
-
         if (!$serverId) {
             return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+
+        $socketToken = $_SERVER['HTTP_X_SOCKET_TOKEN'] ?? '';
+        if ($socketToken !== 'socket-server-internal-auth-2025') {
+            return $this->unauthorized('Invalid socket token');
         }
 
         try {
@@ -1453,21 +1452,14 @@ class ServerController extends BaseController
             $simplifiedMembers = array_map(function($member) {
                 return [
                     'user_id' => $member['id'],
-                    'username' => $member['username'],
-                    'display_name' => $member['display_name'] ?? $member['username']
+                    'username' => $member['username']
                 ];
             }, $members);
 
             return $this->success($simplifiedMembers);
         } catch (Exception $e) {
-            return $this->serverError('Failed to load server members: ' . $e->getMessage());
+            return $this->serverError('Failed to load server members for socket: ' . $e->getMessage());
         }
-    }
-
-    private function isValidSocketRequest()
-    {
-        $token = $_SERVER['HTTP_X_SOCKET_TOKEN'] ?? '';
-        return $token === 'socket-server-internal-auth-2025';
     }
 
     public function promoteMember($serverId, $userId)

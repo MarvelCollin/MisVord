@@ -45,6 +45,14 @@ class GlobalNotificationHandler {
     }
 
     handleMentionNotification(data) {
+        console.log('📧 [NOTIFICATION] Received mention notification:', {
+            type: data.type,
+            user_id: data.user_id,
+            currentUserId: this.currentUserId,
+            message_id: data.message_id,
+            content: data.content?.substring(0, 50) + '...'
+        });
+        
         if (!this.currentUserId) {
             this.currentUserId = window.globalSocketManager?.userId;
             if(!this.currentUserId) return;
@@ -53,7 +61,7 @@ class GlobalNotificationHandler {
         const notificationId = `${data.message_id || data.timestamp || Date.now()}-${data.user_id}-${data.type}`;
         
         if (this.processedNotifications.has(notificationId)) {
-
+            console.log('📧 [NOTIFICATION] Duplicate notification ignored:', notificationId);
             return;
         }
         
@@ -66,9 +74,15 @@ class GlobalNotificationHandler {
         const isUserMention = data.type === 'user' && data.mentioned_user_id?.toString() === this.currentUserId.toString();
         const isAllMention = data.type === 'all' && data.user_id?.toString() !== this.currentUserId.toString();
         const isRoleMention = data.type === 'role' && data.mentioned_user_id?.toString() === this.currentUserId.toString();
+        
+        console.log('📧 [NOTIFICATION] Mention check results:', {
+            isUserMention,
+            isAllMention,
+            isRoleMention,
+            willShow: isUserMention || isAllMention || isRoleMention
+        });
 
         if (isUserMention || isAllMention || isRoleMention) {
-
             this.showNotification(data, isAllMention, isRoleMention);
             this.playNotificationSound();
         }
