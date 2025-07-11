@@ -379,7 +379,7 @@ window.updateGroupParticipants = updateParticipantDisplay;
 </script>
 
 <style>
-/* Skeleton loading animation */
+
 #group-skeleton-loading .role-group-skeleton {
     animation: fadeIn 0.5s ease-in-out;
 }

@@ -1,4 +1,4 @@
-/* Discord-style Server Sidebar with Folder Groups */
+
 
 :root {
   --discord-darker: #1e1f22;
@@ -8,14 +8,14 @@
   --discord-red: #ed4245;
   --discord-text-normal: #dcddde;
   --discord-text-muted: #a3a6aa;
-  --discord-folder-color: #2f3136; /* Darker folder color to match Discord */
+  --discord-folder-color: #2f3136; 
   --discord-folder-hover: #3f4248;
   --discord-folder-selected: #3f4248;
   --discord-folder-bg: #1e1f22;
   --animation-duration: 300ms;
 }
 
-/* Add improved transition effects for all elements */
+
 .server-sidebar-icon,
 .server-sidebar-button,
 .server-sidebar-group,
@@ -24,7 +24,7 @@
   transition: all var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Server sidebar list with scrolling */
+
 .server-sidebar-list {
   display: flex;
   flex-direction: column;
@@ -33,15 +33,15 @@
   padding: 8px 0;
   position: relative;
   width: 72px;
-  height: 100%; /* Full height */
-  max-height: calc(100vh - 48px); /* Explicit max height */
+  height: 100%; 
+  max-height: calc(100vh - 48px); 
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-/* Hide scrollbar when not needed */
+
 .no-scrollbar {
   scrollbar-width: none;
 }
@@ -50,22 +50,22 @@
   display: none;
 }
 
-/* Customize scrollbar appearance */
+
 .server-sidebar-list::-webkit-scrollbar {
-  width: 6px; /* Wider scrollbar */
+  width: 6px; 
 }
 
 .server-sidebar-list::-webkit-scrollbar-track {
-  background: rgba(30, 31, 34, 0.5); /* Slightly visible track */
+  background: rgba(30, 31, 34, 0.5); 
 }
 
 .server-sidebar-list::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.3); /* More visible thumb */
+  background-color: rgba(255, 255, 255, 0.3); 
   border-radius: 3px;
 }
 
 .server-sidebar-list::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.5); /* Even more visible on hover */
+  background-color: rgba(255, 255, 255, 0.5); 
 }
 
 .server-sidebar-icon {
@@ -81,10 +81,10 @@
   z-index: 1;
   transition: all var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94);
   transform-origin: center;
-  backface-visibility: hidden; /* Smoother animations */
+  backface-visibility: hidden; 
 }
 
-/* Enhanced animation for server icons */
+
 .server-sidebar-icon:not(.dragging) {
   animation: server-appear var(--animation-duration) ease-out;
 }
@@ -138,7 +138,7 @@
   transition: all var(--animation-duration) ease;
 }
 
-/* Animation for new folder group */
+
 .server-sidebar-group {
   animation: folder-appear var(--animation-duration) ease-out;
 }
@@ -176,7 +176,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-/* Enhanced visual feedback for drop targets */
+
 .server-sidebar-group.drag-over {
   transform: scale(1.05);
   background-color: rgba(88, 101, 242, 0.1);
@@ -234,7 +234,7 @@
   border-radius: 16px 16px 0 0 !important;
 }
 
-/* Ensure collapsed folders show folder icon */
+
 .server-sidebar-group:not(.open) {
   cursor: pointer;
 }
@@ -244,7 +244,7 @@
   transform: scale(1.05);
 }
 
-/* Default collapsed state */
+
 .server-sidebar-group {
   position: relative;
 }
@@ -321,7 +321,7 @@
   opacity: 0;
 }
 
-/* Smooth transitions for folder open/close */
+
 .server-sidebar-group.open .group-servers {
   animation: expandGroup var(--animation-duration) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
@@ -339,7 +339,7 @@
   }
 }
 
-/* Improved animations for servers being dragged */
+
 .server-sidebar-icon.dragging {
   opacity: 0.6;
   transform: scale(1.1) rotate(5deg);
@@ -403,25 +403,25 @@
   color: white;
 }
 
-/* Fix tooltip visibility issues */
+
 .server-sidebar-icon {
   position: relative;
 }
 
 .tooltip {
-  position: fixed; /* Change to fixed positioning */
+  position: fixed; 
   background-color: #18191c;
   color: white;
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
-  z-index: 99999; /* Super high z-index */
+  z-index: 99999; 
   pointer-events: none;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
-  display: none; /* Hide by default */
+  display: none; 
   transform: translateX(-5px);
   max-width: 250px;
   line-height: 1.4;
@@ -444,14 +444,14 @@
   transform: translateX(0);
 }
 
-/* Remove any overflow restrictions */
+
 .server-sidebar-icon,
 .server-sidebar-group,
 .group-header {
   overflow: visible !important;
 }
 
-/* Keep scrollbar visible for server-sidebar-list */
+
 .server-sidebar-list {
   overflow-x: hidden !important;
   overflow-y: auto !important;
@@ -630,7 +630,7 @@
   color: #ffffff !important;
 }
 
-/* Explore Server Button - Discord Style */
+
 .discord-explore-server-button {
   width: 48px;
   height: 48px;
@@ -698,7 +698,7 @@
   }
 }
 
-/* Home Button Logo */
+
 .discord-home-logo {
   width: 24px;
   height: 24px;

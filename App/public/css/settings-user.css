@@ -1,7 +1,7 @@
-/* User Settings Page Styles */
+
 
 :root {
-  /* Core Discord Colors */
+  
   --discord-blurple: #5865f2;
   --discord-blurple-dark: #4752c4;
   --discord-blurple-darker: #3c45a5;
@@ -14,19 +14,19 @@
   --discord-nitro: #ff73fa;
   --discord-boost: #ff73fa;
   
-  /* Background Colors */
+  
   --discord-bg-primary: #313338;
   --discord-bg-secondary: #2b2d31;
   --discord-bg-tertiary: #1e1f22;
   --discord-bg-overlay: #18191c;
   --discord-bg-floating: #111214;
 
-  /* Elevation Levels */
+  
   --discord-elevation-low: 0 1px 0 rgba(0, 0, 0, 0.2), 0 1.5px 0 rgba(0, 0, 0, 0.05), 0 2px 0 rgba(0, 0, 0, 0.05);
   --discord-elevation-medium: 0 4px 4px rgba(0, 0, 0, 0.16);
   --discord-elevation-high: 0 8px 16px rgba(0, 0, 0, 0.24);
   
-  /* Text Colors */
+  
   --discord-text-normal: #f2f3f5;
   --discord-text-muted: #b5bac1;
   --discord-text-link: #00a8fc;
@@ -35,24 +35,24 @@
   --discord-text-danger: #f23f43;
   --discord-text-brand: #5865f2;
   
-  /* Interactive Colors */
+  
   --discord-interactive-normal: #b5bac1;
   --discord-interactive-hover: #dcddde;
   --discord-interactive-active: #ffffff;
   --discord-interactive-muted: #4e5058;
   
-  /* Background Modifiers */
+  
   --discord-background-modifier-hover: rgba(79, 84, 92, 0.16);
   --discord-background-modifier-active: rgba(79, 84, 92, 0.24);
   --discord-background-modifier-selected: rgba(79, 84, 92, 0.32);
   --discord-background-modifier-accent: rgba(79, 84, 92, 0.48);
 
-  /* Border Radius */
+  
   --discord-border-radius-primary: 8px;
   --discord-border-radius-secondary: 4px;
   --discord-border-radius-tertiary: 3px;
   
-  /* Spacing */
+  
   --discord-spacing-xs: 4px;
   --discord-spacing-sm: 8px;
   --discord-spacing-md: 16px;
@@ -60,12 +60,12 @@
   --discord-spacing-xl: 32px;
   --discord-spacing-xxl: 40px;
   
-  /* Animation */
+  
   --discord-animation-short: 0.1s;
   --discord-animation-default: 0.2s;
   --discord-animation-long: 0.4s;
   
-  /* Fonts */
+  
   --discord-font-primary: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --discord-font-display: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --discord-font-headline: "ABC Ginto Normal", "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -930,7 +930,7 @@ button:active {
   }
 }
 
-/* Video Settings Styles */
+
 .video-preview-container {
     position: relative;
     width: 100%;
@@ -1030,7 +1030,7 @@ button:active {
     background-color: #d73939;
 }
 
-/* Enhanced Device Display Styling */
+
 #current-input-device, #current-output-device, #current-video-device {
     padding: 12px 16px;
     border-radius: 6px;
@@ -1053,7 +1053,7 @@ button:active {
     color: #8b5cf6;
 }
 
-/* Enhanced Button Styling */
+
 button {
     border-radius: 8px;
     font-weight: 600;
@@ -1077,7 +1077,7 @@ button:hover::before {
     left: 100%;
 }
 
-/* Enhanced Mic Test Button */
+
 #mic-test-btn, #video-test-btn {
     background: linear-gradient(135deg, #5865f2, #4752c4);
     border: none;
@@ -1106,7 +1106,7 @@ button:hover::before {
     box-shadow: 0 4px 12px rgba(240, 71, 71, 0.4);
 }
 
-/* Approve button styles */
+
 #approve-username {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 40px;
@@ -1607,7 +1607,7 @@ button:hover::before {
   }
 }
 
-/* Voice & Video Settings Styles */
+
 .voice-video-tabs {
     display: flex;
     border-bottom: 2px solid rgba(79, 84, 92, 0.48);
@@ -1737,7 +1737,7 @@ button:hover::before {
     cursor: pointer;
     position: relative;
     z-index: 10;
-    padding: 6px 0; /* Larger click area */
+    padding: 6px 0; 
     box-sizing: border-box;
 }
 
@@ -1799,7 +1799,7 @@ button:hover::before {
     transform: scale(1.05);
 }
 
-/* Firefox specific fixes */
+
 .volume-slider::-moz-range-track {
     background: #40444b;
     height: 8px;
@@ -1896,9 +1896,9 @@ button:hover::before {
     padding: 2px 0;
 }
 
-/* Ensure both volume sliders work identically */
+
 #input-volume, #output-volume {
-    touch-action: none; /* Better mobile interaction */
+    touch-action: none; 
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -1910,7 +1910,7 @@ button:hover::before {
     outline-offset: 2px;
 }
 
-/* Ensure volume controls don't interfere with each other */
+
 .volume-control:nth-child(1) .volume-slider {
     position: relative;
     z-index: 15;
@@ -1921,7 +1921,7 @@ button:hover::before {
     z-index: 15;
 }
 
-/* Enhanced Responsive Design */
+
 @media (max-width: 1024px) {
     .grid.grid-cols-1.md\\:grid-cols-2 {
         grid-template-columns: 1fr;
@@ -2078,7 +2078,7 @@ button:hover::before {
     }
 }
 
-/* Video Settings Styles */
+
 .video-preview-container {
     position: relative;
     width: 100%;
@@ -2178,7 +2178,7 @@ button:hover::before {
     background-color: #d73939;
 }
 
-/* Enhanced Device Display Styling */
+
 #current-input-device, #current-output-device, #current-video-device {
     padding: 12px 16px;
     border-radius: 6px;
@@ -2201,7 +2201,7 @@ button:hover::before {
     color: #8b5cf6;
 }
 
-/* Enhanced Button Styling */
+
 button {
     border-radius: 8px;
     font-weight: 600;
@@ -2225,7 +2225,7 @@ button:hover::before {
     left: 100%;
 }
 
-/* Enhanced Mic Test Button */
+
 #mic-test-btn, #video-test-btn {
     background: linear-gradient(135deg, #5865f2, #4752c4);
     border: none;
@@ -2254,7 +2254,7 @@ button:hover::before {
     box-shadow: 0 4px 12px rgba(240, 71, 71, 0.4);
 }
 
-/* Approve button styles */
+
 #approve-username {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 40px;
@@ -2755,7 +2755,7 @@ button:hover::before {
   }
 }
 
-/* Server ownership transfer styles in delete modal */
+
 #owned-servers-section {
     max-height: 400px;
     overflow-y: auto;
@@ -2775,14 +2775,14 @@ button:hover::before {
     background-color: transparent;
 }
 
-/* Improve dropdown visibility */
+
 .members-dropdown {
     max-height: 200px;
     overflow-y: auto;
     scrollbar-width: thin;
-    background-color: #2f3136; /* Solid background color */
-    border: 1px solid #40444b; /* Stronger border */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Add shadow for depth */
+    background-color: #2f3136; 
+    border: 1px solid #40444b; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); 
     z-index: 50;
     width: 100%;
 }
@@ -2797,8 +2797,8 @@ button:hover::before {
 }
 
 .members-dropdown .flex {
-    padding: 8px; /* More padding for dropdown items */
-    border-bottom: 1px solid #40444b; /* Separator between items */
+    padding: 8px; 
+    border-bottom: 1px solid #40444b; 
 }
 
 .members-dropdown .flex:last-child {
@@ -2806,7 +2806,7 @@ button:hover::before {
 }
 
 .members-dropdown .flex:hover {
-    background-color: #36393f; /* Darker hover background */
+    background-color: #36393f; 
 }
 
 .member-search-input:focus {
@@ -2815,7 +2815,7 @@ button:hover::before {
     box-shadow: 0 0 0 1px var(--discord-blurple);
 }
 
-/* Loading animation */
+
 .fetch-members-btn .fa-spinner,
 .transfer-btn .fa-spinner {
     animation: spin 1s linear infinite;
@@ -2826,19 +2826,19 @@ button:hover::before {
     100% { transform: rotate(360deg); }
 }
 
-/* Server element transition */
+
 #owned-servers-list > div {
     transition: opacity 0.3s ease, border-color 0.3s ease;
-    margin-bottom: 10px; /* Add spacing between server items */
-    padding: 12px; /* More padding for server items */
+    margin-bottom: 10px; 
+    padding: 12px; 
 }
 
-/* Wider delete account modal */
+
 #delete-account-modal .max-w-md {
-    max-width: 48rem; /* Increase from 32rem to 48rem for much wider modal */
+    max-width: 48rem; 
 }
 
-/* Two-column layout for servers */
+
 #owned-servers-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -2846,7 +2846,7 @@ button:hover::before {
     padding: 4px;
 }
 
-/* Make each server card take full width on small screens */
+
 @media (max-width: 768px) {
     #owned-servers-list {
         grid-template-columns: 1fr;
@@ -2857,7 +2857,7 @@ button:hover::before {
     }
 }
 
-/* Make selected member more visible */
+
 .selected-member {
     background-color: #2f3136;
     border: 1px solid #40444b;
@@ -2865,12 +2865,12 @@ button:hover::before {
     padding: 8px;
 }
 
-/* Fix dropdown positioning in grid layout */
+
 .server-transfer-section {
     position: relative;
 }
 
-/* Ensure dropdown doesn't get cut off */
+
 .relative {
     position: relative;
     z-index: 10;

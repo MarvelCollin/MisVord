@@ -1,6 +1,6 @@
-/* Discord-like messaging styles */
 
-/* Chat messages container */
+
+
 #chat-messages {
     scroll-behavior: smooth;
     scrollbar-width: thin;
@@ -24,7 +24,7 @@
     background: rgba(32, 34, 37, 0.8);
 }
 
-/* Message styling improvements */
+
 .message {
     margin-bottom: 0.25rem;
     padding: 0.125rem 0;
@@ -67,7 +67,7 @@
     opacity: 1;
 }
 
-/* Avatar styling */
+
 .message img {
     width: 2.5rem;
     height: 2.5rem;
@@ -75,7 +75,7 @@
     flex-shrink: 0;
 }
 
-/* Message grouping */
+
 .message-group {
     margin-bottom: 1rem;
     position: relative;
@@ -99,14 +99,14 @@
     padding-right: 0.5rem;
 }
 
-/* Skeleton loader improvements */
+
 .skeleton-loader {
     animation: fadeIn 0.3s ease;
     pointer-events: none;
 }
 
 .skeleton-loader .animate-pulse {
-    /* animation: none; */
+    
     opacity: 0.7;
 }
 
@@ -118,7 +118,7 @@
     background-color: #36393f !important;
 }
 
-/* Empty chat state */
+
 .empty-chat-message {
     display: flex;
     flex-direction: column;
@@ -138,7 +138,7 @@
     opacity: 0.5;
 }
 
-/* Bubble message transitions */
+
 .bubble-message-group {
     animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -154,18 +154,18 @@
     }
 }
 
-/* Bubble temporary message styling */
+
 .bubble-message-temporary {
     position: relative;
 }
 
-/* Bubble highlight effect */
+
 .bubble-message-group.highlight-message {
     background-color: rgba(88, 101, 242, 0.1);
     transition: background-color 0.3s ease;
 }
 
-/* Bubble editing states */
+
 .bubble-message-group.message-temp-edit {
     opacity: 0.8;
     background-color: rgba(250, 166, 26, 0.1);
@@ -210,7 +210,7 @@
     border-radius: 4px;
 }
 
-/* Loading state for form */
+
 .form-loading #message-input {
     opacity: 0.7;
     pointer-events: none;
@@ -221,7 +221,7 @@
     cursor: not-allowed;
 }
 
-/* Bubble reactions */
+
 .bubble-reactions {
     display: flex;
     flex-wrap: wrap;
@@ -265,7 +265,7 @@
     font-weight: 500;
 }
 
-/* Bubble attachments */
+
 .bubble-attachments {
     margin-top: 8px;
 }
@@ -283,7 +283,7 @@
     cursor: pointer;
 }
 
-/* Typing indicator */
+
 #typing-indicator {
     display: flex;
     align-items: center;
@@ -327,7 +327,7 @@
     }
 }
 
-/* Message form improvements */
+
 #message-form {
     position: relative;
 }
@@ -341,7 +341,7 @@
     box-shadow: 0 4px 12px rgba(88, 101, 242, 0.15);
 }
 
-/* Message content improvements */
+
 .message-content a {
     color: #00aff4;
     text-decoration: none;
@@ -358,7 +358,7 @@
     border-radius: 3px;
 }
 
-/* Hover improvements */
+
 .group:hover .message-actions {
     opacity: 1;
 }
@@ -368,7 +368,7 @@
     transition: opacity 0.2s ease;
 }
 
-/* Message grouping visual improvements */
+
 .mb-1.group.hover\:bg-discord-dark\/30.p-1.rounded.-mx-1.relative.pl-14 {
     position: relative;
 }
@@ -377,7 +377,7 @@
     opacity: 1 !important;
 }
 
-/* Ensure proper spacing for grouped messages */
+
 .mt-4 {
     margin-top: 1rem;
 }
@@ -390,14 +390,14 @@
     padding-left: 3.5rem;
 }
 
-/* Profile picture container */
+
 .w-10.h-10.rounded-full {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
 }
 
-/* Message timestamp hover effects */
+
 .opacity-0.group-hover\:opacity-100 {
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -407,7 +407,7 @@
     opacity: 1;
 }
 
-/* Own message styling */
+
 .own-message {
     position: relative;
 }
@@ -428,12 +428,12 @@
     font-weight: 500;
 }
 
-/* Temporary message styling */
+
 .temp-message {
     position: relative;
 }
 
-/* Enhanced message bubble hover effects */
+
 .message-bubble:hover .message-avatar {
     transform: scale(1.05);
     border-color: #5865f2;
@@ -443,7 +443,7 @@
     color: #ffffff;
 }
 
-/* Message status indicators */
+
 .message-status {
     position: absolute;
     right: 0.5rem;
@@ -460,14 +460,14 @@
     color: #f04747;
 }
 
-/* Smooth scrolling for message container */
+
 #chat-messages {
     scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: #202225 #2f3136;
 }
 
-/* Discord-style message improvements */
+
 .message-row {
     position: relative;
     transition: background-color 0.1s ease;
@@ -477,7 +477,7 @@
     background-color: rgba(79, 84, 92, 0.16) !important;
 }
 
-/* Action bar styling */
+
 .message-actions {
     background: rgba(54, 57, 63, 0.95);
     backdrop-filter: blur(8px);
@@ -494,7 +494,7 @@
     transform: scale(1.05);
 }
 
-/* Context menu improvements */
+
 .context-menu {
     background: rgba(54, 57, 63, 0.95);
     backdrop-filter: blur(12px);
@@ -531,14 +531,14 @@
     transform: scale(1.1);
 }
 
-/* Message grouping styles */
+
 .message-row.grouped {
     margin-top: 0;
     padding-top: 0.125rem;
     padding-bottom: 0.125rem;
 }
 
-/* Avatar pulse effect for new messages */
+
 @keyframes avatarPulse {
     0% {
         box-shadow: 0 0 0 0 rgba(88, 101, 242, 0.7);
@@ -555,7 +555,7 @@
     animation: avatarPulse 0.6s ease-out;
 }
 
-/* Message enter animation */
+
 .message-enter {
     animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
@@ -571,7 +571,7 @@
     }
 }
 
-/* Improved scrollbar for Discord-like feel */
+
 #chat-messages::-webkit-scrollbar {
     width: 8px;
 }
@@ -589,19 +589,19 @@
     background: rgba(32, 34, 37, 0.8);
 }
 
-/* Better text selection */
+
 .message-row ::selection {
     background: rgba(88, 101, 242, 0.3);
 }
 
-/* Message content styling */
+
 .message-content {
     word-wrap: break-word;
     overflow-wrap: break-word;
     white-space: pre-wrap;
 }
 
-/* Timestamp hover effect */
+
 .message-timestamp-hover {
     opacity: 0;
     transition: opacity 0.1s ease;
@@ -689,7 +689,7 @@
   }
 }
 
-/* Message reactions */
+
 .message-reactions {
     display: flex;
     flex-wrap: wrap;
@@ -724,7 +724,7 @@
     color: #b9bbbe;
 }
 
-/* Reply message styling */
+
 .reply-info {
     color: #b9bbbe;
     border-left: 2px solid #4f545c;
@@ -733,7 +733,7 @@
     margin-bottom: 4px;
 }
 
-/* Highlight effect for replied messages */
+
 @keyframes message-highlight-flash {
     0% { 
         background: linear-gradient(90deg, 
@@ -841,7 +841,7 @@
     }
 }
 
-/* Enhanced bubble message highlighting */
+
 .bubble-message-group.highlight-message {
     animation: message-highlight-flash 2.5s ease-out forwards;
     border: 2px solid transparent;
@@ -855,7 +855,7 @@
     border-radius: 14px;
 }
 
-/* Notification target highlighting - special style for navigation */
+
 .message-notification-target {
     animation: message-highlight-flash 3s ease-out forwards, 
                message-glow-border 2s ease-out forwards;

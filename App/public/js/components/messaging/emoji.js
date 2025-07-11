@@ -127,7 +127,7 @@ class EmojiReactions {
     border-top: 1px solid #41434a;
 }
 
-/* Reaction hover effects */
+
 .bubble-reaction:hover,
 .message-reaction-pill:hover {
     transform: scale(1.05);

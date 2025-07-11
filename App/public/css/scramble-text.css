@@ -265,7 +265,7 @@
     }
 }
 
-/* Base scramble text styles */
+
 .scramble-text {
     position: relative;
     display: inline-block !important;
@@ -317,7 +317,7 @@
     animation: shimmer 4s ease-in-out infinite;
 }
 
-/* Character floating animations */
+
 @keyframes charFloat1 {
     0% {
         transform: translateY(0) scale(1) rotate(0deg);
@@ -394,7 +394,7 @@
     }
 }
 
-/* Animation assignments for different character positions */
+
 .scramble-text .char.floating:nth-child(5n) {
     animation: charFloat1 5s ease-in-out infinite;
 }
@@ -419,7 +419,7 @@
     animation-delay: 0.8s;
 }
 
-/* Hero title specific styles */
+
 .hero-title.scramble-text {
     display: inline-block !important;
     opacity: 1 !important;
@@ -534,7 +534,7 @@
     z-index: 1000;
 }
 
-/* Enhanced floating effect for wave characters */
+
 .hero-title .scramble-char.wave-char.floating {
     animation: characterWave 2s ease-in-out infinite, floatingEnhanced 4s ease-in-out infinite;
 }
@@ -603,7 +603,7 @@
     }
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
     .scramble-text .char.floating {
         animation: none !important;
@@ -667,7 +667,7 @@
     }
 }
 
-/* Reduced motion support */
+
 @media (prefers-reduced-motion: reduce) {
     .scramble-text .char,
     .scramble-text .char.floating,

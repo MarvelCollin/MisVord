@@ -52,7 +52,7 @@
   border: none !important;
 }
 
-/* Prevent focus on all skeleton elements */
+
 .skeleton-loader *,
 #channel-skeleton-loading *,
 #chat-skeleton-loading *,
@@ -193,7 +193,7 @@
 }
 
 .skeleton-loader .animate-pulse {
-  /* animation: none; */
+  
   opacity: 0.7;
   background-color: #36393f !important;
 }
@@ -267,17 +267,17 @@
 }
 
 .skeleton-loader > div:nth-child(2) .animate-pulse {
-  /* animation-delay: none; */
+  
 }
 
 .skeleton-loader > div:nth-child(3) .animate-pulse {
-  /* animation-delay: none; */
+  
 }
 
 .skeleton-loader > div:nth-child(4) .animate-pulse {
-  /* animation-delay: none; */
+  
 }
 
 .skeleton-loader > div:nth-child(5) .animate-pulse {
-  /* animation-delay: none; */
+  
 }

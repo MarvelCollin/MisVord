@@ -1,4 +1,4 @@
-/* Discord-style Voice Channel CSS */
+
 .voice-fullscreen-mode {
     position: fixed !important;
     top: 0;
@@ -13,7 +13,7 @@
     align-items: center;
 }
 
-/* Force hide sidebars when in fullscreen mode */
+
 body.voice-fullscreen-active #server-sidebar,
 body.voice-fullscreen-active #channel-sidebar,
 body.voice-fullscreen-active .bg-discord-dark,
@@ -22,7 +22,7 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     display: none !important;
 }
 
-/* Animation classes */
+
 .voice-active-mode {
     position: relative;
 }
@@ -42,7 +42,7 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     }
 }
 
-/* Header animations */
+
 .voice-fullscreen-mode .voice-header {
     position: absolute;
     top: 0;
@@ -82,12 +82,12 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     background: rgba(0, 0, 0, 0.5);
 }
 
-/* Toast notification animations */
+
 #connectionToast {
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Participant animations */
+
 .user-voice-item {
     transition: background-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
 }
@@ -96,7 +96,7 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     transform: translateY(-2px);
 }
 
-/* Skeleton animation enhancements */
+
 .skeleton-circle::after,
 .skeleton-text::after,
 .skeleton-icon::after {
@@ -115,7 +115,7 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     }
 }
 
-/* Voice UI element transitions */
+
 .voice-ui-element {
     transition: opacity 0.3s ease, transform 0.3s ease;
 }
@@ -195,7 +195,7 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     color: rgba(255, 255, 255, 0.7);
 }
 
-/* Animation for fade-out */
+
 .fade-out {
     animation: fadeOut 0.3s ease forwards;
 }
@@ -209,12 +209,12 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     }
 }
 
-/* Animation for transition */
+
 .voice-fullscreen-transition {
     transition: all 0.3s ease-in-out;
 }
 
-/* Additional animations consolidated from voice components */
+
 @keyframes twinkle-star {
     0%, 100% {
         opacity: 0.3;
@@ -419,7 +419,7 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     }
 }
 
-/* Animation utility classes */
+
 .animate-twinkle-star {
     animation: twinkle-star 3s infinite ease-in-out;
 }
@@ -485,7 +485,7 @@ body.voice-fullscreen-active .w-60.bg-\[\#2b2d31\] {
     animation: pulse-cosmic 2s infinite ease-in-out;
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
     .voice-fullscreen-mode .voice-header .channel-name {
         font-size: 16px;

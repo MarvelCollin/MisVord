@@ -1,4 +1,4 @@
-/* Discord colors */
+
 :root {
   --scrollbar-thin-thumb: #1e1f22;
   --scrollbar-thin-track: transparent;
@@ -10,7 +10,7 @@
   --attachment-hover-bg: #36373d;
 }
 
-/* New message indicator */
+
 #new-message-indicator {
   box-shadow: 0 4px 15px rgba(88, 101, 242, 0.5);
   transform-origin: center bottom;
@@ -45,7 +45,7 @@
   }
 }
 
-/* Chat container */
+
 .flex-1.flex.flex-col.bg-\[\#313338\] {
   height: 100vh;
   overflow: hidden;
@@ -53,7 +53,7 @@
   flex-direction: column;
 }
 
-/* Message container */
+
 #chat-messages {
   overflow-y: auto;
   overflow-x: hidden;
@@ -61,16 +61,16 @@
   padding: 0;
   background-color: #313338;
   position: relative;
-  scroll-behavior: smooth; /* Enable smooth scrolling by default */
+  scroll-behavior: smooth; 
 }
 
-/* Improve scrolling performance */
+
 #chat-messages .messages-container {
   padding: 16px 0;
   display: flex;
   flex-direction: column;
-  will-change: transform; /* Optimize for animations */
-  backface-visibility: hidden; /* Reduce jitter */
+  will-change: transform; 
+  backface-visibility: hidden; 
 }
 
 #chat-messages .messages-container.min-h-full {
@@ -87,7 +87,7 @@
   min-height: 100%;
 }
 
-/* Bubble message hover effects */
+
 #chat-messages .bubble-message-group:hover {
   background-color: rgba(6, 6, 7, 0.02);
 }
@@ -97,7 +97,7 @@
   visibility: visible;
 }
 
-/* Bubble avatar styling */
+
 #chat-messages .bubble-avatar {
   width: 40px;
   height: 40px;
@@ -113,7 +113,7 @@
   object-fit: cover;
 }
 
-/* Bubble header styling */
+
 #chat-messages .bubble-header {
   display: flex;
   align-items: baseline;
@@ -139,7 +139,7 @@
   margin-left: 4px;
 }
 
-/* Bubble content styling */
+
 #chat-messages .bubble-message-content {
   position: relative;
   padding: 4px 0;
@@ -154,7 +154,7 @@
   margin: 0;
 }
 
-/* Bubble actions styling */
+
 #chat-messages .bubble-message-actions {
   position: absolute;
   top: -12px;
@@ -196,7 +196,7 @@
   color: #ffffff;
 }
 
-/* Mobile responsiveness */
+
 @media (max-width: 768px) {
   #chat-messages .bubble-message-group {
     padding: 2px 8px;
@@ -214,7 +214,7 @@
   }
 }
 
-/* Message input container */
+
 .chat-input-wrapper {
   background-color: #313338;
   border-top: 1px solid #3f4147;
@@ -233,7 +233,7 @@
   position: relative;
 }
 
-/* Upload button container */
+
 #message-form > div:first-child {
   width: 48px;
   display: flex;
@@ -241,7 +241,7 @@
   justify-content: center;
 }
 
-/* Upload button */
+
 #upload-button {
   width: 32px;
   height: 32px;
@@ -269,7 +269,7 @@
   line-height: 1;
 }
 
-/* Right side buttons */
+
 #message-form .flex.items-center.pr-\[2px\] button {
   width: 32px;
   height: 32px;
@@ -289,7 +289,7 @@
   line-height: 20px;
 }
 
-/* Message input */
+
 #message-input {
   background: transparent;
   border: none;
@@ -379,7 +379,7 @@
   color: #6d6f78 !important;
 }
 
-/* Scrollbar styling */
+
 #message-input::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -401,13 +401,13 @@
   border-radius: 4px;
 }
 
-/* Message input wrapper */
+
 .px-0.pb-6.pt-2 {
   background-color: #313338;
   border-top: 1px solid #3f4147;
 }
 
-/* Upload and send buttons */
+
 #upload-button,
 #message-form button[type="submit"] {
   position: absolute;
@@ -455,7 +455,7 @@
   background-color: #2b2d31;
 }
 
-/* Message groups - direct styling */
+
 #chat-messages .message-group {
   position: relative;
   margin: 0 0 2px 0 !important;
@@ -466,7 +466,7 @@
   border-radius: 4px !important;
 }
 
-/* Message content */
+
 #chat-messages .message-content {
   position: relative;
   width: 100%;
@@ -481,7 +481,7 @@
   background-color: rgba(79, 84, 92, 0.16) !important;
 }
 
-/* Updated message design */
+
 #chat-messages .message-avatar {
   width: 32px !important;
   height: 32px !important;
@@ -545,13 +545,13 @@
   position: relative !important;
 }
 
-/* Remove hover effect from text since we're handling it at message-content level */
+
 
 #chat-messages .message-contents {
   margin-top: 0 !important;
 }
 
-/* Typing indicator */
+
 .typing-animation .dot {
   animation: bounce 1.5s infinite ease-in-out;
 }
@@ -573,7 +573,7 @@
   }
 }
 
-/* Custom scrollbar for textarea */
+
 textarea.scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: #1e1f22 transparent;
@@ -592,7 +592,7 @@ textarea.scrollbar-thin::-webkit-scrollbar-thumb {
   border-radius: 4px;
 }
 
-/* Context menu animations */
+
 .context-menu {
   animation: contextMenuFadeIn 0.1s ease-out;
   transform-origin: top right;
@@ -609,19 +609,19 @@ textarea.scrollbar-thin::-webkit-scrollbar-thumb {
   }
 }
 
-/* Discord-style font */
+
 body {
   font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-/* Discord-style transitions */
+
 button {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-/* Remove group hover since we want individual message hover */
 
-/* Enhanced Reply System */
+
+
 .reply-container {
     display: flex;
     align-items: flex-start;
@@ -726,7 +726,7 @@ button {
     }
 }
 
-/* Reply Input UI */
+
 #reply-container {
     background: linear-gradient(90deg, rgba(88, 101, 242, 0.1) 0%, rgba(88, 101, 242, 0.05) 100%);
     border-top: 1px solid rgba(88, 101, 242, 0.3);
@@ -791,7 +791,7 @@ button {
     color: #dcddde;
 }
 
-/* Reply animations */
+
 .reply-container {
     animation: replySlideIn 0.2s ease-out;
 }
@@ -845,7 +845,7 @@ button {
     }
 }
 
-/* Mobile responsive design */
+
 @media (max-width: 768px) {
     .reply-container {
         margin-left: -44px;
@@ -905,13 +905,13 @@ button {
     }
 }
 
-/* Enhanced hover states */
+
 .reply-content:active {
     transform: translateY(1px);
     background-color: rgba(79, 84, 92, 0.7);
 }
 
-/* Better focus states for accessibility */
+
 .reply-content:focus-visible {
     outline: 2px solid #5865f2;
     outline-offset: 1px;
@@ -923,7 +923,7 @@ button {
     outline-offset: 2px;
 }
 
-/* Attachment styles */
+
 .message-attachment {
     margin-top: 4px;
     display: inline-block;
@@ -1008,7 +1008,7 @@ button {
     font-size: 12px;
 }
 
-/* File upload preview */
+
 #file-preview {
     background-color: var(--attachment-bg);
     padding: 12px;
@@ -1041,7 +1041,7 @@ button {
     font-size: 12px;
 }
 
-/* Upload dropdown */
+
 #attachment-dropdown {
     background-color: #18191c;
     border-radius: 4px;
@@ -1068,7 +1068,7 @@ button {
     margin-right: 8px;
 }
 
-/* Progress bar styles */
+
 .upload-progress {
     width: 100%;
     height: 4px;
@@ -1092,10 +1092,10 @@ button {
     background-color: #4f545c;
     margin-right: 16px;
     flex-shrink: 0;
-    /* animation: skeleton-pulse 1.5s ease-in-out infinite; */
+    
 }
 
-/* Simple chat skeleton animations */
+
 .chat-skeleton-message {
     animation: message-fade-in 0.6s ease-out forwards;
     opacity: 0;
@@ -1118,9 +1118,9 @@ button {
     }
 }
 
-/* Remove or disable skeleton pulse animation */
+
 @keyframes skeleton-pulse {
-    /* Animation disabled */
+    
     0%, 50%, 100% { opacity: 0.7; }
 }
 
@@ -1211,7 +1211,7 @@ button {
     transform: translateY(-10px);
 }
 
-/* Message grouping styles - very specific selectors with !important to ensure they're applied */
+
 .messages-container .bubble-message-group.grouped {
     margin-top: 0 !important;
     padding-top: 0 !important;

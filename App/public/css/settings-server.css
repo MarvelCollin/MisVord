@@ -1,7 +1,7 @@
-/* Server Settings Page Styles */
+
 
 :root {
-  /* Core Discord Colors */
+  
   --discord-blurple: #5865f2;
   --discord-blurple-dark: #4752c4;
   --discord-blurple-darker: #3c45a5;
@@ -14,19 +14,19 @@
   --discord-nitro: #ff73fa;
   --discord-boost: #ff73fa;
   
-  /* Background Colors */
+  
   --discord-bg-primary: #313338;
   --discord-bg-secondary: #2b2d31;
   --discord-bg-tertiary: #1e1f22;
   --discord-bg-overlay: #18191c;
   --discord-bg-floating: #111214;
 
-  /* Elevation Levels */
+  
   --discord-elevation-low: 0 1px 0 rgba(0, 0, 0, 0.2), 0 1.5px 0 rgba(0, 0, 0, 0.05), 0 2px 0 rgba(0, 0, 0, 0.05);
   --discord-elevation-medium: 0 4px 4px rgba(0, 0, 0, 0.16);
   --discord-elevation-high: 0 8px 16px rgba(0, 0, 0, 0.24);
   
-  /* Text Colors */
+  
   --discord-text-normal: #f2f3f5;
   --discord-text-muted: #b5bac1;
   --discord-text-link: #00a8fc;
@@ -35,24 +35,24 @@
   --discord-text-danger: #f23f43;
   --discord-text-brand: #5865f2;
   
-  /* Interactive Colors */
+  
   --discord-interactive-normal: #b5bac1;
   --discord-interactive-hover: #dcddde;
   --discord-interactive-active: #ffffff;
   --discord-interactive-muted: #4e5058;
   
-  /* Background Modifiers */
+  
   --discord-background-modifier-hover: rgba(79, 84, 92, 0.16);
   --discord-background-modifier-active: rgba(79, 84, 92, 0.24);
   --discord-background-modifier-selected: rgba(79, 84, 92, 0.32);
   --discord-background-modifier-accent: rgba(79, 84, 92, 0.48);
 
-  /* Border Radius */
+  
   --discord-border-radius-primary: 8px;
   --discord-border-radius-secondary: 4px;
   --discord-border-radius-tertiary: 3px;
   
-  /* Spacing */
+  
   --discord-spacing-xs: 4px;
   --discord-spacing-sm: 8px;
   --discord-spacing-md: 16px;
@@ -60,12 +60,12 @@
   --discord-spacing-xl: 32px;
   --discord-spacing-xxl: 40px;
   
-  /* Animation */
+  
   --discord-animation-short: 0.1s;
   --discord-animation-default: 0.2s;
   --discord-animation-long: 0.4s;
   
-  /* Fonts */
+  
   --discord-font-primary: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --discord-font-display: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --discord-font-headline: "ABC Ginto Normal", "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -89,7 +89,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Container layout */
+
 .flex.min-h-screen {
   margin: 0 auto;
   width: 100%;
@@ -110,7 +110,7 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Main content area */
+
 .flex-1.bg-discord-dark {
   flex: 1;
   background-color: var(--discord-bg-primary);
@@ -140,7 +140,7 @@ body {
   background-color: var(--discord-interactive-normal);
 }
 
-/* Form Elements */
+
 .form-group {
   margin-bottom: var(--discord-spacing-lg);
   transition: transform var(--discord-animation-default) ease-out;
@@ -190,7 +190,7 @@ body {
   font-style: italic;
 }
 
-/* Form group focus state */
+
 .form-group.is-focused label {
   color: var(--discord-text-brand);
   transition: color var(--discord-animation-short) ease;
@@ -200,7 +200,7 @@ body {
   transform: translateX(2px);
 }
 
-/* Form Validation States */
+
 .form-group.has-error .form-label {
   color: var(--discord-text-danger);
 }
@@ -242,7 +242,7 @@ body {
   margin-right: 4px;
 }
 
-/* Card Styles */
+
 .bg-discord-darker {
   background-color: var(--discord-bg-secondary);
   border-radius: var(--discord-border-radius-primary);
@@ -258,7 +258,7 @@ body {
   transform: translateY(-1px);
 }
 
-/* Custom Checkbox */
+
 .custom-checkbox {
   cursor: pointer;
   position: absolute;
@@ -291,7 +291,7 @@ body {
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
 }
 
-/* Toggle Switch */
+
 .switch {
   position: relative;
   display: inline-block;
@@ -338,7 +338,7 @@ input:checked + .slider:before {
   background-color: white;
 }
 
-/* Banner Color Options */
+
 .banner-color-option {
   height: 64px;
   border-radius: 4px;
@@ -360,7 +360,7 @@ input:checked + .slider:before {
   transform: translateY(0);
 }
 
-/* Server Icon Container */
+
 #server-icon-container {
   position: relative;
   cursor: pointer;
@@ -390,7 +390,7 @@ input:checked + .slider:before {
   height: 100%;
 }
 
-/* Trait Cards */
+
 .trait-card {
   background-color: #2b2d31;
   border-radius: 4px;
@@ -428,7 +428,7 @@ input:checked + .slider:before {
   transform: scale(1.05);
 }
 
-/* Server Preview Card */
+
 .server-preview-card {
   background-color: #1e1f22;
   border-radius: 8px;
@@ -489,7 +489,7 @@ input:checked + .slider:before {
   margin-right: 4px;
 }
 
-/* Buttons */
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -564,7 +564,7 @@ input:checked + .slider:before {
   box-shadow: none;
 }
 
-/* Close button */
+
 .close-button {
   position: fixed;
   top: 16px;
@@ -637,7 +637,7 @@ input:checked + .slider:before {
   position: relative;
 }
 
-/* Sidebar categories */
+
 .sidebar-category {
   font-size: 12px;
   font-weight: 700;
@@ -683,7 +683,7 @@ input:checked + .slider:before {
   transform: scale(1.05);
 }
 
-/* Navigation links */
+
 a {
   transition: color 0.2s ease, background-color 0.2s ease, transform 0.1s ease;
 }
@@ -696,7 +696,7 @@ a:active {
   transform: translateY(1px);
 }
 
-/* Image cropper modal */
+
 .cropper-modal {
   position: fixed;
   top: 0;
@@ -757,7 +757,7 @@ a:active {
   transform: translateY(0);
 }
 
-/* Members Tab Styles */
+
 #members-list {
   max-height: 500px;
   overflow-y: auto;
@@ -788,7 +788,7 @@ a:active {
 }
 
 .member-item:hover {
-  background-color: rgba(88, 101, 242, 0.18); /* subtle blurple tint */
+  background-color: rgba(88, 101, 242, 0.18); 
 }
 
 .member-avatar {
@@ -821,7 +821,7 @@ a:active {
   text-align: center;
 }
 
-/* Role colors */
+
 .member-role.owner {
   background-color: #f1c40f;
   color: #000;
@@ -842,7 +842,7 @@ a:active {
   color: #fff;
 }
 
-/* Status indicators */
+
 .status-indicator {
   width: 8px;
   height: 8px;
@@ -866,7 +866,7 @@ a:active {
   background-color: #747f8d;
 }
 
-/* Action buttons */
+
 .edit-role-btn,
 .kick-member-btn {
   padding: 6px;
@@ -889,7 +889,7 @@ a:active {
   cursor: not-allowed;
 }
 
-/* Search input */
+
 #member-search {
   background-color: var(--discord-dark-input);
   color: var(--discord-white);
@@ -910,7 +910,7 @@ a:active {
   color: var(--discord-lighter);
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 1200px) {
   .flex.min-h-screen {
     max-width: 100%;
@@ -971,7 +971,7 @@ a:active {
   }
 }
 
-/* Filter Dropdown */
+
 #member-filter {
   position: relative;
   user-select: none;
@@ -1004,9 +1004,9 @@ a:active {
   border: 1px solid rgba(4, 4, 5, 0.2);
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  z-index: 1000; /* ensure above other elements */
+  z-index: 1000; 
   overflow: hidden auto;
-  max-height: 260px; /* scroll if too tall */
+  max-height: 260px; 
   animation: dropdownSlideIn 0.15s ease-out;
 }
 
@@ -1095,12 +1095,12 @@ input[type="radio"]:checked + .radio-dot:after {
   font-weight: 500;
 }
 
-/* Override accent color for radio buttons in all browsers */
+
 input[type="radio"] {
   accent-color: var(--discord-primary);
 }
 
-/* Members Header Section */
+
 .members-header-section {
   margin-bottom: 24px;
 }
@@ -1297,7 +1297,7 @@ input[type="radio"]:checked + .radio-dot:after {
   background-color: var(--discord-blurple);
 }
 
-/* Create Role Button Enhanced */
+
 .create-role-btn {
   display: flex;
   align-items: center;
@@ -1352,7 +1352,7 @@ input[type="radio"]:checked + .radio-dot:after {
   transform: rotate(90deg);
 }
 
-/* Members Table Container */
+
 .members-table-container {
   background-color: var(--discord-bg-secondary);
   border-radius: 12px;
@@ -1397,7 +1397,7 @@ input[type="radio"]:checked + .radio-dot:after {
   text-align: center;
 }
 
-/* Member Item Styles */
+
 .member-item {
   display: flex;
   align-items: center;
@@ -1423,7 +1423,7 @@ input[type="radio"]:checked + .radio-dot:after {
 }
 
 .member-item:hover {
-  background-color: rgba(88, 101, 242, 0.18); /* subtle blurple tint */
+  background-color: rgba(88, 101, 242, 0.18); 
   transform: translateX(2px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -1563,7 +1563,7 @@ input[type="radio"]:checked + .radio-dot:after {
   color: var(--discord-interactive-normal);
 }
 
-/* Member Action Modal Styles */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1835,7 +1835,7 @@ input[type="radio"]:checked + .radio-dot:after {
   box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 }
 
-/* Create Role Button */
+
 .create-role-btn {
   background: linear-gradient(135deg, var(--discord-blurple) 0%, var(--discord-blurple-dark) 100%);
   color: white;
@@ -1861,7 +1861,7 @@ input[type="radio"]:checked + .radio-dot:after {
   transform: translateY(0);
 }
 
-/* Members List Container */
+
 .members-list-content {
   max-height: 500px;
   overflow-y: auto;
@@ -1876,7 +1876,7 @@ input[type="radio"]:checked + .radio-dot:after {
   color: var(--discord-interactive-normal);
 }
 
-/* Empty State Styling */
+
 .roles-empty-state {
   padding: 32px 20px;
   text-align: center;
@@ -1907,7 +1907,7 @@ input[type="radio"]:checked + .radio-dot:after {
   line-height: 1.4;
 }
 
-/* Role Badge Styling */
+
 .role-badge {
   display: inline-flex;
   align-items: center;
@@ -1944,13 +1944,13 @@ input[type="radio"]:checked + .radio-dot:after {
   border: 1px solid rgba(88, 101, 242, 0.3);
 }
 
-/* Form input focus states */
+
 .form-input:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--discord-primary);
 }
 
-/* Button styles */
+
 #change-server-icon-btn {
   padding: 8px 16px;
   height: 36px;
@@ -1979,7 +1979,7 @@ input[type="radio"]:checked + .radio-dot:after {
   background-color: rgba(237, 66, 69, 0.1);
 }
 
-/* Save button styling */
+
 #save-changes-btn {
   min-width: 120px;
   height: 38px;
@@ -2007,14 +2007,14 @@ input[type="radio"]:checked + .radio-dot:after {
   box-shadow: none;
 }
 
-/* Description textarea */
+
 #server-description {
   min-height: 80px;
   line-height: 1.3;
   font-size: 15px;
 }
 
-/* Discord style select */
+
 select.form-input {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B5BAC1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -2028,7 +2028,7 @@ select.form-input:focus {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235865F2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
-/* Server Banner Container */
+
 #server-banner-container {
   position: relative;
   cursor: pointer;
@@ -2056,7 +2056,7 @@ select.form-input:focus {
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* Image uploader improvements */
+
 .image-cropper-modal {
   z-index: 9999;
   background-color: rgba(0, 0, 0, 0.85);
@@ -2106,7 +2106,7 @@ select.form-input:focus {
   background-color: var(--discord-primary-dark);
 }
 
-/* Section Headers */
+
 h3.text-lg {
   color: var(--discord-white);
   font-weight: 600;
@@ -2125,7 +2125,7 @@ h3.text-lg:after {
   border-radius: 2px;
 }
 
-/* Form input improvements */
+
 input.form-input, textarea.form-input, select.form-input {
   font-size: 14px;
   background-color: var(--discord-dark-input);
@@ -2150,14 +2150,14 @@ textarea.form-input {
   resize: vertical;
 }
 
-/* Help text styling */
+
 .text-xs.text-discord-muted {
   color: #a3a6aa;
   font-size: 12px;
   margin-top: 4px;
 }
 
-/* Server Preview Panel */
+
 .sticky {
   position: sticky;
   top: 20px;
@@ -2176,7 +2176,7 @@ textarea.form-input {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
-/* Delete Server Modal */
+
 #delete-server-modal .bg-discord-dark {
   transform: scale(0.95);
   transition: transform 0.2s ease, opacity 0.2s ease;
@@ -2223,7 +2223,7 @@ textarea.form-input {
   background-color: rgba(237, 66, 69, 0.1);
 }
 
-/* Sidebar Styles */
+
 .w-60.bg-discord-light {
   width: 218px;
   min-width: 218px;
@@ -2303,7 +2303,7 @@ textarea.form-input {
   opacity: 0.7;
 }
 
-/* Sidebar categories */
+
 .sidebar-category {
   font-size: 12px;
   font-weight: 700;
@@ -2379,7 +2379,7 @@ textarea.form-input {
   box-shadow: var(--discord-elevation-low);
 }
 
-/* Server Preview Panel */
+
 .w-80.bg-discord-dark {
   width: 320px;
   min-width: 320px;
@@ -2448,7 +2448,7 @@ textarea.form-input {
   line-height: 1.4;
 }
 
-/* Tab content styles */
+
 .tab-content {
   padding: var(--discord-spacing-lg) 0;
   animation: fadeContent var(--discord-animation-default) ease;
@@ -2472,7 +2472,7 @@ textarea.form-input {
   font-size: 14px;
 }
 
-/* Animations */
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
@@ -2483,7 +2483,7 @@ textarea.form-input {
   animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
 }
 
-/* Legacy color class mappings */
+
 .text-discord-lighter {
   color: var(--discord-interactive-normal);
 }
@@ -2580,7 +2580,7 @@ textarea.form-input {
   line-height: 1.5;
 }
 
-/* Approve button styles */
+
 .approve-btn {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     min-height: 40px;
@@ -2650,7 +2650,7 @@ textarea.form-input {
     box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
 }
 
-/* Flex layout for input + approve button */
+
 .form-group .flex {
     align-items: center;
     gap: 8px;
@@ -2664,7 +2664,7 @@ textarea.form-input {
     align-self: flex-start;
 }
 
-/* Enhanced animations for approve buttons */
+
 @keyframes approveButtonAppear {
     from {
         opacity: 0;
@@ -2695,7 +2695,7 @@ textarea.form-input {
     animation: approveButtonDisappear 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-/* Responsive design for approve buttons */
+
 @media (max-width: 768px) {
     .approve-btn {
         min-height: 36px;
@@ -2715,7 +2715,7 @@ textarea.form-input {
     }
 }
 
-/* Channel Management Styles */
+
 .channels-header-section {
   margin-bottom: var(--discord-spacing-lg);
   display: flex;
@@ -2802,7 +2802,7 @@ textarea.form-input {
 }
 
 .channel-item:hover {
-  background-color: rgba(79, 84, 92, 0.3); /* changed from blurple tint to subtle gray */
+  background-color: rgba(79, 84, 92, 0.3); 
 }
 
 .channel-icon-wrapper {
@@ -2921,7 +2921,7 @@ textarea.form-input {
   color: var(--discord-interactive-muted);
 }
 
-/* Channel Filter Styles */
+
 #channel-filter {
   position: relative;
   display: inline-block;
@@ -2947,7 +2947,7 @@ textarea.form-input {
   background-color: var(--discord-background-modifier-hover);
 }
 
-/* Channel Search Styles */
+
 #channel-search {
   background-color: var(--discord-bg-tertiary);
   border: 1px solid rgba(4, 4, 5, 0.3);
@@ -2969,7 +2969,7 @@ textarea.form-input {
   color: var(--discord-interactive-muted);
 }
 
-/* Channel Modal Styles */
+
 .channel-modal-overlay {
   position: fixed;
   top: 0;
@@ -3146,7 +3146,7 @@ textarea.form-input {
   background-color: #d99e00;
 }
 
-/* Channel Edit Form Styles */
+
 .channel-edit-form .form-group {
   margin-bottom: var(--discord-spacing-md);
 }
@@ -3155,7 +3155,7 @@ textarea.form-input {
   width: 100%;
 }
 
-/* Empty State */
+
 .channels-empty-state {
   text-align: center;
   padding: var(--discord-spacing-xxl);
@@ -3181,7 +3181,7 @@ textarea.form-input {
   line-height: 1.5;
 }
 
-/* Loading State */
+
 .channels-loading-state {
   text-align: center;
   padding: var(--discord-spacing-xxl);

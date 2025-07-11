@@ -172,7 +172,7 @@ if (!function_exists('isBubbleVideoFile')) {
     transition: background-color 0.1s ease;
 }
 
-/* Grouped message styles - inline to ensure they're applied */
+
 .bubble-message-group.grouped {
     margin-top: 0 !important;
     padding-top: 0 !important;

@@ -220,7 +220,7 @@ if (!function_exists('renderMessage')) {
 .chat-skeleton-container {
     padding: 16px;
     animation-delay: 0.1s;
-    /* Position skeleton at bottom initially */
+    
     min-height: 100%;
     display: flex;
     flex-direction: column;
@@ -305,7 +305,7 @@ if (!function_exists('renderMessage')) {
     width: 40%;
 }
 
-/* Bubble Chat Styles - Always Available */
+
 .bubble-message-group {
     position: relative;
     display: flex;

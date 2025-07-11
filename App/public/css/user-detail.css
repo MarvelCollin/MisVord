@@ -1,4 +1,4 @@
-/* User Detail Modal Styles */
+
 :root {
   --discord-dark: #313338;
   --discord-darker: #2b2d31;
@@ -39,7 +39,7 @@
   animation: scaleIn 0.2s ease;
 }
 
-/* Header section with banner and avatar */
+
 .user-detail-header {
   position: relative;
   height: 120px;
@@ -170,7 +170,7 @@
   margin: 12px 0;
 }
 
-/* Section styles */
+
 .user-detail-section {
   margin: 12px 0;
 }
@@ -356,7 +356,7 @@
   border-radius: 4px;
 }
 
-/* Message Input Styles */
+
 .user-detail-send-message-container {
   display: flex;
   align-items: center;
@@ -512,7 +512,7 @@
   }
 }
 
-/* Content Transition Animation */
+
 .fade-in {
   animation: fadeIn 0.5s ease forwards;
 }
@@ -543,7 +543,7 @@
   background-color: var(--discord-primary);
 }
 
-/* User Avatar and Banner Styles */
+
 .user-avatar {
   width: 80px;
   height: 80px;
@@ -587,7 +587,7 @@
   transition: opacity 0.3s ease;
 }
 
-/* Skeleton Avatar Overlay */
+
 .skeleton-avatar.absolute {
   position: absolute;
   width: 100%;
@@ -598,7 +598,7 @@
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-/* Mutual Detail Modal Styles */
+
 .mutual-detail-modal {
   position: fixed;
   top: 0;

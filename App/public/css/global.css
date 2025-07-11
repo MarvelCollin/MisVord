@@ -465,7 +465,7 @@ button[type="submit"]:hover,
   border-radius: 1rem;
 }
 
-/* Simple Message Composer */
+
 .simple-message-composer .send-button {
   transition: all 0.2s ease-in-out;
 }
@@ -571,7 +571,7 @@ button[type="submit"]:hover,
   display: inline-block;
 }
 
-/* User Search Dropdown Animations */
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -653,7 +653,7 @@ button[type="submit"]:hover,
   animation: glow 2s ease-in-out infinite;
 }
 
-/* Simple skeleton loading animation */
+
 @keyframes simple-fade {
   0% {
     opacity: 0.6;
@@ -666,7 +666,7 @@ button[type="submit"]:hover,
   }
 }
 
-/* Apply simple animation to skeleton elements */
+
 .skeleton, 
 .skeleton-loader > div {
   animation: simple-fade 2s ease-in-out infinite;
@@ -674,7 +674,7 @@ button[type="submit"]:hover,
   transition: opacity 0.3s ease;
 }
 
-/* Skeleton loading animation - DISABLED */
+
 @keyframes skeleton-pulse {
   0% {
     opacity: 0.6;
@@ -687,7 +687,7 @@ button[type="submit"]:hover,
   }
 }
 
-/* Disable skeleton animation */
+
 /*
 .skeleton, 
 .skeleton-loader > div {
@@ -728,7 +728,7 @@ button[type="submit"]:hover,
   }
 }
 
-/* Dropdown transition effects */
+
 .dropdown-transition {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -742,7 +742,7 @@ button[type="submit"]:hover,
   background-color: rgba(88, 101, 242, 0.1);
 }
 
-/* Input field glow effect */
+
 .input-glow-success {
   border-color: #23a559 !important;
   box-shadow: 0 0 0 2px rgba(35, 165, 89, 0.2) !important;
@@ -753,7 +753,7 @@ button[type="submit"]:hover,
   box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2) !important;
 }
 
-/* Staggered animation delay classes */
+
 .animate-delay-0 { animation-delay: 0ms; }
 .animate-delay-100 { animation-delay: 100ms; }
 .animate-delay-200 { animation-delay: 200ms; }
@@ -921,7 +921,7 @@ button[type="submit"]:hover,
   }
 }
 
-/* Discord Server Sidebar Override */
+
 [data-action="create-server"] {
   transition: all 0.2s ease !important;
 }
@@ -939,7 +939,7 @@ button[type="submit"]:hover,
   color: #23a559 !important;
 }
 
-/* Force Discord Green Color */
+
 .text-discord-green,
 .discord-add-server-icon,
 .discord-explore-server-icon {
@@ -951,7 +951,7 @@ button[type="submit"]:hover,
   background-color: #23a559 !important;
 }
 
-/* Temp Edit System Styling */
+
 .message-temp-edit {
   transition: opacity 0.2s ease, transform 0.2s ease;
   position: relative;
@@ -1019,7 +1019,7 @@ button[type="submit"]:hover,
   }
 }
 
-/* Message editing state styling */
+
 .message-editing {
   background: rgba(88, 101, 242, 0.1) !important;
   border-radius: 8px;

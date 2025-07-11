@@ -795,7 +795,7 @@
 }
 
 
-/* Infinite Scroll Loading Animations */
+
 #infinite-loading-indicator .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -819,7 +819,7 @@
   box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
 }
 
-/* Server card animations for infinite scroll */
+
 .misvord-initial-server-card {
   transition: all 0.3s ease;
 }
@@ -828,7 +828,7 @@
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
-/* Loading states for infinite scroll */
+
 .infinite-scroll-loading {
   opacity: 0.7;
   pointer-events: none;
@@ -838,7 +838,7 @@
   transform: scale(0.98);
 }
 
-/* Smooth transitions for dynamically added content */
+
 .explore-server-card {
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
@@ -866,7 +866,7 @@
   }
 }
 
-/* Lazy Loading Styles */
+
 .lazy-loading {
   opacity: 0.5;
   transition: opacity 0.3s ease;
@@ -890,7 +890,7 @@
   to { opacity: 1; }
 }
 
-/* Infinite Scroll Loading Animations */
+
 #infinite-loading-indicator .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -914,7 +914,7 @@
   box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
 }
 
-/* Server card animations for infinite scroll */
+
 .misvord-initial-server-card {
   transition: all 0.3s ease;
 }
@@ -923,7 +923,7 @@
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
-/* Loading states for infinite scroll */
+
 .infinite-scroll-loading {
   opacity: 0.7;
   pointer-events: none;
@@ -933,7 +933,7 @@
   transform: scale(0.98);
 }
 
-/* Smooth transitions for dynamically added content */
+
 .explore-server-card {
   transition: opacity 0.3s ease, transform 0.3s ease;
 }

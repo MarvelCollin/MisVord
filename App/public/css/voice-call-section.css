@@ -2,7 +2,7 @@
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Fallback styles for voice control buttons when Tailwind classes fail */
+
 #micBtn, #videoBtn, #deafenBtn, #screenBtn, #ticTacToeBtn, #disconnectBtn {
     width: 48px !important;
     height: 48px !important;
@@ -87,7 +87,7 @@
     background-color: #da373c !important;
 }
 
-/* Voice controls container styling */
+
 .voice-controls {
     background-color: #36393f !important;
     border-top: 1px solid #202225 !important;
@@ -124,7 +124,7 @@
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
-    ba/* Sidebar append-only animations */
+    ba
 .voice-participant-card.appending {
     animation: sidebarSlideIn 0.4s ease-out forwards !important;
 }
@@ -140,7 +140,7 @@
     }
 }
 
-/* Participant Modal Styles */
+
 #participant-fullscreen-modal {
     backdrop-filter: blur(8px) !important;
     z-index: 9999 !important;
@@ -188,7 +188,7 @@
     transition: all 0.3s ease !important;
 }
 
-/* Modal Animations */
+
 @keyframes modalFadeIn {
     0% {
         opacity: 0 !important;
@@ -211,7 +211,7 @@
     }
 }
 
-/* Enhanced participant card cursor */
+
 .participant-card {
     cursor: pointer !important;
     user-select: none !important;
@@ -341,7 +341,7 @@
     backdrop-filter: blur(4px) !important;
 }
 
-/* Full card video overlay */
+
 .participant-video-overlay {
     position: absolute !important;
     top: 0 !important;
@@ -369,7 +369,7 @@
     line-height: 1.2 !important;
 }
 
-/* Enhanced participant grid styling */
+
 #participantGrid {
     display: grid !important;
     gap: 12px !important;
@@ -614,7 +614,7 @@
     }
 }
 
-/* Discord-style additions */
+
 .voice-control-btn {
     position: relative !important;
     border: none !important;
@@ -651,7 +651,7 @@
     background-color: #5865f2 !important;
 }
 
-/* Specific button hover states */
+
 .voice-control-btn.mic-btn:hover:not(.muted) {
     background-color: #ed4245 !important;
 }
@@ -680,10 +680,10 @@
     background-color: #da373c !important;
 }
 
-/* Tooltips - Using component tooltip system */
-/* Old tooltip styles removed since we're using the tooltip.php component */
 
-/* Enhanced voice participant styling */
+
+
+
 .voice-participant-avatar.speaking {
     border: 4px solid #3ba55c;
     animation: discord-speaking 2s ease-in-out infinite;
@@ -700,7 +700,7 @@
     }
 }
 
-/* Participant Cards */
+
 .voice-only-participant {
     display: flex;
     align-items: center;
@@ -762,7 +762,7 @@
     white-space: nowrap;
 }
 
-/* Animations */
+
 .view-transition {
     animation: fadeIn 0.3s ease-in-out;
 }
@@ -772,7 +772,7 @@
     to { opacity: 1; }
 }
 
-/* Bot Participant Styles */
+
 .voice-participant-avatar.bot-participant {
     background: #5865f2 !important;
     border: 3px solid #7289da !important;
@@ -800,7 +800,7 @@
     transform: translateY(-3px) !important;
 }
 
-/* Local Participant Styles */
+
 .voice-participant-avatar.local-participant {
     background: #3ba55c !important;
     border: 3px solid #43b05c !important;
@@ -979,7 +979,7 @@
     border: 1px solid rgba(88, 101, 242, 0.3) !important;
 }
 
-/* Video active state */
+
 .participant-card.video-active {
     border-color: #3ba55c !important;
     box-shadow: 0 0 12px rgba(59, 165, 92, 0.3) !important;
@@ -991,7 +991,7 @@
     box-shadow: 0 0 20px rgba(59, 165, 92, 0.5) !important;
 }
 
-/* Default view styling */
+
 .participant-default-view {
     transition: opacity 0.3s ease !important;
 }
@@ -1001,7 +1001,7 @@
     pointer-events: none !important;
 }
 
-/* Double-click animation */
+
 .participant-card {
     transition: transform 0.15s ease !important;
     cursor: pointer !important;
@@ -1011,7 +1011,7 @@
     transform: scale(0.98) !important;
 }
 
-/* Fullscreen overlay improvements */
+
 .fullscreen-overlay {
     animation: fullscreenFadeIn 0.2s ease-out !important;
 }
@@ -1032,7 +1032,7 @@
     transition: all 0.2s ease-out !important;
 }
 
-/* Video indicators in overlay */
+
 .video-overlay-info .voice-indicator {
     animation: pulse-voice 1.5s ease-in-out infinite !important;
 }
@@ -1104,7 +1104,7 @@
     backdrop-filter: blur(10px);
 }
 
-/* Append-only join animations */
+
 .participant-card.joining {
     animation: smoothJoinSlideIn 0.4s ease-out forwards !important;
 }
@@ -1135,7 +1135,7 @@
     }
 }
 
-/* Bot special entrance animation */
+
 .bot-entrance-glow {
     animation: botJoinGlow 1s ease-out !important;
     box-shadow: 0 0 30px rgba(88, 101, 242, 0.8) !important;
@@ -1153,7 +1153,7 @@
     }
 }
 
-/* Sidebar append-only animations */
+
 .voice-participant-card.appending {
     animation: sidebarSlideIn 0.4s ease-out forwards !important;
 }

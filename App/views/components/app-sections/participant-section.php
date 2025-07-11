@@ -1010,9 +1010,9 @@ window.debugPresenceState = function() {
 </script>
 
 <style>
-/* Fix participant scrolling issues */
+
 .participant-content {
-    height: calc(100vh - 3rem); /* Subtracting the height of the search bar */
+    height: calc(100vh - 3rem); 
     overflow-y: auto !important;
     scrollbar-width: thin;
     scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
@@ -1040,7 +1040,7 @@ window.debugPresenceState = function() {
     visibility: visible !important;
 }
 
-/* Other existing styles... */
+
 .highlight-message {
     background: linear-gradient(90deg, 
         rgba(255, 216, 0, 0.2) 0%, 
