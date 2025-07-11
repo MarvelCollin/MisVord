@@ -24,6 +24,15 @@ try {
 $requestUri = $_SERVER['REQUEST_URI'];
 $parsedUri = parse_url($requestUri, PHP_URL_PATH);
 
+if (preg_match('/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $parsedUri)) {
+    $filePath = __DIR__ . $parsedUri;
+    if (file_exists($filePath)) {
+        return false;
+    }
+    http_response_code(404);
+    exit;
+}
+
 if (strpos($parsedUri, '/api/') === 0) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);

@@ -75,9 +75,30 @@ class SimpleDMSwitcher {
         
         if (dmMatch) {
             const dmId = dmMatch[1];
+            console.log('🎯 [DM-SWITCH] Found DM ID in URL:', dmId);
+            
             this.currentDMId = dmId;
             this.highlightActiveDM(dmId);
             this.showChatSection();
+            this.updateMetaTags(dmId, 'dm');
+            
+            if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+                console.log('✅ [DM-SWITCH] Chat section available, switching to DM:', dmId);
+                window.chatSection.switchToDM(dmId, 'direct');
+            } else {
+                console.log('⚠️ [DM-SWITCH] Chat section not ready, waiting...');
+                const waitForChatSection = () => {
+                    if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+                        console.log('✅ [DM-SWITCH] Chat section ready, switching to DM:', dmId);
+                        window.chatSection.switchToDM(dmId, 'direct');
+                    } else {
+                        requestAnimationFrame(waitForChatSection);
+                    }
+                };
+                waitForChatSection();
+            }
+        } else {
+            console.log('ℹ️ [DM-SWITCH] No DM ID found in URL');
         }
     }
     
@@ -87,9 +108,23 @@ class SimpleDMSwitcher {
         
         if (dmMatch) {
             const dmId = dmMatch[1];
-
+            this.currentDMId = dmId;
             this.highlightActiveDM(dmId);
             this.showChatSection();
+            this.updateMetaTags(dmId, 'dm');
+            
+            if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+                window.chatSection.switchToDM(dmId, 'direct');
+            } else {
+                const waitForChatSection = () => {
+                    if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+                        window.chatSection.switchToDM(dmId, 'direct');
+                    } else {
+                        requestAnimationFrame(waitForChatSection);
+                    }
+                };
+                waitForChatSection();
+            }
         }
     }
     

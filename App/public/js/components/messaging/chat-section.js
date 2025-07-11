@@ -409,16 +409,16 @@ class ChatSection {
         }
         
         if (this.chatType === 'direct') {
-            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
-            if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
-                console.log('✅ [CHAT-SECTION] Found DM ID from chat-id meta:', chatIdMeta.content);
-                return chatIdMeta.content;
-            }
-            
             const dmMatch = currentPath.match(/\/home\/channels\/dm\/(\d+)/);
             if (dmMatch) {
                 console.log('✅ [CHAT-SECTION] Found DM ID from URL:', dmMatch[1]);
                 return dmMatch[1];
+            }
+            
+            const chatIdMeta = document.querySelector('meta[name="chat-id"]');
+            if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
+                console.log('✅ [CHAT-SECTION] Found DM ID from chat-id meta:', chatIdMeta.content);
+                return chatIdMeta.content;
             }
             
             const roomIdFromUrl = urlParams.get('room');

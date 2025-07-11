@@ -136,11 +136,15 @@ class MentionHandler {
     formatMentionsForOverlay(content) {
         if (!content) return '&nbsp;';
         
+        const isDirectMessage = this.chatSection.chatType === 'direct' || this.chatSection.chatType === 'dm';
+        
         content = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         
         content = content.replace(this.allMentionRegex, '<span class="mention mention-all">@all</span>');
         
-        content = content.replace(this.roleMentionRegex, '<span class="mention mention-role">@$1</span>');
+        if (!isDirectMessage) {
+            content = content.replace(this.roleMentionRegex, '<span class="mention mention-role">@$1</span>');
+        }
         
         content = content.replace(this.mentionRegex, (match, username) => {
             if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {
@@ -518,6 +522,7 @@ class MentionHandler {
     findMatchingUsers(searchTerm) {
         const matches = [];
         const currentUsername = (window.globalSocketManager?.username || '').toLowerCase();
+        const isDirectMessage = this.chatSection.chatType === 'direct' || this.chatSection.chatType === 'dm';
         
         if (searchTerm === '' || 'all'.startsWith(searchTerm)) {
             matches.push({
@@ -529,23 +534,25 @@ class MentionHandler {
             });
         }
         
-        const roles = [
-            { id: 'admin', name: 'admin', display: '@admin - Mention all administrators', priority: 0 },
-            { id: 'members', name: 'members', display: '@members - Mention all members', priority: 0 },
-            { id: 'owner', name: 'owner', display: '@owner - Mention server owner', priority: 0 }
-        ];
-        
-        roles.forEach(role => {
-            if (searchTerm === '' || role.name.startsWith(searchTerm)) {
-                matches.push({
-                    id: role.id,
-                    username: role.name,
-                    display: role.display,
-                    isSpecial: true,
-                    priority: role.priority
-                });
-            }
-        });
+        if (!isDirectMessage) {
+            const roles = [
+                { id: 'admin', name: 'admin', display: '@admin - Mention all administrators', priority: 0 },
+                { id: 'members', name: 'members', display: '@members - Mention all members', priority: 0 },
+                { id: 'owner', name: 'owner', display: '@owner - Mention server owner', priority: 0 }
+            ];
+            
+            roles.forEach(role => {
+                if (searchTerm === '' || role.name.startsWith(searchTerm)) {
+                    matches.push({
+                        id: role.id,
+                        username: role.name,
+                        display: role.display,
+                        isSpecial: true,
+                        priority: role.priority
+                    });
+                }
+            });
+        }
         
         const userMatches = [];
         
@@ -730,6 +737,8 @@ class MentionHandler {
     }
     
     parseMentions(content) {
+        const isDirectMessage = this.chatSection.chatType === 'direct' || this.chatSection.chatType === 'dm';
+        
         if (this.richTextHandler) {
             const baseMentions = this.richTextHandler.parseMentions(content);
             return baseMentions.map(mention => {
@@ -741,6 +750,11 @@ class MentionHandler {
                     };
                 }
                 return mention;
+            }).filter(mention => {
+                if (isDirectMessage && mention.type === 'role') {
+                    return false;
+                }
+                return true;
             });
         }
         
@@ -754,15 +768,17 @@ class MentionHandler {
             });
         }
         
-        let roleMatch;
-        this.roleMentionRegex.lastIndex = 0;
-        while ((roleMatch = this.roleMentionRegex.exec(content)) !== null) {
-            const role = roleMatch[1];
-            mentions.push({
-                type: 'role',
-                username: role,
-                user_id: role
-            });
+        if (!isDirectMessage) {
+            let roleMatch;
+            this.roleMentionRegex.lastIndex = 0;
+            while ((roleMatch = this.roleMentionRegex.exec(content)) !== null) {
+                const role = roleMatch[1];
+                mentions.push({
+                    type: 'role',
+                    username: role,
+                    user_id: role
+                });
+            }
         }
           let match;
         this.mentionRegex.lastIndex = 0;
@@ -786,6 +802,8 @@ class MentionHandler {
     }
     
     formatMessageWithMentions(content) {
+        const isDirectMessage = this.chatSection.chatType === 'direct' || this.chatSection.chatType === 'dm';
+        
         if (this.richTextHandler) {
             return this.richTextHandler.formatMentions(content, this.availableUsers);
         }
@@ -794,7 +812,9 @@ class MentionHandler {
         
         formattedContent = formattedContent.replace(this.allMentionRegex, '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>');
         
-        formattedContent = formattedContent.replace(this.roleMentionRegex, '<span class="mention mention-role bubble-mention bubble-mention-role user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>');
+        if (!isDirectMessage) {
+            formattedContent = formattedContent.replace(this.roleMentionRegex, '<span class="mention mention-role bubble-mention bubble-mention-role user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>');
+        }
         
         formattedContent = formattedContent.replace(this.mentionRegex, (match, username) => {
             if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {

@@ -47,9 +47,19 @@ class DirectMessageNavigation {
         if (dmMatch) {
             const dmId = dmMatch[1];
             this.activeDmId = dmId;
-
+            
+            if (this.dmSwitcher) {
+                this.dmSwitcher.highlightActiveDM(dmId);
+                this.dmSwitcher.updateMetaTags(dmId, 'dm');
+            }
+            
+            if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+                window.chatSection.switchToDM(dmId, 'direct');
+            }
         } else if (currentPath.includes('/home/friends')) {
-
+            if (this.dmSwitcher) {
+                this.dmSwitcher.clearActiveDM();
+            }
         }
     }
 
