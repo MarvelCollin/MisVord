@@ -721,7 +721,9 @@ class TicTacToeModal {
         const playButton = modal.querySelector('#play-button');
         const returnLobbyButton = modal.querySelector('#return-lobby-button');
         
-        closeButton.addEventListener('click', () => {
+        closeButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             if (window.globalSocketManager.isReady()) {
                 window.globalSocketManager.io.emit('leave-tic-tac-toe', { server_id: this.serverId });
             }
@@ -729,7 +731,9 @@ class TicTacToeModal {
             window.activeTicTacToeModal = null;
         });
         
-        minimizeButton.addEventListener('click', () => {
+        minimizeButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
             this.toggleMinimize();
         });
         

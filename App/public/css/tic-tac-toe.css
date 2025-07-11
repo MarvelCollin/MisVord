@@ -435,6 +435,10 @@
     border: 1px solid #4f545c;
     transition: all 0.2s ease;
     border-radius: 50%;
+    position: relative;
+    z-index: 10;
+    cursor: pointer;
+    margin: 0 2px;
 }
 
 #close-tic-tac-toe::before, #minimize-tic-tac-toe::before {
@@ -444,16 +448,19 @@
     background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
     opacity: 0;
     transition: opacity 0.3s ease;
+    border-radius: 50%;
 }
 
 #close-tic-tac-toe:hover {
     background: #ed4245;
     color: white;
+    transform: scale(1.1);
 }
 
 #minimize-tic-tac-toe:hover {
     background: #5865f2;
     color: white;
+    transform: scale(1.1);
 }
 
 #close-tic-tac-toe:hover::before, #minimize-tic-tac-toe:hover::before {
