@@ -1,0 +1,23 @@
+Free Domain Services:
+
+1. No-IP.com
+   - Domain: yourname.ddns.net
+   - Free subdomain with dynamic IP support
+
+2. DuckDNS.org  
+   - Domain: yourname.duckdns.org
+   - Simple and free
+
+3. FreeDNS (afraid.org)
+   - Multiple domain options
+   - yourname.mooo.com, etc.
+
+4. Ngrok (for testing)
+   - Temporary public URL
+   - Good for development
+
+Steps:
+1. Register at any service above
+2. Create subdomain pointing to your public IP
+3. Update .env file with new domain
+4. Test access

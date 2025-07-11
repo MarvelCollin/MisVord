@@ -1,0 +1,28 @@
+CONFIGURE PHP IN IIS - UPDATED FOR YOUR SYSTEM:
+
+Your PHP location: C:\xamppnew\php\php.exe
+
+OPTION 1 - Use CgiModule (since FastCgiModule not available):
+
+1. Open IIS Manager as Administrator
+2. Click on your website (MisVord)
+3. Double-click "Handler Mappings"
+4. Click "Add Script Map" (not Module Mapping)
+5. Fill in:
+   Request path: *.php
+   Executable: C:\xamppnew\php\php-cgi.exe
+   Name: PHP_via_CGI
+6. Click OK
+7. Restart Application Pool
+
+OPTION 2 - Enable FastCGI first:
+1. Run as Administrator: dism /online /enable-feature /featurename:IIS-CGI
+2. Restart computer  
+3. Then use FastCgiModule method
+
+TEST: http://10.20.176.105/public/phpinfo.php
+
+ALTERNATIVE - Add via command line (Run as Admin):
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/fastCGI /+"[fullPath='C:\xamppnew\php\php-cgi.exe']" /commit:apphost
+
+%windir%\system32\inetsrv\appcmd set config /section:system.webServer/handlers /+"[name='PHP_via_FastCGI',path='*.php',verb='*',modules='FastCgiModule',scriptProcessor='C:\xamppnew\php\php-cgi.exe',resourceType='Either']" /commit:apphost

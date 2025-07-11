@@ -1,0 +1,23 @@
+HYBRID ARCHITECTURE OPTIONS:
+
+OPTION 1: IIS + Docker Database
+- IIS serves PHP (like now)
+- Docker runs MySQL only
+- Update .env: DB_HOST=127.0.0.1, DB_PORT=1003
+
+OPTION 2: Docker + IIS Reverse Proxy
+- Docker runs entire app (PHP + MySQL)
+- IIS acts as reverse proxy
+- More complex setup
+
+OPTION 3: Full Docker with Docker Desktop
+- Use Docker Desktop on Windows
+- Expose ports to Windows
+- Access via localhost
+
+OPTION 4: All Native Windows
+- IIS + PHP (current)
+- XAMPP MySQL (start it)
+- Simple and works
+
+RECOMMENDATION: Use Option 4 for now (start XAMPP MySQL)

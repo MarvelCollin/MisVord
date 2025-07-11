@@ -1,0 +1,28 @@
+CARA INSTALL PHP DI IIS:
+
+OPSI A - Web Platform Installer (Recommended):
+1. Download "Web Platform Installer" dari Microsoft
+2. Install Web Platform Installer
+3. Buka Web Platform Installer
+4. Search "PHP" 
+5. Install "PHP 7.4" atau "PHP 8.x"
+6. Restart IIS
+
+OPSI B - Manual Install:
+1. Download PHP dari php.net
+2. Extract ke C:\PHP
+3. Copy php.ini-production ke php.ini
+4. Buka IIS Manager
+5. Klik server name (root)
+6. Double-click "Handler Mappings"
+7. Klik "Add Module Mapping"
+   - Request path: *.php
+   - Module: FastCgiModule
+   - Executable: C:\PHP\php-cgi.exe
+   - Name: PHP_via_FastCGI
+
+OPSI C - XAMPP (Easiest):
+1. Install XAMPP
+2. Stop Apache di XAMPP
+3. Use only PHP from XAMPP
+4. Point IIS to XAMPP PHP
