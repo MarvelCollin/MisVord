@@ -435,13 +435,15 @@ class MentionHandler {
                     e.preventDefault();
                     this.navigateAutocomplete(-1);
                     break;
-                case 'Enter':
                 case 'Tab':
                     e.preventDefault();
                     this.selectCurrentMention();
                     break;
                 case 'Escape':
                     e.preventDefault();
+                    this.hideAutocomplete();
+                    break;
+                case 'Enter':
                     this.hideAutocomplete();
                     break;
             }
