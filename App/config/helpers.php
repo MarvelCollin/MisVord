@@ -81,7 +81,8 @@ function js($path) {
 
 function getBaseUrl() {
     if (php_sapi_name() === 'cli') {
-        return 'http://localhost:8000/public';
+        // For CLI, use APP_URL from environment or fallback
+        return EnvLoader::get('APP_URL', 'http://localhost:8000') . '/public';
     }
 
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';

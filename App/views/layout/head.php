@@ -37,9 +37,22 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
 <?php echo $extraHeadContent; ?>
 <?php endif; ?>
 
-<meta name="socket-host" content="localhost">
-<meta name="socket-port" content="1002">
-<meta name="socket-secure" content="false">
+<?php
+// Load socket configuration from environment
+$socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
+$socketPort = EnvLoader::get('SOCKET_PORT', '1002');
+$socketSecure = EnvLoader::get('SOCKET_SECURE', 'false');
+$domain = EnvLoader::get('DOMAIN', 'localhost');
+$useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
+
+// For frontend, use domain instead of container name
+$frontendSocketHost = ($socketHost === 'socket') ? $domain : $socketHost;
+?>
+
+<meta name="socket-host" content="<?php echo htmlspecialchars($frontendSocketHost); ?>">
+<meta name="socket-port" content="<?php echo htmlspecialchars($socketPort); ?>">
+<meta name="socket-secure" content="<?php echo htmlspecialchars($socketSecure); ?>">
+<meta name="app-url" content="<?php echo htmlspecialchars(EnvLoader::get('APP_URL', 'http://localhost:1001')); ?>">
 
 <title><?php echo htmlspecialchars($page_title); ?></title>
 

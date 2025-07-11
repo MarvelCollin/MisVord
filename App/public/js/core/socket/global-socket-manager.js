@@ -186,15 +186,20 @@
     }
     
     loadConnectionDetails() {
-        let socketHost = 'localhost';
-        let socketPort = '1002';
-        let socketSecure = false;
+        // Get socket configuration from meta tags (set by PHP environment)
+        const metaSocketHost = document.querySelector('meta[name="socket-host"]')?.content;
+        const metaSocketPort = document.querySelector('meta[name="socket-port"]')?.content;
+        const metaSocketSecure = document.querySelector('meta[name="socket-secure"]')?.content;
         
+        let socketHost = metaSocketHost || 'localhost';
+        let socketPort = metaSocketPort || '1002';
+        let socketSecure = metaSocketSecure === 'true';
+        
+        // Fallback: Auto-detect from current page if meta tags not available
         const currentHost = window.location.hostname;
-        const currentPort = window.location.port;
         const currentProtocol = window.location.protocol;
         
-        if (currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1' && currentHost !== 'null') {
+        if (!metaSocketHost && currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1' && currentHost !== 'null') {
             socketHost = currentHost;
             socketSecure = currentProtocol === 'https:';
         }
