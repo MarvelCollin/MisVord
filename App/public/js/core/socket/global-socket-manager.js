@@ -197,6 +197,7 @@
         
         // Fallback: Auto-detect from current page if meta tags not available
         const currentHost = window.location.hostname;
+        const currentPort = window.location.port;
         const currentProtocol = window.location.protocol;
         
         if (!metaSocketHost && currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1' && currentHost !== 'null') {
