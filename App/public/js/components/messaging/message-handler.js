@@ -942,6 +942,7 @@ class MessageHandler {
         document.body.appendChild(tempContainer);
         
         const messageElements = [];
+        let processedCount = 0;
         
         for (const message of messages) {
             try {
@@ -957,6 +958,11 @@ class MessageHandler {
                     tempContainer.appendChild(messageElement);
                     messageElements.push(messageElement);
                     this.processedMessageIds.add(message.id);
+                    processedCount++;
+                    
+                    if (processedCount % 5 === 0) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
                 }
             } catch (error) {
                 console.error(`❌ [MESSAGE-HANDLER] Error creating message ${message.id}:`, error);
@@ -975,14 +981,16 @@ class MessageHandler {
         
         document.body.removeChild(tempContainer);
         
-        if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
-            setTimeout(() => {
-                this.chatSection.updateLoadMoreButton();
-
-            }, 100);
-        }
+        await new Promise(resolve => {
+            requestAnimationFrame(() => {
+                if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
+                    this.chatSection.updateLoadMoreButton();
+                }
+                resolve();
+            });
+        });
         
-
+        console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messageElements.length} messages`);
     }
     
     async prependMessagesProgressively(messages) {

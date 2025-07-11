@@ -624,7 +624,26 @@ class ChatSection {
 
                 this.showChatSkeleton();
                 
-                await this.loadMessages();
+                const loadStartTime = Date.now();
+                const skeletonTimeout = setTimeout(() => {
+                    if (!this.skeletonHidden) {
+                        console.warn('⚠️ [CHAT-SECTION] Skeleton timeout - forcing hide after 5 seconds');
+                        this.hideChatSkeleton();
+                    }
+                }, 5000);
+                
+                try {
+                    await this.loadMessages();
+                    
+                    const loadTime = Date.now() - loadStartTime;
+                    console.log(`✅ [CHAT-SECTION] Messages loaded in ${loadTime}ms`);
+                    
+                    clearTimeout(skeletonTimeout);
+                    
+                } catch (error) {
+                    console.error('❌ [CHAT-SECTION] Error loading messages:', error);
+                    clearTimeout(skeletonTimeout);
+                }
                 
                 this.initializeExistingMessages();
                 
@@ -637,7 +656,7 @@ class ChatSection {
                 });
                 setTimeout(() => {
                     this.hideChatSkeleton();
-                }, 1000);
+                }, 500);
             }
             
             this.addTopReloadButtonStyles();
@@ -1173,12 +1192,24 @@ class ChatSection {
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
                     
-
+                    await new Promise(resolve => {
+                        requestAnimationFrame(() => {
+                            const messagesContainer = this.getMessagesContainer();
+                            if (messagesContainer && messagesContainer.children.length > 0) {
+                                resolve();
+                            } else {
+                                setTimeout(resolve, 100);
+                            }
+                        });
+                    });
                 }
                 
                 this.hideEmptyState();
                 this.isInitialized = true;
-                this.hideChatSkeleton();
+                
+                if (!isLoadMore) {
+                    this.hideChatSkeleton();
+                }
             } else {
                 this.hideChatSkeleton();
                 
@@ -3246,80 +3277,98 @@ class ChatSection {
     }
 
     initializeChatSkeleton() {
-        setTimeout(() => {
-            this.hideChatSkeleton();
-        }, 1500);
+        this.skeletonStartTime = Date.now();
+        this.minSkeletonTime = 300;
+        this.skeletonHidden = false;
+        this.messagesLoaded = false;
+        
+        console.log('🦴 [CHAT-SECTION] Skeleton initialized - waiting for messages');
     }
     
     hideChatSkeleton() {
+        if (this.skeletonHidden) {
+            return;
+        }
+        
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
         const realContent = document.getElementById('chat-real-content');
         const chatMessages = document.getElementById('chat-messages');
         
-        if (skeletonContainer) {
-            skeletonContainer.style.display = 'none';
-        }
-        
-        if (realContent) {
-            realContent.style.display = 'block';
-            
-
-            if (chatMessages) {
-
-                const originalScrollBehavior = chatMessages.style.scrollBehavior;
-                chatMessages.style.scrollBehavior = 'auto';
-                
-
-                requestAnimationFrame(() => {
-                    chatMessages.scrollTop = chatMessages.scrollHeight;
-                    
-
-                    requestAnimationFrame(() => {
-                        chatMessages.style.scrollBehavior = originalScrollBehavior;
-                    });
-                });
+        const hideSkeletonNow = () => {
+            if (skeletonContainer) {
+                skeletonContainer.style.display = 'none';
+                skeletonContainer.style.visibility = 'hidden';
+                skeletonContainer.style.opacity = '0';
             }
+            
+            if (realContent) {
+                realContent.style.display = 'block';
+                realContent.style.visibility = 'visible';
+                realContent.style.opacity = '1';
+                
+                if (chatMessages) {
+                    const originalScrollBehavior = chatMessages.style.scrollBehavior;
+                    chatMessages.style.scrollBehavior = 'auto';
+                    
+                    requestAnimationFrame(() => {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        
+                        requestAnimationFrame(() => {
+                            chatMessages.style.scrollBehavior = originalScrollBehavior;
+                        });
+                    });
+                }
+            }
+            
+            this.skeletonHidden = true;
+            this.messagesLoaded = true;
+            console.log('✅ [CHAT-SECTION] Skeleton hidden - messages are ready');
+        };
+
+        if (this.skeletonStartTime) {
+            const elapsedTime = Date.now() - this.skeletonStartTime;
+            const remainingTime = Math.max(0, this.minSkeletonTime - elapsedTime);
+            
+            console.log(`⏱️ [CHAT-SECTION] Skeleton timing - elapsed: ${elapsedTime}ms, remaining: ${remainingTime}ms`);
+            
+            if (remainingTime > 0) {
+                setTimeout(hideSkeletonNow, remainingTime);
+            } else {
+                hideSkeletonNow();
+            }
+        } else {
+            hideSkeletonNow();
         }
     }
     
     showChatSkeleton() {
+        this.initializeChatSkeleton();
+        
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
         const realContent = document.getElementById('chat-real-content');
         const chatMessages = document.getElementById('chat-messages');
         
         if (skeletonContainer) {
-            skeletonContainer.style.display = 'block';
+            skeletonContainer.style.display = 'flex';
+            skeletonContainer.style.visibility = 'visible';
+            skeletonContainer.style.opacity = '1';
+            skeletonContainer.style.position = 'absolute';
+            skeletonContainer.style.top = '0';
+            skeletonContainer.style.left = '0';
+            skeletonContainer.style.right = '0';
+            skeletonContainer.style.bottom = '0';
+            skeletonContainer.style.zIndex = '10';
+            console.log('🦴 [CHAT-SECTION] Skeleton displayed - waiting for messages');
         }
         
         if (realContent) {
             realContent.style.display = 'none';
+            realContent.style.visibility = 'hidden';
+            realContent.style.opacity = '0';
         }
         
-
         if (chatMessages) {
-
-            const originalScrollBehavior = chatMessages.style.scrollBehavior;
-            chatMessages.style.scrollBehavior = 'auto';
-            
-
-            const positionAtBottom = () => {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-            };
-            
-
-            positionAtBottom();
-            
-
-            requestAnimationFrame(() => {
-                positionAtBottom();
-                
-
-                requestAnimationFrame(() => {
-                    positionAtBottom();
-
-                    chatMessages.style.scrollBehavior = originalScrollBehavior;
-                });
-            });
+            chatMessages.style.position = 'relative';
         }
     }
 

@@ -218,75 +218,33 @@ if (!function_exists('renderMessage')) {
 }
 
 .chat-skeleton-container {
+    height: 100vh !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     padding: 16px;
-    animation-delay: 0.1s;
-    
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
+    background-color: #313338;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .chat-skeleton-message {
     display: flex;
-    margin-bottom: 17px;
-    padding: 2px 16px;
+    margin-bottom: 20px;
+    padding: 8px 0;
+    opacity: 1;
 }
 
-.chat-skeleton-message:nth-child(1) { animation-delay: 0ms; }
-.chat-skeleton-message:nth-child(2) { animation-delay: 100ms; }
-.chat-skeleton-message:nth-child(3) { animation-delay: 200ms; }
-.chat-skeleton-message:nth-child(4) { animation-delay: 300ms; }
-.chat-skeleton-message:nth-child(5) { animation-delay: 400ms; }
-.chat-skeleton-message:nth-child(6) { animation-delay: 500ms; }
-.chat-skeleton-message:nth-child(7) { animation-delay: 600ms; }
-.chat-skeleton-message:nth-child(8) { animation-delay: 700ms; }
-.chat-skeleton-message:nth-child(9) { animation-delay: 800ms; }
-.chat-skeleton-message:nth-child(10) { animation-delay: 900ms; }
-.chat-skeleton-message:nth-child(11) { animation-delay: 1000ms; }
-.chat-skeleton-message:nth-child(12) { animation-delay: 1100ms; }
-.chat-skeleton-message:nth-child(13) { animation-delay: 1200ms; }
-
-.chat-skeleton-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #4f545c;
-    margin-right: 16px;
-    flex-shrink: 0;
-}
-
-.chat-skeleton-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.chat-skeleton-header {
+.chat-skeleton-message {
     display: flex;
-    align-items: center;
-    margin-bottom: 4px;
-}
-
-.chat-skeleton-username {
-    height: 16px;
-    background-color: #4f545c;
-    border-radius: 4px;
-    width: 120px;
-    margin-right: 8px;
-}
-
-.chat-skeleton-timestamp {
-    height: 12px;
-    background-color: #4f545c;
-    border-radius: 4px;
-    width: 60px;
-}
-
-.chat-skeleton-text {
-    height: 16px;
-    background-color: #4f545c;
-    border-radius: 4px;
-    margin-bottom: 4px;
+    margin-bottom: 20px;
+    padding: 8px 0;
+    opacity: 1;
 }
 
 .chat-skeleton-text.short {
@@ -842,7 +800,6 @@ if (!function_exists('renderMessage')) {
                     </div>
                     <div class="chat-skeleton-text long"></div>
                     <div class="chat-skeleton-text medium"></div>
-                    <div class="chat-skeleton-text short"></div>
                 </div>
             </div>
             <div class="chat-skeleton-message">
@@ -874,6 +831,27 @@ if (!function_exists('renderMessage')) {
                         <div class="chat-skeleton-timestamp"></div>
                     </div>
                     <div class="chat-skeleton-text long"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text medium"></div>
+                    <div class="chat-skeleton-text short"></div>
+                </div>
+            </div>
+            <div class="chat-skeleton-message">
+                <div class="chat-skeleton-avatar"></div>
+                <div class="chat-skeleton-content">
+                    <div class="chat-skeleton-header">
+                        <div class="chat-skeleton-username"></div>
+                        <div class="chat-skeleton-timestamp"></div>
+                    </div>
+                    <div class="chat-skeleton-text very-short"></div>
                 </div>
             </div>
         </div>

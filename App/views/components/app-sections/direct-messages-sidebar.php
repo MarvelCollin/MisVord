@@ -181,10 +181,10 @@ if (file_exists($tooltipPath)) {
     animation: dm-item-appear 0.5s ease forwards;
 }
 
-.dm-skeleton-item:nth-child(1) { animation-delay: 0.1s; }
-.dm-skeleton-item:nth-child(2) { animation-delay: 0.2s; }
-.dm-skeleton-item:nth-child(3) { animation-delay: 0.3s; }
-.dm-skeleton-item:nth-child(4) { animation-delay: 0.4s; }
+.dm-skeleton-item:nth-child(1) { animation-delay: 0.05s; }
+.dm-skeleton-item:nth-child(2) { animation-delay: 0.1s; }
+.dm-skeleton-item:nth-child(3) { animation-delay: 0.15s; }
+.dm-skeleton-item:nth-child(4) { animation-delay: 0.2s; }
 
 @keyframes dm-item-appear {
     from {
@@ -213,11 +213,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     function initializeDMSkeleton() {
-
-        
         setTimeout(() => {
             hideDMSkeleton();
-        }, 1500);
+        }, 800);
     }
     
     function hideDMSkeleton() {
