@@ -15,34 +15,34 @@ function setupScrollBehavior() {
     const serverList = document.getElementById('server-list');
     if (!serverList) return;
     
-    // 
+
     const updateMaxHeight = () => {
         const viewportHeight = window.innerHeight;
         const sidebarContainer = document.querySelector('.w-\\[72px\\]') || document.querySelector('[class*="w-[72px]"]');
         
-        // 
+
         const topPadding = 24;
         const bottomPadding = 24;
         
-        // 
+
         const maxHeight = viewportHeight - (topPadding + bottomPadding);
         serverList.style.maxHeight = `${maxHeight}px`;
         serverList.style.height = '100%';
         
-        // 
+
         serverList.style.overflowY = 'auto';
         serverList.style.overflowX = 'hidden';
         
-        // 
+
         serverList.style.scrollBehavior = 'smooth';
         
-        // 
+
         if (sidebarContainer) {
             sidebarContainer.style.overflowY = 'hidden';
             sidebarContainer.style.height = '100vh';
         }
 
-        // 
+
         const needsScrolling = serverList.scrollHeight > (serverList.clientHeight - 10);
         
         console.log('Scroll debug:', {
@@ -54,21 +54,21 @@ function setupScrollBehavior() {
         
         if (needsScrolling) {
             serverList.classList.remove('no-scrollbar');
-            // 
+
             serverList.style.paddingRight = '8px';
             serverList.style.overflowY = 'scroll'; // 
         } else {
             serverList.classList.add('no-scrollbar');
         }
 
-        // 
+
         serverList.style.pointerEvents = 'auto';
     };
     
     updateMaxHeight();
     window.addEventListener('resize', updateMaxHeight);
     
-    // 
+
     if (localStorage.getItem('server_sidebar_scroll')) {
         try {
             const scrollPos = parseInt(localStorage.getItem('server_sidebar_scroll'));
@@ -80,18 +80,18 @@ function setupScrollBehavior() {
         }
     }
     
-    // 
+
     serverList.addEventListener('scroll', () => {
         localStorage.setItem('server_sidebar_scroll', serverList.scrollTop);
     });
     
-    // 
+
     setTimeout(() => {
         checkServerVisibility();
         updateMaxHeight(); // 
     }, 200);
 
-    // 
+
     setTimeout(() => {
         updateMaxHeight();
     }, 1000);
@@ -221,11 +221,11 @@ function checkServerVisibility() {
     const serverList = document.getElementById('server-list');
     if (!serverList) return;
     
-    // 
+
     const allVisibleIcons = serverList.querySelectorAll('.server-sidebar-icon:not([style*="display: none"])');
     const totalVisibleItems = allVisibleIcons.length;
     
-    // 
+
     const needsScrollbar = serverList.scrollHeight > serverList.clientHeight;
     
     if (!needsScrollbar || totalVisibleItems <= 5) {
@@ -233,7 +233,7 @@ function checkServerVisibility() {
     } else {
         serverList.classList.remove('no-scrollbar');
         
-        // 
+
         serverList.style.overflowY = 'auto';
     }
 }

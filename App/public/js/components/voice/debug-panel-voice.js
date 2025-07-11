@@ -3,7 +3,7 @@
  * Displays real-time information about voice participants across channels
  */
 
-// 
+
 if (typeof window.VoiceDebugPanel === 'undefined') {
     window.VoiceDebugPanel = class VoiceDebugPanel {
         constructor() {
@@ -68,7 +68,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         setupToggleButton() {
-            // 
+
             const existingBtn = document.getElementById('voice-debug-toggle');
             if (existingBtn) {
                 existingBtn.remove();
@@ -106,7 +106,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             this.isVisible = !this.isVisible;
             this.panel.style.display = this.isVisible ? 'block' : 'none';
             
-            // 
+
             const toggleBtn = document.getElementById('voice-debug-toggle');
             if (toggleBtn) {
                 toggleBtn.style.bottom = this.isVisible ? '410px' : '10px';
@@ -119,7 +119,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         setupEventListeners() {
-            // 
+
             window.addEventListener('participantJoined', (e) => {
                 this.collectData();
                 this.updatePanelContent();
@@ -130,7 +130,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 this.updatePanelContent();
             });
             
-            // 
+
             window.addEventListener('voiceConnect', (e) => {
                 this.collectData();
                 this.updatePanelContent();
@@ -141,7 +141,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 this.updatePanelContent();
             });
             
-            // 
+
             window.addEventListener('bot-voice-participant-joined', (e) => {
                 this.collectData();
                 this.updatePanelContent();
@@ -152,7 +152,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 this.updatePanelContent();
             });
             
-            // 
+
             if (window.globalSocketManager?.io) {
                 this.setupSocketListeners();
             } else {
@@ -176,7 +176,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         startUpdateCycle() {
-            // 
+
             if (this.updateInterval) {
                 clearInterval(this.updateInterval);
             }
@@ -191,14 +191,14 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         collectData() {
-            // 
+
             if (window.voiceManager) {
                 this.participants.local = window.voiceManager.getAllParticipants() || new Map();
                 this.currentChannelId = window.voiceManager.currentChannelId;
                 this.currentMeetingId = window.voiceManager.currentMeetingId;
             }
             
-            // 
+
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 if (instance.externalParticipants) {
@@ -206,16 +206,16 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 }
             }
             
-            // 
+
             if (window.BotComponent && window.BotComponent.voiceBots) {
                 this.participants.bots = window.BotComponent.voiceBots;
             }
             
-            // 
+
             this.channels = new Map();
             this.meetingIds = new Map();
             
-            // 
+
             document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
                 const channelId = channel.getAttribute('data-channel-id');
                 const meetingId = channel.getAttribute('data-meeting-id');
@@ -231,7 +231,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 }
             });
             
-            // 
+
             if (window.localStorageManager) {
                 const voiceState = window.localStorageManager.getUnifiedVoiceState();
                 if (voiceState && voiceState.channelId && voiceState.meetingId) {
@@ -261,7 +261,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 </div>
             `;
             
-            // 
+
             const currentChannel = this.channels.get(this.currentChannelId);
             if (currentChannel) {
                 html += `
@@ -275,7 +275,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 `;
             }
             
-            // 
+
             if (this.unifiedVoiceState) {
                 const channelMismatch = this.currentChannelId !== this.unifiedVoiceState.channelId;
                 const meetingMismatch = currentChannel && currentChannel.meetingId && 
@@ -296,7 +296,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 `;
             }
             
-            // 
+
             html += '<div style="margin-bottom: 10px;"><strong>Channels:</strong></div>';
             
             if (this.channels.size === 0) {
@@ -316,7 +316,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // 
+
             if (this.testResults.length > 0) {
                 html += '<div style="margin-top: 10px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.2);"><strong>Test Results:</strong></div>';
                 
@@ -335,7 +335,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             
             this.panel.innerHTML = html;
             
-            // 
+
             setTimeout(() => {
                 const testBtn = document.getElementById('run-voice-tests');
                 if (testBtn) {
@@ -352,7 +352,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         renderParticipantsForChannel(channelId) {
             let participants = [];
             
-            // 
+
             if (this.currentChannelId === channelId && this.participants.local.size > 0) {
                 this.participants.local.forEach((data, id) => {
                     if (!id.startsWith('bot-')) { // 
@@ -367,11 +367,11 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // 
+
             const externalMap = this.participants.external.get(channelId);
             if (externalMap && externalMap.size > 0) {
                 externalMap.forEach((data, id) => {
-                    // 
+
                     if (!participants.some(p => p.id === id)) {
                         participants.push({
                             id: id,
@@ -384,12 +384,12 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // 
+
             if (this.participants.bots && this.participants.bots.size > 0) {
                 this.participants.bots.forEach((data, id) => {
                     if (data.channel_id === channelId) {
                         const botId = `bot-${data.bot_id || id}`;
-                        // 
+
                         if (!participants.some(p => p.id === botId)) {
                             participants.push({
                                 id: botId,
@@ -423,25 +423,25 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         getParticipantCountForChannel(channelId) {
             let count = 0;
             
-            // 
+
             if (this.currentChannelId === channelId && this.participants.local.size > 0) {
                 count += this.participants.local.size;
             }
             
-            // 
+
             const externalMap = this.participants.external.get(channelId);
             if (externalMap && externalMap.size > 0) {
-                // 
+
                 if (this.currentChannelId !== channelId) {
                     count += externalMap.size;
                 }
             }
             
-            // 
+
             if (this.participants.bots && this.participants.bots.size > 0) {
                 this.participants.bots.forEach(data => {
                     if (data.channel_id === channelId) {
-                        // 
+
                         if (this.currentChannelId !== channelId) {
                             count++;
                         }
@@ -465,22 +465,22 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         runTests() {
             this.testResults = [];
             
-            // 
+
             this.testDuplicateParticipants();
             
-            // 
+
             this.testDomMatchesData();
             
-            // 
+
             this.testVoiceManagerMatchesLocalStorage();
             
-            // 
+
             this.testOrphanedMeetings();
             
-            // 
+
             this.testSidebarCounts();
             
-            // 
+
             this.updatePanelContent();
         }
         
@@ -494,7 +494,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             const allParticipants = new Map();
             const duplicates = [];
             
-            // 
+
             if (this.participants.local.size > 0) {
                 this.participants.local.forEach((data, id) => {
                     if (allParticipants.has(id)) {
@@ -506,7 +506,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // 
+
             this.participants.external.forEach((map, channelId) => {
                 map.forEach((data, id) => {
                     if (allParticipants.has(id)) {
@@ -518,7 +518,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             });
             
-            // 
+
             if (this.participants.bots && this.participants.bots.size > 0) {
                 this.participants.bots.forEach((data, id) => {
                     const botId = `bot-${data.bot_id || id}`;
@@ -547,15 +547,15 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 message: ''
             };
             
-            // 
+
             const domParticipants = document.querySelectorAll('.voice-participant-card');
             const sidebarParticipantCount = domParticipants.length;
             
-            // 
+
             let expectedCount = 0;
             
             if (this.currentChannelId) {
-                // 
+
                 expectedCount = this.getParticipantCountForChannel(this.currentChannelId);
                 
                 if (sidebarParticipantCount !== expectedCount) {
@@ -593,19 +593,19 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 return;
             }
             
-            // 
+
             if (voiceState.isConnected !== window.voiceManager.isConnected) {
                 result.passed = false;
                 result.message = `Connection state mismatch: localStorage=${voiceState.isConnected}, voiceManager=${window.voiceManager.isConnected}`;
             }
             
-            // 
+
             if (voiceState.isConnected && voiceState.channelId !== window.voiceManager.currentChannelId) {
                 result.passed = false;
                 result.message = (result.message || '') + ` Channel ID mismatch: localStorage=${voiceState.channelId}, voiceManager=${window.voiceManager.currentChannelId}`;
             }
             
-            // 
+
             if (voiceState.isConnected && voiceState.meetingId !== window.voiceManager.currentMeetingId) {
                 result.passed = false;
                 result.message = (result.message || '') + ` Meeting ID mismatch: localStorage=${voiceState.meetingId}, voiceManager=${window.voiceManager.currentMeetingId}`;
@@ -625,7 +625,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 message: ''
             };
             
-            // 
+
             const orphanedMeetings = [];
             
             this.meetingIds.forEach((meetingId, channelId) => {
@@ -695,10 +695,10 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 return;
             }
             
-            // 
+
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             
-            // 
+
             const updatedState = {
                 ...currentState,
                 channelId: this.currentChannelId,
@@ -706,17 +706,17 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 meetingId: currentChannel.meetingId || this.currentMeetingId
             };
             
-            // 
+
             window.localStorageManager.setUnifiedVoiceState(updatedState);
             
-            // 
+
             if (window.voiceManager) {
                 window.voiceManager.currentChannelId = this.currentChannelId;
                 window.voiceManager.currentChannelName = currentChannel.name;
                 window.voiceManager.currentMeetingId = currentChannel.meetingId || this.currentMeetingId;
             }
             
-            // 
+
             if (window.voiceCallSection) {
                 window.voiceCallSection.currentChannelId = this.currentChannelId;
                 window.voiceCallSection.currentChannelName = currentChannel.name;
@@ -728,14 +728,14 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             
             console.log("✅ [DEBUG-PANEL] Manually synced voice state:", updatedState);
             
-            // 
+
             this.collectData();
             this.updatePanelContent();
         }
     };
 }
 
-// 
+
 if (!window.voiceDebugPanel) {
     document.addEventListener('DOMContentLoaded', () => {
         window.voiceDebugPanel = new window.VoiceDebugPanel();

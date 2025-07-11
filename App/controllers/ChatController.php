@@ -366,7 +366,7 @@ class ChatController extends BaseController
             }
         }
 
-        // 
+
         if ($replyMessageId !== null) {
             if (empty($replyMessageId) || $replyMessageId === '' || !is_numeric($replyMessageId)) {
                 $replyMessageId = null;
@@ -466,7 +466,7 @@ class ChatController extends BaseController
             return $this->internalForbidden('You are not a participant in this chat');
         }
 
-        // 
+
         if ($replyMessageId !== null) {
             if (empty($replyMessageId) || $replyMessageId === '' || !is_numeric($replyMessageId)) {
                 $replyMessageId = null;
@@ -1566,7 +1566,7 @@ class ChatController extends BaseController
         $replyMessageId = $input['reply_message_id'] ?? null;
         $tempMessageId = $input['temp_message_id'] ?? null;
 
-        // 
+
         if ($replyMessageId !== null && !ctype_digit((string)$replyMessageId)) {
             error_log("Sanitizing non-numeric reply_message_id: " . var_export($replyMessageId, true));
             $replyMessageId = null;
@@ -1593,7 +1593,7 @@ class ChatController extends BaseController
         $targetId = $input['target_id'];
 
         try {
-            // 
+
             require_once __DIR__ . '/BotController.php';
             $botController = new BotController();
             
@@ -1603,7 +1603,7 @@ class ChatController extends BaseController
                     return $this->notFound("Channel not found with ID $targetId");
                 }
                 
-                // 
+
                 if ($channel->server_id != 0) {
                     $isMember = $botController->ensureBotInServer($userId, $channel->server_id);
                     if (!$isMember) {
@@ -1618,7 +1618,7 @@ class ChatController extends BaseController
                     return $this->notFound("Chat room not found with ID $targetId");
                 }
                 
-                // 
+
                 $isParticipant = $botController->ensureBotInChatRoom($userId, $targetId);
                 if (!$isParticipant) {
                     return $this->forbidden('Bot is not a participant in this chat room');
@@ -1642,7 +1642,7 @@ class ChatController extends BaseController
                     'temp_message_id' => $tempMessageId
                 ], 'Message saved successfully');
             } else {
-                // 
+
                 header('Content-Type: application/json');
                 echo json_encode($result);
                 exit;
@@ -1718,7 +1718,7 @@ class ChatController extends BaseController
         $targetId = $input['target_id'];
 
         try {
-            // 
+
             require_once __DIR__ . '/BotController.php';
             $botController = new BotController();
             
@@ -1728,13 +1728,13 @@ class ChatController extends BaseController
                     return $this->notFound("Channel not found with ID $targetId");
                 }
                 
-                // 
+
                 if ($channel->server_id != 0) {
-                    // 
+
                     $isMember = $botController->ensureBotInServer($userId, $channel->server_id);
                     if (!$isMember) {
                         $joinResult = $botController->joinServer($userId, $channel->server_id, 'member');
-                        // 
+
                         if (!$joinResult || !$joinResult['success']) {
                             return $this->serverError($joinResult['message'] ?? 'Failed to add bot to server');
                         }
@@ -1748,7 +1748,7 @@ class ChatController extends BaseController
                     return $this->notFound("Chat room not found with ID $targetId");
                 }
                 
-                // 
+
                 $isParticipant = $botController->ensureBotInChatRoom($userId, $targetId);
                 if (!$isParticipant) {
                     return $this->forbidden('Bot is not a participant in this chat room');

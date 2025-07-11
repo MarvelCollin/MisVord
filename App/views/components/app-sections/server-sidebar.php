@@ -22,8 +22,8 @@ if (file_exists($tooltipPath)) {
     require_once $tooltipPath;
 }
 
-// 
-// 
+
+
 $maxServersToShow = 10; // 
 if (count($servers) > $maxServersToShow) {
     $servers = array_slice($servers, 0, $maxServersToShow);
@@ -122,9 +122,9 @@ if (count($servers) > $maxServersToShow) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 
+
     
-    // 
+
 
     setTimeout(() => {
         const tooltipContainer = document.getElementById('tooltip-container');
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 
-// 
+
 window.mouseX = 0;
 window.mouseY = 0;
 document.addEventListener('mousemove', (e) => {

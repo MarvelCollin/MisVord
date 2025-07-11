@@ -34,7 +34,7 @@ class MusicPlayerSystem {
     initializeAudio() {
         console.log('🎵 [MUSIC-PLAYER] Initializing audio system...');
         try {
-            // 
+
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
             this.audio.preload = "auto"; // 
@@ -42,7 +42,7 @@ class MusicPlayerSystem {
             
             console.log('🎵 [MUSIC-PLAYER] Audio element created');
             
-            // 
+
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
                 console.log('🎵 [MUSIC-PLAYER] Creating AudioContext');
@@ -54,32 +54,32 @@ class MusicPlayerSystem {
                     console.log('🎵 [MUSIC-PLAYER] Audio connected to context successfully');
                 } catch (e) {
                     console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context:', e);
-                    // 
+
                 }
             } else {
                 console.warn('🎵 [MUSIC-PLAYER] AudioContext not available in this browser');
             }
             
-            // 
+
             this.audio.addEventListener('error', (e) => {
                 console.error('🎵 [MUSIC-PLAYER] Audio playback error:', e, 'Audio src:', this.audio.src);
                 this.handlePlaybackError();
             });
 
-            // 
+
             this.audio.addEventListener('ended', () => {
                 console.log('🎵 [MUSIC-PLAYER] Track ended, playing next');
                 this.playNext();
             });
             
-            // 
+
             ['loadstart', 'canplay', 'canplaythrough', 'abort', 'stalled',
              'suspend', 'waiting', 'loadedmetadata', 'loadeddata', 'play',
              'playing', 'pause'].forEach(eventName => {
                 this.audio.addEventListener(eventName, () => {
                     console.log(`🎵 [MUSIC-PLAYER] Audio event: ${eventName}`);
                     
-                    // 
+
                     if (eventName === 'playing') {
                         console.log('🎵 [MUSIC-PLAYER] Playback confirmed - audio is playing');
                         this.isPlaying = true;
@@ -93,7 +93,7 @@ class MusicPlayerSystem {
         } catch (e) {
             console.error('🎵 [MUSIC-PLAYER] Failed to initialize audio system:', e);
             
-            // 
+
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
             console.log('🎵 [MUSIC-PLAYER] Created fallback audio element');
@@ -256,7 +256,7 @@ class MusicPlayerSystem {
             this.processBotMusicCommand(e.detail);
         });
         
-        // 
+
         window.addEventListener('voiceConnect', (e) => {
             if (e.detail && e.detail.channelId) {
                 console.log('🎵 [MUSIC-PLAYER] Voice channel joined:', e.detail.channelId);
@@ -264,7 +264,7 @@ class MusicPlayerSystem {
             }
         });
         
-        // 
+
         window.addEventListener('bot-voice-participant-joined', (e) => {
             if (e.detail && e.detail.participant && e.detail.participant.channelId) {
                 console.log('🎵 [MUSIC-PLAYER] Bot joined voice channel:', e.detail.participant.channelId);
@@ -273,31 +273,31 @@ class MusicPlayerSystem {
         
         this.setupSocketListeners();
         
-        // 
+
         this.patchVoiceDetection();
     }
     
     patchVoiceDetection() {
-        // 
+
         const originalFn = window.debugTitiBotVoiceContext;
         
         if (originalFn) {
             window.debugTitiBotVoiceContext = function() {
-                // 
+
                 const originalResult = originalFn();
                 
-                // 
+
                 if (originalResult && originalResult.userInVoice && originalResult.voiceChannelId) {
                     return originalResult;
                 }
                 
-                // 
+
                 console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Original detection failed, trying alternatives');
                 
                 let voiceChannelId = null;
                 let userInVoice = false;
                 
-                // 
+
                 if (window.unifiedVoiceStateManager?.getState?.()) {
                     const state = window.unifiedVoiceStateManager.getState();
                     if (state.isConnected && state.channelId) {
@@ -307,7 +307,7 @@ class MusicPlayerSystem {
                     }
                 }
                 
-                // 
+
                 if (!voiceChannelId && window.voiceManager) {
                     if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
                         voiceChannelId = window.voiceManager.currentChannelId;
@@ -316,7 +316,7 @@ class MusicPlayerSystem {
                     }
                 }
                 
-                // 
+
                 if (!voiceChannelId && sessionStorage.getItem('isInVoiceCall') === 'true') {
                     voiceChannelId = sessionStorage.getItem('voiceChannelId') || 
                                      sessionStorage.getItem('currentVoiceChannelId');
@@ -326,7 +326,7 @@ class MusicPlayerSystem {
                     }
                 }
                 
-                // 
+
                 if (!voiceChannelId) {
                     const urlParams = new URLSearchParams(window.location.search);
                     const channelId = urlParams.get('channel');
@@ -334,7 +334,7 @@ class MusicPlayerSystem {
                     
                     if (channelType === 'voice' && channelId) {
                         voiceChannelId = channelId;
-                        // 
+
                         userInVoice = true;
                         console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Assuming voice connection from URL');
                     }
@@ -380,28 +380,28 @@ class MusicPlayerSystem {
             return;
         }
 
-        // 
+
         const voiceContext = window.debugTitiBotVoiceContext ? window.debugTitiBotVoiceContext() : null;
         
-        // 
+
         if (data.channel_id) {
             const isInVoiceChannel = voiceContext && 
                                     voiceContext.userInVoice && 
                                     voiceContext.voiceChannelId === data.channel_id;
             
-            // 
+
             console.log('🎵 [MUSIC-PLAYER] Voice context check:', {
                 userVoiceContext: voiceContext,
                 commandChannelId: data.channel_id,
                 isInVoiceChannel: isInVoiceChannel
             });
             
-            // 
-            // 
+
+
             if (!isInVoiceChannel) {
                 console.log('🎵 [MUSIC-PLAYER] User not in same voice channel, but processing command anyway');
                 
-                // 
+
                 if (data.channel_id && !this.channelId) {
                     this.channelId = data.channel_id;
                     console.log('🎵 [MUSIC-PLAYER] Setting channel ID from command:', data.channel_id);
@@ -450,7 +450,7 @@ class MusicPlayerSystem {
                                 console.log('🎵 [MUSIC-PLAYER] Stopping current playback');
                                 await this.stop();
                                 
-                                // 
+
                                 console.log('🎵 [MUSIC-PLAYER] Creating user gesture to unlock audio');
                                 const tempButton = document.createElement('button');
                                 tempButton.style.display = 'none';
@@ -458,30 +458,30 @@ class MusicPlayerSystem {
                                 tempButton.click();
                                 document.body.removeChild(tempButton);
                                 
-                                // 
+
                                 if (this._audioContext && this._audioContext.state === 'suspended') {
                                     console.log('🎵 [MUSIC-PLAYER] Resuming audio context again');
                                     await this._audioContext.resume();
                                 }
                                 
-                                // 
+
                                 this.unlockAudio();
                                 
-                                // 
+
                                 console.log('🎵 [MUSIC-PLAYER] Starting playback for:', searchResult.title);
                                 
-                                // 
+
                                 this.currentSong = searchResult;
                                 this.currentTrack = searchResult;
                                 
                                 await this.playTrack(searchResult);
                                 
-                                // 
+
                                 console.log('🎵 [MUSIC-PLAYER] Showing now playing UI');
                                 this.showNowPlaying(searchResult);
                                 this.showStatus(`Now playing: ${searchResult.title}`);
                                 
-                                // 
+
                                 this.isPlaying = true;
                                 
                                 console.log('🎵 [MUSIC-PLAYER] Playback started successfully');
@@ -489,7 +489,7 @@ class MusicPlayerSystem {
                                 console.error('🎵 [MUSIC-PLAYER] Error during playback start:', playError);
                                 this.showError(`Playback error: ${playError.message}`);
                                 
-                                // 
+
                                 console.log('🎵 [MUSIC-PLAYER] Attempting fallback playback');
                                 try {
                                     const audioElement = new Audio(searchResult.previewUrl);
@@ -520,7 +520,7 @@ class MusicPlayerSystem {
                         this.showNowPlaying(track);
                         this.showStatus(`Now playing: ${track.title}`);
                         
-                        // 
+
                         this.isPlaying = true;
                         this.currentSong = track;
                         
@@ -1247,7 +1247,7 @@ class MusicPlayerSystem {
 
             this.unlockAudio();
             
-            // 
+
             this.currentSong = track;
             this.currentTrack = track;
             
@@ -1284,7 +1284,7 @@ class MusicPlayerSystem {
                     await playPromise;
                 }
                 
-                // 
+
                 this.isPlaying = true;
                 this.currentSong = track;
                 this.currentTrack = track;
@@ -1770,7 +1770,7 @@ class MusicPlayerSystem {
     }
 
     validateMusicState() {
-        // 
+
         const audioActive = this.audio && !this.audio.paused && this.audio.src;
         const stateValid = this.isPlaying === audioActive;
         const songValid = audioActive ? (!!this.currentSong && !!this.currentTrack) : true;
@@ -1799,7 +1799,7 @@ class MusicPlayerSystem {
             }
         });
         
-        // 
+
         return {
             isPlaying: audioActive,
             stateConsistent: stateValid,

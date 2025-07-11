@@ -6,19 +6,19 @@
 
 require_once '../../../bootstrap/storage-setup.php';
 
-// 
+
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
 
-// 
+
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// 
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
@@ -26,12 +26,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
-    // 
+
     $channel_id = $_POST['channel_id'] ?? null;
     $meeting_id = $_POST['meeting_id'] ?? null;
     $user_id = $_POST['user_id'] ?? null;
     
-    // 
+
     error_log("Voice Disconnect API: Channel=$channel_id, Meeting=$meeting_id, User=$user_id");
     
     if (!$channel_id) {
@@ -40,8 +40,8 @@ try {
         exit;
     }
     
-    // 
-    // 
+
+
     
     http_response_code(200);
     echo json_encode([

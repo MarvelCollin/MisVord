@@ -47,24 +47,24 @@ function getServerIdFromURL() {
 }
 
 async function initializeServerComponents() {
-    // 
+
     const mainLayoutContainer = document.querySelector('#app-container .flex.flex-1.overflow-hidden');
     if (mainLayoutContainer && mainLayoutContainer.getAttribute('data-skeleton') === 'server') {
         return;
     }
     
     try {
-        // 
+
         if (window.voiceManager) {
             await window.voiceManager.ensureInitialized();
         }
         
-        // 
+
         if (window.SimpleChannelSwitcher && !window.simpleChannelSwitcher) {
             new window.SimpleChannelSwitcher();
         }
         
-        // 
+
         if (window.VoiceCallSection && !window.voiceCallSection) {
             window.voiceCallSection = new window.VoiceCallSection();
         }

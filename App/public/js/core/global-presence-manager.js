@@ -139,10 +139,10 @@ class GlobalPresenceManager {
             });
         }
         
-        // 
+
         window.addEventListener('socketRoomJoined', (event) => {
             console.log('🏠 [GLOBAL-PRESENCE] Socket room joined, refreshing presence data', event.detail);
-            // 
+
             setTimeout(async () => {
                 if (this.friendsManager) {
                     await this.friendsManager.getOnlineUsers(true);

@@ -751,7 +751,7 @@ function initializeBotDebugPanel() {
     addBotDebugLog('🤖 Bot Debug Panel initialized', 'success');
     refreshBotStatus();
     
-    // 
+
     if (window.globalSocketManager?.io) {
         window.globalSocketManager.io.on('bot-voice-participant-joined', (data) => {
             addBotDebugLog(`🎤 Bot joined voice channel: ${data.channel_id}`, 'success');
@@ -769,7 +769,7 @@ function initializeBotDebugPanel() {
             
             addBotDebugLog(`🎵 Music command received: ${actionType} - ${songQuery}`, 'info');
             
-            // 
+
             setTimeout(() => {
                 refreshBotStatus();
                 setTimeout(refreshBotStatus, 2000); // 
@@ -781,7 +781,7 @@ function initializeBotDebugPanel() {
         });
     }
     
-    // 
+
     setupMusicPlayerTracking();
 }
 
@@ -790,12 +790,12 @@ function setupMusicPlayerTracking() {
     if (!musicPlayer || !musicPlayer.audio) {
         addBotDebugLog('⚠️ Music player not available for event tracking', 'warning');
         
-        // 
+
         setTimeout(setupMusicPlayerTracking, 1000);
         return;
     }
     
-    // 
+
     ['play', 'playing', 'pause', 'ended', 'error'].forEach(eventName => {
         musicPlayer.audio.addEventListener(eventName, () => {
             addBotDebugLog(`🔊 Audio event: ${eventName}`, 'info');
@@ -806,7 +806,7 @@ function setupMusicPlayerTracking() {
     addBotDebugLog('✅ Music player tracking initialized', 'success');
 }
 
-// 
+
 let musicTrackingInterval = null;
 function trackMusicPlayback() {
     if (musicTrackingInterval) {
@@ -818,10 +818,10 @@ function trackMusicPlayback() {
     
     addBotDebugLog('▶️ Starting music tracking (will update every 3 seconds)', 'success');
     
-    // 
+
     checkCurrentMusicStatus();
     
-    // 
+
     musicTrackingInterval = setInterval(() => {
         checkCurrentMusicStatus();
     }, 3000);
@@ -847,7 +847,7 @@ function checkCurrentMusicStatus() {
             songInfo = 'Unknown track';
         }
         
-        // 
+
         let position = '';
         if (musicPlayer.audio) {
             const current = Math.round(musicPlayer.audio.currentTime || 0);
@@ -857,14 +857,14 @@ function checkCurrentMusicStatus() {
         
         addBotDebugLog(`🎵 Currently playing: ${songInfo} (${position})`, 'success');
         
-        // 
+
         const currentlyPlayingSongEl = document.getElementById('currently-playing-song');
         if (currentlyPlayingSongEl) {
             currentlyPlayingSongEl.textContent = songInfo;
             currentlyPlayingSongEl.className = 'text-xs text-purple-300 font-semibold';
         }
         
-        // 
+
         const musicPlayerEl = document.getElementById('music-player-status');
         if (musicPlayerEl) {
             musicPlayerEl.textContent = 'Playing';
@@ -897,23 +897,23 @@ function refreshBotStatus() {
         botVoiceEl.className = voiceConnected ? 'text-sm text-green-400' : 'text-sm text-red-400';
     }
     
-    // 
+
     if (musicPlayerEl) {
         const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
         if (musicPlayer) {
-            // 
+
             const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
-            // 
+
             const isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
             
             musicPlayerEl.textContent = isPlaying ? 'Playing' : 'Not Playing';
             musicPlayerEl.className = isPlaying ? 'text-sm text-green-400' : 'text-sm text-gray-400';
             
-            // 
+
             const musicInfo = getMusicPlaybackInfo();
             
             if (currentlyPlayingSongEl) {
-                // 
+
                 const currentTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
                 if (currentTrack && isPlaying) {
                     currentlyPlayingSongEl.textContent = `${currentTrack.title} by ${currentTrack.artist || 'Unknown'}`;
@@ -924,7 +924,7 @@ function refreshBotStatus() {
                 }
             }
             
-            // 
+
             if (musicListenersEl) {
                 if (musicInfo.listeners.length > 0) {
                     musicListenersEl.innerHTML = musicInfo.listeners.map(listener => 
@@ -938,7 +938,7 @@ function refreshBotStatus() {
                     musicListenersEl.className = 'text-xs text-gray-400';
                 }
                 
-                // 
+
                 if (musicInfo.isPlaying) {
                     addBotDebugLog(`🎵 Music playing: "${musicInfo.songTitle}" for ${musicInfo.listeners.length} users`, 'info');
                 }
@@ -1201,13 +1201,13 @@ function getMusicPlaybackInfo() {
         return result;
     }
     
-    // 
+
     const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
     
-    // 
+
     result.isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
     
-    // 
+
     result.debug = {
         audioElement: {
             src: musicPlayer.audio?.src || 'none',
@@ -1221,7 +1221,7 @@ function getMusicPlaybackInfo() {
         queue: musicPlayer.queue?.length || 0
     };
     
-    // 
+
     if (musicPlayer.currentSong) {
         result.songTitle = musicPlayer.currentSong.title || 'Unknown';
         result.songArtist = musicPlayer.currentSong.artist || 'Unknown';
@@ -1229,7 +1229,7 @@ function getMusicPlaybackInfo() {
         result.songTitle = musicPlayer.currentTrack.title || 'Unknown';
         result.songArtist = musicPlayer.currentTrack.artist || 'Unknown';
     } else if (musicPlayer.queue && musicPlayer.queue.length > 0 && musicPlayer.currentIndex >= 0) {
-        // 
+
         const currentQueueItem = musicPlayer.queue[musicPlayer.currentIndex];
         if (currentQueueItem) {
             result.songTitle = currentQueueItem.title || 'Unknown';
@@ -1237,11 +1237,11 @@ function getMusicPlaybackInfo() {
         }
     }
     
-    // 
+
     if (result.isPlaying && result.songTitle === 'None' && musicPlayer.audio?.src) {
         const url = musicPlayer.audio.src;
         try {
-            // 
+
             const urlParts = url.split('/');
             const filename = urlParts[urlParts.length - 1].split('?')[0];
             result.songTitle = decodeURIComponent(filename) || 'Unknown track';
@@ -1251,7 +1251,7 @@ function getMusicPlaybackInfo() {
         }
     }
     
-    // 
+
     const voiceContext = window.debugTitiBotVoiceContext ? window.debugTitiBotVoiceContext() : null;
     if (voiceContext && voiceContext.voiceChannelId) {
         result.voiceChannelId = voiceContext.voiceChannelId;
@@ -1261,20 +1261,20 @@ function getMusicPlaybackInfo() {
                                null;
     }
     
-    // 
+
     if (result.voiceChannelId) {
-        // 
+
         const participants = getVoiceChannelParticipants(result.voiceChannelId);
         
-        // 
+
         result.listeners = participants.map(participant => {
-            // 
+
             const isBot = participant.isBot || participant.user_id === '4' || participant.username?.toLowerCase() === 'titibot';
             
-            // 
+
             const isInSameChannel = participant.channelId === result.voiceChannelId;
             
-            // 
+
             const isListening = isInSameChannel && (isBot || result.isPlaying);
             
             return {
@@ -1289,7 +1289,7 @@ function getMusicPlaybackInfo() {
     return result;
 }
 
-// 
+
 function getVoiceChannelParticipants(channelId) {
     if (!channelId) return [];
     
@@ -1362,11 +1362,11 @@ function checkMusicListeners() {
     
     const musicInfo = getMusicPlaybackInfo();
     
-    // 
+
     addBotDebugLog('🔍 Analyzing music player state...', 'info');
     const debugInfo = musicInfo.debug;
     
-    // 
+
     const audio = debugInfo.audioElement;
     if (audio.src && audio.src !== 'none') {
         addBotDebugLog(`🎧 Audio element has source: ${audio.src.substring(0, 30)}...`, 'info');
@@ -1375,14 +1375,14 @@ function checkMusicListeners() {
         addBotDebugLog('❌ Audio element has no source', 'warning');
     }
     
-    // 
+
     addBotDebugLog(`🔄 Player state variables:`, 'info');
     addBotDebugLog(`   isPlaying flag: ${debugInfo.isPlayingFlag}`, debugInfo.isPlayingFlag ? 'success' : 'warning');
     addBotDebugLog(`   Has currentSong: ${!!debugInfo.currentSong}`, debugInfo.currentSong ? 'success' : 'info');
     addBotDebugLog(`   Has currentTrack: ${!!debugInfo.currentTrack}`, debugInfo.currentTrack ? 'success' : 'info');
     addBotDebugLog(`   Queue size: ${debugInfo.queue}`, 'info');
     
-    // 
+
     if (!musicInfo.voiceChannelId) {
         addBotDebugLog('❌ No voice channel detected', 'error');
         return;
@@ -1396,7 +1396,7 @@ function checkMusicListeners() {
         addBotDebugLog('⏹️ No music currently playing', 'warning');
     }
     
-    // 
+
     analyzeMusicCommandFlow();
     
     addBotDebugLog(`👥 Detected ${musicInfo.listeners.length} participants in voice channel:`, 'info');
@@ -1409,7 +1409,7 @@ function checkMusicListeners() {
         addBotDebugLog(`   ${icon} ${listener.username} (${listener.user_id}): ${status}`, style);
     });
     
-    // 
+
     const listenersCount = musicInfo.listeners.filter(l => l.listening).length;
     
     if (musicInfo.isPlaying && listenersCount > 0) {
@@ -1432,7 +1432,7 @@ function analyzeMusicCommandFlow() {
     
     addBotDebugLog('🔄 Analyzing music command flow...', 'info');
     
-    // 
+
     const socketManager = window.globalSocketManager;
     if (socketManager && socketManager.isReady()) {
         addBotDebugLog('1️⃣ Socket ready for command reception', 'success');
@@ -1440,14 +1440,14 @@ function analyzeMusicCommandFlow() {
         addBotDebugLog('1️⃣ Socket not ready - command reception may fail', 'warning');
     }
     
-    // 
+
     if (musicPlayer._audioInitialized) {
         addBotDebugLog('2️⃣ Music player properly initialized', 'success');
     } else {
         addBotDebugLog('2️⃣ Music player not fully initialized', 'warning');
     }
     
-    // 
+
     const audioContext = musicPlayer._audioContext;
     if (audioContext) {
         const contextState = audioContext.state;
@@ -1457,7 +1457,7 @@ function analyzeMusicCommandFlow() {
         addBotDebugLog('3️⃣ No audio context available', 'warning');
     }
     
-    // 
+
     const lastFoundTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
     if (lastFoundTrack) {
         addBotDebugLog(`4️⃣ Last found track: ${lastFoundTrack.title || 'Unknown'}`, 'success');
@@ -1470,7 +1470,7 @@ function analyzeMusicCommandFlow() {
         addBotDebugLog('4️⃣ No track has been found/loaded', 'warning');
     }
     
-    // 
+
     if (typeof musicPlayer.processBotMusicCommand === 'function') {
         addBotDebugLog('5️⃣ Music command processor available', 'success');
     } else {
@@ -1692,16 +1692,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.voiceDebugPanel.togglePanel();
             } else {
                 console.log('Loading voice debug panel...');
-                // 
+
                 const existingScript = document.querySelector('script[src*="debug-panel-voice.js"]');
                 if (existingScript) {
-                    // 
+
                     if (window.VoiceDebugPanel && !window.voiceDebugPanel) {
                         window.voiceDebugPanel = new window.VoiceDebugPanel();
                         setTimeout(() => window.voiceDebugPanel.togglePanel(), 100);
                     }
                 } else {
-                    // 
+
                     const script = document.createElement('script');
                     script.src = '/public/js/components/voice/debug-panel-voice.js?v=' + Date.now();
                     script.onload = function() {

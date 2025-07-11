@@ -98,7 +98,7 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-        // 
+
         window.location.href = `/home/channels/dm/${dmId}`;
     }
     

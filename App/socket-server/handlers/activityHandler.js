@@ -248,7 +248,23 @@ class ActivityHandler {
                 });
                 
                 const roomName = `tic-tac-toe-server-${server_id}`;
-                const remainingLobbyPlayers = [];
+                const allLobbyPlayers = [];
+                
+                const mainRoomClients = io.sockets.adapter.rooms.get(roomName);
+                if (mainRoomClients) {
+                    mainRoomClients.forEach(socketId => {
+                        const socket = io.sockets.sockets.get(socketId);
+                        if (socket && socket.data && socket.data.user_id) {
+                            allLobbyPlayers.push({
+                                user_id: socket.data.user_id,
+                                username: socket.data.username,
+                                avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                                ready: false,
+                                socketId: socketId
+                            });
+                        }
+                    });
+                }
                 
                 if (gameRoomClients) {
                     gameRoomClients.forEach(socketId => {
@@ -260,21 +276,33 @@ class ActivityHandler {
                             socket.data.ticTacToeReady = false;
                             socket.leave(gameRoomName);
                             
-                            remainingLobbyPlayers.push({
-                                user_id: socket.data.user_id,
-                                username: socket.data.username,
-                                avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
-                                ready: false
-                            });
+                            const existingPlayer = allLobbyPlayers.find(p => p.user_id === socket.data.user_id);
+                            if (!existingPlayer) {
+                                allLobbyPlayers.push({
+                                    user_id: socket.data.user_id,
+                                    username: socket.data.username,
+                                    avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                                    ready: false
+                                });
+                            }
                         }
                     });
                 }
                 
+                allLobbyPlayers.forEach(player => {
+                    if (player.socketId) {
+                        const socket = io.sockets.sockets.get(player.socketId);
+                        if (socket) {
+                            socket.data.ticTacToeReady = false;
+                        }
+                    }
+                });
+                
                 setTimeout(() => {
                     io.to(roomName).emit('tic-tac-toe-returned-to-lobby', {
-                        players: remainingLobbyPlayers,
+                        players: allLobbyPlayers,
                         message: 'Game ended - returned to lobby',
-                        lobby_count: remainingLobbyPlayers.length
+                        lobby_count: allLobbyPlayers.length
                     });
                 }, 2000);
             }, 800);

@@ -615,13 +615,13 @@ class ChatSection {
             
                 this.joinSocketRoom();
                 
-                // 
+
                 const messagesContainer = this.getMessagesContainer();
                 if (messagesContainer) {
                     messagesContainer.innerHTML = '';
                 }
                 
-                // 
+
                 this.showChatSkeleton();
                 
                 await this.loadMessages();
@@ -1173,7 +1173,7 @@ class ChatSection {
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
                     
-                    // 
+
                 }
                 
                 this.hideEmptyState();
@@ -2304,13 +2304,13 @@ class ChatSection {
         
         try {
             this.isAutoScrolling = true;
-            // 
+
             this.chatMessages.style.scrollBehavior = 'smooth';
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
             this.userHasScrolled = false;
             setTimeout(() => {
                 this.isAutoScrolling = false;
-                // 
+
                 this.chatMessages.style.scrollBehavior = 'auto';
             }, 300);
         } catch (error) {
@@ -2322,7 +2322,7 @@ class ChatSection {
     scrollToBottomIfAppropriate(isChannelSwitch = false) {
         if (!this.chatMessages) return;
         
-        // 
+
         if (!this.isInitialized || isChannelSwitch) {
             this.scrollToBottom();
             return;
@@ -3197,32 +3197,32 @@ class ChatSection {
     handleNewMessageScroll(isOwnMessage = false) {
         if (!this.chatMessages) return;
         
-        // 
+
         if (isOwnMessage) {
             this.scrollToBottom();
             return;
         }
         
-        // 
+
         if (!this.userHasScrolled) {
             this.scrollToBottom();
             return;
         }
         
-        // 
+
         const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
         const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; // 
         
         if (isAtBottom) {
             this.scrollToBottom();
         } else {
-            // 
+
             this.showNewMessageIndicator();
         }
     }
     
     showNewMessageIndicator() {
-        // 
+
         if (!document.getElementById('new-message-indicator')) {
             const indicator = document.createElement('div');
             indicator.id = 'new-message-indicator';
@@ -3236,7 +3236,7 @@ class ChatSection {
             
             document.body.appendChild(indicator);
             
-            // 
+
             setTimeout(() => {
                 if (document.getElementById('new-message-indicator')) {
                     document.getElementById('new-message-indicator').remove();
@@ -3263,17 +3263,17 @@ class ChatSection {
         if (realContent) {
             realContent.style.display = 'block';
             
-            // 
+
             if (chatMessages) {
-                // 
+
                 const originalScrollBehavior = chatMessages.style.scrollBehavior;
                 chatMessages.style.scrollBehavior = 'auto';
                 
-                // 
+
                 requestAnimationFrame(() => {
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                     
-                    // 
+
                     requestAnimationFrame(() => {
                         chatMessages.style.scrollBehavior = originalScrollBehavior;
                     });
@@ -3295,28 +3295,28 @@ class ChatSection {
             realContent.style.display = 'none';
         }
         
-        // 
+
         if (chatMessages) {
-            // 
+
             const originalScrollBehavior = chatMessages.style.scrollBehavior;
             chatMessages.style.scrollBehavior = 'auto';
             
-            // 
+
             const positionAtBottom = () => {
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             };
             
-            // 
+
             positionAtBottom();
             
-            // 
+
             requestAnimationFrame(() => {
                 positionAtBottom();
                 
-                // 
+
                 requestAnimationFrame(() => {
                     positionAtBottom();
-                    // 
+
                     chatMessages.style.scrollBehavior = originalScrollBehavior;
                 });
             });

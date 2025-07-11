@@ -49,9 +49,9 @@ $additional_js = [
     'components/messaging/mention-handler',
     'components/messaging/chat-bot',
     'components/messaging/chat-section',
-    // 
+
     'components/voice/voice-manager',
-    // 
+
     'components/bot/bot',
     'components/servers/server-dropdown',
 

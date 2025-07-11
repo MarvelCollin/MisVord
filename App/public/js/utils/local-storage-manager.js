@@ -244,7 +244,7 @@ class LocalStorageManager {
         const current = this.getUnifiedVoiceState();
         const updated = { ...current, ...state };
 
-        // 
+
         if (updated.isConnected === false && !updated.channelId && !updated.meetingId) {
             this.remove(this.keys.UNIFIED_VOICE_STATE);
             this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); // 
@@ -300,10 +300,10 @@ class LocalStorageManager {
                 }
             }));
             
-            // 
+
             if (window.ChannelVoiceParticipants && state.channelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // 
+
                 const updateMode = state.isConnected ? 'append' : 'full';
                 instance.updateSidebarForChannel(state.channelId, updateMode);
             }

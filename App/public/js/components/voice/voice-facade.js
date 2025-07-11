@@ -126,7 +126,7 @@ class VoiceFacade {
     }
 }
 
-// 
+
 new VoiceFacade();
 
 export default window.voiceFacade; 

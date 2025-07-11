@@ -51,7 +51,7 @@ window.ParticipantIntegrityTest = {
      * Check for duplicate participant elements in the DOM
      */
     checkForDuplicateParticipants() {
-        // 
+
         const grid = document.getElementById('participantGrid');
         if (!grid) {
             console.warn('⚠️ [TEST] Participant grid not found');
@@ -78,7 +78,7 @@ window.ParticipantIntegrityTest = {
             console.log('✅ [TEST] No duplicate participant cards found in grid');
         }
         
-        // 
+
         const sidebarContainers = document.querySelectorAll('.voice-participants');
         let sidebarDuplicates = false;
         
@@ -117,29 +117,29 @@ window.ParticipantIntegrityTest = {
         const state = window.participantCoordinator.debugState();
         console.log('🔍 [TEST] ParticipantCoordinator state:', state);
         
-        // 
+
         const channelIds = Object.keys(state.channels || {});
         let hasInconsistencies = false;
         
         channelIds.forEach(channelId => {
-            // 
+
             const participantIdsObj = state.channels[channelId];
             
-            // 
+
             let participantIds = [];
             
             if (Array.isArray(participantIdsObj)) {
-                // 
+
                 participantIds = participantIdsObj;
             } else if (participantIdsObj && typeof participantIdsObj === 'object') {
-                // 
+
                 participantIds = Object.keys(participantIdsObj);
             } else if (participantIdsObj === undefined) {
                 console.warn('⚠️ [TEST] No participants found for channel:', channelId);
                 return;
             }
             
-            // 
+
             const participantData = participantIds
                 .map(id => state.participants[id])
                 .filter(Boolean);
@@ -177,7 +177,7 @@ window.ParticipantIntegrityTest = {
             return false;
         }
         
-        // 
+
         const participants = instance.participants;
         const containers = document.querySelectorAll('.voice-participants');
         let hasInconsistencies = false;
@@ -218,7 +218,7 @@ window.ParticipantIntegrityTest = {
     simulateForcedLeave() {
         console.group('🧪 [TEST] Simulating forced leave');
         
-        // 
+
         const beforeState = {
             isConnected: window.videoSDKManager?.isConnected,
             channelId: window.voiceManager?.currentChannelId,
@@ -227,11 +227,11 @@ window.ParticipantIntegrityTest = {
         
         console.log('📊 [TEST] State before leave:', beforeState);
         
-        // 
+
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             window.voiceManager.leaveVoice();
             
-            // 
+
             setTimeout(() => {
                 const afterState = {
                     isConnected: window.videoSDKManager?.isConnected,
@@ -241,7 +241,7 @@ window.ParticipantIntegrityTest = {
                 
                 console.log('📊 [TEST] State after leave:', afterState);
                 
-                // 
+
                 const cleanupSuccess = !afterState.isConnected && 
                                       !afterState.channelId && 
                                       afterState.participantCount === 0;
@@ -282,12 +282,12 @@ window.ParticipantIntegrityTest = {
     }
 };
 
-// 
+
 document.addEventListener('DOMContentLoaded', () => {
     window.ParticipantIntegrityTest.setupAutoTest();
     console.log('✅ [TEST] Participant Integrity Test initialized');
 });
 
-// 
+
 window.testParticipantIntegrity = () => window.ParticipantIntegrityTest.runTests();
 window.simulateForcedLeave = () => window.ParticipantIntegrityTest.simulateForcedLeave(); 

@@ -24,11 +24,11 @@ class VoiceManager {
         this.setupBeforeUnloadHandler();
         this.setupBotEventListeners();
         
-        // 
+
         if (window.localStorageManager) {
             this.syncChannelWithUnifiedState();
             
-            // 
+
             window.localStorageManager.addVoiceStateListener(() => {
                 this.syncChannelWithUnifiedState();
             });
@@ -68,7 +68,7 @@ class VoiceManager {
             if (this.isConnected) {
                 console.log('🔄 [VOICE-MANAGER] Page unloading - cleaning up voice connection');
                 
-                // 
+
                 if (this.meeting) {
                     try {
                         this.meeting.leave();
@@ -77,7 +77,7 @@ class VoiceManager {
                     }
                 }
                 
-                // 
+
                 if (window.globalSocketManager?.io) {
                     try {
                         window.globalSocketManager.io.emit('unregister-voice-meeting', {
@@ -89,7 +89,7 @@ class VoiceManager {
                     }
                 }
                 
-                // 
+
                 if (window.localStorageManager) {
                     try {
                         const currentState = window.localStorageManager.getUnifiedVoiceState();
@@ -106,7 +106,7 @@ class VoiceManager {
                     }
                 }
                 
-                // 
+
                 if (navigator.sendBeacon && window.location.origin) {
                     try {
                         const disconnectEndpoint = `${window.location.origin}/public/api/voice/disconnect.php`;
@@ -146,7 +146,7 @@ class VoiceManager {
         if (channelId === this.currentChannelId) {
             const botId = `bot-${participant.user_id}`;
             
-            // 
+
             let avatarUrl = participant.avatar_url;
             if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
                 avatarUrl = '/public/assets/landing-page/robot.webp';
@@ -173,7 +173,7 @@ class VoiceManager {
             
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // 
+
                 const updateMode = isRecovery ? 'full' : 'append';
                 setTimeout(() => {
                     instance.updateSidebarForChannel(channelId, updateMode);
@@ -342,7 +342,7 @@ class VoiceManager {
         }
     }
     
-    // 
+
     async joinVoice(...args) { return this._joinVoice(...args); }
     async leaveVoice(...args) { return this._leaveVoice(...args); }
     
@@ -351,11 +351,11 @@ class VoiceManager {
         
         const voiceState = window.localStorageManager.getUnifiedVoiceState();
         
-        // 
+
         if (this.isConnected && voiceState.isConnected) {
             let needsSync = false;
             
-            // 
+
             if (this.currentChannelId && voiceState.channelId && 
                 this.currentChannelId !== voiceState.channelId) {
                 needsSync = true;
@@ -365,7 +365,7 @@ class VoiceManager {
                 });
             }
             
-            // 
+
             if (this.currentMeetingId && voiceState.meetingId && 
                 this.currentMeetingId !== voiceState.meetingId) {
                 needsSync = true;
@@ -390,7 +390,7 @@ class VoiceManager {
                 });
             }
         }
-        // 
+
         else if (!this.isConnected && voiceState.isConnected && 
                  voiceState.channelId && voiceState.meetingId) {
             console.log(`🔄 [VOICE-MANAGER] Storage shows active voice connection, updating local state:`, voiceState);
@@ -420,7 +420,7 @@ class VoiceManager {
             window.globalSocketManager.updatePresence('online', { type: 'active' });
         }
         
-        // 
+
         this.updateUnifiedVoiceState({
             isConnected: false,
             channelId: null,
@@ -502,7 +502,7 @@ class VoiceManager {
             console.warn('[VoiceManager] Failed to parse participant metaData:', e);
         }
         
-        // 
+
         let userIdField = participant.id;
         try {
             if (participant.metaData) {
@@ -512,11 +512,11 @@ class VoiceManager {
                 }
             }
         } catch (e) {
-            // 
+
         }
 
-        // 
-        // 
+
+
         const participantKey = participant.id;
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
         const isLocalUser = currentUserId && String(userIdField) === currentUserId;
@@ -548,7 +548,7 @@ class VoiceManager {
     handleParticipantLeft(participant) {
         if (!participant) return;
         
-        // 
+
         const participantKey = participant.id;
         
         if (this.participants.has(participantKey)) {
@@ -569,7 +569,7 @@ class VoiceManager {
         if (!participant) return;
         
         participant.on('stream-enabled', (stream) => {
-            // 
+
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.set(stream.kind, stream);
@@ -585,7 +585,7 @@ class VoiceManager {
         });
         
         participant.on('stream-disabled', (stream) => {
-            // 
+
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.delete(stream.kind);
@@ -684,14 +684,14 @@ class VoiceManager {
     getScreenShareState() { return this._screenShareOn; }
     
     async getOrCreateMeeting(channelId) {
-        // 
+
         const domMeetingId = document.querySelector(`[data-channel-id="${channelId}"]`)?.getAttribute('data-meeting-id');
         if (domMeetingId) {
             console.log(`📌 [VOICE-MANAGER] Using meeting ID from DOM attribute:`, { channelId, meetingId: domMeetingId });
             return domMeetingId;
         }
 
-        // 
+
         const existing = await this.checkExistingMeeting(channelId);
         if (existing?.meeting_id) {
             console.log(`🔄 [VOICE-MANAGER] Found existing meeting on server:`, {
@@ -701,10 +701,10 @@ class VoiceManager {
             return existing.meeting_id;
         }
         
-        // 
+
         const voiceState = window.localStorageManager?.getUnifiedVoiceState();
         if (voiceState && voiceState.channelId === channelId && voiceState.meetingId) {
-            // 
+
             const isValid = await this.validateMeetingId(voiceState.meetingId, channelId);
             if (isValid) {
                 console.log(`✅ [VOICE-MANAGER] Using validated meeting ID from unified voice state:`, {
@@ -720,7 +720,7 @@ class VoiceManager {
             }
         }
         
-        // 
+
         const customMeetingId = `voice_channel_${channelId}`;
         
         try {
@@ -840,7 +840,7 @@ class VoiceManager {
 
     updateUnifiedVoiceState(state) {
         if (window.localStorageManager) {
-            // 
+
             if (this.currentChannelId && state.channelId && 
                 this.currentChannelId !== state.channelId) {
                 console.warn(`⚠️ [VOICE-MANAGER] Channel ID mismatch while updating unified state:
@@ -850,7 +850,7 @@ class VoiceManager {
                 state.channelName = this.currentChannelName;
             }
             
-            // 
+
             if (this.currentMeetingId && state.meetingId && 
                 this.currentMeetingId !== state.meetingId) {
                 console.warn(`⚠️ [VOICE-MANAGER] Meeting ID mismatch while updating unified state:

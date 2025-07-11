@@ -24,7 +24,7 @@ window.debugVoiceButtons = function() {
             return;
         }
         
-        // 
+
         const rect = btn.getBoundingClientRect();
         const isVisible = rect.width > 0 && rect.height > 0;
         console.log(`   👁️  Visible: ${isVisible ? '✅' : '❌'} (${Math.round(rect.width)}x${Math.round(rect.height)})`);
@@ -33,7 +33,7 @@ window.debugVoiceButtons = function() {
             issues.push(`${btnId}: Not visible (${Math.round(rect.width)}x${Math.round(rect.height)})`);
         }
         
-        // 
+
         const computedStyles = window.getComputedStyle(btn);
         console.log(`   🎨 Background: ${computedStyles.backgroundColor}`);
         console.log(`   🔘 Border-radius: ${computedStyles.borderRadius}`);
@@ -41,7 +41,7 @@ window.debugVoiceButtons = function() {
         console.log(`   👆 Cursor: ${computedStyles.cursor}`);
         console.log(`   📱 Display: ${computedStyles.display}`);
         
-        // 
+
         if (computedStyles.backgroundColor === 'rgba(0, 0, 0, 0)' || computedStyles.backgroundColor === 'transparent') {
             issues.push(`${btnId}: No background color applied`);
         }
@@ -50,7 +50,7 @@ window.debugVoiceButtons = function() {
             issues.push(`${btnId}: Cursor not set to pointer`);
         }
         
-        // 
+
         if (icon) {
             const iconStyles = window.getComputedStyle(icon);
             const iconContent = window.getComputedStyle(icon, '::before').content;
@@ -68,16 +68,16 @@ window.debugVoiceButtons = function() {
             issues.push(`${btnId}: Icon element missing`);
         }
         
-        // 
+
         const hasClickListener = btn.onclick !== null || 
                                btn.addEventListener.toString().includes('click') ||
                                btn.outerHTML.includes('onclick');
         console.log(`   🖱️  Has click listener: ${hasClickListener ? '✅' : '❓'}`);
         
-        // 
+
         console.log(`   🏷️  Classes: ${btn.className}`);
         
-        // 
+
         const hasTailwindClasses = btn.className.includes('bg-[') || btn.className.includes('hover:bg-[');
         console.log(`   🎨 Has Tailwind classes: ${hasTailwindClasses ? '✅' : '❌'}`);
         
@@ -86,7 +86,7 @@ window.debugVoiceButtons = function() {
         }
     });
     
-    // 
+
     console.log('\n🌊 Tailwind CSS Status:');
     console.log('======================');
     
@@ -108,7 +108,7 @@ window.debugVoiceButtons = function() {
     
     document.body.removeChild(testElement);
     
-    // 
+
     console.log('\n🎭 FontAwesome Status:');
     console.log('=====================');
     
@@ -128,7 +128,7 @@ window.debugVoiceButtons = function() {
     
     document.body.removeChild(faTestElement);
     
-    // 
+
     console.log('\n📄 CSS File Status:');
     console.log('==================');
     
@@ -142,7 +142,7 @@ window.debugVoiceButtons = function() {
         issues.push('voice-call-section.css not found');
     }
     
-    // 
+
     console.log('\n📋 Summary:');
     console.log('===========');
     
@@ -178,7 +178,7 @@ window.debugVoiceButtons = function() {
     };
 };
 
-// 
+
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const results = window.debugVoiceButtons();

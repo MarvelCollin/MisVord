@@ -149,7 +149,7 @@ class FriendsManager {
     handleUserOnline(data) {
         const standardizedData = this.standardizePresenceData(data);
         if (standardizedData.user_id && standardizedData.username) {
-            // 
+
             if (!this.cache.onlineUsers || typeof this.cache.onlineUsers !== 'object') {
                 this.cache.onlineUsers = {};
             }
@@ -160,7 +160,7 @@ class FriendsManager {
 
     handleUserOffline(data) {
         const standardizedData = this.standardizePresenceData(data);
-        // 
+
         if (!this.cache.onlineUsers || typeof this.cache.onlineUsers !== 'object') {
             this.cache.onlineUsers = {};
         }
@@ -173,7 +173,7 @@ class FriendsManager {
     handlePresenceUpdate(data) {
         const standardizedData = this.standardizePresenceData(data);
         if (standardizedData.user_id && standardizedData.username) {
-            // 
+
             if (!this.cache.onlineUsers || typeof this.cache.onlineUsers !== 'object') {
                 this.cache.onlineUsers = {};
             }

@@ -68,7 +68,7 @@ class BotComponent {
             }
         });
 
-        // 
+
         io.on('voice-meeting-update', (data) => {
             if (data.isBot && data.user_id) {
                 if (data.action === 'join') {

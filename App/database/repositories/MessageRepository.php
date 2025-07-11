@@ -40,22 +40,22 @@ class MessageRepository extends Repository {
                 return false;
             }
             
-            // 
+
             $attachments = [];
             if ($message->attachment_url) {
                 $decoded = json_decode($message->attachment_url, true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                     $attachments = $decoded;
                 } else {
-                    // 
+
                     $attachments = [$message->attachment_url];
                 }
             }
             
-            // 
+
             $attachments[] = $attachmentUrl;
             
-            // 
+
             return $this->update($messageId, [
                 'attachment_url' => json_encode(array_values($attachments))
             ]);
@@ -76,8 +76,8 @@ class MessageRepository extends Repository {
         error_log("MessageRepository: Adding $mentionType mention $mentionId to message $messageId");
         
         try {
-            // 
-            // 
+
+
             return true;
         } catch (Exception $e) {
             error_log("MessageRepository: Error adding mention: " . $e->getMessage());

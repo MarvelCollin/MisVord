@@ -10,7 +10,7 @@ export * from './servers/server-detail.js';
 export * from './servers/channel-redirect.js';
 export * from './channels/channel-manager.js';
 export * from './voice/voice-manager.js';
-// 
+
 
 export * from './bot/bot.js';
 export * from './admin/admin.js';

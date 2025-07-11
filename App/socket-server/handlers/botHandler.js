@@ -262,7 +262,7 @@ class BotHandler extends EventEmitter {
         if (content === '/titibot ping') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
         } else if (content === '/titibot join') {
-            // 
+
             if (voiceChannelToJoin) {
                 await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
                 await this.sendBotResponse(io, data, messageType, botId, username, 'join_success');
@@ -270,10 +270,10 @@ class BotHandler extends EventEmitter {
                 await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
             }
         } else if (content === '/titibot leave') {
-            // 
+
             let channelIdForLeave = voiceChannelToJoin;
             if (!channelIdForLeave) {
-                // 
+
                 for (const key of this.botVoiceParticipants.keys()) {
                     if (key.startsWith(`${botId}-`)) {
                         channelIdForLeave = key.split('-')[1];
@@ -298,8 +298,8 @@ class BotHandler extends EventEmitter {
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content === '/titibot stop') {
-            // 
-            // 
+
+
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content === '/titibot next') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'next');
@@ -316,13 +316,13 @@ class BotHandler extends EventEmitter {
     static async joinBotToVoiceChannel(io, botId, username, channelId) {
         const botParticipantKey = `${botId}-${channelId}`;
         
-        // 
+
         if (this.botVoiceParticipants.has(botParticipantKey)) {
             console.log(`🤖 [BOT-JOIN] Bot ${botId} already in channel ${channelId}`);
             return;
         }
 
-        // 
+
         for (const [key, participant] of this.botVoiceParticipants.entries()) {
             if (key.startsWith(`${botId}-`) && participant.channelId !== channelId) {
                 console.log(`🤖 [BOT-JOIN] Bot ${botId} leaving channel ${participant.channelId} to join ${channelId}`);
@@ -331,7 +331,7 @@ class BotHandler extends EventEmitter {
             }
         }
 
-        // 
+
         if (!this.bots.has(botId)) {
             await this.registerBot(botId, username);
         }
@@ -340,7 +340,7 @@ class BotHandler extends EventEmitter {
         const avatarUrl = botData?.avatar_url || '/public/assets/landing-page/robot.webp';
 
         try {
-            // 
+
             const virtualBotClient = {
                 id: `bot-${botId}-${channelId}`,
                 data: {
@@ -361,7 +361,7 @@ class BotHandler extends EventEmitter {
                 }
             };
 
-            // 
+
             const registrationData = {
                 channel_id: channelId,
                 meeting_id: `voice_channel_${channelId}`,
@@ -375,11 +375,11 @@ class BotHandler extends EventEmitter {
                 meetingId: registrationData.meeting_id
             });
 
-            // 
+
             const roomManager = require('../services/roomManager');
             const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
 
-            // 
+
             VoiceConnectionTracker.addBotToVoice(
                 botId, 
                 channelId, 
@@ -387,13 +387,13 @@ class BotHandler extends EventEmitter {
                 username
             );
 
-            // 
+
             roomManager.addVoiceMeeting(channelId, registrationData.meeting_id, virtualBotClient.id);
 
-            // 
+
             await virtualBotClient.join(`voice_channel_${channelId}`);
 
-            // 
+
             const botParticipantData = {
                 id: `bot-voice-${botId}`,
                 user_id: botId.toString(),
@@ -407,14 +407,14 @@ class BotHandler extends EventEmitter {
                 status: 'Ready to play music'
             };
 
-            // 
+
             this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
 
-            // 
+
             const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
             const participantCount = participants.length;
 
-            // 
+
             const joinEventData = {
                 channel_id: channelId,
                 meeting_id: registrationData.meeting_id,
@@ -427,12 +427,12 @@ class BotHandler extends EventEmitter {
                 timestamp: Date.now()
             };
 
-            // 
+
             io.emit('voice-meeting-update', joinEventData);
             io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', joinEventData);
             io.to(`channel-${channelId}`).emit('voice-meeting-update', joinEventData);
 
-            // 
+
             const botEventData = {
                 participant: botParticipantData,
                 channelId: channelId,
@@ -468,24 +468,24 @@ class BotHandler extends EventEmitter {
                 meetingId: botParticipantData.meetingId
             });
 
-            // 
+
             const roomManager = require('../services/roomManager');
             const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
 
-            // 
+
             const result = roomManager.removeVoiceMeeting(channelId, virtualBotClientId);
 
-            // 
+
             VoiceConnectionTracker.removeBotFromVoice(botId, channelId);
 
-            // 
+
             this.botVoiceParticipants.delete(botParticipantKey);
 
-            // 
+
             const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
             const participantCount = participants.length;
 
-            // 
+
             const leaveEventData = {
                 channel_id: channelId,
                 meeting_id: botParticipantData.meetingId,
@@ -498,12 +498,12 @@ class BotHandler extends EventEmitter {
                 reason: 'command_triggered'
             };
 
-            // 
+
             io.emit('voice-meeting-update', leaveEventData);
             io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', leaveEventData);
             io.to(`channel-${channelId}`).emit('voice-meeting-update', leaveEventData);
 
-            // 
+
             const botEventData = {
                 participant: botParticipantData,
                 channelId: channelId,
@@ -521,16 +521,16 @@ class BotHandler extends EventEmitter {
         }
     }
 
-    // 
+
     static async ensureBotInVoiceChannel(io, botId, username, channelId) {
         return await this.joinBotToVoiceChannel(io, botId, username, channelId);
     }
 
-    // 
+
     static removeBotFromVoiceChannel(io, botId, channelId) {
         console.log(`🤖 [BOT-HANDLER] removeBotFromVoiceChannel called - delegating to leaveBotFromVoiceChannel`);
         
-        // 
+
         const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
         const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channelId);
         
@@ -539,7 +539,7 @@ class BotHandler extends EventEmitter {
             return;
         }
 
-        // 
+
         this.leaveBotFromVoiceChannel(io, botId, channelId);
     }
 

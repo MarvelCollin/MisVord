@@ -429,14 +429,14 @@ function setup(io) {
                 return;
             }
 
-            // 
+
             const existingMeeting = roomManager.getVoiceMeeting(channel_id);
             let finalMeetingId = meeting_id;
             let isNewMeeting = false;
 
             if (!existingMeeting || !existingMeeting.meeting_id) {
-                // 
-                // 
+
+
                 finalMeetingId = meeting_id || `voice_channel_${channel_id}`;
                 isNewMeeting = true;
                 
@@ -446,7 +446,7 @@ function setup(io) {
                     isNewMeeting
                 });
             } else {
-                // 
+
                 finalMeetingId = existingMeeting.meeting_id;
                 console.log(`🔄 [VOICE-PARTICIPANT] Joining existing voice meeting:`, {
                     channelId: channel_id,
@@ -460,13 +460,13 @@ function setup(io) {
             try {
                 await client.join(voiceChannelRoom);
                 
-                // 
+
                 VoiceConnectionTracker.addUserToVoice(userId, channel_id, finalMeetingId, username || client.data?.username, client.data?.avatar_url);
                 
-                // 
+
                 roomManager.addVoiceMeeting(channel_id, finalMeetingId, client.id);
 
-                // 
+
                 const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
                 const participantCount = participants.length;
                 
@@ -493,13 +493,13 @@ function setup(io) {
                     broadcast: !!broadcast
                 });
                 
-                // 
+
                 io.to(voiceChannelRoom).emit('voice-meeting-update', updateData);
                 
-                // 
+
                 io.to(`channel-${channel_id}`).emit('voice-meeting-update', updateData);
 
-                // 
+
                 if (broadcast || isNewMeeting || participantCount === 1) {
                     io.emit('voice-meeting-update', updateData);
 
@@ -509,14 +509,14 @@ function setup(io) {
                     }
                 }
                 
-                // 
+
                 client.emit('voice-meeting-registered', {
                     ...updateData,
                     action: 'registered',
                     message: 'Successfully registered to voice meeting'
                 });
 
-                // 
+
                 setTimeout(() => {
                     io.emit('force-refresh-voice-participants', {
                         channel_id: channel_id,
@@ -549,7 +549,7 @@ function setup(io) {
             });
             
             if (data.channel_id) {
-                // 
+
                 const participants = VoiceConnectionTracker.getChannelParticipants(data.channel_id);
                 const roomManagerMeeting = roomManager.getVoiceMeeting(data.channel_id);
                 
@@ -570,7 +570,7 @@ function setup(io) {
                     source: 'force_refresh'
                 });
                 
-                // 
+
                 participants.forEach(participant => {
                     io.to(`channel-${data.channel_id}`).emit('voice-meeting-update', {
                         channel_id: data.channel_id,
@@ -765,7 +765,7 @@ function handleCheckVoiceMeeting(io, client, data) {
     const participantCount = participants.length;
     const hasMeeting = participantCount > 0 || (roomManagerMeeting && roomManagerMeeting.participants.size > 0);
     
-    // 
+
     let meetingId = null;
     if (roomManagerMeeting && roomManagerMeeting.meeting_id) {
         meetingId = roomManagerMeeting.meeting_id;
@@ -822,13 +822,13 @@ function handleCheckVoiceMeeting(io, client, data) {
             });
         });
         
-        // 
+
         if (!client.rooms.has(`channel-${channel_id}`)) {
             client.join(`channel-${channel_id}`);
         }
     }
     
-    // 
+
     const BotHandler = require('../handlers/botHandler');
     const existingBotParticipants = Array.from(BotHandler.botVoiceParticipants.values())
         .filter(bot => bot.channelId === channel_id || bot.channel_id === channel_id);
@@ -894,11 +894,11 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         return;
     }
 
-    // 
+
     const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
     const userVoiceConnection = user_id ? VoiceConnectionTracker.getUserVoiceConnection(user_id) : null;
     
-    // 
+
     let meetingId = roomManagerMeeting?.meeting_id || 
                    userVoiceConnection?.meetingId || 
                    `voice_channel_${channel_id}`;
@@ -908,7 +908,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             console.log(`⚠️ [VOICE-PARTICIPANT] Client ${client.id} not in meeting participants, but proceeding with cleanup`);
         }
         
-        // 
+
         const result = roomManager.removeVoiceMeeting(channel_id, client.id);
         
         if (user_id) {
@@ -925,10 +925,10 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             
             VoiceConnectionTracker.removeUserFromVoice(user_id);
 
-            // 
+
             client.leave(`voice_channel_${channel_id}`);
 
-            // 
+
             const BotHandler = require('../handlers/botHandler');
             const titiBotId = BotHandler.getTitiBotId();
             if (titiBotId) {
@@ -946,7 +946,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             }
         }
         
-        // 
+
         const leaveEventData = {
             channel_id,
             meeting_id: meetingId,
@@ -958,7 +958,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
             reason: force_disconnect ? 'force_disconnect' : 'manual_disconnect'
         };
         
-        // 
+
         io.emit('voice-meeting-update', leaveEventData); // 
         io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
         io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
@@ -973,7 +973,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     } else {
         console.warn(`⚠️ [VOICE-PARTICIPANT] No voice meeting found for channel ${channel_id}, but broadcasting leave event anyway`);
         
-        // 
+
         if (user_id) {
             VoiceConnectionTracker.removeUserFromVoice(user_id);
             client.leave(`voice_channel_${channel_id}`);
@@ -989,7 +989,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
                 reason: force_disconnect ? 'force_disconnect_no_meeting' : 'manual_disconnect_no_meeting'
             };
             
-            // 
+
             io.emit('voice-meeting-update', leaveEventData);
             io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData);
             io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData);
@@ -1048,7 +1048,7 @@ function handleDisconnect(io, client) {
             console.log(`🔄 [DISCONNECT] User ${user_id} still has other connections`);
         }
         
-        // 
+
         const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(user_id);
         if (userVoiceConnection) {
             const channel_id = userVoiceConnection.channelId;
@@ -1059,17 +1059,17 @@ function handleDisconnect(io, client) {
                 meetingId: userVoiceConnection.meetingId
             });
             
-            // 
+
             const roomManagerMeeting = roomManager.getVoiceMeeting(channel_id);
             const meetingId = roomManagerMeeting?.meeting_id || userVoiceConnection.meetingId;
             
-            // 
+
             VoiceConnectionTracker.removeUserFromVoice(user_id);
             
-            // 
+
             const result = roomManager.removeVoiceMeeting(channel_id, client.id);
             
-            // 
+
             const currentPresence = userService.getPresence(user_id);
             if (currentPresence && currentPresence.activity_details?.type && currentPresence.activity_details.type.startsWith('In Voice - ')) {
                 userService.updatePresence(user_id, 'online', { type: 'idle' }, username);
@@ -1081,11 +1081,11 @@ function handleDisconnect(io, client) {
                 });
             }
             
-            // 
+
             client.leave(`voice_channel_${channel_id}`);
             
-            // 
-            // 
+
+
             const leaveEventData = {
                 channel_id: channel_id,
                 meeting_id: meetingId,
@@ -1096,7 +1096,7 @@ function handleDisconnect(io, client) {
                 timestamp: Date.now()
             };
             
-            // 
+
             io.emit('voice-meeting-update', leaveEventData); // 
             io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
             io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
@@ -1110,7 +1110,7 @@ function handleDisconnect(io, client) {
                 wasLastParticipant: result.participant_count === 0
             });
             
-            // 
+
             const BotHandler = require('../handlers/botHandler');
             const titiBotId = BotHandler.getTitiBotId();
             if (titiBotId) {
@@ -1237,15 +1237,15 @@ function setupStaleConnectionChecker(io) {
                     meetingId: meeting.meeting_id
                 });
 
-                // 
+
                 const meetingId = meeting.meeting_id;
                 
-                // 
+
                 const socket = io.sockets.sockets.get(socketId);
                 let userId = socket?.data?.user_id;
                 let username = socket?.data?.username;
                 
-                // 
+
                 if (!userId) {
                     const trackerParticipants = VoiceConnectionTracker.getChannelParticipants(meeting.channel_id);
                     const trackerParticipant = trackerParticipants.find(p => p.socketId === socketId);
@@ -1255,13 +1255,13 @@ function setupStaleConnectionChecker(io) {
                     }
                 }
                 
-                // 
+
                 const result = roomManager.removeVoiceMeeting(meeting.channel_id, socketId);
                 if (userId) {
                     VoiceConnectionTracker.removeUserFromVoice(userId);
                 }
                 
-                // 
+
                 const leaveEventData = {
                     channel_id: meeting.channel_id,
                     meeting_id: meetingId,
@@ -1273,7 +1273,7 @@ function setupStaleConnectionChecker(io) {
                     reason: 'stale_connection_cleanup'
                 };
                 
-                // 
+
                 io.emit('voice-meeting-update', leaveEventData);
                 io.to(`voice_channel_${meeting.channel_id}`).emit('voice-meeting-update', leaveEventData);
                 io.to(`channel-${meeting.channel_id}`).emit('voice-meeting-update', leaveEventData);

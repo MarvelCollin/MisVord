@@ -113,7 +113,7 @@ class VoiceCallSection {
     }
 
     removeDebugPanel() {
-        // 
+
         const existingPanel = document.getElementById('voice-debug-panel');
         if (existingPanel) {
             existingPanel.remove();
@@ -131,17 +131,17 @@ class VoiceCallSection {
         this.ensureChannelSync();
         this.syncButtonStates();
         
-        // 
+
         setTimeout(() => {
             this.removeDuplicateCards();
         }, 100);
         
-        // 
+
         setTimeout(() => {
             this.ensureChannelSync();
         }, 500);
         
-        // 
+
         this.duplicateCleanupInterval = setInterval(() => {
             this.removeDuplicateCards();
         }, 5000); // 
@@ -226,19 +226,19 @@ class VoiceCallSection {
         window.addEventListener("bot-voice-participant-joined", (e) => this.handleBotParticipantJoined(e));
         window.addEventListener("bot-voice-participant-left", (e) => this.handleBotParticipantLeft(e));
         
-        // 
+
         window.addEventListener("voiceStateChanged", (e) => this.handleUnifiedVoiceStateChanged(e));
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
         
-        // 
+
         if (window.globalSocketManager?.io) {
             this.setupSocketListeners();
         } else {
             window.addEventListener('globalSocketReady', () => this.setupSocketListeners());
         }
         
-        // 
+
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener((state) => {
                 this.syncWithVoiceState(state);
@@ -271,7 +271,7 @@ class VoiceCallSection {
     handleVoiceConnect(event) {
         const { channelId, channelName, meetingId } = event.detail;
         
-        // 
+
         const urlParams = new URLSearchParams(window.location.search);
         const urlChannelId = urlParams.get('channel');
         const urlChannelType = urlParams.get('type');
@@ -280,7 +280,7 @@ class VoiceCallSection {
         let finalChannelId = channelId;
         let finalChannelName = channelName;
         
-        // 
+
         if (urlChannelType === 'voice' && urlChannelId && urlChannelId !== channelId) {
             console.warn(`⚠️ [VOICE-CALL-SECTION] Channel ID mismatch in handleVoiceConnect: event=${channelId}, url=${urlChannelId}`);
             finalChannelId = urlChannelId;
@@ -290,7 +290,7 @@ class VoiceCallSection {
                               channelElement?.getAttribute('data-channel-name') || 
                               channelName || 'Voice Channel';
         } 
-        // 
+
         else if (metaChannelId && metaChannelId !== channelId && document.querySelector(`[data-channel-id="${metaChannelId}"][data-channel-type="voice"]`)) {
             console.warn(`⚠️ [VOICE-CALL-SECTION] Channel ID mismatch in handleVoiceConnect: event=${channelId}, meta=${metaChannelId}`);
             finalChannelId = metaChannelId;
@@ -305,20 +305,20 @@ class VoiceCallSection {
         this.currentChannelName = finalChannelName;
         this.currentMeetingId = meetingId;
         
-        // 
+
         const channelDom = document.querySelector(`[data-channel-id="${finalChannelId}"]`);
         if (channelDom && meetingId) {
             channelDom.setAttribute('data-meeting-id', meetingId);
         }
         
-        // 
+
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = finalChannelId;
             window.voiceManager.currentChannelName = finalChannelName;
             window.voiceManager.currentMeetingId = meetingId;
         }
         
-        // 
+
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             window.localStorageManager.setUnifiedVoiceState({
@@ -331,7 +331,7 @@ class VoiceCallSection {
             });
         }
         
-        // 
+
         this.updateConnectionStatus(true);
         
         if (!event.detail.skipJoinSound) {
@@ -344,7 +344,7 @@ class VoiceCallSection {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
-        // 
+
         this.updateConnectionStatus(false);
         this.clearGrid();
     }
@@ -463,10 +463,10 @@ class VoiceCallSection {
         const { participant, data } = event.detail;
         if (!participant || this.participantElements.has(participant)) return;
         
-        // 
+
         const userId = data?.user_id || data?.id;
         if (userId) {
-            // 
+
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
@@ -508,7 +508,7 @@ class VoiceCallSection {
         
         console.log('🎯 [VOICE-CALL-SECTION] Participant left - removing from grid');
         
-        // 
+
         if (this.currentModal) {
             const modalParticipantId = this.currentModal.getAttribute('data-participant-id');
             if (modalParticipantId === participant) {
@@ -518,7 +518,7 @@ class VoiceCallSection {
         
         const element = this.participantElements.get(participant);
         if (element) {
-            // 
+
             element.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
             element.style.opacity = '0';
             element.style.transform = 'translateY(-20px) scale(0.9)';
@@ -531,7 +531,7 @@ class VoiceCallSection {
                 this.updateGridLayout();
                 this.updateParticipantCount();
                 
-                // 
+
                 if (window.ChannelVoiceParticipants && this.currentChannelId) {
                     const instance = window.ChannelVoiceParticipants.getInstance();
                     instance.updateSidebarForChannel(this.currentChannelId, 'full');
@@ -548,10 +548,10 @@ class VoiceCallSection {
         
         if (this.participantElements.has(botId)) return;
         
-        // 
+
         const userId = participant.user_id;
         if (userId) {
-            // 
+
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
@@ -592,7 +592,7 @@ class VoiceCallSection {
             const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
             if (window.ChannelVoiceParticipants && targetChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // 
+
                 instance.updateSidebarForChannel(targetChannelId, 'append');
             }
         }
@@ -607,7 +607,7 @@ class VoiceCallSection {
         const botId = `bot-${participant.user_id}`;
         const element = this.participantElements.get(botId);
         if (element) {
-            // 
+
             element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
             element.style.opacity = '0';
             element.style.transform = 'translateY(-30px) scale(0.7)';
@@ -624,7 +624,7 @@ class VoiceCallSection {
             const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
             if (window.ChannelVoiceParticipants && targetChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // 
+
                 instance.updateSidebarForChannel(targetChannelId, 'full');
             }
         }
@@ -677,7 +677,7 @@ class VoiceCallSection {
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
         div.setAttribute("data-participant-id", participantId);
         
-        // 
+
         const userId = data?.user_id || data?.id;
         if (userId) {
             div.setAttribute("data-user-id", String(userId));
@@ -691,7 +691,7 @@ class VoiceCallSection {
         const showImage = isBot || hasCustomAvatar;
         const botStatus = data?.status || 'Ready to play music';
         
-        // 
+
         div.addEventListener('dblclick', (e) => {
             e.preventDefault();
             this.openParticipantModal(participantId, data, 'participant');
@@ -777,7 +777,7 @@ class VoiceCallSection {
             </div>
         `;
         
-        // 
+
         card.addEventListener('dblclick', (e) => {
             e.preventDefault();
             this.openParticipantModal(participantId, { displayName: participantName }, 'screenshare');
@@ -850,12 +850,12 @@ class VoiceCallSection {
             connectionInfo.classList.add('connected');
             connectionInfo.classList.remove('disconnected');
 
-            // 
+
             if (!skipSidebarRefresh && window.ChannelVoiceParticipants && this.currentChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.updateSidebarForChannel(this.currentChannelId);
             } else if (skipSidebarRefresh && window.ChannelVoiceParticipants && this.currentChannelId) {
-                // 
+
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.ensureParticipantsVisible(this.currentChannelId);
             }
@@ -878,10 +878,10 @@ class VoiceCallSection {
     }
     
     clearGrid() {
-        // 
+
         this.closeParticipantModal();
         
-        // 
+
         if (this.duplicateCleanupInterval) {
             clearInterval(this.duplicateCleanupInterval);
             this.duplicateCleanupInterval = null;
@@ -907,7 +907,7 @@ class VoiceCallSection {
         const seenUserIds = new Set();
         const cardsToRemove = [];
         
-        // 
+
         const cards = grid.querySelectorAll('.participant-card');
         cards.forEach(card => {
             const userId = card.getAttribute('data-user-id');
@@ -915,7 +915,7 @@ class VoiceCallSection {
             
             if (userId) {
                 if (seenUserIds.has(userId)) {
-                    // 
+
                     cardsToRemove.push({ card, participantId });
                     console.log(`🗑️ [VOICE-CALL-SECTION] Found duplicate card for user ${userId}, removing participant ${participantId}`);
                 } else {
@@ -924,7 +924,7 @@ class VoiceCallSection {
             }
         });
         
-        // 
+
         cardsToRemove.forEach(({ card, participantId }) => {
             card.remove();
             this.participantElements.delete(participantId);
@@ -1058,7 +1058,7 @@ class VoiceCallSection {
     }
 
     openParticipantModal(participantId, data, type = 'participant') {
-        // 
+
         this.closeParticipantModal();
         
         const name = data?.displayName || data?.name || data?.username || "Unknown";
@@ -1068,17 +1068,17 @@ class VoiceCallSection {
         const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
         const showImage = isBot || hasCustomAvatar;
         
-        // 
+
         const overlay = document.createElement('div');
         overlay.id = 'participant-fullscreen-modal';
         overlay.className = 'fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center backdrop-blur-sm';
         overlay.style.animation = 'modalFadeIn 0.3s ease-out';
         
-        // 
+
         let modalContent = '';
         
         if (type === 'screenshare') {
-            // 
+
             const originalCard = document.querySelector(`[data-screen-share-id="${participantId}"]`);
             const originalVideo = originalCard?.querySelector('video');
             
@@ -1103,7 +1103,7 @@ class VoiceCallSection {
                 </div>
             `;
         } else {
-            // 
+
             const originalCard = this.participantElements.get(participantId);
             const hasVideo = originalCard?.querySelector('.participant-video-overlay:not(.hidden)');
             const originalVideo = originalCard?.querySelector('video');
@@ -1145,20 +1145,20 @@ class VoiceCallSection {
         
         overlay.innerHTML = modalContent;
         
-        // 
+
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 this.closeParticipantModal();
             }
         });
         
-        // 
+
         const closeBtn = overlay.querySelector('.modal-close-btn');
         closeBtn.addEventListener('click', () => {
             this.closeParticipantModal();
         });
         
-        // 
+
         const modalVideo = overlay.querySelector('video');
         if (modalVideo) {
             let originalVideo = null;
@@ -1175,17 +1175,17 @@ class VoiceCallSection {
                 modalVideo.srcObject = originalVideo.srcObject;
                 modalVideo.play().catch(() => {});
                 
-                // 
+
                 modalVideo.classList.remove('hidden');
                 const placeholder = overlay.querySelector('.video-placeholder');
                 if (placeholder) placeholder.classList.add('hidden');
             }
         }
         
-        // 
+
         document.body.appendChild(overlay);
         
-        // 
+
         this.modalEscListener = (e) => {
             if (e.key === 'Escape') {
                 this.closeParticipantModal();
@@ -1193,20 +1193,20 @@ class VoiceCallSection {
         };
         document.addEventListener('keydown', this.modalEscListener);
         
-        // 
+
         this.currentModal = overlay;
     }
     
     closeParticipantModal() {
         const modal = document.getElementById('participant-fullscreen-modal') || this.currentModal;
         if (modal) {
-            // 
+
             const modalVideo = modal.querySelector('video');
             if (modalVideo) {
                 modalVideo.srcObject = null;
             }
             
-            // 
+
             modal.style.animation = 'modalFadeOut 0.2s ease-out';
             setTimeout(() => {
                 if (modal.parentNode) {
@@ -1215,7 +1215,7 @@ class VoiceCallSection {
             }, 200);
         }
         
-        // 
+
         if (this.modalEscListener) {
             document.removeEventListener('keydown', this.modalEscListener);
             this.modalEscListener = null;
@@ -1241,13 +1241,13 @@ class VoiceCallSection {
             this.currentChannelName = window.voiceManager?.currentChannelName || 'Voice Channel';
         }
         
-        // 
+
         if (window.localStorageManager) {
             const voiceState = window.localStorageManager.getUnifiedVoiceState();
             this.syncWithVoiceState(voiceState);
         }
         
-        // 
+
         if (window.voiceManager) {
             if (!this.currentChannelId) {
                 this.currentChannelId = window.voiceManager.currentChannelId;
