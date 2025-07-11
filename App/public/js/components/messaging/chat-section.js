@@ -3,7 +3,7 @@ import MessageHandler from './message-handler.js';
 import SocketHandler from './socket-handler.js';
 import FileUploadHandler from './file-upload-handler.js';
 import SendReceiveHandler from './send-receive-handler.js';
-// import ChatBot from './chat-bot.js';
+import ChatBot from './chat-bot.js';
 import MentionHandler from './mention-handler.js';
 import TextToSpeech from './text-to-speech.js';
 
@@ -95,7 +95,7 @@ async function initializeChatSection() {
                 } else if (!window.__CHAT_SECTION_INITIALIZING__) {
                     resolve(null);
                 } else {
-                    requestAnimationFrame(checkInit);
+                    setTimeout(checkInit, 50);
                 }
             };
             checkInit();
@@ -108,7 +108,7 @@ async function initializeChatSection() {
 
         let waitAttempts = 0;
         while (typeof window.ChatAPI === 'undefined' && waitAttempts < 20) {
-            await new Promise(resolve => requestAnimationFrame(resolve));
+            await new Promise(resolve => setTimeout(resolve, 150));
             waitAttempts++;
         }
         
@@ -182,7 +182,7 @@ window.diagnoseChatSection = function() {
         isChatPage: isChatPage(),
         isExcludedPage: isExcludedPage(),
         domElements: {
-            chatMessages: !!document.getElementById('chat-real-content'),
+            chatMessages: !!document.getElementById('chat-messages'),
             messageForm: !!document.getElementById('message-form'),
             messageInput: !!document.getElementById('message-input'),
             sendButton: !!document.getElementById('send-button')
@@ -309,9 +309,7 @@ class ChatSection {
             this.socketHandler = new SocketHandler(this);
             this.fileUploadHandler = new FileUploadHandler(this);
             this.sendReceiveHandler = new SendReceiveHandler(this);
-            
-            this.chatBot = null;
-            
+            this.chatBot = new ChatBot(this);
             this.mentionHandler = null;
             this.tts = new TextToSpeech();
             
@@ -329,17 +327,6 @@ class ChatSection {
         }
     }
     
-    async loadChatBot() {
-        try {
-            const ChatBotModule = await import('./chat-bot.js');
-            const ChatBot = ChatBotModule.default;
-            this.chatBot = new ChatBot(this);
-        } catch (error) {
-            console.warn('⚠️ [CHAT-SECTION] ChatBot not available:', error.message);
-            this.chatBot = null;
-        }
-    }
-
     detectChatType() {
         const currentPath = window.location.pathname;
         
@@ -409,16 +396,16 @@ class ChatSection {
         }
         
         if (this.chatType === 'direct') {
-            const dmMatch = currentPath.match(/\/home\/channels\/dm\/(\d+)/);
-            if (dmMatch) {
-                console.log('✅ [CHAT-SECTION] Found DM ID from URL:', dmMatch[1]);
-                return dmMatch[1];
-            }
-            
             const chatIdMeta = document.querySelector('meta[name="chat-id"]');
             if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
                 console.log('✅ [CHAT-SECTION] Found DM ID from chat-id meta:', chatIdMeta.content);
                 return chatIdMeta.content;
+            }
+            
+            const dmMatch = currentPath.match(/\/home\/channels\/dm\/(\d+)/);
+            if (dmMatch) {
+                console.log('✅ [CHAT-SECTION] Found DM ID from URL:', dmMatch[1]);
+                return dmMatch[1];
             }
             
             const roomIdFromUrl = urlParams.get('room');
@@ -456,9 +443,9 @@ class ChatSection {
                             document.querySelector('.main-content-area');
         
 
-        this.chatMessages = document.getElementById('chat-real-content') ||
-                           document.querySelector('#chat-real-content') ||
-                           document.querySelector('.messages-container') ||
+        this.chatMessages = document.getElementById('chat-messages') ||
+                           document.querySelector('#chat-messages') ||
+                           document.querySelector('.chat-messages') ||
                            document.querySelector('[data-messages-container]');
         
 
@@ -531,7 +518,7 @@ class ChatSection {
                 chatSections: document.querySelectorAll('.chat-section').length,
                 formsCount: document.querySelectorAll('form').length,
                 inputsCount: document.querySelectorAll('input').length,
-                chatMessagesExists: !!document.querySelector('#chat-real-content'),
+                chatMessagesExists: !!document.querySelector('#chat-messages'),
                 messageFormExists: !!document.querySelector('#message-form'),
                 messageInputExists: !!document.querySelector('#message-input')
             });
@@ -596,7 +583,7 @@ class ChatSection {
                 if (!isExcluded && attempts % 5 === 0) {
 
                 }
-                requestAnimationFrame(checkElements);
+                setTimeout(checkElements, interval);
             };
             
             checkElements();
@@ -625,9 +612,21 @@ class ChatSection {
                 this.targetId = this.detectTargetId();
                 
                 if (!this.targetId && this.chatType === 'direct') {
-                    console.error('❌ [CHAT-SECTION] Could not detect DM target ID');
-                    this.showEmptyState('Unable to load direct message. Please refresh the page.');
-                    return;
+                    console.log('🔄 [CHAT-SECTION] Retrying DM target ID detection...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    this.targetId = this.detectTargetId();
+                    
+                    if (!this.targetId) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        this.targetId = this.detectTargetId();
+                        
+                        if (!this.targetId) {
+                            console.error('❌ [CHAT-SECTION] Could not detect DM target ID after retries');
+                            this.hideChatSkeleton();
+                            this.showEmptyState('Unable to load direct message. Please refresh the page.');
+                            return;
+                        }
+                    }
                 }
             }
             
@@ -652,20 +651,34 @@ class ChatSection {
             
                 this.joinSocketRoom();
                 
+
                 const messagesContainer = this.getMessagesContainer();
                 if (messagesContainer) {
                     messagesContainer.innerHTML = '';
                 }
                 
+
                 this.showChatSkeleton();
+                
+                const loadStartTime = Date.now();
+                const skeletonTimeout = setTimeout(() => {
+                    if (!this.skeletonHidden) {
+                        console.warn('⚠️ [CHAT-SECTION] Skeleton timeout - forcing hide after 5 seconds');
+                        this.hideChatSkeleton();
+                    }
+                }, 5000);
                 
                 try {
                     await this.loadMessages();
+                    
+                    const loadTime = Date.now() - loadStartTime;
+                    console.log(`✅ [CHAT-SECTION] Messages loaded in ${loadTime}ms`);
+                    
+                    clearTimeout(skeletonTimeout);
+                    
                 } catch (error) {
                     console.error('❌ [CHAT-SECTION] Error loading messages:', error);
-                    this.hideChatSkeleton();
-                    this.showEmptyState('Failed to load messages.');
-                }
+                    clearTimeout(skeletonTimeout);
                 }
                 
                 this.initializeExistingMessages();
@@ -680,6 +693,7 @@ class ChatSection {
                 setTimeout(() => {
                     this.hideChatSkeleton();
                 }, 500);
+            }
             
             this.addTopReloadButtonStyles();
             
@@ -689,13 +703,7 @@ class ChatSection {
                 }, 500);
             }
             
-            await this.loadChatBot();
-            
-            if (this.chatBot && typeof this.chatBot.init === 'function') {
-                this.chatBot.init();
-            } else {
-                console.log('ℹ️ [CHAT-SECTION] ChatBot not available or init method missing - skipping');
-            }
+            this.chatBot.init();
             
             this.updateSendButton();
             console.log('✅ [CHAT-SECTION] Initialization complete', {
@@ -1120,15 +1128,16 @@ class ChatSection {
         
         try {
             if (!window.ChatAPI) {
-                let attempts = 0;
-                while (!window.ChatAPI && attempts < 50) {
-                    await new Promise(resolve => requestAnimationFrame(resolve));
-                    attempts++;
-                }
-                
-                if (!window.ChatAPI) {
-                    throw new Error('ChatAPI not available after waiting');
-                }
+                await new Promise(resolve => {
+                    const checkAPI = () => {
+                        if (window.ChatAPI) {
+                            resolve();
+                        } else {
+                            setTimeout(checkAPI, 100);
+                        }
+                    };
+                    checkAPI();
+                });
             }
             
             const requestOptions = {
@@ -1220,12 +1229,14 @@ class ChatSection {
                     this.currentOffset = messages.length;
                     
                     await new Promise(resolve => {
-                        const messagesContainer = this.getMessagesContainer();
-                        if (messagesContainer && messagesContainer.children.length > 0) {
-                            resolve();
-                        } else {
-                            requestAnimationFrame(resolve);
-                        }
+                        requestAnimationFrame(() => {
+                            const messagesContainer = this.getMessagesContainer();
+                            if (messagesContainer && messagesContainer.children.length > 0) {
+                                resolve();
+                            } else {
+                                setTimeout(resolve, 100);
+                            }
+                        });
                     });
                 }
                 
@@ -2465,10 +2476,10 @@ class ChatSection {
             if (!this.chatMessages) {
                 console.error('❌ [CHAT-SECTION] Cannot get messages container: chat messages element still not found after search');
 
-                const fallbackContainer = document.getElementById('chat-real-content') ||
-                                        document.querySelector('.messages-container') ||
+                const fallbackContainer = document.querySelector('.messages-container') ||
                                         document.querySelector('[data-messages-container]') ||
-                                        document.querySelector('.chat-messages');
+                                        document.querySelector('.chat-messages') ||
+                                        document.querySelector('#chat-messages .flex-1');
                 
                 if (fallbackContainer) {
 
@@ -2478,7 +2489,23 @@ class ChatSection {
             }
         }
         
-        return this.chatMessages;
+        try {
+
+            const messagesContainer = this.chatMessages.querySelector('.messages-container') ||
+                                    this.chatMessages.querySelector('[data-messages-container]') ||
+                                    this.chatMessages.querySelector('.flex-1') ||
+                                    this.chatMessages.querySelector(':first-child');
+            
+            if (messagesContainer) {
+                return messagesContainer;
+            } else {
+                console.warn('⚠️ [CHAT-SECTION] .messages-container not found inside #chat-messages, returning #chat-messages as fallback');
+                return this.chatMessages;
+            }
+        } catch (error) {
+            console.error('❌ [CHAT-SECTION] Error accessing chat messages container:', error);
+            return this.chatMessages; // 
+        }
     }
     
     formatMessageContent(content) {
@@ -2560,14 +2587,21 @@ class ChatSection {
         
         const messageContainers = [
             this.chatMessages,
-            document.getElementById('chat-real-content'),
-            document.querySelector('.messages-container'),
-            document.querySelector('[data-messages-container]')
+            document.querySelector('#chat-messages'),
+            document.querySelector('.chat-messages'),
+            document.querySelector('.message-container'),
+            document.querySelector('[data-message-container]'),
+            document.querySelector('.messages-container')
         ];
         
         messageContainers.forEach(container => {
             if (container) {
-                container.innerHTML = '';
+                const messagesContainer = container.querySelector('.messages-container');
+                if (messagesContainer) {
+                    messagesContainer.innerHTML = '';
+                } else {
+                    container.innerHTML = '';
+                }
             }
         });
         
@@ -2811,8 +2845,11 @@ class ChatSection {
     }
 
     async switchToDM(dmId, roomType = 'direct', forceFresh = false) {
+
+        
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
+
         }
         
         this.forceStopAllOperations();
@@ -2823,39 +2860,65 @@ class ChatSection {
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer) {
             messagesContainer.innerHTML = '';
+
         }
         
-        this.showChatSkeleton();
+
+        let dmElementsReady = false;
+        let attempts = 0;
+        const maxAttempts = 20;
         
-        this.findDOMElements();
+        while (!dmElementsReady && attempts < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            this.findDOMElements();
+            
+            const hasRequired = this.chatMessages && this.messageForm && this.messageInput;
+            if (hasRequired) {
+                dmElementsReady = true;
+
+            } else {
+                attempts++;
+                if (attempts % 5 === 0) {
+                    console.warn('⚠️ [CHAT-SECTION] Still waiting for DM elements:', {
+                        chatMessages: !!this.chatMessages,
+                        messageForm: !!this.messageForm,
+                        messageInput: !!this.messageInput,
+                        url: window.location.href
+                    });
+                }
+            }
+        }
+        
+        if (!dmElementsReady) {
+            console.error('❌ [CHAT-SECTION] DM elements not ready after maximum attempts');
+            throw new Error('DM DOM elements not ready');
+        }
         
         await this.ensureInitialized();
         
         this.fullStateReset();
         
         if (this.socketHandler && typeof this.socketHandler.refreshForChannelSwitch === 'function') {
+
             this.socketHandler.refreshForChannelSwitch(dmId, 'direct');
         }
         
         this.joinSocketRoom();
         
-        try {
-            await this.loadMessages({ 
-                forceFresh: true, 
-                isChannelSwitch: true,
-                limit: 50 
-            });
-            
-            this.updateChannelHeader();
-            
-            if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
-                window.emojiReactions.updateChannelContext(dmId, 'direct');
-            }
-        } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error in switchToDM:', error);
-            this.hideChatSkeleton();
-            this.showEmptyState('Failed to load direct message.');
+        await this.loadMessages({ 
+            forceFresh: true, 
+            isChannelSwitch: true,
+            limit: 50 
+        });
+        
+        this.updateChannelHeader();
+        
+        if (window.emojiReactions && typeof window.emojiReactions.updateChannelContext === 'function') {
+
+            window.emojiReactions.updateChannelContext(dmId, 'direct');
         }
+        
+
     }
 
     resetForNewChannel() {
@@ -3250,17 +3313,12 @@ class ChatSection {
     }
 
     initializeChatSkeleton() {
+        this.skeletonStartTime = Date.now();
+        this.minSkeletonTime = 300;
         this.skeletonHidden = false;
         this.messagesLoaded = false;
         
-        const skeletonContainer = document.getElementById('chat-skeleton-loading');
-        if (skeletonContainer) {
-            skeletonContainer.style.display = 'block';
-            skeletonContainer.style.visibility = 'visible';
-            skeletonContainer.style.opacity = '1';
-        }
-        
-        console.log('🦴 [CHAT-SECTION] Skeleton initialized and shown - waiting for messages');
+        console.log('🦴 [CHAT-SECTION] Skeleton initialized - waiting for messages');
     }
     
     hideChatSkeleton() {
@@ -3269,22 +3327,62 @@ class ChatSection {
         }
         
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
+        const realContent = document.getElementById('chat-real-content');
+        const chatMessages = document.getElementById('chat-messages');
         
-        if (skeletonContainer) {
-            skeletonContainer.style.display = 'none';
-            skeletonContainer.style.visibility = 'hidden';
-            skeletonContainer.style.opacity = '0';
+        const hideSkeletonNow = () => {
+            if (skeletonContainer) {
+                skeletonContainer.style.display = 'none';
+                skeletonContainer.style.visibility = 'hidden';
+                skeletonContainer.style.opacity = '0';
+            }
+            
+            if (realContent) {
+                realContent.style.display = 'block';
+                realContent.style.visibility = 'visible';
+                realContent.style.opacity = '1';
+                
+                if (chatMessages) {
+                    const originalScrollBehavior = chatMessages.style.scrollBehavior;
+                    chatMessages.style.scrollBehavior = 'auto';
+                    
+                    requestAnimationFrame(() => {
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        
+                        requestAnimationFrame(() => {
+                            chatMessages.style.scrollBehavior = originalScrollBehavior;
+                        });
+                    });
+                }
+            }
+            
+            this.skeletonHidden = true;
+            this.messagesLoaded = true;
+            console.log('✅ [CHAT-SECTION] Skeleton hidden - messages are ready');
+        };
+
+        if (this.skeletonStartTime) {
+            const elapsedTime = Date.now() - this.skeletonStartTime;
+            const remainingTime = Math.max(0, this.minSkeletonTime - elapsedTime);
+            
+            console.log(`⏱️ [CHAT-SECTION] Skeleton timing - elapsed: ${elapsedTime}ms, remaining: ${remainingTime}ms`);
+            
+            if (remainingTime > 0) {
+                setTimeout(hideSkeletonNow, remainingTime);
+            } else {
+                hideSkeletonNow();
+            }
+        } else {
+            hideSkeletonNow();
         }
-        
-        this.skeletonHidden = true;
-        this.messagesLoaded = true;
-        console.log('✅ [CHAT-SECTION] Skeleton hidden - messages are ready');
     }
     
     showChatSkeleton() {
         this.initializeChatSkeleton();
         
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
+        const realContent = document.getElementById('chat-real-content');
+        const chatMessages = document.getElementById('chat-messages');
         
         if (skeletonContainer) {
             skeletonContainer.style.display = 'flex';
@@ -3299,8 +3397,14 @@ class ChatSection {
             console.log('🦴 [CHAT-SECTION] Skeleton displayed - waiting for messages');
         }
         
-        if (this.chatMessages) {
-            this.chatMessages.style.position = 'relative';
+        if (realContent) {
+            realContent.style.display = 'none';
+            realContent.style.visibility = 'hidden';
+            realContent.style.opacity = '0';
+        }
+        
+        if (chatMessages) {
+            chatMessages.style.position = 'relative';
         }
     }
 
@@ -4382,4 +4486,3 @@ window.debugRoomJoining = function() {
         return false;
     }
 };
-
