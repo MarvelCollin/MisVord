@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MisVord - Testing Public Access</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .test-link {
+            display: inline-block;
+            padding: 1rem 2rem;
+            background: #5865f2;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 1rem;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .test-link:hover {
+            background: #4752c4;
+            transform: translateY(-2px);
+        }
+        .status {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success { background: rgba(0,255,0,0.2); }
+        .pending { background: rgba(255,255,0,0.2); }
+        .error { background: rgba(255,0,0,0.2); }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🌐 MisVord Global Access Testing</h1>
+        
+        <div class="status pending">
+            <h3>📋 CHECKLIST SETUP:</h3>
+            <p>✅ Docker containers running</p>
+            <p>✅ Environment configured for global access</p>
+            <p>⏳ Router port forwarding - <strong>PERLU DIKONFIGURASI</strong></p>
+            <p>⏳ DNS records - <strong>PERLU UPDATE KE 202.58.166.121</strong></p>
+        </div>
+
+        <h3>🔗 Test Links (setelah router dikonfigurasi):</h3>
+        
+        <a href="http://202.58.166.121:1001" class="test-link" target="_blank">
+            🌍 Test dengan IP Langsung
+        </a>
+        
+        <a href="http://marvelcollin.my.id" class="test-link" target="_blank">
+            🌐 Test dengan Domain (setelah DNS update)
+        </a>
+        
+        <div class="status pending">
+            <h3>📝 LANGKAH SELANJUTNYA:</h3>
+            <p><strong>1.</strong> Login ke router: <a href="http://10.20.176.1" style="color: yellow;">http://10.20.176.1</a></p>
+            <p><strong>2.</strong> Setup port forwarding: 80 → 10.20.176.105:1001</p>
+            <p><strong>3.</strong> Update DNS domain ke IP: 202.58.166.121</p>
+            <p><strong>4.</strong> Test akses global</p>
+        </div>
+
+        <h3>🎯 Target Final:</h3>
+        <p><strong>marvelcollin.my.id</strong> akan bisa diakses dari seluruh dunia!</p>
+    </div>
+
+    <script>
+        // Auto refresh untuk monitoring
+        setTimeout(() => {
+            window.location.reload();
+        }, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MisVord - Redirecting...</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .status {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .manual-link {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        .manual-link a {
+            color: #ffffff;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .manual-link a:hover {
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">MisVord</div>
+        <div class="status">Connecting to application server...</div>
+        <div class="spinner"></div>
+        <div class="manual-link">
+            <p>If you're not redirected automatically:</p>
+            <a href="http://localhost:1001" target="_blank">Click here to access MisVord directly</a>
+        </div>
+    </div>
+
+    <script>
+        // Function to check if the Docker container is accessible
+        async function checkServer() {
+            try {
+                const response = await fetch('http://localhost:1001/health', {
+                    method: 'GET',
+                    mode: 'no-cors'
+                });
+                // If we get here, the server is likely running
+                window.location.href = 'http://localhost:1001';
+            } catch (error) {
+                console.log('Server check failed, retrying...', error);
+                setTimeout(checkServer, 2000); // Retry every 2 seconds
+            }
+        }
+        
+        // Start checking immediately
+        setTimeout(() => {
+            window.location.href = 'http://localhost:1001';
+        }, 1000); // Redirect after 1 second regardless
+        
+        // Also try to check server status
+        checkServer();
+    </script>
+</body>
+</html>
