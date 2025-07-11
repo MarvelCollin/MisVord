@@ -794,7 +794,7 @@ class MentionHandler {
         
         formattedContent = formattedContent.replace(this.allMentionRegex, '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-orange-400 bg-orange-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>');
         
-        formattedContent = formattedContent.replace(this.roleMentionRegex, '<span class="mention mention-role bubble-mention bubble-mention-role text-purple-400 bg-purple-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>');
+        formattedContent = formattedContent.replace(this.roleMentionRegex, '<span class="mention mention-role bubble-mention bubble-mention-role user-profile-trigger text-purple-400 bg-purple-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>');
         
         formattedContent = formattedContent.replace(this.mentionRegex, (match, username) => {
             if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {

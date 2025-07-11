@@ -34,7 +34,7 @@ class RichTextHandler {
         );
 
         content = content.replace(this.roleMentionRegex, 
-            '<span class="mention mention-role bubble-mention bubble-mention-role text-purple-400 bg-purple-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>'
+            '<span class="mention mention-role bubble-mention bubble-mention-role user-profile-trigger text-purple-400 bg-purple-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>'
         );
 
         content = content.replace(this.mentionRegex, (match, username) => {

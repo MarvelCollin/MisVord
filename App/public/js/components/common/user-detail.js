@@ -6,6 +6,8 @@ class UserDetailModal {
         this.currentServerId = null;
         this.userData = null;
         this.initialRoleName = null;
+        this.isOpening = false;
+        this.openingTimeout = null;
 
         if (this.modal) {
             this.initElements();
@@ -91,6 +93,19 @@ class UserDetailModal {
             console.error('User ID is required to show user detail modal');
             return;
         }
+
+        if (this.isOpening) {
+            return;
+        }
+
+        if (this.openingTimeout) {
+            clearTimeout(this.openingTimeout);
+        }
+
+        this.isOpening = true;
+        this.openingTimeout = setTimeout(() => {
+            this.isOpening = false;
+        }, 500);
         
         this.currentUserId = options.userId;
         this.currentServerId = options.serverId || null;
@@ -168,6 +183,11 @@ class UserDetailModal {
     hide() {
         this.modal.classList.remove('active');
         this.resetModalPosition();
+        this.isOpening = false;
+        if (this.openingTimeout) {
+            clearTimeout(this.openingTimeout);
+            this.openingTimeout = null;
+        }
     }
 
     isVisible() {
@@ -864,6 +884,8 @@ const userDetailModal = new UserDetailModal();
 
 window.userDetailModal = userDetailModal;
 
+let clickDebounceTimer = null;
+
 document.addEventListener('click', (e) => {
     const trigger = e.target.closest('.user-profile-trigger');
 
@@ -872,35 +894,97 @@ document.addEventListener('click', (e) => {
             return;
         }
 
-        let userId = trigger.dataset.userId;
-        const serverId = trigger.dataset.serverId;
-        const username = trigger.dataset.username;
-        const role = trigger.dataset.role;
+        e.preventDefault();
+        e.stopPropagation();
 
-        if (userId && userId !== 'null' && userId !== '') {
-            e.preventDefault();
-            userDetailModal.show({
-                userId,
-                serverId,
-                triggerElement: trigger,
-                role
-            });
-        } else if (username && trigger.classList.contains('mention-user')) {
-            e.preventDefault();
-
-            if (window.chatSection?.mentionHandler?.availableUsers) {
-                const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
-                if (user && user.id) {
-                    userDetailModal.show({
-                        userId: user.id,
-                        serverId,
-                        triggerElement: trigger
-                    });
-                    return;
-                }
-            }
+        if (clickDebounceTimer) {
+            clearTimeout(clickDebounceTimer);
         }
+
+        clickDebounceTimer = setTimeout(() => {
+            let userId = trigger.dataset.userId;
+            const serverId = trigger.dataset.serverId;
+            const username = trigger.dataset.username;
+            const role = trigger.dataset.role;
+
+            if (userId && userId !== 'null' && userId !== '') {
+                userDetailModal.show({
+                    userId,
+                    serverId,
+                    triggerElement: trigger,
+                    role
+                });
+            } else if (username && (trigger.classList.contains('mention-user') || trigger.classList.contains('bubble-mention-user'))) {
+                if (window.chatSection?.mentionHandler?.availableUsers) {
+                    const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
+                    if (user && user.id) {
+                        userDetailModal.show({
+                            userId: user.id,
+                            serverId,
+                            triggerElement: trigger
+                        });
+                        return;
+                    }
+                }
+
+                lookupUserByUsernameGlobal(username).then(foundUserId => {
+                    if (foundUserId) {
+                        userDetailModal.show({
+                            userId: foundUserId,
+                            serverId,
+                            triggerElement: trigger
+                        });
+                    }
+                }).catch(error => {
+                    console.error('Error looking up user:', error);
+                });
+            }
+            clickDebounceTimer = null;
+        }, 100);
     }
 });
+
+async function lookupUserByUsernameGlobal(username) {
+    try {
+        const chatType = window.chatSection?.chatType;
+        const targetId = window.chatSection?.targetId;
+        
+        if (!chatType || !targetId) {
+            return null;
+        }
+        
+        let endpoint;
+        if (chatType === 'channel') {
+            endpoint = `/api/channels/${targetId}/members`;
+        } else if (chatType === 'dm' || chatType === 'direct') {
+            endpoint = `/api/chat/dm/${targetId}/participants`;
+        } else {
+            return null;
+        }
+        
+        const response = await fetch(endpoint);
+        if (!response.ok) {
+            return null;
+        }
+        
+        const result = await response.json();
+        let users = [];
+        
+        if (result.success && result.data) {
+            if (Array.isArray(result.data)) {
+                users = result.data;
+            } else if (result.data.data && Array.isArray(result.data.data)) {
+                users = result.data.data;
+            }
+        }
+        
+        const user = users.find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+        return user ? user.user_id || user.id : null;
+        
+    } catch (error) {
+        console.error('API error:', error);
+        return null;
+    }
+}
 
 export default userDetailModal;
