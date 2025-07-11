@@ -282,14 +282,13 @@ class NitroCrownManager {
     }
 
     shouldExcludeElement(element) {
-
         if (!element) return true;
-
 
         if (element.closest('.voice-participants')) return true;
 
-
         if (element.dataset?.noNitro === '1') return true;
+
+        if (element.closest('.bubble-message-group')) return true;
 
         return false;
     }
