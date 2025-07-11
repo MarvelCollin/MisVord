@@ -986,6 +986,9 @@ class MessageHandler {
                 if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
                     this.chatSection.updateLoadMoreButton();
                 }
+                if (typeof window.processMentionCandidates === 'function') {
+                    setTimeout(() => window.processMentionCandidates(), 100);
+                }
                 resolve();
             });
         });
@@ -1160,6 +1163,9 @@ class MessageHandler {
         const newScrollHeight = messagesContainer.scrollHeight;
         messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
         
+        if (typeof window.processMentionCandidates === 'function') {
+            setTimeout(() => window.processMentionCandidates(), 100);
+        }
 
     }
     
@@ -1222,7 +1228,9 @@ class MessageHandler {
         messagesContainer.appendChild(messageElement);
         this.lastMessageGroup = messageElement;
         
-
+        if (typeof window.processMentionCandidates === 'function') {
+            setTimeout(() => window.processMentionCandidates(), 50);
+        }
     }
 
     fallbackCreateMessage(formattedMessage, isTemporary) {

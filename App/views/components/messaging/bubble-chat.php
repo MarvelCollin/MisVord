@@ -87,10 +87,17 @@ if (!function_exists('formatBubbleContent')) {
         $formatted = preg_replace('/~~(.*?)~~/', '<del>$1</del>', $formatted);
         $formatted = preg_replace('/`(.*?)`/', '<code class="bg-[#2f3136] text-[#dcddde] px-1 py-0.5 rounded text-sm">$1</code>', $formatted);
         
-        $formatted = preg_replace('/@all\b/', '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger" data-mention-type="all" title="Mention everyone">@all</span>', $formatted);
+        $formatted = preg_replace('/@all\b/', '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>', $formatted);
+        
+        $formatted = preg_replace('/@(admin|members|owner)\b/', '<span class="mention mention-role bubble-mention bubble-mention-role user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>', $formatted);
         
         $formatted = preg_replace_callback('/@(\w+)/', function($matches) use ($mentionData) {
             $username = $matches[1];
+            
+            if (in_array(strtolower($username), ['all', 'admin', 'members', 'owner'])) {
+                return $matches[0];
+            }
+            
             $userId = null;
             
             if (!empty($mentionData)) {
@@ -102,8 +109,11 @@ if (!function_exists('formatBubbleContent')) {
                 }
             }
             
-            $userIdAttr = $userId ? ' data-user-id="' . htmlspecialchars($userId) . '"' : '';
-            return '<span class="mention mention-user bubble-mention bubble-mention-user user-profile-trigger" data-mention-type="user" data-username="' . htmlspecialchars($username) . '"' . $userIdAttr . ' title="@' . htmlspecialchars($username) . '">@' . htmlspecialchars($username) . '</span>';
+            if ($userId) {
+                return '<span class="mention mention-user bubble-mention bubble-mention-user user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="user" data-username="' . htmlspecialchars($username) . '" data-user-id="' . htmlspecialchars($userId) . '" title="@' . htmlspecialchars($username) . '">@' . htmlspecialchars($username) . '</span>';
+            } else {
+                return '<span class="mention-candidate" data-username="' . htmlspecialchars($username) . '">@' . htmlspecialchars($username) . '</span>';
+            }
         }, $formatted);
         
         $formatted = nl2br($formatted);
@@ -462,21 +472,30 @@ if (!function_exists('isBubbleVideoFile')) {
 }
 
 .bubble-mention-all {
-    color: #faa61a;
-    background-color: rgba(250, 166, 26, 0.1);
+    color: #5865f2 !important;
+    background-color: rgba(88, 101, 242, 0.3) !important;
 }
 
 .bubble-mention-all:hover {
-    background-color: rgba(250, 166, 26, 0.2);
+    background-color: rgba(88, 101, 242, 0.4) !important;
+}
+
+.bubble-mention-role {
+    color: #5865f2 !important;
+    background-color: rgba(88, 101, 242, 0.3) !important;
+}
+
+.bubble-mention-role:hover {
+    background-color: rgba(88, 101, 242, 0.4) !important;
 }
 
 .bubble-mention-user {
-    color: #5865f2;
-    background-color: rgba(88, 101, 242, 0.1);
+    color: #5865f2 !important;
+    background-color: rgba(88, 101, 242, 0.3) !important;
 }
 
 .bubble-mention-user:hover {
-    background-color: rgba(88, 101, 242, 0.2);
+    background-color: rgba(88, 101, 242, 0.4) !important;
     text-decoration: underline;
 }
 
@@ -696,5 +715,39 @@ document.addEventListener('DOMContentLoaded', function() {
         const contentWrapper = message.querySelector('.bubble-content-wrapper');
         if (contentWrapper) contentWrapper.style.paddingLeft = '56px';
     });
+
+    processMentionCandidates();
 });
+
+function processMentionCandidates() {
+    const candidates = document.querySelectorAll('.mention-candidate');
+    
+    if (candidates.length === 0) return;
+
+    candidates.forEach(candidate => {
+        const username = candidate.dataset.username;
+        if (!username) return;
+
+        if (window.chatSection?.mentionHandler?.availableUsers) {
+            const user = window.chatSection.mentionHandler.availableUsers.get(username.toLowerCase());
+            if (user && user.id) {
+                const mentionSpan = document.createElement('span');
+                mentionSpan.className = 'mention mention-user bubble-mention bubble-mention-user user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium';
+                mentionSpan.setAttribute('data-mention-type', 'user');
+                mentionSpan.setAttribute('data-user-id', user.id);
+                mentionSpan.setAttribute('data-username', user.username);
+                mentionSpan.setAttribute('title', '@' + user.username);
+                mentionSpan.textContent = '@' + user.username;
+                
+                candidate.parentNode.replaceChild(mentionSpan, candidate);
+            } else {
+                candidate.outerHTML = candidate.textContent;
+            }
+        } else {
+            setTimeout(() => processMentionCandidates(), 500);
+        }
+    });
+}
+
+window.processMentionCandidates = processMentionCandidates;
 </script>

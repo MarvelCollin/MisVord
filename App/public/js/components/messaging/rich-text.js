@@ -30,11 +30,11 @@ class RichTextHandler {
 
     formatMentions(content, availableUsers = new Map()) {
         content = content.replace(this.allMentionRegex, 
-            '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-orange-400 bg-orange-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>'
+            '<span class="mention mention-all bubble-mention bubble-mention-all user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="all" title="Mention everyone">@all</span>'
         );
 
         content = content.replace(this.roleMentionRegex, 
-            '<span class="mention mention-role bubble-mention bubble-mention-role user-profile-trigger text-purple-400 bg-purple-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>'
+            '<span class="mention mention-role bubble-mention bubble-mention-role user-profile-trigger text-blue-400 bg-blue-900/30 px-1 rounded font-medium" data-mention-type="role" title="Mention role">@$1</span>'
         );
 
         content = content.replace(this.mentionRegex, (match, username) => {
@@ -239,7 +239,7 @@ class RichTextHandler {
         span.className = `mention mention-${type} bubble-mention bubble-mention-${type} user-profile-trigger`;
         
         if (type === 'all') {
-            span.className += ' text-orange-400 bg-orange-900/30 px-1 rounded font-medium';
+            span.className += ' text-blue-400 bg-blue-900/30 px-1 rounded font-medium';
             span.textContent = '@all';
             span.title = 'Mention everyone';
             span.setAttribute('data-mention-type', 'all');
