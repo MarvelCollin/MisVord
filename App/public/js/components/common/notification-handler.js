@@ -111,10 +111,8 @@ class GlobalNotificationHandler {
         let mentionText = 'mention';
         
         if (isAllMention) {
-            mentionColor = 'from-orange-500 to-red-500';
             mentionText = 'all';
         } else if (isRoleMention) {
-            mentionColor = 'from-purple-500 to-pink-500';
             mentionText = 'role';
         }
         
@@ -262,7 +260,7 @@ class GlobalNotificationHandler {
 
     playNotificationSound() {
         try {
-            const audio = new Audio('/public/assets/sound/discordo_sound.mp3');
+            const audio = new Audio('/public/assets/sound/message_sound.mp3');
             audio.volume = 0.5;
             audio.play().catch(e => {});
         } catch (error) {

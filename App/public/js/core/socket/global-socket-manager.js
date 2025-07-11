@@ -1,4 +1,4 @@
-class GlobalSocketManager {
+    class GlobalSocketManager {
     constructor() {
         this.io = null;
         this.isConnected = false;
@@ -637,7 +637,6 @@ class GlobalSocketManager {
         });
         
         this.io.on('stop-typing', this.handleStopTyping.bind(this));
-        this.io.on('mention_notification', this.handleMentionNotification.bind(this));
         
         this.socketListenersSetup = true;
 
@@ -1161,39 +1160,6 @@ class GlobalSocketManager {
 
     }
     
-    handleGlobalMentionNotification(data) {
-        try {
-            const currentUserId = this.userId;
-            if (!currentUserId) {
-                console.warn('⚠️ [GLOBAL-SOCKET] No current user ID for mention notification');
-                return;
-            }
-            
-            let shouldNotify = false;
-            let mentionType = '';
-            
-            if (data.type === 'all') {
-                shouldNotify = true;
-                mentionType = '@all';
-            } else if (data.type === 'user' && data.mentioned_user_id === currentUserId) {
-                shouldNotify = true;
-                mentionType = `@${this.username}`;
-            }
-            
-            if (shouldNotify) {
-                window.dispatchEvent(new CustomEvent('globalMentionReceived', {
-                    detail: {
-                        data: data,
-                        mentionType: mentionType,
-                        timestamp: Date.now()
-                    }
-                }));
-            }
-        } catch (error) {
-            console.error('❌ [GLOBAL-SOCKET] Error handling global mention notification:', error);
-        }
-    }
-    
     isCurrentlyViewingChat(data) {
         try {
             if (!window.chatSection || !window.chatSection.targetId) {
@@ -1241,11 +1207,6 @@ class GlobalSocketManager {
         } catch (error) {
             console.error('❌ [GLOBAL-SOCKET] Error navigating to mention:', error);
         }
-    }
-    
-    
-    handleMentionNotification(data) {
-        this.handleGlobalMentionNotification(data);
     }
     
     handleStopTyping(data) {
