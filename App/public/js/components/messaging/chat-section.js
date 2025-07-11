@@ -511,8 +511,8 @@ class ChatSection {
             const isExcluded = isExcludedPage();
             
 
-            const maxAttempts = isExcluded ? 5 : (isDMPage ? 40 : 30); // More time for DM switches
-            const interval = isDMPage ? 150 : 200; // Faster polling for DMs
+            const maxAttempts = isExcluded ? 5 : (isDMPage ? 40 : 30); // 
+            const interval = isDMPage ? 150 : 200; // 
             
 
             
@@ -615,13 +615,13 @@ class ChatSection {
             
                 this.joinSocketRoom();
                 
-                // Ensure chat container is cleared before loading messages
+                // 
                 const messagesContainer = this.getMessagesContainer();
                 if (messagesContainer) {
                     messagesContainer.innerHTML = '';
                 }
                 
-                // Show skeleton while loading
+                // 
                 this.showChatSkeleton();
                 
                 await this.loadMessages();
@@ -1173,7 +1173,7 @@ class ChatSection {
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
                     
-                    // Don't scroll - messages should appear at bottom where skeleton was
+                    // 
                 }
                 
                 this.hideEmptyState();
@@ -2304,13 +2304,13 @@ class ChatSection {
         
         try {
             this.isAutoScrolling = true;
-            // Add smooth scrolling behavior
+            // 
             this.chatMessages.style.scrollBehavior = 'smooth';
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
             this.userHasScrolled = false;
             setTimeout(() => {
                 this.isAutoScrolling = false;
-                // Reset to auto after scrolling completes
+                // 
                 this.chatMessages.style.scrollBehavior = 'auto';
             }, 300);
         } catch (error) {
@@ -2322,7 +2322,7 @@ class ChatSection {
     scrollToBottomIfAppropriate(isChannelSwitch = false) {
         if (!this.chatMessages) return;
         
-        // Always scroll to bottom on initialization
+        // 
         if (!this.isInitialized || isChannelSwitch) {
             this.scrollToBottom();
             return;
@@ -2391,7 +2391,7 @@ class ChatSection {
             
 
             const audio = new Audio('/public/assets/sound/message_sound.mp3');
-            audio.volume = 0.5; // Set to 50% volume
+            audio.volume = 0.5; // 
             audio.play().catch(error => {
 
 
@@ -2437,7 +2437,7 @@ class ChatSection {
             }
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error accessing chat messages container:', error);
-            return this.chatMessages; // Fallback to the outer container
+            return this.chatMessages; // 
         }
     }
     
@@ -3197,32 +3197,32 @@ class ChatSection {
     handleNewMessageScroll(isOwnMessage = false) {
         if (!this.chatMessages) return;
         
-        // Always scroll when it's the user's own message
+        // 
         if (isOwnMessage) {
             this.scrollToBottom();
             return;
         }
         
-        // Automatically scroll if user hasn't manually scrolled up
+        // 
         if (!this.userHasScrolled) {
             this.scrollToBottom();
             return;
         }
         
-        // Check if user is already near the bottom
+        // 
         const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
-        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; // Increased threshold for better UX
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; // 
         
         if (isAtBottom) {
             this.scrollToBottom();
         } else {
-            // Show a "new message" indicator that can be clicked to scroll down
+            // 
             this.showNewMessageIndicator();
         }
     }
     
     showNewMessageIndicator() {
-        // Only create if it doesn't exist
+        // 
         if (!document.getElementById('new-message-indicator')) {
             const indicator = document.createElement('div');
             indicator.id = 'new-message-indicator';
@@ -3236,7 +3236,7 @@ class ChatSection {
             
             document.body.appendChild(indicator);
             
-            // Auto-remove after 5 seconds
+            // 
             setTimeout(() => {
                 if (document.getElementById('new-message-indicator')) {
                     document.getElementById('new-message-indicator').remove();
@@ -3263,17 +3263,17 @@ class ChatSection {
         if (realContent) {
             realContent.style.display = 'block';
             
-            // Ensure messages appear at the bottom immediately without scrolling animation
+            // 
             if (chatMessages) {
-                // Disable smooth scrolling temporarily
+                // 
                 const originalScrollBehavior = chatMessages.style.scrollBehavior;
                 chatMessages.style.scrollBehavior = 'auto';
                 
-                // Position at bottom immediately
+                // 
                 requestAnimationFrame(() => {
                     chatMessages.scrollTop = chatMessages.scrollHeight;
                     
-                    // Restore original scroll behavior
+                    // 
                     requestAnimationFrame(() => {
                         chatMessages.style.scrollBehavior = originalScrollBehavior;
                     });
@@ -3295,28 +3295,28 @@ class ChatSection {
             realContent.style.display = 'none';
         }
         
-        // Position skeleton at the bottom immediately
+        // 
         if (chatMessages) {
-            // Disable smooth scrolling temporarily for instant positioning
+            // 
             const originalScrollBehavior = chatMessages.style.scrollBehavior;
             chatMessages.style.scrollBehavior = 'auto';
             
-            // Use multiple methods to ensure reliable positioning
+            // 
             const positionAtBottom = () => {
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             };
             
-            // Immediate positioning
+            // 
             positionAtBottom();
             
-            // Also position after DOM update
+            // 
             requestAnimationFrame(() => {
                 positionAtBottom();
                 
-                // One more frame to ensure skeleton is fully rendered
+                // 
                 requestAnimationFrame(() => {
                     positionAtBottom();
-                    // Restore original scroll behavior
+                    // 
                     chatMessages.style.scrollBehavior = originalScrollBehavior;
                 });
             });

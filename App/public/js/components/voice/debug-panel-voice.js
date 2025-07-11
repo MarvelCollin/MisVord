@@ -3,7 +3,7 @@
  * Displays real-time information about voice participants across channels
  */
 
-// Prevent multiple declarations of VoiceDebugPanel
+// 
 if (typeof window.VoiceDebugPanel === 'undefined') {
     window.VoiceDebugPanel = class VoiceDebugPanel {
         constructor() {
@@ -68,7 +68,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         setupToggleButton() {
-            // Remove existing button if it exists
+            // 
             const existingBtn = document.getElementById('voice-debug-toggle');
             if (existingBtn) {
                 existingBtn.remove();
@@ -106,7 +106,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             this.isVisible = !this.isVisible;
             this.panel.style.display = this.isVisible ? 'block' : 'none';
             
-            // Move the toggle button
+            // 
             const toggleBtn = document.getElementById('voice-debug-toggle');
             if (toggleBtn) {
                 toggleBtn.style.bottom = this.isVisible ? '410px' : '10px';
@@ -119,7 +119,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         setupEventListeners() {
-            // Local participant events
+            // 
             window.addEventListener('participantJoined', (e) => {
                 this.collectData();
                 this.updatePanelContent();
@@ -130,7 +130,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 this.updatePanelContent();
             });
             
-            // Voice connection events
+            // 
             window.addEventListener('voiceConnect', (e) => {
                 this.collectData();
                 this.updatePanelContent();
@@ -141,7 +141,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 this.updatePanelContent();
             });
             
-            // Bot events
+            // 
             window.addEventListener('bot-voice-participant-joined', (e) => {
                 this.collectData();
                 this.updatePanelContent();
@@ -152,7 +152,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 this.updatePanelContent();
             });
             
-            // Socket events
+            // 
             if (window.globalSocketManager?.io) {
                 this.setupSocketListeners();
             } else {
@@ -176,7 +176,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         startUpdateCycle() {
-            // Clear existing interval if it exists
+            // 
             if (this.updateInterval) {
                 clearInterval(this.updateInterval);
             }
@@ -191,14 +191,14 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         }
         
         collectData() {
-            // Get data from voice manager (local participants)
+            // 
             if (window.voiceManager) {
                 this.participants.local = window.voiceManager.getAllParticipants() || new Map();
                 this.currentChannelId = window.voiceManager.currentChannelId;
                 this.currentMeetingId = window.voiceManager.currentMeetingId;
             }
             
-            // Get data from channel voice participants (external participants)
+            // 
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 if (instance.externalParticipants) {
@@ -206,16 +206,16 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 }
             }
             
-            // Get data about bots
+            // 
             if (window.BotComponent && window.BotComponent.voiceBots) {
                 this.participants.bots = window.BotComponent.voiceBots;
             }
             
-            // Collect channel IDs and their meeting IDs
+            // 
             this.channels = new Map();
             this.meetingIds = new Map();
             
-            // From DOM
+            // 
             document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
                 const channelId = channel.getAttribute('data-channel-id');
                 const meetingId = channel.getAttribute('data-meeting-id');
@@ -231,7 +231,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 }
             });
             
-            // From localStorage
+            // 
             if (window.localStorageManager) {
                 const voiceState = window.localStorageManager.getUnifiedVoiceState();
                 if (voiceState && voiceState.channelId && voiceState.meetingId) {
@@ -261,7 +261,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 </div>
             `;
             
-            // Add current channel information with more details
+            // 
             const currentChannel = this.channels.get(this.currentChannelId);
             if (currentChannel) {
                 html += `
@@ -275,7 +275,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 `;
             }
             
-            // Voice state from localStorage
+            // 
             if (this.unifiedVoiceState) {
                 const channelMismatch = this.currentChannelId !== this.unifiedVoiceState.channelId;
                 const meetingMismatch = currentChannel && currentChannel.meetingId && 
@@ -296,7 +296,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 `;
             }
             
-            // Channels and meetings
+            // 
             html += '<div style="margin-bottom: 10px;"><strong>Channels:</strong></div>';
             
             if (this.channels.size === 0) {
@@ -316,7 +316,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // Test results
+            // 
             if (this.testResults.length > 0) {
                 html += '<div style="margin-top: 10px; padding-top: 5px; border-top: 1px solid rgba(255,255,255,0.2);"><strong>Test Results:</strong></div>';
                 
@@ -335,7 +335,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             
             this.panel.innerHTML = html;
             
-            // Add event listeners to buttons
+            // 
             setTimeout(() => {
                 const testBtn = document.getElementById('run-voice-tests');
                 if (testBtn) {
@@ -352,10 +352,10 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         renderParticipantsForChannel(channelId) {
             let participants = [];
             
-            // From local participants
+            // 
             if (this.currentChannelId === channelId && this.participants.local.size > 0) {
                 this.participants.local.forEach((data, id) => {
-                    if (!id.startsWith('bot-')) { // Skip bots in this loop
+                    if (!id.startsWith('bot-')) { // 
                         participants.push({
                             id: id,
                             name: data.name || data.username || 'Unknown',
@@ -367,11 +367,11 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // From external participants
+            // 
             const externalMap = this.participants.external.get(channelId);
             if (externalMap && externalMap.size > 0) {
                 externalMap.forEach((data, id) => {
-                    // Check if we haven't already added this participant
+                    // 
                     if (!participants.some(p => p.id === id)) {
                         participants.push({
                             id: id,
@@ -384,12 +384,12 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // From bots
+            // 
             if (this.participants.bots && this.participants.bots.size > 0) {
                 this.participants.bots.forEach((data, id) => {
                     if (data.channel_id === channelId) {
                         const botId = `bot-${data.bot_id || id}`;
-                        // Check if we haven't already added this bot
+                        // 
                         if (!participants.some(p => p.id === botId)) {
                             participants.push({
                                 id: botId,
@@ -423,25 +423,25 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         getParticipantCountForChannel(channelId) {
             let count = 0;
             
-            // Count local participants
+            // 
             if (this.currentChannelId === channelId && this.participants.local.size > 0) {
                 count += this.participants.local.size;
             }
             
-            // Count external participants
+            // 
             const externalMap = this.participants.external.get(channelId);
             if (externalMap && externalMap.size > 0) {
-                // If we're not in this channel, count external participants
+                // 
                 if (this.currentChannelId !== channelId) {
                     count += externalMap.size;
                 }
             }
             
-            // Count bots
+            // 
             if (this.participants.bots && this.participants.bots.size > 0) {
                 this.participants.bots.forEach(data => {
                     if (data.channel_id === channelId) {
-                        // Only count bots if we're not already counting them from local participants
+                        // 
                         if (this.currentChannelId !== channelId) {
                             count++;
                         }
@@ -465,22 +465,22 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
         runTests() {
             this.testResults = [];
             
-            // Test 1: Check for duplicate participants
+            // 
             this.testDuplicateParticipants();
             
-            // Test 2: Check that DOM matches data
+            // 
             this.testDomMatchesData();
             
-            // Test 3: Check that voiceManager state matches localStorage
+            // 
             this.testVoiceManagerMatchesLocalStorage();
             
-            // Test 4: Check for orphaned meetings
+            // 
             this.testOrphanedMeetings();
             
-            // Test 5: Check if the sidebar is showing correct counts
+            // 
             this.testSidebarCounts();
             
-            // Update the panel with test results
+            // 
             this.updatePanelContent();
         }
         
@@ -494,7 +494,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             const allParticipants = new Map();
             const duplicates = [];
             
-            // Check local participants
+            // 
             if (this.participants.local.size > 0) {
                 this.participants.local.forEach((data, id) => {
                     if (allParticipants.has(id)) {
@@ -506,7 +506,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             }
             
-            // Check external participants
+            // 
             this.participants.external.forEach((map, channelId) => {
                 map.forEach((data, id) => {
                     if (allParticipants.has(id)) {
@@ -518,7 +518,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 });
             });
             
-            // Check bots
+            // 
             if (this.participants.bots && this.participants.bots.size > 0) {
                 this.participants.bots.forEach((data, id) => {
                     const botId = `bot-${data.bot_id || id}`;
@@ -547,15 +547,15 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 message: ''
             };
             
-            // Check if voice participants in DOM match our data
+            // 
             const domParticipants = document.querySelectorAll('.voice-participant-card');
             const sidebarParticipantCount = domParticipants.length;
             
-            // Calculate how many participants we think should be in the sidebar
+            // 
             let expectedCount = 0;
             
             if (this.currentChannelId) {
-                // If we're in a voice channel, check the sidebar
+                // 
                 expectedCount = this.getParticipantCountForChannel(this.currentChannelId);
                 
                 if (sidebarParticipantCount !== expectedCount) {
@@ -593,19 +593,19 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 return;
             }
             
-            // Check isConnected state
+            // 
             if (voiceState.isConnected !== window.voiceManager.isConnected) {
                 result.passed = false;
                 result.message = `Connection state mismatch: localStorage=${voiceState.isConnected}, voiceManager=${window.voiceManager.isConnected}`;
             }
             
-            // Check channelId
+            // 
             if (voiceState.isConnected && voiceState.channelId !== window.voiceManager.currentChannelId) {
                 result.passed = false;
                 result.message = (result.message || '') + ` Channel ID mismatch: localStorage=${voiceState.channelId}, voiceManager=${window.voiceManager.currentChannelId}`;
             }
             
-            // Check meetingId
+            // 
             if (voiceState.isConnected && voiceState.meetingId !== window.voiceManager.currentMeetingId) {
                 result.passed = false;
                 result.message = (result.message || '') + ` Meeting ID mismatch: localStorage=${voiceState.meetingId}, voiceManager=${window.voiceManager.currentMeetingId}`;
@@ -625,7 +625,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 message: ''
             };
             
-            // Check if we know about any meetings that don't have participants
+            // 
             const orphanedMeetings = [];
             
             this.meetingIds.forEach((meetingId, channelId) => {
@@ -695,10 +695,10 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 return;
             }
             
-            // Get current state from unified voice state
+            // 
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             
-            // Update it with the values from voice manager and DOM
+            // 
             const updatedState = {
                 ...currentState,
                 channelId: this.currentChannelId,
@@ -706,17 +706,17 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 meetingId: currentChannel.meetingId || this.currentMeetingId
             };
             
-            // Update localStorage
+            // 
             window.localStorageManager.setUnifiedVoiceState(updatedState);
             
-            // Also update voice manager
+            // 
             if (window.voiceManager) {
                 window.voiceManager.currentChannelId = this.currentChannelId;
                 window.voiceManager.currentChannelName = currentChannel.name;
                 window.voiceManager.currentMeetingId = currentChannel.meetingId || this.currentMeetingId;
             }
             
-            // Update voice-call-section if available
+            // 
             if (window.voiceCallSection) {
                 window.voiceCallSection.currentChannelId = this.currentChannelId;
                 window.voiceCallSection.currentChannelName = currentChannel.name;
@@ -728,14 +728,14 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             
             console.log("✅ [DEBUG-PANEL] Manually synced voice state:", updatedState);
             
-            // Refresh the panel data
+            // 
             this.collectData();
             this.updatePanelContent();
         }
     };
 }
 
-// Initialize the debug panel only if it doesn't exist yet
+// 
 if (!window.voiceDebugPanel) {
     document.addEventListener('DOMContentLoaded', () => {
         window.voiceDebugPanel = new window.VoiceDebugPanel();

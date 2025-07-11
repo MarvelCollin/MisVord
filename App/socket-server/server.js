@@ -27,7 +27,7 @@ async function initializeTitiBot() {
         console.log('🤖 [STARTUP] Initializing TitiBot...');
         const BotHandler = require('./handlers/botHandler');
         
-        // We know TitiBot has ID 7 from our database check
+        // 
         await BotHandler.registerBot('7', 'titibot');
         BotHandler.connectBot(io, '7', 'titibot');
         console.log('✅ [STARTUP] TitiBot registered and connected successfully with ID: 7');

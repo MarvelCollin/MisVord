@@ -51,7 +51,7 @@ window.ParticipantIntegrityTest = {
      * Check for duplicate participant elements in the DOM
      */
     checkForDuplicateParticipants() {
-        // Check for duplicates in the grid
+        // 
         const grid = document.getElementById('participantGrid');
         if (!grid) {
             console.warn('⚠️ [TEST] Participant grid not found');
@@ -78,7 +78,7 @@ window.ParticipantIntegrityTest = {
             console.log('✅ [TEST] No duplicate participant cards found in grid');
         }
         
-        // Check for duplicates in the sidebar
+        // 
         const sidebarContainers = document.querySelectorAll('.voice-participants');
         let sidebarDuplicates = false;
         
@@ -117,29 +117,29 @@ window.ParticipantIntegrityTest = {
         const state = window.participantCoordinator.debugState();
         console.log('🔍 [TEST] ParticipantCoordinator state:', state);
         
-        // Check for any inconsistencies in the coordinator state
+        // 
         const channelIds = Object.keys(state.channels || {});
         let hasInconsistencies = false;
         
         channelIds.forEach(channelId => {
-            // The channels are returned as objects from Sets, so we need to convert to array
+            // 
             const participantIdsObj = state.channels[channelId];
             
-            // Handle different possible formats of the participantIds
+            // 
             let participantIds = [];
             
             if (Array.isArray(participantIdsObj)) {
-                // If it's already an array, use it directly
+                // 
                 participantIds = participantIdsObj;
             } else if (participantIdsObj && typeof participantIdsObj === 'object') {
-                // If it's an object (from Object.fromEntries of a Set), get the keys
+                // 
                 participantIds = Object.keys(participantIdsObj);
             } else if (participantIdsObj === undefined) {
                 console.warn('⚠️ [TEST] No participants found for channel:', channelId);
                 return;
             }
             
-            // Now that we have the participant IDs as an array, check for missing data
+            // 
             const participantData = participantIds
                 .map(id => state.participants[id])
                 .filter(Boolean);
@@ -177,7 +177,7 @@ window.ParticipantIntegrityTest = {
             return false;
         }
         
-        // Check if participants map matches DOM
+        // 
         const participants = instance.participants;
         const containers = document.querySelectorAll('.voice-participants');
         let hasInconsistencies = false;
@@ -218,7 +218,7 @@ window.ParticipantIntegrityTest = {
     simulateForcedLeave() {
         console.group('🧪 [TEST] Simulating forced leave');
         
-        // Store state before leave
+        // 
         const beforeState = {
             isConnected: window.videoSDKManager?.isConnected,
             channelId: window.voiceManager?.currentChannelId,
@@ -227,11 +227,11 @@ window.ParticipantIntegrityTest = {
         
         console.log('📊 [TEST] State before leave:', beforeState);
         
-        // Trigger leave
+        // 
         if (window.voiceManager && typeof window.voiceManager.leaveVoice === 'function') {
             window.voiceManager.leaveVoice();
             
-            // Check state after leave
+            // 
             setTimeout(() => {
                 const afterState = {
                     isConnected: window.videoSDKManager?.isConnected,
@@ -241,7 +241,7 @@ window.ParticipantIntegrityTest = {
                 
                 console.log('📊 [TEST] State after leave:', afterState);
                 
-                // Verify cleanup
+                // 
                 const cleanupSuccess = !afterState.isConnected && 
                                       !afterState.channelId && 
                                       afterState.participantCount === 0;
@@ -282,12 +282,12 @@ window.ParticipantIntegrityTest = {
     }
 };
 
-// Auto-setup tests
+// 
 document.addEventListener('DOMContentLoaded', () => {
     window.ParticipantIntegrityTest.setupAutoTest();
     console.log('✅ [TEST] Participant Integrity Test initialized');
 });
 
-// Export for console use
+// 
 window.testParticipantIntegrity = () => window.ParticipantIntegrityTest.runTests();
 window.simulateForcedLeave = () => window.ParticipantIntegrityTest.simulateForcedLeave(); 

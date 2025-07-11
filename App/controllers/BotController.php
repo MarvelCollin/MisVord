@@ -364,11 +364,11 @@ class BotController extends BaseController
         $input = $this->getInput();
         error_log('[BOT DEBUG] sendChannelMessage input: ' . json_encode($input));
 
-        // Validate required fields
+        // 
         if (!isset($input['user_id']) || !isset($input['channel_id']) || !isset($input['content'])) {
             $errorMsg = 'Bot user_id, channel_id, and content are required';
             error_log('[BOT ERROR] ' . $errorMsg . ': ' . json_encode($input));
-            // Only pass two arguments as error() expects
+            // 
             return $this->error($errorMsg, 400);
         }
 
@@ -396,7 +396,7 @@ class BotController extends BaseController
             $messageRepository = new MessageRepository();
             $channelMessageRepository = new ChannelMessageRepository();
 
-            // Validate channel
+            // 
             $channel = $channelRepository->find($input['channel_id']);
             if (!$channel) {
                 $errorMsg = 'Channel not found: ' . $input['channel_id'];
@@ -404,7 +404,7 @@ class BotController extends BaseController
                 return $this->error($errorMsg, 404);
             }
 
-            // Ensure bot is a member of the server
+            // 
             if ($channel->server_id != 0) {
                 $membership = $this->userServerMembershipRepository->findByUserAndServer($input['user_id'], $channel->server_id);
                 if (!$membership) {
@@ -420,7 +420,7 @@ class BotController extends BaseController
             $query = new Query();
             $query->beginTransaction();
 
-            // Prepare message data
+            // 
             $messageData = [
                 'content' => $input['content'],
                 'user_id' => $input['user_id'],
@@ -431,7 +431,7 @@ class BotController extends BaseController
                 'updated_at' => date('Y-m-d H:i:s')
             ];
 
-            // Validate reply_message_id if present
+            // 
             if (isset($input['reply_message_id'])) {
                 $repliedMessage = $messageRepository->find($input['reply_message_id']);
                 if ($repliedMessage) {
@@ -443,7 +443,7 @@ class BotController extends BaseController
                 }
             }
 
-            // Create the message
+            // 
             $message = $messageRepository->create($messageData);
 
             if ($message && isset($message->id)) {
@@ -500,7 +500,7 @@ class BotController extends BaseController
             }
             $errorMsg = 'Exception: ' . $e->getMessage();
             error_log('[BOT ERROR] ' . $errorMsg);
-            // Only pass two arguments as error() expects
+            // 
             return $this->error('Failed to send bot message: ' . $e->getMessage(), 500);
         }
     }
@@ -538,12 +538,12 @@ class BotController extends BaseController
             require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
             $membershipRepo = new UserServerMembershipRepository();
             
-            // Simply check membership – do NOT auto-add. Bot must already be a member.
+            // 
             if ($membershipRepo->isMember($botId, $serverId)) {
                 return true;
             }
             
-            return false; // Not a member → caller must decide what to do.
+            return false; // 
         } catch (Exception $e) {
             error_log("Failed to ensure bot in server: " . $e->getMessage());
             return false;
@@ -562,12 +562,12 @@ class BotController extends BaseController
             require_once __DIR__ . '/../database/repositories/ChatRoomRepository.php';
             $chatRoomRepo = new ChatRoomRepository();
             
-            // Check if bot is already a participant – no auto-join anymore.
+            // 
             if ($chatRoomRepo->isParticipant($roomId, $botId)) {
                 return true;
             }
             
-            return false; // Not a participant
+            return false; // 
         } catch (Exception $e) {
             error_log("Failed to ensure bot in chat room: " . $e->getMessage());
             return false;

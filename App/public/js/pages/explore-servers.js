@@ -734,7 +734,7 @@ function initLazyLoadingForNewCards(container) {
                 }
             });
         }, {
-            rootMargin: '200px 0px', // Start loading 200px before the image enters viewport
+            rootMargin: '200px 0px', // 
             threshold: 0.01
         });
         

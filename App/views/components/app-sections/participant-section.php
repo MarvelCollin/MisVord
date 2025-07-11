@@ -21,7 +21,7 @@ foreach ($members as $member) {
     $isBot = isset($member['status']) && $member['status'] === 'bot';
     
 
-    $isInVoice = false; // This will be updated by JavaScript for real-time data
+    $isInVoice = false; // 
     
 
     $isActuallyOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeParticipantSystem() {
-    // Add this line to generate test data with 30 members
+    // 
     window.testParticipantScroll(30);
     
     setupFriendsManagerIntegration();
@@ -180,11 +180,11 @@ function setupVoiceEventListeners() {
         scheduleUpdate();
     });
     
-    // Listen for socket room changes to refresh presence data
+    // 
     window.addEventListener('socketRoomJoined', (event) => {
         console.log('🏠 [PARTICIPANT] Socket room joined, refreshing participant display', event.detail);
         
-        // Force refresh all presence data when joining a new room
+        // 
         setTimeout(async () => {
             await window.forceRefreshAllPresenceData();
         }, 500);
@@ -269,31 +269,31 @@ function scheduleUpdate() {
     }, 50);
 }
 
-// Global function to force refresh all presence data
+// 
 window.forceRefreshAllPresenceData = async function() {
     console.log('🔄 [PARTICIPANT] Force refreshing all presence data...');
     
     try {
-        // Refresh FriendsManager online users
+        // 
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
             await friendsManager.getOnlineUsers(true);
             console.log('✅ [PARTICIPANT] Friends presence refreshed');
         }
         
-        // Refresh GlobalPresenceManager
+        // 
         if (window.globalPresenceManager) {
             window.globalPresenceManager.updateActiveNow();
             console.log('✅ [PARTICIPANT] Active Now presence refreshed');
         }
         
-        // Emit socket event to get fresh presence data
+        // 
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('get-online-users');
             console.log('📡 [PARTICIPANT] Requested fresh online users from server');
         }
         
-        // Update participant display
+        // 
         updateParticipantDisplay();
         console.log('✅ [PARTICIPANT] Participant display refreshed');
         
@@ -961,7 +961,7 @@ window.testParticipantGroups = function() {
     return testMembers;
 };
 
-// Debug function to test presence refresh
+// 
 window.testPresenceRefresh = async function() {
     console.log('🧪 [DEBUG] Testing presence refresh...');
     
@@ -969,10 +969,10 @@ window.testPresenceRefresh = async function() {
         window.showToast('Testing presence refresh...', 'info', 2000);
     }
     
-    // Force refresh all presence data
+    // 
     await window.forceRefreshAllPresenceData();
     
-    // Wait a bit and check results
+    // 
     setTimeout(() => {
         const participantCount = document.querySelectorAll('.user-profile-trigger').length;
         const onlineCount = document.querySelectorAll('.bg-discord-green, .bg-yellow-500').length;

@@ -40,22 +40,22 @@ class MessageRepository extends Repository {
                 return false;
             }
             
-            // Get current attachments
+            // 
             $attachments = [];
             if ($message->attachment_url) {
                 $decoded = json_decode($message->attachment_url, true);
                 if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                     $attachments = $decoded;
                 } else {
-                    // Legacy format - single attachment URL
+                    // 
                     $attachments = [$message->attachment_url];
                 }
             }
             
-            // Add new attachment
+            // 
             $attachments[] = $attachmentUrl;
             
-            // Update message
+            // 
             return $this->update($messageId, [
                 'attachment_url' => json_encode(array_values($attachments))
             ]);
@@ -76,8 +76,8 @@ class MessageRepository extends Repository {
         error_log("MessageRepository: Adding $mentionType mention $mentionId to message $messageId");
         
         try {
-            // In this implementation, mentions are stored in the message content
-            // Future enhancement could store them in a separate table
+            // 
+            // 
             return true;
         } catch (Exception $e) {
             error_log("MessageRepository: Error adding mention: " . $e->getMessage());

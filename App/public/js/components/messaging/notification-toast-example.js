@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
             title: 'Friend Request',
             message: 'User123 sent you a friend request',
             type: 'discord',
-            duration: 0, // Won't auto-dismiss
+            duration: 0, // 
             actions: [
                 {
                     label: 'Accept',
@@ -120,22 +120,22 @@ NotificationToast API:
    window.notificationToast.show({
      title: 'Notification Title',
      message: 'Notification message content',
-     type: 'info', // 'info', 'success', 'warning', 'error', 'mention', 'discord'
-     icon: null, // Custom icon HTML (overrides default)
-     duration: 5000, // Time in ms before auto-dismiss (0 for no auto-dismiss)
-     closable: true, // Whether to show close button
-     progress: true, // Whether to show progress bar
-     onClick: function(e) {}, // Click handler for the toast
-     actions: [ // Optional action buttons
+     type: 'info', // 
+     icon: null, // 
+     duration: 5000, // 
+     closable: true, // 
+     progress: true, // 
+     onClick: function(e) {}, // 
+     actions: [ // 
        {
          label: 'Action Label',
-         primary: true, // Whether this is a primary action
-         onClick: function() {} // Click handler for this action
+         primary: true, // 
+         onClick: function() {} // 
        }
      ]
    });
 
 3. Other Methods:
-   window.notificationToast.hide(toastElement); // Hide a specific toast
-   window.notificationToast.hideAll(); // Hide all toasts
+   window.notificationToast.hide(toastElement); // 
+   window.notificationToast.hideAll(); // 
 */ 

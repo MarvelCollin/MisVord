@@ -177,8 +177,8 @@ if (!function_exists('renderMessage')) {
         }
         
         $GLOBALS['shouldGroup'] = $shouldGroup;
-        $messageData['shouldGroup'] = $shouldGroup; // Add directly to messageData too
-        $GLOBALS['messageData'] = $messageData; // Update with new info
+        $messageData['shouldGroup'] = $shouldGroup; // 
+        $GLOBALS['messageData'] = $messageData; // 
         
         include __DIR__ . '/../messaging/bubble-chat.php';
         
@@ -1065,7 +1065,7 @@ function formatIndonesianTime() {
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
 
                     mutation.addedNodes.forEach(node => {
-                        if (node.nodeType === 1) { // Element node
+                        if (node.nodeType === 1) { // 
                             const timestamps = node.querySelectorAll('.bubble-timestamp');
                             timestamps.forEach(formatTimestamp);
                         }
@@ -1140,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
 
             if (currentUserId === prevUserId && 
-                currentTimestamp - prevTimestamp <= 7200000) { // 7200000 ms = 2 hours
+                currentTimestamp - prevTimestamp <= 7200000) { // 
                 
                 message.classList.add('grouped');
                 
@@ -1224,7 +1224,7 @@ function processBubbleGrouping() {
         
 
         if (currentUserId === prevUserId && 
-            currentTimestamp - prevTimestamp <= 7200000) { // 7200000 ms = 2 hours
+            currentTimestamp - prevTimestamp <= 7200000) { // 
             
             message.classList.add('grouped');
             
@@ -1281,7 +1281,7 @@ processBubbleGrouping();
             const currentTimestamp = parseInt(message.getAttribute('data-timestamp'));
             
             if (currentUserId === prevUserId && 
-                currentTimestamp - prevTimestamp <= 7200000) { // 7200000 ms = 2 hours
+                currentTimestamp - prevTimestamp <= 7200000) { // 
                 
 
                 message.classList.add('grouped');

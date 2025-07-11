@@ -1,8 +1,4 @@
-/**
- * User Data Helper
- * Centralized utility for fetching and managing user profile data
- * Used by voice components to get avatars and display names
- */
+
 
 
 if (typeof window.UserDataHelper === 'undefined') {
@@ -13,9 +9,7 @@ class UserDataHelper {
         this.pendingRequests = new Map();
     }
 
-    /**
-     * Extract user ID from various participant data formats
-     */
+  
     extractUserId(participantId, participantName = null) {
         if (!participantId) return null;
 
@@ -60,9 +54,7 @@ class UserDataHelper {
         return null;
     }
 
-    /**
-     * Get clean display name (remove user ID suffix if present)
-     */
+   
     getCleanDisplayName(name) {
         if (!name) return 'Unknown';
         
@@ -76,9 +68,7 @@ class UserDataHelper {
         return nameStr;
     }
 
-    /**
-     * Wait for user API to be available
-     */
+
     async waitForUserAPI(maxWait = 5000) {
         if (window.userAPI) return window.userAPI;
         
@@ -388,4 +378,4 @@ window.testVideoSDKParticipant = function(participantId, participantName) {
             console.error('❌ Failed to get user data:', error);
         });
 };
-} // End of duplicate declaration prevention
+} // 

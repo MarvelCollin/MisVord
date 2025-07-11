@@ -741,7 +741,7 @@ function initMemberManagementTab() {
 
                     const checkIcon = confirmBtn.querySelector('i');
                     if (checkIcon) {
-                        confirmBtn.innerHTML = ''; // Clear the button content
+                        confirmBtn.innerHTML = ''; // 
                         const iconEl = document.createElement('i');
                         iconEl.className = 'fas fa-check mr-2';
                         confirmBtn.appendChild(iconEl);
@@ -945,7 +945,7 @@ function initMemberManagementTab() {
 
                 const newRole = response.new_role ? 
                     response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
-                    'Admin'; // Default fallback value
+                    'Admin'; // 
                 
                 showToast(`${member.display_name || member.username} has been promoted to ${newRole}`, 'success', 5000, 'Member Promoted');
                 loadMembers();
@@ -971,7 +971,7 @@ function initMemberManagementTab() {
 
                 const newRole = response.new_role ? 
                     response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
-                    'Member'; // Default fallback value
+                    'Member'; // 
                 
                 showToast(`${member.display_name || member.username} has been demoted to ${newRole}`, 'success', 5000, 'Member Demoted');
                 loadMembers();
@@ -1390,10 +1390,10 @@ function initChannelManagementTab() {
                                 handleRenameChannel(channel, newName);
                             } else {
                                 showToast('Please enter a different name for the channel', 'info');
-                                return false; // Prevent modal from closing
+                                return false; // 
                             }
                         }
-                        return true; // Allow modal to close
+                        return true; // 
                     };
                     break;
                     
@@ -1945,7 +1945,7 @@ function initDeleteServerTab() {
                         item.style.transition = 'all 0.2s ease';
                         item.style.opacity = '1';
                         item.style.transform = 'translateY(0)';
-                    }, index * 50); // Stagger the animation
+                    }, index * 50); // 
                 });
             }, 300);
         }, 300));

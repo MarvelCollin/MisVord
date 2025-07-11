@@ -536,21 +536,165 @@
     border-bottom: 8px solid #5865f2;
 }
 
+#tic-tac-toe-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #5865f2 #2b2d31;
+}
+
+#tic-tac-toe-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#tic-tac-toe-content::-webkit-scrollbar-track {
+    background: #2b2d31;
+    border-radius: 3px;
+}
+
+#tic-tac-toe-content::-webkit-scrollbar-thumb {
+    background: #5865f2;
+    border-radius: 3px;
+}
+
+#tic-tac-toe-content::-webkit-scrollbar-thumb:hover {
+    background: #4752c4;
+}
+
+#player-list {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: #5865f2 #36393f;
+}
+
+#player-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+#player-list::-webkit-scrollbar-track {
+    background: #36393f;
+    border-radius: 2px;
+}
+
+#player-list::-webkit-scrollbar-thumb {
+    background: #5865f2;
+    border-radius: 2px;
+}
+
 @media (max-width: 768px) {
     #tic-tac-toe-modal .bg-\[#313338\] {
-        min-width: 300px;
-        margin: 1rem;
+        min-width: 280px;
+        max-width: 95vw;
+        margin: 0.5rem;
         resize: none;
+        max-height: 95vh;
+    }
+    
+    #tic-tac-toe-content {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+    
+    #player-list {
+        max-height: 150px;
+    }
+    
+    #game-board {
+        padding: 0.5rem;
+        gap: 0.25rem;
     }
     
     #game-board button {
-        width: 3.5rem;
-        height: 3.5rem;
-        font-size: 1.5rem;
+        width: 2.5rem !important;
+        height: 2.5rem !important;
+        font-size: 1rem !important;
+        border-radius: 4px;
     }
     
     .drag-handle {
         height: 12px;
+    }
+    
+    .resize-handle {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .modal-header {
+        padding: 0.75rem !important;
+    }
+    
+    #tic-tac-toe-content {
+        padding: 0.75rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #tic-tac-toe-modal .bg-\[#313338\] {
+        min-width: 260px;
+        max-width: 98vw;
+        margin: 0.25rem;
+        max-height: 98vh;
+    }
+    
+    #tic-tac-toe-content {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+    
+    #player-list {
+        max-height: 120px;
+    }
+    
+    #game-board {
+        padding: 0.375rem;
+        gap: 0.125rem;
+    }
+    
+    #game-board button {
+        width: 2rem !important;
+        height: 2rem !important;
+        font-size: 0.875rem !important;
+        border-radius: 3px;
+    }
+    
+    .modal-header {
+        padding: 0.5rem !important;
+    }
+    
+    #tic-tac-toe-content {
+        padding: 0.5rem !important;
+    }
+    
+    .tic-tac-toe-title {
+        font-size: 1rem !important;
+    }
+    
+    #close-tic-tac-toe, #minimize-tic-tac-toe {
+        width: 1.5rem !important;
+        height: 1.5rem !important;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    #tic-tac-toe-modal .bg-\[#313338\] {
+        min-width: 350px;
+        max-width: 80vw;
+    }
+    
+    #game-board button {
+        width: 3.75rem !important;
+        height: 3.75rem !important;
+        font-size: 1.75rem !important;
+    }
+}
+
+@media (min-width: 1025px) {
+    #tic-tac-toe-modal .bg-\[#313338\] {
+        min-width: 400px;
+        max-width: 70vw;
     }
 }
 

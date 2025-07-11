@@ -673,7 +673,7 @@ class EmojiReactions {
         const usersList = document.createElement('div');
         usersList.className = 'reaction-tooltip-users';
         
-        users.slice(0, 10).forEach(user => { // Limit to 10 users for performance
+        users.slice(0, 10).forEach(user => { // 
             const userItem = document.createElement('div');
             userItem.className = 'reaction-tooltip-user';
             

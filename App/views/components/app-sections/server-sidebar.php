@@ -22,9 +22,9 @@ if (file_exists($tooltipPath)) {
     require_once $tooltipPath;
 }
 
-// Limit the number of servers displayed to avoid overcrowding
-// Only keep user's real servers plus important utility buttons
-$maxServersToShow = 10; // Adjust this number based on your layout
+// 
+// 
+$maxServersToShow = 10; // 
 if (count($servers) > $maxServersToShow) {
     $servers = array_slice($servers, 0, $maxServersToShow);
 }
@@ -122,9 +122,9 @@ if (count($servers) > $maxServersToShow) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // All scroll-related code removed
+    // 
     
-    // Removed custom click interception; allow default navigation behaviour
+    // 
 
     setTimeout(() => {
         const tooltipContainer = document.getElementById('tooltip-container');
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 
-// Mouse tracking for tooltips
+// 
 window.mouseX = 0;
 window.mouseY = 0;
 document.addEventListener('mousemove', (e) => {

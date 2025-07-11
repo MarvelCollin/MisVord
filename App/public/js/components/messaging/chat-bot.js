@@ -325,7 +325,7 @@ class ChatBot {
 
         const titiBotUsername = 'titibot';
 
-        // Attempt to retrieve TitiBot ID from cache first
+        // 
         if (!this.titiBotId) {
             fetch(`/api/bots/public-check/${titiBotUsername}`)
                 .then(res => res.ok ? res.json() : null)
@@ -337,7 +337,7 @@ class ChatBot {
                 .catch(e => console.error('❌ [CHAT-BOT] Failed to fetch titibot info:', e));
         }
 
-        // Fallback to id "4" if API did not return anything (keeps backward-compat)
+        // 
         const titiBotId = this.titiBotId || '4';
 
         if (!window.BotComponent.getBotStatus(titiBotId)) {

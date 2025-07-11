@@ -68,7 +68,7 @@ class BotComponent {
             }
         });
 
-        // Also listen for voice-meeting-update events to track bots using the same flow as users
+        // 
         io.on('voice-meeting-update', (data) => {
             if (data.isBot && data.user_id) {
                 if (data.action === 'join') {

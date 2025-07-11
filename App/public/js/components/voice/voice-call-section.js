@@ -113,7 +113,7 @@ class VoiceCallSection {
     }
 
     removeDebugPanel() {
-        // Remove any existing voice debug panels to reduce clutter
+        // 
         const existingPanel = document.getElementById('voice-debug-panel');
         if (existingPanel) {
             existingPanel.remove();
@@ -131,20 +131,20 @@ class VoiceCallSection {
         this.ensureChannelSync();
         this.syncButtonStates();
         
-        // Remove any duplicate participant cards
+        // 
         setTimeout(() => {
             this.removeDuplicateCards();
         }, 100);
         
-        // Call ensureChannelSync again after a delay to ensure everything is in sync
+        // 
         setTimeout(() => {
             this.ensureChannelSync();
         }, 500);
         
-        // Set up periodic duplicate cleanup
+        // 
         this.duplicateCleanupInterval = setInterval(() => {
             this.removeDuplicateCards();
-        }, 5000); // Check every 5 seconds
+        }, 5000); // 
     }
     
     bindControls() {
@@ -226,19 +226,19 @@ class VoiceCallSection {
         window.addEventListener("bot-voice-participant-joined", (e) => this.handleBotParticipantJoined(e));
         window.addEventListener("bot-voice-participant-left", (e) => this.handleBotParticipantLeft(e));
         
-        // Listen for unified voice state changes
+        // 
         window.addEventListener("voiceStateChanged", (e) => this.handleUnifiedVoiceStateChanged(e));
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
         
-        // Listen for voice meeting updates
+        // 
         if (window.globalSocketManager?.io) {
             this.setupSocketListeners();
         } else {
             window.addEventListener('globalSocketReady', () => this.setupSocketListeners());
         }
         
-        // Listen for local storage changes
+        // 
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener((state) => {
                 this.syncWithVoiceState(state);
@@ -271,7 +271,7 @@ class VoiceCallSection {
     handleVoiceConnect(event) {
         const { channelId, channelName, meetingId } = event.detail;
         
-        // Validate the channel ID against our sources of truth
+        // 
         const urlParams = new URLSearchParams(window.location.search);
         const urlChannelId = urlParams.get('channel');
         const urlChannelType = urlParams.get('type');
@@ -280,7 +280,7 @@ class VoiceCallSection {
         let finalChannelId = channelId;
         let finalChannelName = channelName;
         
-        // If we're in a voice page and there's a mismatch, use the URL parameter instead
+        // 
         if (urlChannelType === 'voice' && urlChannelId && urlChannelId !== channelId) {
             console.warn(`⚠️ [VOICE-CALL-SECTION] Channel ID mismatch in handleVoiceConnect: event=${channelId}, url=${urlChannelId}`);
             finalChannelId = urlChannelId;
@@ -290,7 +290,7 @@ class VoiceCallSection {
                               channelElement?.getAttribute('data-channel-name') || 
                               channelName || 'Voice Channel';
         } 
-        // Or if there's a mismatch with meta tag
+        // 
         else if (metaChannelId && metaChannelId !== channelId && document.querySelector(`[data-channel-id="${metaChannelId}"][data-channel-type="voice"]`)) {
             console.warn(`⚠️ [VOICE-CALL-SECTION] Channel ID mismatch in handleVoiceConnect: event=${channelId}, meta=${metaChannelId}`);
             finalChannelId = metaChannelId;
@@ -305,20 +305,20 @@ class VoiceCallSection {
         this.currentChannelName = finalChannelName;
         this.currentMeetingId = meetingId;
         
-        // Persist meetingId on channel DOM element so debug panel can read it
+        // 
         const channelDom = document.querySelector(`[data-channel-id="${finalChannelId}"]`);
         if (channelDom && meetingId) {
             channelDom.setAttribute('data-meeting-id', meetingId);
         }
         
-        // Ensure all components have the same channel ID
+        // 
         if (window.voiceManager) {
             window.voiceManager.currentChannelId = finalChannelId;
             window.voiceManager.currentChannelName = finalChannelName;
             window.voiceManager.currentMeetingId = meetingId;
         }
         
-        // Update unified voice state (localStorage)
+        // 
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             window.localStorageManager.setUnifiedVoiceState({
@@ -331,7 +331,7 @@ class VoiceCallSection {
             });
         }
         
-        // Update UI to show connected state
+        // 
         this.updateConnectionStatus(true);
         
         if (!event.detail.skipJoinSound) {
@@ -344,7 +344,7 @@ class VoiceCallSection {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
-        // Update UI to show disconnected state
+        // 
         this.updateConnectionStatus(false);
         this.clearGrid();
     }
@@ -463,10 +463,10 @@ class VoiceCallSection {
         const { participant, data } = event.detail;
         if (!participant || this.participantElements.has(participant)) return;
         
-        // Check for duplicate users by user_id to prevent multiple cards for same person
+        // 
         const userId = data?.user_id || data?.id;
         if (userId) {
-            // Find existing participant with same user_id
+            // 
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
@@ -508,7 +508,7 @@ class VoiceCallSection {
         
         console.log('🎯 [VOICE-CALL-SECTION] Participant left - removing from grid');
         
-        // Close modal if it's for this participant
+        // 
         if (this.currentModal) {
             const modalParticipantId = this.currentModal.getAttribute('data-participant-id');
             if (modalParticipantId === participant) {
@@ -518,7 +518,7 @@ class VoiceCallSection {
         
         const element = this.participantElements.get(participant);
         if (element) {
-            // Add smooth fade-out animation before removing
+            // 
             element.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
             element.style.opacity = '0';
             element.style.transform = 'translateY(-20px) scale(0.9)';
@@ -531,7 +531,7 @@ class VoiceCallSection {
                 this.updateGridLayout();
                 this.updateParticipantCount();
                 
-                // Update sidebar using full refresh for leaves
+                // 
                 if (window.ChannelVoiceParticipants && this.currentChannelId) {
                     const instance = window.ChannelVoiceParticipants.getInstance();
                     instance.updateSidebarForChannel(this.currentChannelId, 'full');
@@ -548,10 +548,10 @@ class VoiceCallSection {
         
         if (this.participantElements.has(botId)) return;
         
-        // Check for duplicate bots by user_id to prevent multiple cards for same bot
+        // 
         const userId = participant.user_id;
         if (userId) {
-            // Find existing participant with same user_id
+            // 
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
@@ -592,7 +592,7 @@ class VoiceCallSection {
             const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
             if (window.ChannelVoiceParticipants && targetChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // Use append mode for bot joins
+                // 
                 instance.updateSidebarForChannel(targetChannelId, 'append');
             }
         }
@@ -607,7 +607,7 @@ class VoiceCallSection {
         const botId = `bot-${participant.user_id}`;
         const element = this.participantElements.get(botId);
         if (element) {
-            // Bot gets special exit animation
+            // 
             element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
             element.style.opacity = '0';
             element.style.transform = 'translateY(-30px) scale(0.7)';
@@ -624,7 +624,7 @@ class VoiceCallSection {
             const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
             if (window.ChannelVoiceParticipants && targetChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // Use full refresh for bot leaves
+                // 
                 instance.updateSidebarForChannel(targetChannelId, 'full');
             }
         }
@@ -677,7 +677,7 @@ class VoiceCallSection {
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
         div.setAttribute("data-participant-id", participantId);
         
-        // Add user_id attribute for deduplication
+        // 
         const userId = data?.user_id || data?.id;
         if (userId) {
             div.setAttribute("data-user-id", String(userId));
@@ -691,7 +691,7 @@ class VoiceCallSection {
         const showImage = isBot || hasCustomAvatar;
         const botStatus = data?.status || 'Ready to play music';
         
-        // Add double-click event listener for fullscreen modal
+        // 
         div.addEventListener('dblclick', (e) => {
             e.preventDefault();
             this.openParticipantModal(participantId, data, 'participant');
@@ -777,7 +777,7 @@ class VoiceCallSection {
             </div>
         `;
         
-        // Add double-click event listener for fullscreen modal
+        // 
         card.addEventListener('dblclick', (e) => {
             e.preventDefault();
             this.openParticipantModal(participantId, { displayName: participantName }, 'screenshare');
@@ -850,12 +850,12 @@ class VoiceCallSection {
             connectionInfo.classList.add('connected');
             connectionInfo.classList.remove('disconnected');
 
-            // Only refresh sidebar if not skipped (for actual voice actions, not UI switches)
+            // 
             if (!skipSidebarRefresh && window.ChannelVoiceParticipants && this.currentChannelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.updateSidebarForChannel(this.currentChannelId);
             } else if (skipSidebarRefresh && window.ChannelVoiceParticipants && this.currentChannelId) {
-                // When skipping refresh, just ensure participants are visible
+                // 
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.ensureParticipantsVisible(this.currentChannelId);
             }
@@ -878,10 +878,10 @@ class VoiceCallSection {
     }
     
     clearGrid() {
-        // Close any open modal
+        // 
         this.closeParticipantModal();
         
-        // Clear duplicate cleanup interval
+        // 
         if (this.duplicateCleanupInterval) {
             clearInterval(this.duplicateCleanupInterval);
             this.duplicateCleanupInterval = null;
@@ -907,7 +907,7 @@ class VoiceCallSection {
         const seenUserIds = new Set();
         const cardsToRemove = [];
         
-        // Check all participant cards for duplicates
+        // 
         const cards = grid.querySelectorAll('.participant-card');
         cards.forEach(card => {
             const userId = card.getAttribute('data-user-id');
@@ -915,7 +915,7 @@ class VoiceCallSection {
             
             if (userId) {
                 if (seenUserIds.has(userId)) {
-                    // This is a duplicate - mark for removal
+                    // 
                     cardsToRemove.push({ card, participantId });
                     console.log(`🗑️ [VOICE-CALL-SECTION] Found duplicate card for user ${userId}, removing participant ${participantId}`);
                 } else {
@@ -924,7 +924,7 @@ class VoiceCallSection {
             }
         });
         
-        // Remove duplicate cards
+        // 
         cardsToRemove.forEach(({ card, participantId }) => {
             card.remove();
             this.participantElements.delete(participantId);
@@ -950,7 +950,7 @@ class VoiceCallSection {
         if (!this.micBtn) return;
         
         const icon = this.micBtn.querySelector("i");
-        if (!icon) return; // Add null check for icon
+        if (!icon) return; // 
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
@@ -967,7 +967,7 @@ class VoiceCallSection {
         if (!this.videoBtn) return;
         
         const icon = this.videoBtn.querySelector("i");
-        if (!icon) return; // Add null check for icon
+        if (!icon) return; // 
         
         if (isOn) {
             icon.className = "fas fa-video text-sm";
@@ -984,7 +984,7 @@ class VoiceCallSection {
         if (!this.deafenBtn) return;
         
         const icon = this.deafenBtn.querySelector("i");
-        if (!icon) return; // Add null check for icon
+        if (!icon) return; // 
         
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
@@ -1001,7 +1001,7 @@ class VoiceCallSection {
         if (!this.screenBtn) return;
         
         const icon = this.screenBtn.querySelector("i");
-        if (!icon) return; // Add null check for icon
+        if (!icon) return; // 
         
         if (isOn) {
             icon.className = "fas fa-stop text-sm";
@@ -1058,7 +1058,7 @@ class VoiceCallSection {
     }
 
     openParticipantModal(participantId, data, type = 'participant') {
-        // Close any existing modal
+        // 
         this.closeParticipantModal();
         
         const name = data?.displayName || data?.name || data?.username || "Unknown";
@@ -1068,17 +1068,17 @@ class VoiceCallSection {
         const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
         const showImage = isBot || hasCustomAvatar;
         
-        // Create modal overlay
+        // 
         const overlay = document.createElement('div');
         overlay.id = 'participant-fullscreen-modal';
         overlay.className = 'fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center backdrop-blur-sm';
         overlay.style.animation = 'modalFadeIn 0.3s ease-out';
         
-        // Create modal content based on type
+        // 
         let modalContent = '';
         
         if (type === 'screenshare') {
-            // Screen share modal
+            // 
             const originalCard = document.querySelector(`[data-screen-share-id="${participantId}"]`);
             const originalVideo = originalCard?.querySelector('video');
             
@@ -1103,7 +1103,7 @@ class VoiceCallSection {
                 </div>
             `;
         } else {
-            // Participant modal (user/bot/camera)
+            // 
             const originalCard = this.participantElements.get(participantId);
             const hasVideo = originalCard?.querySelector('.participant-video-overlay:not(.hidden)');
             const originalVideo = originalCard?.querySelector('video');
@@ -1145,20 +1145,20 @@ class VoiceCallSection {
         
         overlay.innerHTML = modalContent;
         
-        // Add click outside to close
+        // 
         overlay.addEventListener('click', (e) => {
             if (e.target === overlay) {
                 this.closeParticipantModal();
             }
         });
         
-        // Add close button event
+        // 
         const closeBtn = overlay.querySelector('.modal-close-btn');
         closeBtn.addEventListener('click', () => {
             this.closeParticipantModal();
         });
         
-        // Copy video stream if exists
+        // 
         const modalVideo = overlay.querySelector('video');
         if (modalVideo) {
             let originalVideo = null;
@@ -1175,17 +1175,17 @@ class VoiceCallSection {
                 modalVideo.srcObject = originalVideo.srcObject;
                 modalVideo.play().catch(() => {});
                 
-                // Show video, hide placeholder
+                // 
                 modalVideo.classList.remove('hidden');
                 const placeholder = overlay.querySelector('.video-placeholder');
                 if (placeholder) placeholder.classList.add('hidden');
             }
         }
         
-        // Add to DOM
+        // 
         document.body.appendChild(overlay);
         
-        // Add ESC key listener
+        // 
         this.modalEscListener = (e) => {
             if (e.key === 'Escape') {
                 this.closeParticipantModal();
@@ -1193,20 +1193,20 @@ class VoiceCallSection {
         };
         document.addEventListener('keydown', this.modalEscListener);
         
-        // Store reference for cleanup
+        // 
         this.currentModal = overlay;
     }
     
     closeParticipantModal() {
         const modal = document.getElementById('participant-fullscreen-modal') || this.currentModal;
         if (modal) {
-            // Clean up video streams
+            // 
             const modalVideo = modal.querySelector('video');
             if (modalVideo) {
                 modalVideo.srcObject = null;
             }
             
-            // Add fade out animation
+            // 
             modal.style.animation = 'modalFadeOut 0.2s ease-out';
             setTimeout(() => {
                 if (modal.parentNode) {
@@ -1215,7 +1215,7 @@ class VoiceCallSection {
             }, 200);
         }
         
-        // Remove ESC listener
+        // 
         if (this.modalEscListener) {
             document.removeEventListener('keydown', this.modalEscListener);
             this.modalEscListener = null;
@@ -1241,13 +1241,13 @@ class VoiceCallSection {
             this.currentChannelName = window.voiceManager?.currentChannelName || 'Voice Channel';
         }
         
-        // Sync with current unified voice state
+        // 
         if (window.localStorageManager) {
             const voiceState = window.localStorageManager.getUnifiedVoiceState();
             this.syncWithVoiceState(voiceState);
         }
         
-        // Check if there's an active voice manager connection
+        // 
         if (window.voiceManager) {
             if (!this.currentChannelId) {
                 this.currentChannelId = window.voiceManager.currentChannelId;

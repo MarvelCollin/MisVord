@@ -126,7 +126,7 @@ class VoiceFacade {
     }
 }
 
-// Auto-instantiate so other modules can call window.voiceFacade.join/leave directly
+// 
 new VoiceFacade();
 
 export default window.voiceFacade; 

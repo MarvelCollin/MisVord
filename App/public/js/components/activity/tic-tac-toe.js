@@ -310,71 +310,72 @@ class TicTacToeModal {
     render() {
         const modal = document.createElement('div');
         modal.id = 'tic-tac-toe-modal';
-        modal.className = 'fixed inset-0 flex items-center justify-center z-50';
+        modal.className = 'fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4';
         modal.innerHTML = `
-            <div class="tic-tac-toe-modal-content bg-[#313338] rounded-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden relative">
+            <div class="tic-tac-toe-modal-content bg-[#313338] rounded-xl w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto max-h-[95vh] sm:max-h-[90vh] overflow-hidden relative flex flex-col">
                 <div class="drag-handle"></div>
                 
-                <div class="modal-header flex justify-between items-center p-6 pb-4">
-                    <h2 class="tic-tac-toe-title text-3xl font-bold">Tic Mac Voe</h2>
-                    <div class="flex items-center gap-2">
-                        <button id="minimize-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200">
-                            <i class="fas fa-window-minimize text-sm"></i>
+                <div class="modal-header flex justify-between items-center p-3 sm:p-4 md:p-6 pb-2 sm:pb-3 md:pb-4 shrink-0">
+                    <h2 class="tic-tac-toe-title text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold">Tic Mac Voe</h2>
+                    <div class="flex items-center gap-1 sm:gap-2">
+                        <button id="minimize-tic-tac-toe" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-200">
+                            <i class="fas fa-window-minimize text-xs sm:text-sm"></i>
                         </button>
-                        <button id="close-tic-tac-toe" class="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200">
-                            <i class="fas fa-times text-sm"></i>
+                        <button id="close-tic-tac-toe" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 rounded-full flex items-center justify-center transition-all duration-200">
+                            <i class="fas fa-times text-xs sm:text-sm"></i>
                         </button>
                     </div>
                 </div>
                 
-                <div id="tic-tac-toe-content" class="px-6 pb-6">                        <div id="welcome-section" class="text-center">
-                            <div class="mb-6">
-                                <div class="relative mb-4">
-                                    <div class="w-20 h-20 mx-auto bg-[#5865f2] rounded-full flex items-center justify-center shadow-md">
-                                        <i class="fas fa-chess-board text-2xl text-white"></i>
-                                    </div>
-                                </div>
-                                <h3 class="text-xl font-bold text-white mb-3">
-                                    Welcome to the Lobby!
-                                </h3>
-                                <p class="text-[#b9bbbe] text-sm mb-2">Get ready to play...</p>
-                                <div id="lobby-info" class="text-[#72767d] text-xs bg-[#2b2d31] px-3 py-2 rounded-lg">
-                                    Players in lobby: 0
+                <div id="tic-tac-toe-content" class="px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 md:pb-6 overflow-y-auto flex-1">
+                    <div id="welcome-section" class="text-center">
+                        <div class="mb-4 sm:mb-6">
+                            <div class="relative mb-3 sm:mb-4">
+                                <div class="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 mx-auto bg-[#5865f2] rounded-full flex items-center justify-center shadow-md">
+                                    <i class="fas fa-chess-board text-sm sm:text-lg md:text-2xl text-white"></i>
                                 </div>
                             </div>
-                            
-                            <div id="player-list" class="space-y-3 mb-6">
-                            </div>
-                            
-                            <div id="game-controls" class="space-y-4">
-                                <button id="ready-button" class="ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200">
-                                    <span class="relative z-10">Ready to Play</span>
-                                </button>
-                                <button id="play-button" class="play-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-200 hidden">
-                                    <span class="relative z-10">Start Game</span>
-                                </button>
-                                <div class="text-[#72767d] text-xs mt-2">
-                                    First 2 ready players will start the game automatically
-                                </div>
-                            </div>
-                        </div>
-                    
-                    <div id="game-section" class="hidden">
-                        <div id="game-info" class="text-center mb-6">
-                            <div id="current-turn" class="text-[#b9bbbe] text-lg mb-4 font-semibold"></div>
-                            <div id="game-players" class="flex justify-center gap-4 mb-6">
+                            <h3 class="text-base sm:text-lg md:text-xl font-bold text-white mb-2 sm:mb-3">
+                                Welcome to the Lobby!
+                            </h3>
+                            <p class="text-[#b9bbbe] text-xs sm:text-sm mb-1 sm:mb-2">Get ready to play...</p>
+                            <div id="lobby-info" class="text-[#72767d] text-xs bg-[#2b2d31] px-2 sm:px-3 py-1 sm:py-2 rounded-lg">
+                                Players in lobby: 0
                             </div>
                         </div>
                         
-                        <div class="flex justify-center mb-6">
-                            <div id="game-board" class="grid grid-cols-3 gap-3 p-4 rounded-xl">
+                        <div id="player-list" class="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
+                        </div>
+                        
+                        <div id="game-controls" class="space-y-3 sm:space-y-4">
+                            <button id="ready-button" class="ready-button w-full py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-bold text-white transition-all duration-200">
+                                <span class="relative z-10 text-sm sm:text-base">Ready to Play</span>
+                            </button>
+                            <button id="play-button" class="play-button w-full py-2 sm:py-3 px-4 sm:px-6 rounded-lg font-bold text-white transition-all duration-200 hidden">
+                                <span class="relative z-10 text-sm sm:text-base">Start Game</span>
+                            </button>
+                            <div class="text-[#72767d] text-xs mt-2">
+                                First 2 ready players will start the game automatically
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div id="game-section" class="hidden">
+                        <div id="game-info" class="text-center mb-4 sm:mb-6">
+                            <div id="current-turn" class="text-[#b9bbbe] text-sm sm:text-base md:text-lg mb-3 sm:mb-4 font-semibold"></div>
+                            <div id="game-players" class="flex justify-center gap-2 sm:gap-4 mb-4 sm:mb-6">
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-center mb-4 sm:mb-6">
+                            <div id="game-board" class="grid grid-cols-3 gap-2 sm:gap-3 p-3 sm:p-4 rounded-xl">
                             </div>
                         </div>
                         
                         <div id="game-result" class="text-center hidden">
-                            <div id="winner-text" class="text-2xl font-bold mb-6"></div>
-                            <button id="return-lobby-button" class="return-lobby-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-200">
-                                <span class="relative z-10">Return to Lobby</span>
+                            <div id="winner-text" class="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6"></div>
+                            <button id="return-lobby-button" class="return-lobby-button py-2 sm:py-3 px-6 sm:px-8 rounded-lg font-bold text-white transition-all duration-200">
+                                <span class="relative z-10 text-sm sm:text-base">Return to Lobby</span>
                             </button>
                         </div>
                     </div>
@@ -500,21 +501,21 @@ class TicTacToeModal {
         playerList.innerHTML = '';
         players.forEach((player, index) => {
             const playerDiv = document.createElement('div');
-            playerDiv.className = 'flex items-center gap-4 p-4 rounded-lg bg-[#36393f]';
+            playerDiv.className = 'flex items-center gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 md:p-4 rounded-lg bg-[#36393f]';
             playerDiv.innerHTML = `
                 <div class="relative">
                     <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                          alt="${player.username}" 
-                         class="w-10 h-10 rounded-full border-2 border-[#5865f2]">
-                    <div class="absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${player.ready ? 'bg-green-400' : 'bg-yellow-400'} border-2 border-[#2f3136]"></div>
+                         class="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full border-2 border-[#5865f2]">
+                    <div class="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full ${player.ready ? 'bg-green-400' : 'bg-yellow-400'} border-2 border-[#2f3136]"></div>
                 </div>
                 <div class="flex-1 text-left">
-                    <div class="text-white font-bold">${player.username}</div>
-                    <div class="text-sm ${player.ready ? 'text-green-400' : 'text-yellow-400'}">
+                    <div class="text-white font-bold text-sm sm:text-base">${player.username}</div>
+                    <div class="text-xs sm:text-sm ${player.ready ? 'text-green-400' : 'text-yellow-400'}">
                         ${player.ready ? 'Ready' : 'Not Ready'}
                     </div>
                 </div>
-                <div>
+                <div class="text-xs sm:text-sm font-semibold">
                     ${player.ready ? 'READY' : 'WAIT'}
                 </div>
             `;
@@ -523,23 +524,19 @@ class TicTacToeModal {
     }
 
     createGameBoard() {
-
-        
         const gameBoard = document.getElementById('game-board');
         if (!gameBoard) {
-
             return;
         }
         
         gameBoard.innerHTML = '';
         for (let i = 0; i < 9; i++) {
             const cell = document.createElement('button');
-            cell.className = 'w-20 h-20 text-3xl font-bold rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none border-2 border-[#5865f2] bg-gradient-to-br from-[#2c2f36] to-[#36393f]';
+            cell.className = 'w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 text-lg sm:text-2xl md:text-3xl font-bold rounded-lg sm:rounded-xl transition-all duration-300 hover:scale-105 focus:outline-none border-2 border-[#5865f2] bg-gradient-to-br from-[#2c2f36] to-[#36393f]';
             cell.addEventListener('click', () => this.makeMove(i));
             gameBoard.appendChild(cell);
         }
         
-
         this.updateGameBoard();
     }
 
@@ -929,14 +926,9 @@ class TicTacToeModal {
     }
 
     updateGameInfo() {
-
-        
         if (!this.currentGameData) {
-
             return;
         }
-        
-
         
         const currentTurn = document.getElementById('current-turn');
         const gamePlayers = document.getElementById('game-players');
@@ -944,12 +936,9 @@ class TicTacToeModal {
         const currentPlayer = this.currentGameData.players.find(p => p.user_id == this.currentGameData.current_turn);
         const isMyTurn = this.currentGameData.current_turn == this.userId;
         
-
-
-        
         if (currentTurn) {
             currentTurn.textContent = isMyTurn ? 'Your turn' : `${currentPlayer ? currentPlayer.username : 'Unknown'}'s turn`;
-            currentTurn.className = isMyTurn ? 'text-green-400 text-sm mb-2 font-semibold' : 'text-[#949ba4] text-sm mb-2';
+            currentTurn.className = isMyTurn ? 'text-green-400 text-sm sm:text-base md:text-lg mb-2 sm:mb-3 md:mb-4 font-semibold' : 'text-[#949ba4] text-sm sm:text-base md:text-lg mb-2 sm:mb-3 md:mb-4';
         }
         
         if (gamePlayers) {
@@ -959,11 +948,11 @@ class TicTacToeModal {
                 const isCurrentTurn = player.user_id == this.currentGameData.current_turn;
                 
                 const playerDiv = document.createElement('div');
-                playerDiv.className = `flex items-center gap-2 p-2 rounded-md ${isCurrentTurn ? 'bg-[#5865f2]' : 'bg-[#2b2d31]'}`;
+                playerDiv.className = `flex items-center gap-1 sm:gap-2 p-1 sm:p-2 rounded-md ${isCurrentTurn ? 'bg-[#5865f2]' : 'bg-[#2b2d31]'}`;
                 playerDiv.innerHTML = `
-                    <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${player.username}" class="w-6 h-6 rounded-full">
-                    <span class="text-white font-medium">${player.username}</span>
-                    <span class="text-[#949ba4]">(${symbol})</span>
+                    <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${player.username}" class="w-5 h-5 sm:w-6 sm:h-6 rounded-full">
+                    <span class="text-white font-medium text-xs sm:text-sm">${player.username}</span>
+                    <span class="text-[#949ba4] text-xs sm:text-sm">(${symbol})</span>
                 `;
                 gamePlayers.appendChild(playerDiv);
             });

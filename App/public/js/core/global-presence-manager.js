@@ -139,10 +139,10 @@ class GlobalPresenceManager {
             });
         }
         
-        // Listen for socket room changes to refresh presence data
+        // 
         window.addEventListener('socketRoomJoined', (event) => {
             console.log('🏠 [GLOBAL-PRESENCE] Socket room joined, refreshing presence data', event.detail);
-            // Small delay to ensure server has processed the room join
+            // 
             setTimeout(async () => {
                 if (this.friendsManager) {
                     await this.friendsManager.getOnlineUsers(true);
@@ -690,7 +690,7 @@ class GlobalPresenceManager {
         'online': 1,
         'afk': 2,
         'In Voice Call': 3,
-        'In Voice -': 3,  // Any voice channel
+        'In Voice -': 3,  // 
         'playing Tic Tac Toe': 4
     };
 

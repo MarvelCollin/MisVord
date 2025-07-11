@@ -26,7 +26,7 @@ if ($shouldGroup) {
 
 if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
     error_log("❌ [BUBBLE-CHAT] Invalid message data - ID: '$messageId', Content: '$content', Attachments: " . count($attachments));
-    return; // Don't render empty messages
+    return; // 
 }
 
 $currentUserId = $currentUserId ?? 0;
@@ -71,7 +71,7 @@ if (!function_exists('formatBubbleTimestamp')) {
             }
         } catch (Exception $e) {
             error_log("Error formatting timestamp: " . $e->getMessage());
-            return $sentAt; // Return the original as fallback
+            return $sentAt; // 
         }
     }
 }

@@ -394,7 +394,7 @@ function handleServerCreation(form, formData = null) {
             formData = new FormData(form);
         }
         
-        // Ensure is_public is properly set (convert to boolean value)
+        // 
         const checkbox = form.querySelector('#is-public');
         if (checkbox) {
             formData.set('is_public', checkbox.checked ? '1' : '0');

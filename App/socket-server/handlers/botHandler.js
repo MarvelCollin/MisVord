@@ -262,7 +262,7 @@ class BotHandler extends EventEmitter {
         if (content === '/titibot ping') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
         } else if (content === '/titibot join') {
-            // Command-triggered join
+            // 
             if (voiceChannelToJoin) {
                 await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
                 await this.sendBotResponse(io, data, messageType, botId, username, 'join_success');
@@ -270,10 +270,10 @@ class BotHandler extends EventEmitter {
                 await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
             }
         } else if (content === '/titibot leave') {
-            // Command-triggered leave
+            // 
             let channelIdForLeave = voiceChannelToJoin;
             if (!channelIdForLeave) {
-                // Find bot's current channel
+                // 
                 for (const key of this.botVoiceParticipants.keys()) {
                     if (key.startsWith(`${botId}-`)) {
                         channelIdForLeave = key.split('-')[1];
@@ -298,8 +298,8 @@ class BotHandler extends EventEmitter {
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content === '/titibot stop') {
-            // Only stop the music, don't leave the voice channel
-            // Bot stays in voice channel but stops playing music
+            // 
+            // 
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content === '/titibot next') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'next');
@@ -316,13 +316,13 @@ class BotHandler extends EventEmitter {
     static async joinBotToVoiceChannel(io, botId, username, channelId) {
         const botParticipantKey = `${botId}-${channelId}`;
         
-        // Check if bot is already in this channel
+        // 
         if (this.botVoiceParticipants.has(botParticipantKey)) {
             console.log(`🤖 [BOT-JOIN] Bot ${botId} already in channel ${channelId}`);
             return;
         }
 
-        // Check if bot is in a different channel and leave first
+        // 
         for (const [key, participant] of this.botVoiceParticipants.entries()) {
             if (key.startsWith(`${botId}-`) && participant.channelId !== channelId) {
                 console.log(`🤖 [BOT-JOIN] Bot ${botId} leaving channel ${participant.channelId} to join ${channelId}`);
@@ -331,7 +331,7 @@ class BotHandler extends EventEmitter {
             }
         }
 
-        // Ensure bot is registered
+        // 
         if (!this.bots.has(botId)) {
             await this.registerBot(botId, username);
         }
@@ -340,7 +340,7 @@ class BotHandler extends EventEmitter {
         const avatarUrl = botData?.avatar_url || '/public/assets/landing-page/robot.webp';
 
         try {
-            // Create a virtual socket client for the bot
+            // 
             const virtualBotClient = {
                 id: `bot-${botId}-${channelId}`,
                 data: {
@@ -361,7 +361,7 @@ class BotHandler extends EventEmitter {
                 }
             };
 
-            // Use the same registration flow as normal users
+            // 
             const registrationData = {
                 channel_id: channelId,
                 meeting_id: `voice_channel_${channelId}`,
@@ -375,11 +375,11 @@ class BotHandler extends EventEmitter {
                 meetingId: registrationData.meeting_id
             });
 
-            // Simulate the same registration process
+            // 
             const roomManager = require('../services/roomManager');
             const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
 
-            // Add to voice tracker (same as user)
+            // 
             VoiceConnectionTracker.addBotToVoice(
                 botId, 
                 channelId, 
@@ -387,13 +387,13 @@ class BotHandler extends EventEmitter {
                 username
             );
 
-            // Add to room manager (same as user)
+            // 
             roomManager.addVoiceMeeting(channelId, registrationData.meeting_id, virtualBotClient.id);
 
-            // Join voice channel room (same as user)
+            // 
             await virtualBotClient.join(`voice_channel_${channelId}`);
 
-            // Create bot participant data
+            // 
             const botParticipantData = {
                 id: `bot-voice-${botId}`,
                 user_id: botId.toString(),
@@ -407,14 +407,14 @@ class BotHandler extends EventEmitter {
                 status: 'Ready to play music'
             };
 
-            // Store in bot participants
+            // 
             this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
 
-            // Get participant count (same as user)
+            // 
             const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
             const participantCount = participants.length;
 
-            // Broadcast join event (same as user flow)
+            // 
             const joinEventData = {
                 channel_id: channelId,
                 meeting_id: registrationData.meeting_id,
@@ -427,12 +427,12 @@ class BotHandler extends EventEmitter {
                 timestamp: Date.now()
             };
 
-            // Broadcast to multiple rooms (same as user)
+            // 
             io.emit('voice-meeting-update', joinEventData);
             io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', joinEventData);
             io.to(`channel-${channelId}`).emit('voice-meeting-update', joinEventData);
 
-            // Also emit bot-specific event for UI
+            // 
             const botEventData = {
                 participant: botParticipantData,
                 channelId: channelId,
@@ -468,24 +468,24 @@ class BotHandler extends EventEmitter {
                 meetingId: botParticipantData.meetingId
             });
 
-            // Use the same unregistration flow as normal users
+            // 
             const roomManager = require('../services/roomManager');
             const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
 
-            // Remove from room manager (same as user)
+            // 
             const result = roomManager.removeVoiceMeeting(channelId, virtualBotClientId);
 
-            // Remove from voice tracker (same as user)
+            // 
             VoiceConnectionTracker.removeBotFromVoice(botId, channelId);
 
-            // Remove from bot participants
+            // 
             this.botVoiceParticipants.delete(botParticipantKey);
 
-            // Get updated participant count
+            // 
             const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
             const participantCount = participants.length;
 
-            // Broadcast leave event (same as user flow)
+            // 
             const leaveEventData = {
                 channel_id: channelId,
                 meeting_id: botParticipantData.meetingId,
@@ -498,12 +498,12 @@ class BotHandler extends EventEmitter {
                 reason: 'command_triggered'
             };
 
-            // Broadcast to multiple rooms (same as user)
+            // 
             io.emit('voice-meeting-update', leaveEventData);
             io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', leaveEventData);
             io.to(`channel-${channelId}`).emit('voice-meeting-update', leaveEventData);
 
-            // Also emit bot-specific event for UI
+            // 
             const botEventData = {
                 participant: botParticipantData,
                 channelId: channelId,
@@ -521,16 +521,16 @@ class BotHandler extends EventEmitter {
         }
     }
 
-    // Keep old method for backward compatibility but make it use new flow
+    // 
     static async ensureBotInVoiceChannel(io, botId, username, channelId) {
         return await this.joinBotToVoiceChannel(io, botId, username, channelId);
     }
 
-    // Keep old method for backward compatibility but make it use new flow
+    // 
     static removeBotFromVoiceChannel(io, botId, channelId) {
         console.log(`🤖 [BOT-HANDLER] removeBotFromVoiceChannel called - delegating to leaveBotFromVoiceChannel`);
         
-        // Check if this is an auto-removal (no humans left) vs command-triggered
+        // 
         const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
         const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channelId);
         
@@ -539,7 +539,7 @@ class BotHandler extends EventEmitter {
             return;
         }
 
-        // Use the new leave flow for consistency
+        // 
         this.leaveBotFromVoiceChannel(io, botId, channelId);
     }
 

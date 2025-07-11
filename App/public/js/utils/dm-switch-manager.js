@@ -98,7 +98,7 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-        // Direct page reload to avoid SPA skeleton issues
+        // 
         window.location.href = `/home/channels/dm/${dmId}`;
     }
     

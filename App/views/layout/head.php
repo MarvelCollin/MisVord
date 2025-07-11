@@ -751,7 +751,7 @@ function initializeBotDebugPanel() {
     addBotDebugLog('🤖 Bot Debug Panel initialized', 'success');
     refreshBotStatus();
     
-    // Set up socket listeners
+    // 
     if (window.globalSocketManager?.io) {
         window.globalSocketManager.io.on('bot-voice-participant-joined', (data) => {
             addBotDebugLog(`🎤 Bot joined voice channel: ${data.channel_id}`, 'success');
@@ -769,10 +769,10 @@ function initializeBotDebugPanel() {
             
             addBotDebugLog(`🎵 Music command received: ${actionType} - ${songQuery}`, 'info');
             
-            // We need to wait a moment for the music to actually start playing
+            // 
             setTimeout(() => {
                 refreshBotStatus();
-                setTimeout(refreshBotStatus, 2000); // Check again after 2 seconds
+                setTimeout(refreshBotStatus, 2000); // 
             }, 500);
         });
         
@@ -781,7 +781,7 @@ function initializeBotDebugPanel() {
         });
     }
     
-    // Set up listeners for music player events
+    // 
     setupMusicPlayerTracking();
 }
 
@@ -790,12 +790,12 @@ function setupMusicPlayerTracking() {
     if (!musicPlayer || !musicPlayer.audio) {
         addBotDebugLog('⚠️ Music player not available for event tracking', 'warning');
         
-        // Try again in a second
+        // 
         setTimeout(setupMusicPlayerTracking, 1000);
         return;
     }
     
-    // Track audio element events
+    // 
     ['play', 'playing', 'pause', 'ended', 'error'].forEach(eventName => {
         musicPlayer.audio.addEventListener(eventName, () => {
             addBotDebugLog(`🔊 Audio event: ${eventName}`, 'info');
@@ -806,7 +806,7 @@ function setupMusicPlayerTracking() {
     addBotDebugLog('✅ Music player tracking initialized', 'success');
 }
 
-// Function to actively track music playback
+// 
 let musicTrackingInterval = null;
 function trackMusicPlayback() {
     if (musicTrackingInterval) {
@@ -818,10 +818,10 @@ function trackMusicPlayback() {
     
     addBotDebugLog('▶️ Starting music tracking (will update every 3 seconds)', 'success');
     
-    // First check now
+    // 
     checkCurrentMusicStatus();
     
-    // Then set up interval
+    // 
     musicTrackingInterval = setInterval(() => {
         checkCurrentMusicStatus();
     }, 3000);
@@ -847,7 +847,7 @@ function checkCurrentMusicStatus() {
             songInfo = 'Unknown track';
         }
         
-        // Get current position
+        // 
         let position = '';
         if (musicPlayer.audio) {
             const current = Math.round(musicPlayer.audio.currentTime || 0);
@@ -857,14 +857,14 @@ function checkCurrentMusicStatus() {
         
         addBotDebugLog(`🎵 Currently playing: ${songInfo} (${position})`, 'success');
         
-        // Update the display in the music status area
+        // 
         const currentlyPlayingSongEl = document.getElementById('currently-playing-song');
         if (currentlyPlayingSongEl) {
             currentlyPlayingSongEl.textContent = songInfo;
             currentlyPlayingSongEl.className = 'text-xs text-purple-300 font-semibold';
         }
         
-        // Update the music player status
+        // 
         const musicPlayerEl = document.getElementById('music-player-status');
         if (musicPlayerEl) {
             musicPlayerEl.textContent = 'Playing';
@@ -897,23 +897,23 @@ function refreshBotStatus() {
         botVoiceEl.className = voiceConnected ? 'text-sm text-green-400' : 'text-sm text-red-400';
     }
     
-    // Check music player status
+    // 
     if (musicPlayerEl) {
         const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
         if (musicPlayer) {
-            // Direct check for actual audio playback status, mirroring getMusicPlaybackInfo
+            // 
             const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
-            // Use the same logic as getMusicPlaybackInfo to determine if music is playing
+            // 
             const isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
             
             musicPlayerEl.textContent = isPlaying ? 'Playing' : 'Not Playing';
             musicPlayerEl.className = isPlaying ? 'text-sm text-green-400' : 'text-sm text-gray-400';
             
-            // Debug music playback info
+            // 
             const musicInfo = getMusicPlaybackInfo();
             
             if (currentlyPlayingSongEl) {
-                // Get the track from any available source
+                // 
                 const currentTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
                 if (currentTrack && isPlaying) {
                     currentlyPlayingSongEl.textContent = `${currentTrack.title} by ${currentTrack.artist || 'Unknown'}`;
@@ -924,7 +924,7 @@ function refreshBotStatus() {
                 }
             }
             
-            // Update listeners info
+            // 
             if (musicListenersEl) {
                 if (musicInfo.listeners.length > 0) {
                     musicListenersEl.innerHTML = musicInfo.listeners.map(listener => 
@@ -938,7 +938,7 @@ function refreshBotStatus() {
                     musicListenersEl.className = 'text-xs text-gray-400';
                 }
                 
-                // Add debug info to logs
+                // 
                 if (musicInfo.isPlaying) {
                     addBotDebugLog(`🎵 Music playing: "${musicInfo.songTitle}" for ${musicInfo.listeners.length} users`, 'info');
                 }
@@ -1006,7 +1006,7 @@ function analyzeVoiceContextForBot() {
         detectionMethod = 'unifiedVoiceStateManager';
     } else if (metaChannelType === 'voice' && currentChannelId) {
         voiceChannelId = currentChannelId;
-        userInVoice = false; // This is the problematic case!
+        userInVoice = false; // 
         detectionMethod = 'currentVoiceChannelPage';
     }
     
@@ -1097,7 +1097,7 @@ function sendBotCommand(command) {
     } else {
         if (metaChannelType === 'voice' && currentChannelId) {
             voiceChannelId = currentChannelId;
-            userInVoice = false; // This is the problem!
+            userInVoice = false; // 
             detectionMethod = 'currentVoiceChannelPage';
             addBotDebugLog(`   ⚠️ Voice context from current page view: channel ${voiceChannelId} (userInVoice: false)`, 'warning');
         } else {
@@ -1201,13 +1201,13 @@ function getMusicPlaybackInfo() {
         return result;
     }
     
-    // Direct check for actual audio playback status
+    // 
     const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
     
-    // Get current song info from multiple possible locations
+    // 
     result.isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
     
-    // Store debug info
+    // 
     result.debug = {
         audioElement: {
             src: musicPlayer.audio?.src || 'none',
@@ -1221,7 +1221,7 @@ function getMusicPlaybackInfo() {
         queue: musicPlayer.queue?.length || 0
     };
     
-    // Check all possible locations for current song info
+    // 
     if (musicPlayer.currentSong) {
         result.songTitle = musicPlayer.currentSong.title || 'Unknown';
         result.songArtist = musicPlayer.currentSong.artist || 'Unknown';
@@ -1229,7 +1229,7 @@ function getMusicPlaybackInfo() {
         result.songTitle = musicPlayer.currentTrack.title || 'Unknown';
         result.songArtist = musicPlayer.currentTrack.artist || 'Unknown';
     } else if (musicPlayer.queue && musicPlayer.queue.length > 0 && musicPlayer.currentIndex >= 0) {
-        // Try to get from queue
+        // 
         const currentQueueItem = musicPlayer.queue[musicPlayer.currentIndex];
         if (currentQueueItem) {
             result.songTitle = currentQueueItem.title || 'Unknown';
@@ -1237,11 +1237,11 @@ function getMusicPlaybackInfo() {
         }
     }
     
-    // If we have a playing audio element but no song info, use the URL as a fallback
+    // 
     if (result.isPlaying && result.songTitle === 'None' && musicPlayer.audio?.src) {
         const url = musicPlayer.audio.src;
         try {
-            // Extract song name from URL
+            // 
             const urlParts = url.split('/');
             const filename = urlParts[urlParts.length - 1].split('?')[0];
             result.songTitle = decodeURIComponent(filename) || 'Unknown track';
@@ -1251,7 +1251,7 @@ function getMusicPlaybackInfo() {
         }
     }
     
-    // Get voice channel ID
+    // 
     const voiceContext = window.debugTitiBotVoiceContext ? window.debugTitiBotVoiceContext() : null;
     if (voiceContext && voiceContext.voiceChannelId) {
         result.voiceChannelId = voiceContext.voiceChannelId;
@@ -1261,20 +1261,20 @@ function getMusicPlaybackInfo() {
                                null;
     }
     
-    // Get listeners in voice channel
+    // 
     if (result.voiceChannelId) {
-        // Get participants from voice channel
+        // 
         const participants = getVoiceChannelParticipants(result.voiceChannelId);
         
-        // Map to listeners with status
+        // 
         result.listeners = participants.map(participant => {
-            // The bot is always "listening" when it's in the channel
+            // 
             const isBot = participant.isBot || participant.user_id === '4' || participant.username?.toLowerCase() === 'titibot';
             
-            // For regular users, we check if they're in the same channel
+            // 
             const isInSameChannel = participant.channelId === result.voiceChannelId;
             
-            // For a user to be listening, they must be in the same channel AND music must be playing
+            // 
             const isListening = isInSameChannel && (isBot || result.isPlaying);
             
             return {
@@ -1289,7 +1289,7 @@ function getMusicPlaybackInfo() {
     return result;
 }
 
-// Helper function to get all participants in a voice channel
+// 
 function getVoiceChannelParticipants(channelId) {
     if (!channelId) return [];
     
@@ -1362,11 +1362,11 @@ function checkMusicListeners() {
     
     const musicInfo = getMusicPlaybackInfo();
     
-    // First examine the actual music player debug info
+    // 
     addBotDebugLog('🔍 Analyzing music player state...', 'info');
     const debugInfo = musicInfo.debug;
     
-    // Check audio element status
+    // 
     const audio = debugInfo.audioElement;
     if (audio.src && audio.src !== 'none') {
         addBotDebugLog(`🎧 Audio element has source: ${audio.src.substring(0, 30)}...`, 'info');
@@ -1375,14 +1375,14 @@ function checkMusicListeners() {
         addBotDebugLog('❌ Audio element has no source', 'warning');
     }
     
-    // Check tracking variables
+    // 
     addBotDebugLog(`🔄 Player state variables:`, 'info');
     addBotDebugLog(`   isPlaying flag: ${debugInfo.isPlayingFlag}`, debugInfo.isPlayingFlag ? 'success' : 'warning');
     addBotDebugLog(`   Has currentSong: ${!!debugInfo.currentSong}`, debugInfo.currentSong ? 'success' : 'info');
     addBotDebugLog(`   Has currentTrack: ${!!debugInfo.currentTrack}`, debugInfo.currentTrack ? 'success' : 'info');
     addBotDebugLog(`   Queue size: ${debugInfo.queue}`, 'info');
     
-    // Check voice channel
+    // 
     if (!musicInfo.voiceChannelId) {
         addBotDebugLog('❌ No voice channel detected', 'error');
         return;
@@ -1396,7 +1396,7 @@ function checkMusicListeners() {
         addBotDebugLog('⏹️ No music currently playing', 'warning');
     }
     
-    // Analyze command flow
+    // 
     analyzeMusicCommandFlow();
     
     addBotDebugLog(`👥 Detected ${musicInfo.listeners.length} participants in voice channel:`, 'info');
@@ -1409,7 +1409,7 @@ function checkMusicListeners() {
         addBotDebugLog(`   ${icon} ${listener.username} (${listener.user_id}): ${status}`, style);
     });
     
-    // Summary
+    // 
     const listenersCount = musicInfo.listeners.filter(l => l.listening).length;
     
     if (musicInfo.isPlaying && listenersCount > 0) {
@@ -1432,7 +1432,7 @@ function analyzeMusicCommandFlow() {
     
     addBotDebugLog('🔄 Analyzing music command flow...', 'info');
     
-    // 1. Command reception
+    // 
     const socketManager = window.globalSocketManager;
     if (socketManager && socketManager.isReady()) {
         addBotDebugLog('1️⃣ Socket ready for command reception', 'success');
@@ -1440,14 +1440,14 @@ function analyzeMusicCommandFlow() {
         addBotDebugLog('1️⃣ Socket not ready - command reception may fail', 'warning');
     }
     
-    // 2. Music player initialization
+    // 
     if (musicPlayer._audioInitialized) {
         addBotDebugLog('2️⃣ Music player properly initialized', 'success');
     } else {
         addBotDebugLog('2️⃣ Music player not fully initialized', 'warning');
     }
     
-    // 3. Audio unlocking
+    // 
     const audioContext = musicPlayer._audioContext;
     if (audioContext) {
         const contextState = audioContext.state;
@@ -1457,7 +1457,7 @@ function analyzeMusicCommandFlow() {
         addBotDebugLog('3️⃣ No audio context available', 'warning');
     }
     
-    // 4. Music search and track loading
+    // 
     const lastFoundTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
     if (lastFoundTrack) {
         addBotDebugLog(`4️⃣ Last found track: ${lastFoundTrack.title || 'Unknown'}`, 'success');
@@ -1470,7 +1470,7 @@ function analyzeMusicCommandFlow() {
         addBotDebugLog('4️⃣ No track has been found/loaded', 'warning');
     }
     
-    // Check for hooks to intercept command execution
+    // 
     if (typeof musicPlayer.processBotMusicCommand === 'function') {
         addBotDebugLog('5️⃣ Music command processor available', 'success');
     } else {
@@ -1692,16 +1692,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.voiceDebugPanel.togglePanel();
             } else {
                 console.log('Loading voice debug panel...');
-                // First check if the script is already loaded
+                // 
                 const existingScript = document.querySelector('script[src*="debug-panel-voice.js"]');
                 if (existingScript) {
-                    // If script exists but not initialized, create a new instance
+                    // 
                     if (window.VoiceDebugPanel && !window.voiceDebugPanel) {
                         window.voiceDebugPanel = new window.VoiceDebugPanel();
                         setTimeout(() => window.voiceDebugPanel.togglePanel(), 100);
                     }
                 } else {
-                    // Load the script
+                    // 
                     const script = document.createElement('script');
                     script.src = '/public/js/components/voice/debug-panel-voice.js?v=' + Date.now();
                     script.onload = function() {

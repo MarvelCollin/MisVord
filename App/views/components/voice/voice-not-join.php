@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', function() {
             joinBtn.disabled = true;
             
             try {
-                // Determine the current voice channel id/name dynamically in case of channel switch
+                // 
                 const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
                 const currentChannelId = metaChannelId || window.voiceManager?.currentChannelId || initialChannelId;
                 const channelEl = document.querySelector(`[data-channel-id="${currentChannelId}"]`);

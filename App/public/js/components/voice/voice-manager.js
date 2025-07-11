@@ -24,11 +24,11 @@ class VoiceManager {
         this.setupBeforeUnloadHandler();
         this.setupBotEventListeners();
         
-        // Ensure we're synced with the unified voice state
+        // 
         if (window.localStorageManager) {
             this.syncChannelWithUnifiedState();
             
-            // Also add listener for future changes
+            // 
             window.localStorageManager.addVoiceStateListener(() => {
                 this.syncChannelWithUnifiedState();
             });
@@ -68,7 +68,7 @@ class VoiceManager {
             if (this.isConnected) {
                 console.log('🔄 [VOICE-MANAGER] Page unloading - cleaning up voice connection');
                 
-                // Force immediate disconnect from meeting
+                // 
                 if (this.meeting) {
                     try {
                         this.meeting.leave();
@@ -77,7 +77,7 @@ class VoiceManager {
                     }
                 }
                 
-                // Force socket server notification
+                // 
                 if (window.globalSocketManager?.io) {
                     try {
                         window.globalSocketManager.io.emit('unregister-voice-meeting', {
@@ -89,7 +89,7 @@ class VoiceManager {
                     }
                 }
                 
-                // Update unified state to mark as disconnected
+                // 
                 if (window.localStorageManager) {
                     try {
                         const currentState = window.localStorageManager.getUnifiedVoiceState();
@@ -106,7 +106,7 @@ class VoiceManager {
                     }
                 }
                 
-                // Attempt to send beacon to server for more reliable disconnect
+                // 
                 if (navigator.sendBeacon && window.location.origin) {
                     try {
                         const disconnectEndpoint = `${window.location.origin}/public/api/voice/disconnect.php`;
@@ -146,7 +146,7 @@ class VoiceManager {
         if (channelId === this.currentChannelId) {
             const botId = `bot-${participant.user_id}`;
             
-            // Ensure bot has proper avatar URL
+            // 
             let avatarUrl = participant.avatar_url;
             if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
                 avatarUrl = '/public/assets/landing-page/robot.webp';
@@ -162,7 +162,7 @@ class VoiceManager {
                 isLocal: false,
                 streams: new Map(),
                 channelId: channelId,
-                status: participant.status || 'Ready to play music' // Include status for consistency
+                status: participant.status || 'Ready to play music' // 
             });
             
             this.participants.set(botId, this.botParticipants.get(botId));
@@ -173,11 +173,11 @@ class VoiceManager {
             
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // Use append mode for regular joins, full refresh for recovery to ensure proper display
+                // 
                 const updateMode = isRecovery ? 'full' : 'append';
                 setTimeout(() => {
                     instance.updateSidebarForChannel(channelId, updateMode);
-                }, isRecovery ? 100 : 0); // Small delay for recovery to ensure DOM is ready
+                }, isRecovery ? 100 : 0); // 
             }
             
             console.log(`🤖 [VOICE-MANAGER] Bot participant ${isRecovery ? 'recovered' : 'joined'}:`, {
@@ -342,7 +342,7 @@ class VoiceManager {
         }
     }
     
-    // Compatibility aliases for VoiceFacade
+    // 
     async joinVoice(...args) { return this._joinVoice(...args); }
     async leaveVoice(...args) { return this._leaveVoice(...args); }
     
@@ -351,11 +351,11 @@ class VoiceManager {
         
         const voiceState = window.localStorageManager.getUnifiedVoiceState();
         
-        // If we're connected, ensure both channel ID and meeting ID match
+        // 
         if (this.isConnected && voiceState.isConnected) {
             let needsSync = false;
             
-            // Check for channel ID mismatch
+            // 
             if (this.currentChannelId && voiceState.channelId && 
                 this.currentChannelId !== voiceState.channelId) {
                 needsSync = true;
@@ -365,7 +365,7 @@ class VoiceManager {
                 });
             }
             
-            // Check for meeting ID mismatch
+            // 
             if (this.currentMeetingId && voiceState.meetingId && 
                 this.currentMeetingId !== voiceState.meetingId) {
                 needsSync = true;
@@ -390,7 +390,7 @@ class VoiceManager {
                 });
             }
         }
-        // If storage says we're connected but we're not, update our state
+        // 
         else if (!this.isConnected && voiceState.isConnected && 
                  voiceState.channelId && voiceState.meetingId) {
             console.log(`🔄 [VOICE-MANAGER] Storage shows active voice connection, updating local state:`, voiceState);
@@ -420,7 +420,7 @@ class VoiceManager {
             window.globalSocketManager.updatePresence('online', { type: 'active' });
         }
         
-        // Update unified voice state
+        // 
         this.updateUnifiedVoiceState({
             isConnected: false,
             channelId: null,
@@ -502,7 +502,7 @@ class VoiceManager {
             console.warn('[VoiceManager] Failed to parse participant metaData:', e);
         }
         
-        // Ensure consistent identifier across local & server lists by storing user_id
+        // 
         let userIdField = participant.id;
         try {
             if (participant.metaData) {
@@ -512,11 +512,11 @@ class VoiceManager {
                 }
             }
         } catch (e) {
-            // Already logged above – ignore
+            // 
         }
 
-        // Use participant.id as the key to maintain compatibility with VideoSDK streams
-        // Store user_id for deduplication but keep SDK id as the primary key
+        // 
+        // 
         const participantKey = participant.id;
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
         const isLocalUser = currentUserId && String(userIdField) === currentUserId;
@@ -548,7 +548,7 @@ class VoiceManager {
     handleParticipantLeft(participant) {
         if (!participant) return;
         
-        // Use participant.id directly since that's our key now
+        // 
         const participantKey = participant.id;
         
         if (this.participants.has(participantKey)) {
@@ -569,7 +569,7 @@ class VoiceManager {
         if (!participant) return;
         
         participant.on('stream-enabled', (stream) => {
-            // Find participant by SDK id since that's our key now
+            // 
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.set(stream.kind, stream);
@@ -585,7 +585,7 @@ class VoiceManager {
         });
         
         participant.on('stream-disabled', (stream) => {
-            // Find participant by SDK id since that's our key now
+            // 
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.delete(stream.kind);
@@ -684,14 +684,14 @@ class VoiceManager {
     getScreenShareState() { return this._screenShareOn; }
     
     async getOrCreateMeeting(channelId) {
-        // 0. Quick DOM-check: if channel element already knows meeting-id, reuse it
+        // 
         const domMeetingId = document.querySelector(`[data-channel-id="${channelId}"]`)?.getAttribute('data-meeting-id');
         if (domMeetingId) {
             console.log(`📌 [VOICE-MANAGER] Using meeting ID from DOM attribute:`, { channelId, meetingId: domMeetingId });
             return domMeetingId;
         }
 
-        // First check if there's an existing meeting on the server
+        // 
         const existing = await this.checkExistingMeeting(channelId);
         if (existing?.meeting_id) {
             console.log(`🔄 [VOICE-MANAGER] Found existing meeting on server:`, {
@@ -701,10 +701,10 @@ class VoiceManager {
             return existing.meeting_id;
         }
         
-        // Check unified voice state for this channel
+        // 
         const voiceState = window.localStorageManager?.getUnifiedVoiceState();
         if (voiceState && voiceState.channelId === channelId && voiceState.meetingId) {
-            // Validate the stored meeting ID with the server
+            // 
             const isValid = await this.validateMeetingId(voiceState.meetingId, channelId);
             if (isValid) {
                 console.log(`✅ [VOICE-MANAGER] Using validated meeting ID from unified voice state:`, {
@@ -720,7 +720,7 @@ class VoiceManager {
             }
         }
         
-        // Create (or reuse) deterministic meeting ID for this channel
+        // 
         const customMeetingId = `voice_channel_${channelId}`;
         
         try {
@@ -840,7 +840,7 @@ class VoiceManager {
 
     updateUnifiedVoiceState(state) {
         if (window.localStorageManager) {
-            // Ensure we're not overwriting the channelId with a different value
+            // 
             if (this.currentChannelId && state.channelId && 
                 this.currentChannelId !== state.channelId) {
                 console.warn(`⚠️ [VOICE-MANAGER] Channel ID mismatch while updating unified state:
@@ -850,7 +850,7 @@ class VoiceManager {
                 state.channelName = this.currentChannelName;
             }
             
-            // Also check meeting ID consistency
+            // 
             if (this.currentMeetingId && state.meetingId && 
                 this.currentMeetingId !== state.meetingId) {
                 console.warn(`⚠️ [VOICE-MANAGER] Meeting ID mismatch while updating unified state:

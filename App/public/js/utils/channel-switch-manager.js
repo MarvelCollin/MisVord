@@ -48,7 +48,7 @@ class SimpleChannelSwitcher {
         
         this.isLoading = true;
         try {
-            // Clean up previous channel socket room if switching channels
+            // 
             if (this.currentChannelId && this.currentChannelId !== channelId) {
                 console.log(`🚪 [CHANNEL-SWITCHER] Leaving previous channel room: ${this.currentChannelId}`);
                 if (window.globalSocketManager && window.globalSocketManager.isReady()) {
@@ -193,12 +193,12 @@ class SimpleChannelSwitcher {
         const channelElement = document.querySelector(`[data-channel-id="${channelId}"]`);
         const channelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 'Voice Channel';
         
-        // CRITICAL FIX: Join socket room for voice channel to receive presence updates
+        // 
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
             console.log(`🔌 [CHANNEL-SWITCHER] Joining socket room for voice channel: ${channelId}`);
             window.globalSocketManager.joinRoom('channel', channelId);
             
-            // Also request immediate voice meeting status to get current participants
+            // 
             setTimeout(() => {
                 console.log(`🔄 [CHANNEL-SWITCHER] Requesting voice meeting status for channel: ${channelId}`);
                 window.globalSocketManager.io.emit('check-voice-meeting', { 
@@ -206,40 +206,40 @@ class SimpleChannelSwitcher {
                 });
             }, 200);
             
-            // Force refresh all presence data after joining the room
+            // 
             setTimeout(async () => {
                 console.log(`🔄 [CHANNEL-SWITCHER] Refreshing presence data for voice channel: ${channelId}`);
                 
-                // Force emit get-online-users first
+                // 
                 if (window.globalSocketManager?.io) {
                     window.globalSocketManager.io.emit('get-online-users');
                     console.log(`📡 [CHANNEL-SWITCHER] Requested fresh online users from server`);
                 }
                 
-                // Wait a bit for server response, then refresh local data
+                // 
                 setTimeout(async () => {
-                    // Refresh FriendsManager online users
+                    // 
                     if (window.FriendsManager) {
                         const friendsManager = window.FriendsManager.getInstance();
-                        // Clear cache first to force fresh data
+                        // 
                         friendsManager.cache.onlineUsers = null;
                         await friendsManager.getOnlineUsers(true);
                         console.log(`✅ [CHANNEL-SWITCHER] Friends presence refreshed`);
                     }
                     
-                    // Refresh GlobalPresenceManager
+                    // 
                     if (window.globalPresenceManager) {
                         window.globalPresenceManager.updateActiveNow();
                         console.log(`✅ [CHANNEL-SWITCHER] Active Now presence refreshed`);
                     }
                     
-                    // Force participant section update
+                    // 
                     if (window.updateParticipantDisplay) {
                         window.updateParticipantDisplay();
                         console.log(`✅ [CHANNEL-SWITCHER] Participant display refreshed`);
                     }
                     
-                    // Trigger custom event for other components
+                    // 
                     window.dispatchEvent(new CustomEvent('presenceDataRefreshed', {
                         detail: { channelId: channelId, source: 'voiceChannelSwitch' }
                     }));
@@ -248,13 +248,13 @@ class SimpleChannelSwitcher {
             }, 300);
         } else {
             console.warn('⚠️ [CHANNEL-SWITCHER] Socket not ready, will retry joining room after socket is ready');
-            // Retry when socket becomes ready
+            // 
             window.addEventListener('globalSocketReady', () => {
                 if (window.globalSocketManager && window.globalSocketManager.isReady()) {
                     console.log(`🔌 [CHANNEL-SWITCHER] Retrying socket room join for voice channel: ${channelId}`);
                     window.globalSocketManager.joinRoom('channel', channelId);
                     
-                    // Also refresh presence data when retrying
+                    // 
                     setTimeout(async () => {
                         if (window.FriendsManager) {
                             const friendsManager = window.FriendsManager.getInstance();
@@ -282,23 +282,23 @@ class SimpleChannelSwitcher {
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             
-            // Don't clear voice state during channel switches - only update channel info
-            // Only clear if user is genuinely not connected
+            // 
+            // 
             if (!currentState.isConnected && !window.voiceManager?.isConnected) {
                 window.localStorageManager.clearVoiceState();
             } else {
-                // Preserve connection state when switching channels
+                // 
                 window.localStorageManager.setUnifiedVoiceState({
                     ...currentState,
                     channelId: channelId,
                     channelName: channelName,
-                    // Preserve isConnected if VoiceManager says we're connected
+                    // 
                     isConnected: window.voiceManager?.isConnected || currentState.isConnected
                 });
             }
         }
         
-        // Check if user is already connected to voice before deciding which UI to show
+        // 
         const isConnectedToVoice = window.voiceManager?.isConnected && 
                                    window.voiceManager?.currentChannelId === channelId;
         const voiceState = window.localStorageManager?.getUnifiedVoiceState();
@@ -315,12 +315,12 @@ class SimpleChannelSwitcher {
         });
         
         if (isConnectedToVoice || isConnectedInStorage) {
-            // User is already connected to this voice channel - show call interface
+            // 
             console.log(`✅ [CHANNEL-SWITCHER] User already connected - showing call interface`);
             document.getElementById('voice-not-join-container')?.classList.add('hidden');
             document.getElementById('voice-call-container')?.classList.remove('hidden');
         } else {
-            // User is not connected - show join interface
+            // 
             console.log(`🔌 [CHANNEL-SWITCHER] User not connected - showing join interface`);
             document.getElementById('voice-not-join-container')?.classList.remove('hidden');
             document.getElementById('voice-call-container')?.classList.add('hidden');
@@ -331,11 +331,11 @@ class SimpleChannelSwitcher {
             window.voiceCallSection.ensureChannelSync();
         }
         
-        // If user is already connected, ensure the voice call section is properly initialized
+        // 
         if (isConnectedToVoice || isConnectedInStorage) {
             console.log(`🔄 [CHANNEL-SWITCHER] User already connected - syncing UI without sidebar refresh`);
             
-            // Trigger a voiceConnect event to ensure all components are in sync
+            // 
             if (window.voiceManager?.currentMeetingId) {
                 window.dispatchEvent(new CustomEvent('voiceConnect', {
                     detail: {
@@ -343,19 +343,19 @@ class SimpleChannelSwitcher {
                         channelName: channelName,
                         meetingId: window.voiceManager.currentMeetingId,
                         skipJoinSound: true,
-                        skipSidebarRefresh: true, // Don't refresh sidebar on channel switch
+                        skipSidebarRefresh: true, // 
                         source: 'channelSwitch'
                     }
                 }));
             }
             
-            // Update voice call section connection status (but skip sidebar refresh)
+            // 
             if (window.voiceCallSection && typeof window.voiceCallSection.updateConnectionStatus === 'function') {
-                // Call with skipSidebarRefresh flag
+                // 
                 window.voiceCallSection.updateConnectionStatus(true, true);
             }
             
-            // Ensure participant container is visible for this channel
+            // 
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.ensureParticipantsVisible(channelId);
@@ -364,7 +364,7 @@ class SimpleChannelSwitcher {
     }
     
     async ensureChatSectionReady() {
-        // Guarantee that window.chatSection exists and is initialized before we try to switch
+        // 
         if (window.chatSection) return;
         if (typeof window.initializeChatSection === 'function') {
             try {
@@ -374,7 +374,7 @@ class SimpleChannelSwitcher {
             }
         }
         let tries = 0;
-        while (!window.chatSection && tries < 40) { // wait up to ~4s
+        while (!window.chatSection && tries < 40) { // 
             await new Promise(r => setTimeout(r, 100));
             tries++;
         }

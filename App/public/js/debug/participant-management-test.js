@@ -206,7 +206,7 @@ window.ParticipantManagementTest = {
                             testChannelId, participant.id, participant, 'RaceTestSystem'
                         );
                         resolve({ participant, added });
-                    }, Math.random() * 100); // Random delay to simulate race conditions
+                    }, Math.random() * 100); // 
                 });
             });
             

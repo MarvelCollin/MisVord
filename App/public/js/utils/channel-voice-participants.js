@@ -2,7 +2,7 @@ class ChannelVoiceParticipants {
     constructor() {
         this.externalParticipants = new Map(); 
         this.debugPanel = null; 
-        this.updateTimers = new Map(); // Debounce timers for updates
+        this.updateTimers = new Map(); // 
         this.init();
     }
     
@@ -50,12 +50,12 @@ class ChannelVoiceParticipants {
             window.addEventListener('globalSocketReady', () => this.attachSocketEvents());
         }
 
-        // Re-request participant lists once socket is authenticated (ensures data after reload)
+        // 
         window.addEventListener('socketAuthenticated', () => {
-            // Force refresh all channels after authentication
+            // 
             setTimeout(() => {
                 this.requestAllChannelStatus();
-                // Also force refresh current voice channel if connected
+                // 
                 const voiceState = window.localStorageManager?.getUnifiedVoiceState();
                 if (voiceState?.isConnected && voiceState?.channelId) {
                     this.forceRefreshChannel(voiceState.channelId);
@@ -93,7 +93,7 @@ class ChannelVoiceParticipants {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
         
-        // Check if we have participants for this channel but container is empty or hidden
+        // 
         const hasLocalParticipants = window.voiceManager &&
             window.voiceManager.currentChannelId === channelId &&
             window.voiceManager.isConnected &&
@@ -117,28 +117,28 @@ class ChannelVoiceParticipants {
             containerHidden: container.classList.contains('hidden')
         });
         
-        // If we have participants but container is empty, do a light refresh
+        // 
         if (hasAnyParticipants && container.children.length === 0) {
             console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Container empty but participants exist - doing light refresh`);
             this.updateSidebarForChannel(channelId, 'append');
         }
         
-        // Always ensure container visibility matches participant presence
+        // 
         if (hasAnyParticipants) {
             container.classList.remove('hidden');
         } else {
             container.classList.add('hidden');
         }
         
-        // Update channel count to match current state
+        // 
         this.updateChannelCount(channelId, null);
     }
     
     syncWithVoiceState(state) {
         if (!state) return;
         
-        // Only clear participants if we're truly disconnected from voice
-        // Don't clear just because localStorage state is temporarily inconsistent
+        // 
+        // 
         const isActuallyConnected = state.isConnected && state.channelId;
         const isVoiceManagerConnected = window.voiceManager?.isConnected && window.voiceManager?.currentChannelId;
         
@@ -146,11 +146,11 @@ class ChannelVoiceParticipants {
             const activeChannelId = state.channelId || window.voiceManager?.currentChannelId;
             if (activeChannelId) {
                 this.updateChannelCount(activeChannelId, null);
-                // Only refresh sidebar if there are actual changes, not on every state sync
-                // this.updateSidebarForChannel(activeChannelId);
+                // 
+                // 
             }
         } else if (!isVoiceManagerConnected && !state.isConnected) {
-            // Only clear if both localStorage AND voiceManager say we're disconnected
+            // 
             this.clearCurrentUserParticipantCounts();
         }
     }
@@ -173,12 +173,12 @@ class ChannelVoiceParticipants {
         if (voiceState.isConnected && voiceState.channelId) {
             console.log(`🔍 [CHANNEL-VOICE-PARTICIPANTS] Validating state for channel ${voiceState.channelId}`);
             
-            // Ensure we're in the correct socket room for the channel
+            // 
             if (window.globalSocketManager.isReady()) {
                 window.globalSocketManager.joinRoom('channel', voiceState.channelId);
             }
             
-            // Request current voice meeting status
+            // 
             setTimeout(() => {
                 window.globalSocketManager.io.emit('check-voice-meeting', { 
                     channel_id: voiceState.channelId 
@@ -186,7 +186,7 @@ class ChannelVoiceParticipants {
             }, 200);
         }
         
-        // Always join all voice channel rooms for spectator updates
+        // 
         document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
             const channelId = channel.getAttribute('data-channel-id');
             if (channelId && window.globalSocketManager?.isReady()) {
@@ -196,7 +196,7 @@ class ChannelVoiceParticipants {
     }
     
     clearCurrentUserParticipantCounts() {
-        // Don't clear participants if VoiceManager says we're still connected
+        // 
         if (window.voiceManager?.isConnected) {
             console.log(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Skipping participant clear - VoiceManager still connected`);
             return;
@@ -258,12 +258,12 @@ class ChannelVoiceParticipants {
                     const removed = map.delete(data.user_id);
                     console.log(`🗑️ [EXTERNAL-PARTICIPANTS] ${removed ? 'Removed' : 'Attempted to remove'} participant ${data.user_id} from channel ${chan} (source: ${data.source || 'unknown'})`);
                     
-                    // Force immediate UI update for participant leaves to prevent stale display
+                    // 
                     this.updateSidebarForChannel(chan, 'full');
                     this.updateChannelCount(chan, null);
                 }
             }
-            // update counts + sidebar for all actions that reflect an existing participant
+            // 
             if (data.channel_id && (
                 data.action === 'join' ||
                 data.action === 'leave' ||
@@ -274,7 +274,7 @@ class ChannelVoiceParticipants {
                 this.updateSidebarForChannel(data.channel_id);
                 this.updateAllChannelCounts();
 
-                // Persist meeting ID on DOM element
+                // 
                 if (data.meeting_id) {
                     const channelEl = document.querySelector(`[data-channel-id="${data.channel_id}"]`);
                     if (channelEl) {
@@ -282,7 +282,7 @@ class ChannelVoiceParticipants {
                     }
                 }
             }
-            // sync unified voice state ... (existing)
+            // 
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
             if (data.user_id === currentUserId && window.localStorageManager) {
                 const currentState = window.localStorageManager.getUnifiedVoiceState();
@@ -364,19 +364,19 @@ class ChannelVoiceParticipants {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
 
-        // Always ensure the container is visible
+        // 
         container.classList.remove('hidden');
         
-        // Only refresh sidebar if not explicitly skipped (channel switches vs actual voice actions)
+        // 
         if (!skipSidebarRefresh) {
             console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Voice connect - refreshing sidebar for channel ${channelId}`);
-            // Set a timeout to ensure we eventually render even if no events arrive
+            // 
             setTimeout(() => {
                 this.updateSidebarForChannel(channelId);
             }, 1500);
         } else {
             console.log(`⏭️ [CHANNEL-VOICE-PARTICIPANTS] Voice connect - skipping sidebar refresh (channel switch)`);
-            // Even when skipping refresh, ensure participants are visible if they exist
+            // 
             this.ensureParticipantsVisible(channelId);
         }
     }
@@ -408,7 +408,7 @@ class ChannelVoiceParticipants {
     }
     
     debouncedUpdateSidebar(channelId, mode = 'full') {
-        // Debounce rapid updates to prevent flicker
+        // 
         const debounceKey = `sidebar-${channelId}-${mode}`;
         
         if (this.updateTimers.has(debounceKey)) {
@@ -418,7 +418,7 @@ class ChannelVoiceParticipants {
         this.updateTimers.set(debounceKey, setTimeout(() => {
             this.updateSidebarForChannel(channelId, mode);
             this.updateTimers.delete(debounceKey);
-        }, mode === 'append' ? 50 : 100)); // Faster for appends, slower for full refreshes
+        }, mode === 'append' ? 50 : 100)); // 
     }
     
     updateSidebarForChannel(channelId, mode = 'full') {
@@ -427,13 +427,13 @@ class ChannelVoiceParticipants {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
         
-        // Build a list first so we know if clearing is safe
+        // 
         const renderList = [];
-        const participantIds = new Set(); // Track unique participants
+        const participantIds = new Set(); // 
 
         console.log(`🔍 [CHANNEL-VOICE-PARTICIPANTS] Building participant list for channel ${channelId}`);
 
-        // ALWAYS include local participants if we're connected to this channel
+        // 
         const isConnectedToChannel = window.voiceManager &&
             window.voiceManager.currentChannelId === channelId &&
             window.voiceManager.isConnected &&
@@ -449,7 +449,7 @@ class ChannelVoiceParticipants {
             });
         }
 
-        // ALSO include external participants (server-side data) but only if NOT locally connected
+        // 
         const map = this.externalParticipants.get(channelId);
         if (map && !isConnectedToChannel) {
             map.forEach((pData, uid) => {
@@ -471,7 +471,7 @@ class ChannelVoiceParticipants {
 
         console.log(`✅ [CHANNEL-VOICE-PARTICIPANTS] Rendering ${renderList.length} participants for channel ${channelId}`);
 
-        // merge in bots
+        // 
         if (window.BotComponent && window.BotComponent.voiceBots) {
             window.BotComponent.voiceBots.forEach((botData, botId) => {
                 if (botData.channel_id === channelId) {
@@ -489,30 +489,30 @@ class ChannelVoiceParticipants {
             });
         }
 
-        // Check if content actually changed before updating to prevent flicker
+        // 
         const currentParticipants = Array.from(container.querySelectorAll('.voice-participant-card'));
         const currentIds = currentParticipants.map(el => el.getAttribute('data-user-id')).filter(id => id);
         const newIds = renderList.map(p => String(p.user_id || p.id));
         
-        // Use append-only mode for joins, full refresh for leaves or explicit full updates
+        // 
         if (mode === 'append') {
-            // Only append new participants that don't exist
+            // 
             this.appendNewParticipants(container, renderList, currentIds);
         } else {
-            // Compare arrays to see if anything actually changed
+            // 
             const hasChanges = currentIds.length !== newIds.length || 
                               !currentIds.every(id => newIds.includes(id)) ||
                               !newIds.every(id => currentIds.includes(id));
 
-            // If nothing to render and nothing is currently shown, do nothing
+            // 
             if (renderList.length === 0 && currentIds.length === 0) {
                 return;
             }
 
-            // Only update if there are actual changes
+            // 
             if (hasChanges || renderList.length === 0) {
-                // Safe to refresh UI
-                // Incremental DOM diff – avoid full clear to eliminate flicker
+                // 
+                // 
                 this.updateParticipantContainer(container, renderList);
             }
         }
@@ -531,7 +531,7 @@ class ChannelVoiceParticipants {
             }
         }
 
-        // Refresh debug panel each time sidebar updates
+        // 
         this.updateDebugPanel();
     }
     
@@ -540,7 +540,7 @@ class ChannelVoiceParticipants {
         div.className = 'voice-participant-card bg-[#2f3136] rounded-lg p-2 flex items-center space-x-3 border border-[#40444b] hover:border-[#5865f2] transition-all duration-200';
         div.setAttribute('data-user-id', participant.user_id || participant.id);
 
-        // Ensure bot avatars are properly handled
+        // 
         let avatarUrl = participant.avatar_url || '/public/assets/common/default-profile-picture.png';
         if (participant.isBot && (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png')) {
             avatarUrl = '/public/assets/landing-page/robot.webp';
@@ -550,7 +550,7 @@ class ChannelVoiceParticipants {
         const isBot = participant.isBot || false;
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
         const isSelf = !isBot && currentUserId && (String(participant.user_id) === currentUserId || String(participant.id) === currentUserId);
-        const botStatus = participant.status || 'Ready to play music'; // Use the status from bot data
+        const botStatus = participant.status || 'Ready to play music'; // 
 
         const avatarHTML = `
             <div class="relative">
@@ -595,7 +595,7 @@ class ChannelVoiceParticipants {
         const participantIds = new Set();
         let count = 0;
         
-        // Count local participants if connected to this channel
+        // 
         const isConnectedToChannel = window.voiceManager &&
             window.voiceManager.currentChannelId === channelId &&
             window.voiceManager.isConnected &&
@@ -610,7 +610,7 @@ class ChannelVoiceParticipants {
                 }
             });
         } else {
-            // Only count external participants if NOT connected to this channel (spectator mode)
+            // 
             const externalMap = this.externalParticipants.get(channelId);
             if (externalMap) {
                 externalMap.forEach((pData, uid) => {
@@ -623,11 +623,11 @@ class ChannelVoiceParticipants {
             }
         }
         
-        // Count bots separately
+        // 
         if (window.BotComponent && window.BotComponent.voiceBots) {
             window.BotComponent.voiceBots.forEach((botData, botId) => {
                 if (botData.channel_id === channelId) {
-                    // Only count bots if we're not already counting them from local participants
+                    // 
                     const botParticipantId = `bot-${botData.bot_id || botId}`;
                     if (!participantIds.has(botParticipantId)) {
                         count++;
@@ -692,55 +692,55 @@ class ChannelVoiceParticipants {
         }
     }
 
-    // ------------------------
-    // Debug panel helpers (temporary)
-    // ------------------------
+    // 
+    // 
+    // 
 
     createDebugPanel() {
-        // Debug panel disabled to reduce visual clutter
-        // if (this.debugPanel) return;
-        // this.debugPanel = document.createElement('div');
-        // this.debugPanel.id = 'voice-debug-panel';
-        // Object.assign(this.debugPanel.style, {
-        //     position: 'fixed',
-        //     bottom: '10px',
-        //     right: '10px',
-        //     maxWidth: '300px',
-        //     maxHeight: '200px',
-        //     overflowY: 'auto',
-        //     background: 'rgba(0,0,0,0.7)',
-        //     color: '#fff',
-        //     fontSize: '12px',
-        //     padding: '8px',
-        //     borderRadius: '4px',
-        //     zIndex: '9999',
-        //     whiteSpace: 'pre-line'
-        // });
-        // this.debugPanel.textContent = 'Voice Debug Panel';
-        // document.body.appendChild(this.debugPanel);
-        // this.updateDebugPanel();
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
     }
 
     updateDebugPanel() {
-        // Debug panel disabled - no update needed
+        // 
         return;
-        // if (!this.debugPanel) return;
-        // const lines = [];
-        // this.externalParticipants.forEach((map, chan) => {
-        //     const names = Array.from(map.values()).map(p => p.username || 'Unknown').join(', ');
-        //     lines.push(`Channel ${chan}: ${names}`);
-        // });
-        // if (window.voiceManager && window.voiceManager.isConnected) {
-        //     const chanId = window.voiceManager.currentChannelId;
-        //     if (chanId) {
-        //         const localNames = [];
-        //         window.voiceManager.getAllParticipants().forEach(p => {
-        //             localNames.push(p.username || p.name || 'Unknown');
-        //         });
-        //         lines.push(`Local Chan ${chanId}: ${localNames.join(', ')}`);
-        //     }
-        // }
-        // this.debugPanel.innerHTML = lines.length ? lines.join('<br>') : 'No participants';
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
+        // 
     }
     
     static getInstance() {
@@ -759,18 +759,18 @@ class ChannelVoiceParticipants {
         
         console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Force refreshing participants for channel ${channelId}`);
         
-        // Request fresh participant list from server
+        // 
         window.globalSocketManager.io.emit('force-refresh-voice-participants', {
             channel_id: channelId
         });
         
-        // Also clear any potentially stale external participant data
+        // 
         if (this.externalParticipants.has(channelId)) {
             console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Clearing stale external participants for channel ${channelId}`);
             this.externalParticipants.delete(channelId);
         }
         
-        // Force UI refresh after a brief delay to allow server response
+        // 
         setTimeout(() => {
             this.updateSidebarForChannel(channelId, 'full');
         }, 100);
@@ -783,10 +783,10 @@ class ChannelVoiceParticipants {
     cleanupStaleParticipants() {
         console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Running stale participant cleanup`);
         
-        // Check each channel with participants
+        // 
         this.externalParticipants.forEach((participantMap, channelId) => {
             if (participantMap.size > 0) {
-                // If we have external participants but no visible container, something might be wrong
+                // 
                 const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
                 if (!container) {
                     console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Found external participants for channel ${channelId} but no container - clearing`);
@@ -794,7 +794,7 @@ class ChannelVoiceParticipants {
                     return;
                 }
                 
-                // Check if container is completely empty despite having participant data
+                // 
                 if (container.children.length === 0) {
                     console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Empty container despite external participants for channel ${channelId} - forcing refresh`);
                     this.forceRefreshChannel(channelId);
@@ -802,7 +802,7 @@ class ChannelVoiceParticipants {
             }
         });
         
-        // Also check if we're supposed to be connected to voice but have no participants showing
+        // 
         if (window.voiceManager?.isConnected && window.voiceManager?.currentChannelId) {
             const currentChannelId = window.voiceManager.currentChannelId;
             const container = document.querySelector(`.voice-participants[data-channel-id="${currentChannelId}"]`);
@@ -819,7 +819,7 @@ class ChannelVoiceParticipants {
             }
         }
         
-        // Force refresh all voice channels to sync spectator data
+        // 
         document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
             const channelId = channel.getAttribute('data-channel-id');
             if (channelId && window.globalSocketManager?.isReady()) {
@@ -831,10 +831,10 @@ class ChannelVoiceParticipants {
     updateParticipantContainer(container, renderList) {
         if (!container) return;
         
-        // Collect current DOM state
+        // 
         const existingElements = Array.from(container.querySelectorAll('.voice-participant-card'));
         const str = (v) => v != null ? String(v) : '';
-        const existingMap = new Map(); // id -> element
+        const existingMap = new Map(); // 
         
         existingElements.forEach(el => {
             const userId = str(el.getAttribute('data-user-id'));
@@ -843,12 +843,12 @@ class ChannelVoiceParticipants {
             }
         });
 
-        // Build a map of desired state keyed by participant id (as string)
+        // 
         const desiredIds = renderList.map(p => str(p.user_id || p.id));
         const desiredSet = new Set(desiredIds);
 
-        // Only remove elements that are definitely not in the new list
-        // Use smooth fade-out animation to reduce flicker
+        // 
+        // 
         existingMap.forEach((el, id) => {
             if (!desiredSet.has(id)) {
                 console.log(`🗑️ [CHANNEL-VOICE-PARTICIPANTS] Removing participant ${id} from sidebar`);
@@ -863,25 +863,25 @@ class ChannelVoiceParticipants {
             }
         });
 
-        // Add missing participants with smooth fade-in animation
+        // 
         renderList.forEach((p, index) => {
             const pid = str(p.user_id || p.id);
             if (!existingMap.has(pid)) {
                 console.log(`➕ [CHANNEL-VOICE-PARTICIPANTS] Adding participant ${pid} to sidebar`);
                 const el = this.createParticipantElement(p);
                 
-                // Start with invisible element
+                // 
                 el.style.opacity = '0';
                 el.style.transition = 'opacity 0.3s ease-in';
                 
-                // Insert in correct position to maintain order
+                // 
                 if (index < container.children.length) {
                     container.insertBefore(el, container.children[index]);
                 } else {
                     container.appendChild(el);
                 }
                 
-                // Trigger smooth fade-in after a brief delay
+                // 
                 setTimeout(() => {
                     el.style.opacity = '1';
                 }, 10);
@@ -899,7 +899,7 @@ class ChannelVoiceParticipants {
         const currentIdsSet = new Set(currentIds);
         let newParticipantsAdded = 0;
         
-        // Only append participants that don't already exist
+        // 
         renderList.forEach(participant => {
             const participantId = String(participant.user_id || participant.id);
             
@@ -908,15 +908,15 @@ class ChannelVoiceParticipants {
                 
                 const element = this.createParticipantElement(participant);
                 
-                // Start with invisible for smooth animation
+                // 
                 element.style.opacity = '0';
                 element.style.transform = 'translateY(10px)';
                 element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
                 
-                // Append to container
+                // 
                 container.appendChild(element);
                 
-                // Trigger smooth slide-in animation
+                // 
                 setTimeout(() => {
                     element.style.opacity = '1';
                     element.style.transform = 'translateY(0)';
@@ -938,7 +938,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.ChannelVoiceParticipants = ChannelVoiceParticipants;
 
-// Expose cleanup methods globally for debugging
+// 
 window.forceRefreshVoiceParticipants = (channelId) => {
     const instance = ChannelVoiceParticipants.getInstance();
     if (channelId) {

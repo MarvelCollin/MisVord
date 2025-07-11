@@ -60,7 +60,7 @@ class GlobalSocketManager {
             
             this.connect();
             
-            // Set up page unload handler for clean disconnection
+            // 
             this.setupUnloadHandler();
             
             if (this.io) {
@@ -77,11 +77,11 @@ class GlobalSocketManager {
     
     setupUnloadHandler() {
         window.addEventListener('beforeunload', (event) => {
-            // Handle any active voice connections
+            // 
             if (this.isConnected && this.isAuthenticated) {
                 console.log('🔄 [SOCKET] Page unloading - cleaning up socket connections');
                 
-                // Notify server about disconnection for voice
+                // 
                 const voiceState = window.localStorageManager?.getUnifiedVoiceState();
                 if (voiceState && voiceState.isConnected && voiceState.channelId) {
                     try {
@@ -95,7 +95,7 @@ class GlobalSocketManager {
                     }
                 }
                 
-                // Update presence to offline
+                // 
                 try {
                     this.io.emit('update-presence', {
                         status: 'offline',
@@ -107,7 +107,7 @@ class GlobalSocketManager {
                     console.error('Error updating presence during unload:', error);
                 }
                 
-                // Try to cleanly disconnect
+                // 
                 try {
                     this.io.disconnect();
                 } catch (error) {
@@ -377,7 +377,7 @@ class GlobalSocketManager {
 
                 }
                 
-                // Sync unified voice state after authentication
+                // 
                 this.syncUnifiedVoiceState();
             }, 500);
             
@@ -542,12 +542,12 @@ class GlobalSocketManager {
                 participantCount: data.participant_count
             });
             
-            // Update unified voice state if this is for current channel
+            // 
             if (window.localStorageManager) {
                 const currentState = window.localStorageManager.getUnifiedVoiceState();
                 if (currentState && currentState.channelId === data.channel_id) {
                     if (data.has_meeting && data.meeting_id) {
-                        // Update meeting ID if it changed
+                        // 
                         if (currentState.meetingId !== data.meeting_id) {
                             window.localStorageManager.setUnifiedVoiceState({
                                 ...currentState,
@@ -555,7 +555,7 @@ class GlobalSocketManager {
                             });
                         }
                     } else if (currentState.isConnected && !data.has_meeting) {
-                        // Clear state if no meeting exists but we think we're connected
+                        // 
                         window.localStorageManager.setUnifiedVoiceState({
                             ...currentState,
                             isConnected: false,
@@ -578,12 +578,12 @@ class GlobalSocketManager {
                 isNewMeeting: data.is_new_meeting
             });
             
-            // Update unified voice state for relevant updates
+            // 
             if (window.localStorageManager && data.user_id === this.userId) {
                 const currentState = window.localStorageManager.getUnifiedVoiceState();
                 
                 if (data.action === 'join' || data.action === 'registered') {
-                    // Update state when user joins
+                    // 
                     window.localStorageManager.setUnifiedVoiceState({
                         ...currentState,
                         isConnected: true,
@@ -592,7 +592,7 @@ class GlobalSocketManager {
                         connectionTime: data.timestamp || Date.now()
                     });
                 } else if (data.action === 'leave') {
-                    // Clear state when user leaves
+                    // 
                     window.localStorageManager.setUnifiedVoiceState({
                         ...currentState,
                         isConnected: false,
@@ -605,7 +605,7 @@ class GlobalSocketManager {
 
             this.handleVoiceMeetingUpdate(data);
             
-            // Handle own connection state
+            // 
             const isOwnConnection = data.user_id === this.userId;
             if (isOwnConnection && window.voiceManager?.sdkLoaded) {
                 return;
@@ -619,7 +619,7 @@ class GlobalSocketManager {
                 participantCount: data.participant_count
             });
             
-            // Update unified voice state on successful registration
+            // 
             if (window.localStorageManager && data.user_id === this.userId) {
                 const currentState = window.localStorageManager.getUnifiedVoiceState();
                 window.localStorageManager.setUnifiedVoiceState({
@@ -804,7 +804,7 @@ class GlobalSocketManager {
             }
         }));
         
-        // Immediately request fresh presence data after joining a room
+        // 
         setTimeout(() => {
             console.log(`📡 [SOCKET] Requesting fresh online users after joining room: ${roomName}`);
             this.io.emit('get-online-users');
@@ -975,7 +975,7 @@ class GlobalSocketManager {
 
         this.currentPresenceStatus = status;
         this.currentActivityDetails = activityDetails;
-        this.lastPresenceSource = source; // Store the source
+        this.lastPresenceSource = source; // 
 
         const presenceData = {
             status: this.currentPresenceStatus,
@@ -995,7 +995,7 @@ class GlobalSocketManager {
                 user_id: this.userId,
                 status: this.currentPresenceStatus,
                 activity_details: this.currentActivityDetails,
-                source: source // Pass source in event
+                source: source // 
             }
         }));
         
@@ -1379,7 +1379,7 @@ class GlobalSocketManager {
         const voiceCallPatterns = [
             'In Voice Call',
             'In Voice -',
-            'playing Tic Tac Toe'  // Gaming activity is also protected
+            'playing Tic Tac Toe'  // 
         ];
         
         if (activityType) {
@@ -1456,13 +1456,13 @@ class GlobalSocketManager {
     }
 
     setupVoiceStateListeners() {
-        // Listen for voice state changes
+        // 
         window.addEventListener('voiceStateChanged', (event) => {
             const { state } = event.detail;
             this.syncVoiceStateWithPresence(state);
         });
         
-        // Listen for voice connect/disconnect events
+        // 
         window.addEventListener('voiceConnect', (event) => {
             const { channelId, channelName, meetingId } = event.detail;
             this.handleVoiceConnect(channelId, channelName, meetingId);
@@ -1472,7 +1472,7 @@ class GlobalSocketManager {
             this.handleVoiceDisconnect();
         });
         
-        // Listen for local storage changes
+        // 
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener((state) => {
                 this.syncVoiceStateWithPresence(state);
@@ -1486,7 +1486,7 @@ class GlobalSocketManager {
         const voiceState = window.localStorageManager.getUnifiedVoiceState();
         
         if (voiceState.isConnected && voiceState.channelId && voiceState.meetingId) {
-            // Validate current voice state with server
+            // 
             this.validateVoiceState(voiceState);
         }
     }
@@ -1494,10 +1494,10 @@ class GlobalSocketManager {
     validateVoiceState(voiceState) {
         if (!this.isReady()) return;
         
-        // Check if the voice meeting still exists
+        // 
         this.io.emit('check-voice-meeting', { channel_id: voiceState.channelId });
         
-        // Set up a listener for validation response
+        // 
         const timeout = setTimeout(() => {
             this.io.off('voice-meeting-status', validationHandler);
         }, 5000);
@@ -1515,7 +1515,7 @@ class GlobalSocketManager {
                         serverHasMeeting: data.has_meeting
                     });
                     
-                    // Clear invalid state
+                    // 
                     window.localStorageManager.setUnifiedVoiceState({
                         ...voiceState,
                         isConnected: false,
@@ -1536,12 +1536,12 @@ class GlobalSocketManager {
     }
     
     handleVoiceConnect(channelId, channelName, meetingId) {
-        // Update presence for voice connection
+        // 
         this.updatePresence('online', { 
             type: `In Voice - ${channelName}` 
         }, 'voice-connect');
         
-        // Ensure unified voice state is updated
+        // 
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             window.localStorageManager.setUnifiedVoiceState({
@@ -1556,10 +1556,10 @@ class GlobalSocketManager {
     }
     
     handleVoiceDisconnect() {
-        // Update presence for voice disconnection
+        // 
         this.updatePresence('online', { type: 'active' }, 'voice-disconnect');
         
-        // Clear unified voice state
+        // 
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             window.localStorageManager.setUnifiedVoiceState({

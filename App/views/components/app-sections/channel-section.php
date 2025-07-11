@@ -44,7 +44,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
             
             <?php
-            // Uncategorized channels
+            // 
             $uncategorizedChannels = array_filter($channels, fn($ch) => empty($ch['category_id']));
             usort($uncategorizedChannels, fn($a, $b) => ($a['position'] ?? 0) <=> ($b['position'] ?? 0));
 
@@ -54,7 +54,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 endforeach;
             endif;
 
-            // Categorized channels
+            // 
             if (!empty($categories)):
                 usort($categories, fn($a, $b) => ($a['position'] ?? 0) <=> ($b['position'] ?? 0));
                 

@@ -244,10 +244,10 @@ class LocalStorageManager {
         const current = this.getUnifiedVoiceState();
         const updated = { ...current, ...state };
 
-        // If user is not connected and there is no channel/meeting, remove the key entirely
+        // 
         if (updated.isConnected === false && !updated.channelId && !updated.meetingId) {
             this.remove(this.keys.UNIFIED_VOICE_STATE);
-            this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); // sends default state
+            this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); // 
             return true;
         }
         
@@ -300,10 +300,10 @@ class LocalStorageManager {
                 }
             }));
             
-            // Use append mode for participant updates when possible
+            // 
             if (window.ChannelVoiceParticipants && state.channelId) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-                // Use append mode for background updates, full mode for disconnections
+                // 
                 const updateMode = state.isConnected ? 'append' : 'full';
                 instance.updateSidebarForChannel(state.channelId, updateMode);
             }

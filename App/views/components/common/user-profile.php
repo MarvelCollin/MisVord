@@ -422,7 +422,7 @@ class UserProfileVoiceControls {
                 
 
                 if (wasToggled) {
-                    window.videoSDKManager.toggleMic(false); // Force mute
+                    window.videoSDKManager.toggleMic(false); // 
                 }
             }
             
