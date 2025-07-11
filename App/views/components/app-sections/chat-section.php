@@ -209,11 +209,11 @@ if (!function_exists('renderMessage')) {
     background-color: #2b2d31;
 }
 
-#chat-messages {
+#chat-real-content {
     background-color: #313338;
 }
 
-#chat-messages .messages-container {
+#chat-real-content .messages-container {
     padding: 16px 0;
 }
 
@@ -635,7 +635,7 @@ if (!function_exists('renderMessage')) {
     </div>
     <?php endif; ?>
 
-    <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
+    <div id="chat-real-content" class="flex-1 overflow-y-auto overflow-x-hidden bg-[#313338]">
         <div id="load-more-container" class="hidden p-4 text-center">
             <div id="load-more-skeleton" class="hidden space-y-4">
                 <div class="text-xs text-[#b9bbbe] text-center mb-4">
@@ -856,7 +856,7 @@ if (!function_exists('renderMessage')) {
             </div>
         </div>
         
-        <div class="messages-container flex flex-col min-h-full" id="chat-real-content" style="display: none;">
+        <div class="messages-container flex flex-col min-h-full">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;

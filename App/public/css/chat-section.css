@@ -54,7 +54,7 @@
 }
 
 
-#chat-messages {
+#chat-real-content {
   overflow-y: auto;
   overflow-x: hidden;
   flex-grow: 1;
@@ -65,7 +65,7 @@
 }
 
 
-#chat-messages .messages-container {
+#chat-real-content .messages-container {
   padding: 16px 0;
   display: flex;
   flex-direction: column;
@@ -73,32 +73,32 @@
   backface-visibility: hidden; 
 }
 
-#chat-messages .messages-container.min-h-full {
+#chat-real-content .messages-container.min-h-full {
   min-height: 100%;
 }
 
-#chat-messages .messages-container:not(.min-h-full) {
+#chat-real-content .messages-container:not(.min-h-full) {
   min-height: 0;
 }
 
-#chat-messages .messages-container.items-center.justify-center {
+#chat-real-content .messages-container.items-center.justify-center {
   justify-content: center;
   align-items: center;
   min-height: 100%;
 }
 
 
-#chat-messages .bubble-message-group:hover {
+#chat-real-content .bubble-message-group:hover {
   background-color: rgba(6, 6, 7, 0.02);
 }
 
-#chat-messages .bubble-message-group:hover .bubble-message-actions {
+#chat-real-content .bubble-message-group:hover .bubble-message-actions {
   opacity: 1;
   visibility: visible;
 }
 
 
-#chat-messages .bubble-avatar {
+#chat-real-content .bubble-avatar {
   width: 40px;
   height: 40px;
   margin-right: 16px;
@@ -107,20 +107,20 @@
   overflow: hidden;
 }
 
-#chat-messages .bubble-avatar img {
+#chat-real-content .bubble-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 
-#chat-messages .bubble-header {
+#chat-real-content .bubble-header {
   display: flex;
   align-items: baseline;
   margin-bottom: 4px;
 }
 
-#chat-messages .bubble-username {
+#chat-real-content .bubble-username {
   font-weight: 600;
   color: #f2f3f5;
   margin-right: 8px;
@@ -128,11 +128,11 @@
   cursor: pointer;
 }
 
-#chat-messages .bubble-username:hover {
+#chat-real-content .bubble-username:hover {
   text-decoration: underline;
 }
 
-#chat-messages .bubble-timestamp {
+#chat-real-content .bubble-timestamp {
   font-size: 12px;
   color: #a3a6aa;
   font-weight: 500;
@@ -140,13 +140,13 @@
 }
 
 
-#chat-messages .bubble-message-content {
+#chat-real-content .bubble-message-content {
   position: relative;
   padding: 4px 0;
   border-radius: 4px;
 }
 
-#chat-messages .bubble-message-text {
+#chat-real-content .bubble-message-text {
   color: #dcddde;
   word-wrap: break-word;
   font-size: 16px;
@@ -155,7 +155,7 @@
 }
 
 
-#chat-messages .bubble-message-actions {
+#chat-real-content .bubble-message-actions {
   position: absolute;
   top: -12px;
   right: 16px;
@@ -172,7 +172,7 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-#chat-messages .bubble-action-button {
+#chat-real-content .bubble-action-button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -186,29 +186,29 @@
   transition: all 0.15s ease;
 }
 
-#chat-messages .bubble-action-button:hover {
+#chat-real-content .bubble-action-button:hover {
   background: #404249;
   color: #dcddde;
 }
 
-#chat-messages .bubble-action-button.delete-button:hover {
+#chat-real-content .bubble-action-button.delete-button:hover {
   background: #ed4245;
   color: #ffffff;
 }
 
 
 @media (max-width: 768px) {
-  #chat-messages .bubble-message-group {
+  #chat-real-content .bubble-message-group {
     padding: 2px 8px;
   }
   
-  #chat-messages .bubble-message-actions {
+  #chat-real-content .bubble-message-actions {
     right: 8px;
     gap: 2px;
     padding: 2px;
   }
   
-  #chat-messages .bubble-action-button {
+  #chat-real-content .bubble-action-button {
     width: 28px;
     height: 28px;
   }
@@ -437,26 +437,26 @@
   color: #dcddde;
 }
 
-#chat-messages::-webkit-scrollbar {
+#chat-real-content::-webkit-scrollbar {
   width: 8px;
 }
 
-#chat-messages::-webkit-scrollbar-track {
+#chat-real-content::-webkit-scrollbar-track {
   background: transparent;
 }
 
-#chat-messages::-webkit-scrollbar-thumb {
+#chat-real-content::-webkit-scrollbar-thumb {
   background-color: #1e1f22;
   border-radius: 4px;
   min-height: 40px;
 }
 
-#chat-messages::-webkit-scrollbar-thumb:hover {
+#chat-real-content::-webkit-scrollbar-thumb:hover {
   background-color: #2b2d31;
 }
 
 
-#chat-messages .message-group {
+#chat-real-content .message-group {
   position: relative;
   margin: 0 0 2px 0 !important;
   padding: 5px 16px !important;
@@ -467,7 +467,7 @@
 }
 
 
-#chat-messages .message-content {
+#chat-real-content .message-content {
   position: relative;
   width: 100%;
   transition: background-color 0.15s ease;
@@ -477,12 +477,12 @@
   border-radius: 4px;
 }
 
-#chat-messages .message-content:hover {
+#chat-real-content .message-content:hover {
   background-color: rgba(79, 84, 92, 0.16) !important;
 }
 
 
-#chat-messages .message-avatar {
+#chat-real-content .message-avatar {
   width: 32px !important;
   height: 32px !important;
   border-radius: 50% !important;
@@ -491,36 +491,36 @@
   flex-shrink: 0 !important;
 }
 
-#chat-messages .message-avatar img {
+#chat-real-content .message-avatar img {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
 }
 
-#chat-messages .message-content-wrapper {
+#chat-real-content .message-content-wrapper {
   flex-grow: 1 !important;
   padding-top: 2px !important;
 }
 
-#chat-messages .message-header {
+#chat-real-content .message-header {
   display: flex !important;
   align-items: center !important;
   margin-bottom: 2px !important;
 }
 
-#chat-messages .message-username {
+#chat-real-content .message-username {
   font-weight: 600 !important;
   color: var(--message-username-color) !important;
   margin-right: 8px !important;
   font-size: 14px !important;
 }
 
-#chat-messages .message-timestamp {
+#chat-real-content .message-timestamp {
   font-size: 0.7rem !important;
   color: var(--message-timestamp-color) !important;
 }
 
-#chat-messages .message-content {
+#chat-real-content .message-content {
   background-color: transparent !important;
   border-radius: 4px !important;
   padding: 2px 0 !important;
@@ -530,7 +530,7 @@
   color: var(--message-text-color) !important;
 }
 
-#chat-messages .message-main-text {
+#chat-real-content .message-main-text {
   color: #dcddde !important;
   white-space: pre-wrap !important;
   word-wrap: break-word !important;
@@ -547,7 +547,7 @@
 
 
 
-#chat-messages .message-contents {
+#chat-real-content .message-contents {
   margin-top: 0 !important;
 }
 

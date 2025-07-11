@@ -182,7 +182,7 @@ window.diagnoseChatSection = function() {
         isChatPage: isChatPage(),
         isExcludedPage: isExcludedPage(),
         domElements: {
-            chatMessages: !!document.getElementById('chat-messages'),
+            chatMessages: !!document.getElementById('chat-real-content'),
             messageForm: !!document.getElementById('message-form'),
             messageInput: !!document.getElementById('message-input'),
             sendButton: !!document.getElementById('send-button')
@@ -456,9 +456,9 @@ class ChatSection {
                             document.querySelector('.main-content-area');
         
 
-        this.chatMessages = document.getElementById('chat-messages') ||
-                           document.querySelector('#chat-messages') ||
-                           document.querySelector('.chat-messages') ||
+        this.chatMessages = document.getElementById('chat-real-content') ||
+                           document.querySelector('#chat-real-content') ||
+                           document.querySelector('.messages-container') ||
                            document.querySelector('[data-messages-container]');
         
 
@@ -531,7 +531,7 @@ class ChatSection {
                 chatSections: document.querySelectorAll('.chat-section').length,
                 formsCount: document.querySelectorAll('form').length,
                 inputsCount: document.querySelectorAll('input').length,
-                chatMessagesExists: !!document.querySelector('#chat-messages'),
+                chatMessagesExists: !!document.querySelector('#chat-real-content'),
                 messageFormExists: !!document.querySelector('#message-form'),
                 messageInputExists: !!document.querySelector('#message-input')
             });
@@ -2465,10 +2465,10 @@ class ChatSection {
             if (!this.chatMessages) {
                 console.error('❌ [CHAT-SECTION] Cannot get messages container: chat messages element still not found after search');
 
-                const fallbackContainer = document.querySelector('.messages-container') ||
+                const fallbackContainer = document.getElementById('chat-real-content') ||
+                                        document.querySelector('.messages-container') ||
                                         document.querySelector('[data-messages-container]') ||
-                                        document.querySelector('.chat-messages') ||
-                                        document.querySelector('#chat-messages .flex-1');
+                                        document.querySelector('.chat-messages');
                 
                 if (fallbackContainer) {
 
@@ -2478,23 +2478,7 @@ class ChatSection {
             }
         }
         
-        try {
-
-            const messagesContainer = this.chatMessages.querySelector('.messages-container') ||
-                                    this.chatMessages.querySelector('[data-messages-container]') ||
-                                    this.chatMessages.querySelector('.flex-1') ||
-                                    this.chatMessages.querySelector(':first-child');
-            
-            if (messagesContainer) {
-                return messagesContainer;
-            } else {
-                console.warn('⚠️ [CHAT-SECTION] .messages-container not found inside #chat-messages, returning #chat-messages as fallback');
-                return this.chatMessages;
-            }
-        } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error accessing chat messages container:', error);
-            return this.chatMessages; // 
-        }
+        return this.chatMessages;
     }
     
     formatMessageContent(content) {
@@ -2576,21 +2560,14 @@ class ChatSection {
         
         const messageContainers = [
             this.chatMessages,
-            document.querySelector('#chat-messages'),
-            document.querySelector('.chat-messages'),
-            document.querySelector('.message-container'),
-            document.querySelector('[data-message-container]'),
-            document.querySelector('.messages-container')
+            document.getElementById('chat-real-content'),
+            document.querySelector('.messages-container'),
+            document.querySelector('[data-messages-container]')
         ];
         
         messageContainers.forEach(container => {
             if (container) {
-                const messagesContainer = container.querySelector('.messages-container');
-                if (messagesContainer) {
-                    messagesContainer.innerHTML = '';
-                } else {
-                    container.innerHTML = '';
-                }
+                container.innerHTML = '';
             }
         });
         
@@ -3292,25 +3269,11 @@ class ChatSection {
         }
         
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
-        const realContent = document.getElementById('chat-real-content');
-        const chatMessages = document.getElementById('chat-messages');
         
         if (skeletonContainer) {
             skeletonContainer.style.display = 'none';
             skeletonContainer.style.visibility = 'hidden';
             skeletonContainer.style.opacity = '0';
-        }
-        
-        if (realContent) {
-            realContent.style.display = 'block';
-            realContent.style.visibility = 'visible';
-            realContent.style.opacity = '1';
-            
-            if (chatMessages) {
-                chatMessages.style.scrollBehavior = 'auto';
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                chatMessages.style.scrollBehavior = 'smooth';
-            }
         }
         
         this.skeletonHidden = true;
@@ -3322,8 +3285,6 @@ class ChatSection {
         this.initializeChatSkeleton();
         
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
-        const realContent = document.getElementById('chat-real-content');
-        const chatMessages = document.getElementById('chat-messages');
         
         if (skeletonContainer) {
             skeletonContainer.style.display = 'flex';
@@ -3338,14 +3299,8 @@ class ChatSection {
             console.log('🦴 [CHAT-SECTION] Skeleton displayed - waiting for messages');
         }
         
-        if (realContent) {
-            realContent.style.display = 'none';
-            realContent.style.visibility = 'hidden';
-            realContent.style.opacity = '0';
-        }
-        
-        if (chatMessages) {
-            chatMessages.style.position = 'relative';
+        if (this.chatMessages) {
+            this.chatMessages.style.position = 'relative';
         }
     }
 
