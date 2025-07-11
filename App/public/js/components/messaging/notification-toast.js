@@ -50,7 +50,7 @@ class NotificationToast {
             
             .toast-backdrop {
                 backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px); 
             }
             
             .toast-progress {

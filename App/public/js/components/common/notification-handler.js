@@ -73,18 +73,30 @@ class GlobalNotificationHandler {
 
         const isUserMention = data.type === 'user' && data.mentioned_user_id?.toString() === this.currentUserId.toString();
         const isAllMention = data.type === 'all' && data.user_id?.toString() !== this.currentUserId.toString();
-        const isRoleMention = data.type === 'role' && data.mentioned_user_id?.toString() === this.currentUserId.toString();
+        const isRoleMention = data.type === 'role' && (
+            data.mentioned_user_id?.toString() === this.currentUserId.toString() ||
+            (data.user_id?.toString() !== this.currentUserId.toString())
+        );
         
         console.log('📧 [NOTIFICATION] Mention check results:', {
+            type: data.type,
+            mentioned_user_id: data.mentioned_user_id,
+            user_id: data.user_id,
+            currentUserId: this.currentUserId,
+            role: data.role,
             isUserMention,
             isAllMention,
             isRoleMention,
-            willShow: isUserMention || isAllMention || isRoleMention
+            willShow: isUserMention || isAllMention || isRoleMention,
+            willPlaySound: isUserMention || isAllMention || isRoleMention
         });
 
         if (isUserMention || isAllMention || isRoleMention) {
+            console.log('🔊 [NOTIFICATION] PLAYING SOUND for mention type:', data.type);
             this.showNotification(data, isAllMention, isRoleMention);
             this.playNotificationSound();
+        } else {
+            console.log('🔇 [NOTIFICATION] NOT PLAYING SOUND - conditions not met');
         }
     }
 
@@ -113,7 +125,7 @@ class GlobalNotificationHandler {
         if (isAllMention) {
             mentionText = 'all';
         } else if (isRoleMention) {
-            mentionText = 'role';
+            mentionText = data.role || 'role';
         }
         
         const notificationElement = document.createElement('div');
@@ -259,11 +271,32 @@ class GlobalNotificationHandler {
     }
 
     playNotificationSound() {
+        console.log('🔊 [SOUND] Attempting to play notification sound: message_sound.mp3');
         try {
+            const soundsEnabled = localStorage.getItem('message_sounds_enabled') !== 'false';
+            
+            if (!soundsEnabled) {
+                console.log('🔇 [SOUND] Sounds disabled in localStorage (message_sounds_enabled = false)');
+                return;
+            }
+            
             const audio = new Audio('/public/assets/sound/message_sound.mp3');
             audio.volume = 0.5;
-            audio.play().catch(e => {});
+            
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('✅ [SOUND] Audio played successfully');
+                }).catch(e => {
+                    console.error('❌ [SOUND] Audio play failed - browser may require user interaction first:', e);
+                    if (e.name === 'NotAllowedError') {
+                        console.log('🔇 [SOUND] Autoplay blocked - user needs to interact with page first');
+                    }
+                });
+            }
         } catch (error) {
+            console.error('❌ [SOUND] Audio creation failed:', error);
         }
     }
 
@@ -414,8 +447,6 @@ window.testCorrectServerNavigation = function() {
 };
 
 window.testAllMentionNotification = function() {
-
-    
     const testAllMentionData = {
         type: 'all',
         message_id: 'test-all-' + Date.now(),
@@ -436,14 +467,52 @@ window.testAllMentionNotification = function() {
         }
     };
     
-
-    
     if (window.globalNotificationHandler) {
         window.globalNotificationHandler.handleMentionNotification(testAllMentionData);
-
     } else {
         console.error('❌ [ALL-MENTION-TEST] globalNotificationHandler not found');
     }
+};
+
+window.testRoleMentionNotifications = function() {
+    const currentUserId = window.globalSocketManager?.userId || '1';
+    
+    const roles = ['admin', 'members', 'owner'];
+    
+    roles.forEach((role, index) => {
+        setTimeout(() => {
+            const testRoleMentionData = {
+                type: 'role',
+                role: role,
+                message_id: `test-${role}-` + Date.now(),
+                content: `This is a test @${role} mention`,
+                user_id: '999',
+                username: 'TestUser',
+                avatar_url: '/public/assets/common/default-profile-picture.png',
+                channel_id: 13,
+                target_type: 'channel',
+                target_id: 13,
+                server_id: 13,
+                mentioned_user_id: currentUserId,
+                mentioned_username: 'CurrentUser',
+                timestamp: Date.now(),
+                context: {
+                    server_id: 13,
+                    server_name: 'Test Server',
+                    channel_name: 'Test Channel',
+                    server_icon: '/public/assets/common/main-logo.png'
+                }
+            };
+            
+            console.log(`🧪 [ROLE-TEST] Testing ${role} mention notification`);
+            
+            if (window.globalNotificationHandler) {
+                window.globalNotificationHandler.handleMentionNotification(testRoleMentionData);
+            } else {
+                console.error(`❌ [ROLE-TEST] globalNotificationHandler not found for ${role}`);
+            }
+        }, index * 2000);
+    });
 };
 
 new GlobalNotificationHandler(); 

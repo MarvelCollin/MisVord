@@ -810,30 +810,6 @@ class MentionHandler {
         return formattedContent;
     }
     
-    handleMentionNotification(data) {
-        const currentUserId = window.globalSocketManager?.userId;
-        if (!currentUserId) return;
-        
-        const mentions = data.mentions || [];
-        const isAllMention = mentions.some(m => m.type === 'all');
-        const isRoleMention = mentions.some(m => m.type === 'role');
-        const isUserMention = mentions.some(m => m.type === 'user' && m.user_id === currentUserId);
-        
-        if (isAllMention || isRoleMention || isUserMention) {
-
-            this.playMentionSound();
-        }
-    }
-    
-    playMentionSound() {
-        try {
-            const audio = new Audio('/public/assets/sound/discordo_sound.mp3');
-            audio.volume = 0.5;
-            audio.play().catch(e => {});
-        } catch (error) {
-        }
-    }
-    
     getAllParticipants() {
         const participants = [];
         
