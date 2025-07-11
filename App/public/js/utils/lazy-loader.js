@@ -15,7 +15,6 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
             document.querySelectorAll('[data-lazyload]').forEach(element => {
                 this.showLoadingState(element);
             });
-            this.addGlobalLoadingIndicator();
             this.listenForDataEvents();
             safeLog.debug('ui', 'Lazy Loader initialized');
         },
@@ -56,9 +55,6 @@ if (typeof window !== 'undefined' && !window.LazyLoader) {
             safeLog.debug('ui', `Data loaded for type: ${type}, isEmpty: ${isEmpty}`);
         },
         
-        addGlobalLoadingIndicator() {
-        },
-        
         listenForDataEvents() {
         }
     };
@@ -83,16 +79,13 @@ const LazyLoader = {
 
             }
         }
-    },
-
-    init() {
-        this.setupObserver();
-        document.querySelectorAll('[data-lazyload]').forEach(element => {
-            this.showLoadingState(element);
-        });
-        this.addGlobalLoadingIndicator();
-        this.listenForDataEvents();
-        this.safeLog.debug('ui', 'Lazy Loader initialized');
+    },        init() {
+            this.setupObserver();
+            document.querySelectorAll('[data-lazyload]').forEach(element => {
+                this.showLoadingState(element);
+            });
+            this.listenForDataEvents();
+            this.safeLog.debug('ui', 'Lazy Loader initialized');
         
         if (typeof window !== 'undefined' && window.LazyLoader) {
             Object.assign(window.LazyLoader, this);
@@ -228,36 +221,6 @@ const LazyLoader = {
         return wrapper;
     },
 
-    addGlobalLoadingIndicator() {
-        if (document.getElementById('globalLoadingIndicator')) return;
-        
-        const indicator = document.createElement('div');
-        indicator.id = 'globalLoadingIndicator';
-        indicator.className = 'fixed top-0 left-0 w-full h-1 bg-transparent z-50 pointer-events-none';
-        
-        const progress = document.createElement('div');
-        progress.className = 'h-full bg-gradient-to-r from-blue-500 to-purple-500 w-0 transition-all duration-300 ease-out';
-        
-        indicator.appendChild(progress);
-        document.body.appendChild(indicator);
-    },
-
-    updateGlobalLoadingProgress(percent) {
-        const indicator = document.getElementById('globalLoadingIndicator');
-        if (!indicator) return;
-        
-        const progress = indicator.querySelector('div');
-        if (progress) {
-            progress.style.width = `${percent}%`;
-            
-            if (percent >= 100) {
-                setTimeout(() => {
-                    progress.style.width = '0%';
-                }, 500);
-            }
-        }
-    },
-
     triggerLoad(element, type) {
 
         
@@ -274,8 +237,6 @@ const LazyLoader = {
         if (type === 'channel-list') {
 
         }
-        
-        this.updateGlobalLoadingProgress(25);
     },
 
     triggerDataLoaded(type, isEmpty = false) {
@@ -290,8 +251,6 @@ const LazyLoader = {
         });
         
         document.dispatchEvent(event);
-        
-        this.updateGlobalLoadingProgress(100);
         
         const elements = document.querySelectorAll(`[data-lazyload="${type}"]`);
         elements.forEach(element => {
@@ -315,7 +274,6 @@ const LazyLoader = {
             const { element } = event.detail;
             if (element) {
                 this.showLoadingState(element);
-                this.updateGlobalLoadingProgress(50);
             }
         });
         
@@ -334,8 +292,6 @@ const LazyLoader = {
                     }
                 }, 300);
                 }
-                
-                this.updateGlobalLoadingProgress(100);
             }
         });
     }
