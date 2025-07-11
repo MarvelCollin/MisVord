@@ -166,7 +166,11 @@ class MediaController extends BaseController
         }
 
         try {        
-        $apiKey = 'AIzaSyAyimkuYQYF-FzifhRdMndB8AYrLlNVTNY';
+        $apiKey = EnvLoader::get('TENOR_API_KEY');
+        
+        if (empty($apiKey)) {
+            return $this->error('TENOR_API_KEY environment variable is required but not set', 500);
+        }
             $url = "https://tenor.googleapis.com/v2/search?" . http_build_query([
                 'q' => $query,
                 'key' => $apiKey,

@@ -28,7 +28,7 @@ class Migration {
                 $host = EnvLoader::get('DB_HOST', 'db');
                 $port = EnvLoader::get('DB_PORT', '1003');
                 $username = EnvLoader::get('DB_USER', 'root');
-                $password = EnvLoader::get('DB_PASS', 'kolin123');
+                $password = EnvLoader::get('DB_PASS', '');
                 $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
 
                 $dsn = "mysql:host={$host};port={$port};charset={$charset}";
@@ -485,7 +485,7 @@ class MigrationRunner {
             $host = EnvLoader::get('DB_HOST', 'db');
             $port = EnvLoader::get('DB_PORT', '1003');
             $username = EnvLoader::get('DB_USER', 'root');
-            $password = EnvLoader::get('DB_PASS', 'kolin123');
+            $password = EnvLoader::get('DB_PASS', '');
             $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
 
             $dsn = "mysql:host={$host};port={$port};charset={$charset}";
@@ -784,7 +784,7 @@ class MigrationRunner {
             $port = EnvLoader::get('DB_PORT', '1003');
             $dbname = EnvLoader::get('DB_NAME', 'misvord');
             $username = EnvLoader::get('DB_USER', 'root');
-            $password = EnvLoader::get('DB_PASS', 'kolin123');
+            $password = EnvLoader::get('DB_PASS', '');
 
             echo "Connection test with these settings:\n";
             echo "- Host: {$host}\n";

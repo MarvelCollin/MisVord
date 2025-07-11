@@ -6,7 +6,7 @@ class VoiceManager {
         this.currentChannelId = null;
         this.currentChannelName = null;
         this.currentMeetingId = null;
-        this.authToken = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlrZXkiOiI4YWQyZGJjZC02MzhkLTRmYmItOTk5Yy05YTQ4YTgzY2FhMTUiLCJwZXJtaXNzaW9ucyI6WyJhbGxvd19qb2luIiwiYWxsb3dfcHVibGlzaCJdLCJpYXQiOjE3NTEyMTU2MjEsImV4cCI6MTc1MzgwNzYyMX0.duF2XwBk9-glZTDWS8QyX4yGNaf6faZXUCLsc07QxJk";
+        this.authToken = null;
         this.participants = new Map();
         this.botParticipants = new Map();
         this.localParticipant = null;
@@ -21,6 +21,7 @@ class VoiceManager {
     
     async init() {
         await this.loadVideoSDK();
+        await this.fetchAuthToken();
         this.setupBeforeUnloadHandler();
         this.setupBotEventListeners();
         
@@ -42,7 +43,29 @@ class VoiceManager {
         if (!this.sdkLoaded) {
             await this.loadVideoSDK();
         }
+        if (!this.authToken) {
+            await this.fetchAuthToken();
+        }
         return this.sdkLoaded;
+    }
+
+    async fetchAuthToken() {
+        try {
+            const response = await fetch('/api/videosdk/token', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                this.authToken = data.token;
+                console.log('[VoiceManager] Auth token fetched successfully');
+            } else {
+                console.error('[VoiceManager] Failed to fetch auth token:', response.status);
+            }
+        } catch (error) {
+            console.error('[VoiceManager] Error fetching auth token:', error);
+        }
     }
     
     async loadVideoSDK() {
@@ -249,6 +272,11 @@ class VoiceManager {
             const userName = this.getUserName();
             const userAvatar = document.querySelector('meta[name="user-avatar"]')?.content || '/public/assets/common/default-profile-picture.png';
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content || 'unknown';
+            
+            if (!this.authToken) {
+                console.error('[VoiceManager] Cannot create meeting: Auth token not available');
+                return null;
+            }
             
             VideoSDK.config(this.authToken);
             
@@ -722,6 +750,11 @@ class VoiceManager {
         
 
         const customMeetingId = `voice_channel_${channelId}`;
+        
+        if (!this.authToken) {
+            console.error('[VoiceManager] Cannot create meeting: Auth token not available');
+            return null;
+        }
         
         try {
             const response = await fetch('https://api.videosdk.live/v2/rooms', {

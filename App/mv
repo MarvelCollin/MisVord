@@ -21,7 +21,10 @@ if (file_exists(__DIR__ . '/.env')) {
 putenv("DB_HOST=db");
 $dbPort = getenv("DB_PORT") ?: "1003";
 putenv("DB_PORT=" . $dbPort);
-putenv("DB_PASS=kolin123");
+$dbPass = getenv("DB_PASS");
+if ($dbPass) {
+    putenv("DB_PASS=" . $dbPass);
+}
 
 require_once __DIR__ . '/config/env.php';
 require_once __DIR__ . '/config/db.php';

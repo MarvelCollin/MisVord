@@ -1128,8 +1128,17 @@ class AuthenticationController extends BaseController
         header('Content-Type: application/json');
 
         try {
-            $apiKey = "8ad2dbcd-638d-4fbb-999c-9a48a83caa15";
-            $secretKey = "2894abac68603be19aa80b781cad6683eebfb922f496c22cc46b19ad91647d4e";
+            $apiKey = EnvLoader::get('VIDEOSDK_API_KEY');
+            $secretKey = EnvLoader::get('VIDEOSDK_SECRET_KEY');
+
+            if (empty($apiKey) || empty($secretKey)) {
+                http_response_code(500);
+                echo json_encode([
+                    'error' => 'VideoSDK configuration missing',
+                    'message' => 'VIDEOSDK_API_KEY and VIDEOSDK_SECRET_KEY must be set in environment'
+                ]);
+                return;
+            }
 
             $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
             $payload = json_encode([

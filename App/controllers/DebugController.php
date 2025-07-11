@@ -53,7 +53,7 @@ class DebugController extends BaseController
             $pdo = new PDO(
                 $dsn,
                 EnvLoader::get('DB_USER', 'root'),
-                EnvLoader::get('DB_PASS', 'kolin123'),
+                EnvLoader::get('DB_PASS', ''),
                 $options
             );
 

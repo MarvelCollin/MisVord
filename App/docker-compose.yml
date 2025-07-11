@@ -33,7 +33,7 @@ services:
       - DB_PORT=1003
       - DB_NAME=misvord
       - DB_USER=root
-      - DB_PASS=kolin123
+      - DB_PASS=${DB_PASS}
       - DB_CHARSET=utf8mb4
       - IS_VPS=${IS_VPS:-true} 
       - USE_HTTPS=${USE_HTTPS:-true} 
@@ -73,7 +73,7 @@ services:
       - DB_PORT=1003
       - DB_NAME=misvord
       - DB_USER=root
-      - DB_PASS=kolin123
+      - DB_PASS=${DB_PASS}
       - SOCKET_PORT=1002
       - SOCKET_BASE_PATH=/socket.io
       - CORS_ALLOWED_ORIGINS=http://localhost:1001,http://127.0.0.1:1001,http://misvord_php:1001,${DOMAIN:-marvelcollin.my.id}
@@ -93,7 +93,7 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: misvord
-      MYSQL_ROOT_PASSWORD: kolin123
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
       MYSQL_ROOT_HOST: "%"
       MYSQL_TCP_PORT: 1003
     volumes:
@@ -105,7 +105,7 @@ services:
       - "1003:1003"
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --port=1003
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "1003", "-u", "root", "-pkolin123"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-P", "1003", "-u", "root", "-p${DB_PASS}"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -126,8 +126,8 @@ services:
       PMA_ARBITRARY: 1
       UPLOAD_LIMIT: 500M
       PMA_USER: root
-      PMA_PASSWORD: kolin123
-      MYSQL_ROOT_PASSWORD: kolin123
+      PMA_PASSWORD: ${DB_PASS}
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

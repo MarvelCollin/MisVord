@@ -20,7 +20,11 @@ class Database {
             $port = EnvLoader::get('DB_PORT', '1003');
             $dbname = EnvLoader::get('DB_NAME', 'misvord');
             $username = EnvLoader::get('DB_USER', 'root');
-            $password = EnvLoader::get('DB_PASS', 'kolin123');
+            $password = EnvLoader::get('DB_PASS', '');
+
+            if (empty($password)) {
+                throw new Exception('DB_PASS environment variable is required but not set');
+            }
             $charset = EnvLoader::get('DB_CHARSET', 'utf8mb4');
 
             
