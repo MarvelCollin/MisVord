@@ -586,7 +586,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const roomId = data.data.room_id || data.data.channel_id;
                 
                 if (roomId) {
-
                     window.location.href = `/home/channels/dm/${roomId}`;
                 } else {
                     console.error('❌ No room ID found in response:', data);

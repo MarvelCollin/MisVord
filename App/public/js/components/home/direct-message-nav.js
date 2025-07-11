@@ -54,7 +54,6 @@ class DirectMessageNavigation {
     }
 
     switchToFriends() {
-
         if (this.dmSwitcher) {
             this.dmSwitcher.switchToFriends();
         } else {
@@ -107,7 +106,6 @@ function initDirectMessageNavigation() {
 window.initDirectMessageNavigation = initDirectMessageNavigation;
 
 window.addEventListener('popstate', (event) => {
-
     window.location.reload();
 });
 

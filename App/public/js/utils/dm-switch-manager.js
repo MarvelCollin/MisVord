@@ -98,14 +98,14 @@ class SimpleDMSwitcher {
         
         this.isLoading = true;
         
-
         window.location.href = `/home/channels/dm/${dmId}`;
     }
     
     async switchToFriends() {
         if (this.isLoading) return;
+        
         this.isLoading = true;
-
+        
         window.location.href = '/home/friends?tab=online';
     }
     
@@ -142,7 +142,6 @@ class SimpleDMSwitcher {
     
     updateURL(dmId) {
         const url = `/home/channels/dm/${dmId}`;
-
         if (window.history && window.history.pushState) {
             window.history.pushState({ dmId: dmId, type: 'dm' }, '', url);
         }
@@ -150,7 +149,6 @@ class SimpleDMSwitcher {
     
     updateFriendsURL() {
         const url = '/home/friends?tab=online';
-
         if (window.history && window.history.pushState) {
             window.history.pushState({ type: 'friends' }, '', url);
         }
