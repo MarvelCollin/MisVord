@@ -66,11 +66,13 @@ class DirectMessageNavigation {
             dmId, 
             chatName, 
             roomType,
-            hasDmSwitcher: !!this.dmSwitcher
+            hasChatSection: !!window.chatSection
         });
 
-        if (this.dmSwitcher) {
-            this.dmSwitcher.switchToDM(dmId, roomType, chatName);
+        if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+            this.activeDmId = dmId;
+            window.chatSection.switchToDM(dmId, roomType);
+            this.updateActiveDmDisplay();
         } else {
             window.location.href = `/home/channels/dm/${dmId}`;
         }

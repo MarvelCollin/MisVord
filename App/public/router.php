@@ -4,7 +4,22 @@ if (!defined('APP_ROOT')) {
     define('APP_ROOT', dirname(__DIR__));
 }
 
-require_once APP_ROOT . '/config/app.php';
+if (getenv('APP_ENV') === 'production' || (isset($_ENV['APP_ENV']) && $_ENV['APP_ENV'] === 'production')) {
+    error_reporting(E_ERROR | E_PARSE);
+    ini_set('display_errors', 0);
+} else {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+}
+
+try {
+    require_once APP_ROOT . '/config/app.php';
+} catch (Exception $e) {
+    error_log("Failed to load app configuration: " . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['error' => 'Configuration error']);
+    exit;
+}
 
 $requestUri = $_SERVER['REQUEST_URI'];
 $parsedUri = parse_url($requestUri, PHP_URL_PATH);

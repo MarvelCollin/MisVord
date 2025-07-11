@@ -97,8 +97,27 @@ class SimpleDMSwitcher {
         if (this.isLoading) return;
         
         this.isLoading = true;
+        this.currentDMId = dmId;
+        this.currentDMType = roomType;
         
-        window.location.href = `/home/channels/dm/${dmId}`;
+        this.highlightActiveDM(dmId);
+        this.showChatSection();
+        
+        if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
+            try {
+                await window.chatSection.switchToDM(dmId, roomType);
+                this.updateURL(dmId);
+                this.updateMetaTags(dmId, 'dm');
+                this.updatePageTitle(username, 'dm');
+            } catch (error) {
+                console.error('❌ [DM-SWITCH] Error switching to DM:', error);
+                window.location.href = `/home/channels/dm/${dmId}`;
+            }
+        } else {
+            window.location.href = `/home/channels/dm/${dmId}`;
+        }
+        
+        this.isLoading = false;
     }
     
     async switchToFriends() {

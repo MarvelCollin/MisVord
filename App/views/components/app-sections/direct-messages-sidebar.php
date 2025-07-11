@@ -363,6 +363,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }, 2000);
     
+    document.addEventListener('click', function(e) {
+        const dmItem = e.target.closest('.dm-friend-item');
+        if (dmItem) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const chatRoomId = dmItem.getAttribute('data-chat-room-id');
+            const roomType = dmItem.getAttribute('data-room-type') || 'direct';
+            const username = dmItem.getAttribute('data-username') || 'Chat';
+            
+            if (chatRoomId && window.directMessageNavigation) {
+                window.directMessageNavigation.switchToChat(chatRoomId, username, roomType);
+            }
+        }
+    });
+    
     setInterval(() => {
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
             updateAllUserStatuses();

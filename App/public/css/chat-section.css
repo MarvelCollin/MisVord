@@ -1090,10 +1090,25 @@ button {
     min-height: 100vh !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     padding: 16px;
     background-color: #313338;
     overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.chat-skeleton-container.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
 }
 
 .chat-skeleton-avatar {
