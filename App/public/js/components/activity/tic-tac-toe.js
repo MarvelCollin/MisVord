@@ -926,6 +926,12 @@ class TicTacToeModal {
             if (lobbyInfo) {
                 lobbyInfo.textContent = `Players in lobby: ${data.lobby_count}`;
             }
+            
+            const readyButton = document.querySelector('#ready-button');
+            if (readyButton) {
+                readyButton.innerHTML = '<span class="relative z-10">Ready to Play</span>';
+                readyButton.className = 'ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-300';
+            }
         });
     }
 
