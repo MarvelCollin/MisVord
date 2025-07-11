@@ -38,13 +38,30 @@ if ($is_auth_page) {
 
 <script>
 (function() {
-    const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
-    const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
-    const socketSecure = document.querySelector('meta[name="socket-secure"]')?.content === 'true';
-    
-    if (socketHost) window.SOCKET_HOST = socketHost;
-    if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
-    if (socketSecure !== undefined) window.SOCKET_SECURE = socketSecure;
+    try {
+        const socketHost = document.querySelector('meta[name="socket-host"]')?.content;
+        const socketPort = document.querySelector('meta[name="socket-port"]')?.content;
+        const socketSecure = document.querySelector('meta[name="socket-secure"]')?.content === 'true';
+        
+        if (socketHost) window.SOCKET_HOST = socketHost;
+        if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
+        if (socketSecure !== undefined) window.SOCKET_SECURE = socketSecure;
+        
+        // Debug logging for production issues
+        console.log('🔧 Socket configuration from meta tags:', {
+            host: socketHost,
+            port: socketPort,
+            secure: socketSecure,
+            windowLocation: {
+                hostname: window.location.hostname,
+                port: window.location.port,
+                protocol: window.location.protocol,
+                href: window.location.href
+            }
+        });
+    } catch (error) {
+        console.error('❌ Error setting up socket configuration:', error);
+    }
 })();
 </script>
 

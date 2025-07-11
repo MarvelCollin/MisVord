@@ -1,0 +1,148 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Environment and configuration
+.env
+.env.*
+!.env.example
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Node.js dependencies and cache
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+.pnpm-debug.log*
+
+# PHP Composer
+vendor/
+composer.phar
+composer.lock
+
+# Logs and temporary files
+logs/
+*.log
+log/
+tmp/
+temp/
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage and test reports
+coverage/
+.nyc_output
+.coverage
+phpunit.xml
+.phpunit.result.cache
+test-results/
+playwright-report/
+
+# Build artifacts and dist
+dist/
+build/
+out/
+
+# Public storage and uploads (keep structure but ignore content)
+public/storage/*
+!public/storage/.gitkeep
+storage/app/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+
+# Database files
+*.sqlite
+*.db
+
+# Documentation and README files (optional - remove if you want them in image)
+README.md
+CHANGELOG.md
+LICENSE
+*.md
+
+# Docker files (to avoid recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Development and testing
+.editorconfig
+.eslintrc*
+.prettierrc*
+jest.config.js
+playwright.config.js
+phpunit.xml
+.phpcs.xml
+.phpstan.neon
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Package files
+*.tar.gz
+*.zip
+*.rar
+
+# Security and secrets
+.secrets
+private/
+certs/
+*.pem
+*.key
+*.crt
+
+# Development tools
+.devcontainer/
+vagrant/
+.vagrant/
+
+# Application specific exclusions
+migrations/
+bootstrap/cache/
+config/cache/
+
+# Exclude test data and fixtures
+tests/fixtures/
+tests/data/
+
+# Exclude development scripts
+scripts/dev/
+scripts/local/
+
+# IDE specific (additional)
+*.sublime-project
+*.sublime-workspace
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
