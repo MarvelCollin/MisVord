@@ -14,10 +14,33 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 ?>
 
 <div class="w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800/80">
-    <div class="h-12 border-b border-gray-800/90 flex items-center px-4 shadow-sm bg-discord-dark/95">
-        <h2 class="font-bold text-white flex-1 truncate">
+    <div class="h-12 border-b border-gray-800/90 flex items-center px-4 shadow-sm bg-discord-dark/95 server-header-container">
+        <h2 class="font-bold text-white flex-1 truncate server-name">
             <?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?>
         </h2>
+        <button id="server-dropdown-btn" class="server-dropdown-btn ml-2 p-1 rounded hover:bg-gray-700/50 transition-colors">
+            <i class="fas fa-chevron-down text-sm"></i>
+        </button>
+        
+        <div id="server-dropdown" class="server-dropdown hidden">
+            <div class="server-dropdown-item">
+                <i class="fas fa-user-plus"></i>
+                <span>Invite People</span>
+            </div>
+            <div class="server-dropdown-item">
+                <i class="fas fa-cog"></i>
+                <span>Server Settings</span>
+            </div>
+            <div class="server-dropdown-item">
+                <i class="fas fa-plus"></i>
+                <span>Create Channel</span>
+            </div>
+            <div class="server-dropdown-separator"></div>
+            <div class="server-dropdown-item destructive">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Leave Server</span>
+            </div>
+        </div>
     </div>
 
     <div class="channel-wrapper flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-800">
@@ -97,5 +120,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (skeleton) skeleton.style.display = 'none';
         if (content) content.style.display = 'block';
     }, 800);
+    
+    if (typeof window.initServerDropdown === 'function') {
+        setTimeout(() => {
+            window.initServerDropdown();
+        }, 100);
+    }
 });
 </script>

@@ -304,6 +304,10 @@
 }
 
 
+.server-header-container {
+    position: relative;
+}
+
 .server-dropdown {
     position: absolute;
     top: 100%;
@@ -317,6 +321,7 @@
     opacity: 1;
     transform: translateY(0);
     transition: opacity 0.15s ease, transform 0.15s ease;
+    margin-top: 4px;
 }
 
 .server-dropdown.hidden {
@@ -373,9 +378,14 @@
     border: none;
     color: #b9bbbe;
     cursor: pointer;
-    padding: 4px;
+    padding: 6px 8px;
     border-radius: 4px;
     transition: color 0.15s ease, background-color 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
 }
 
 .server-dropdown-btn:hover {
