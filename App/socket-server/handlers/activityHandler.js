@@ -247,6 +247,9 @@ class ActivityHandler {
                     winning_positions: winner ? this.getWinningPositions(gameData.board) : null
                 });
                 
+                const roomName = `tic-tac-toe-server-${server_id}`;
+                const remainingLobbyPlayers = [];
+                
                 if (gameRoomClients) {
                     gameRoomClients.forEach(socketId => {
                         const socket = io.sockets.sockets.get(socketId);
@@ -256,9 +259,24 @@ class ActivityHandler {
                             socket.data.ticTacToeGameRoom = null;
                             socket.data.ticTacToeReady = false;
                             socket.leave(gameRoomName);
+                            
+                            remainingLobbyPlayers.push({
+                                user_id: socket.data.user_id,
+                                username: socket.data.username,
+                                avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                                ready: false
+                            });
                         }
                     });
                 }
+                
+                setTimeout(() => {
+                    io.to(roomName).emit('tic-tac-toe-returned-to-lobby', {
+                        players: remainingLobbyPlayers,
+                        message: 'Game ended - returned to lobby',
+                        lobby_count: remainingLobbyPlayers.length
+                    });
+                }, 2000);
             }, 800);
         }
     }
@@ -385,195 +403,6 @@ class ActivityHandler {
         }
         
         return null;
-    }
-
-    static handleTicTacToePlayAgainRequest(io, client, data) {
-        const server_id = client.data.ticTacToeServerId;
-        const gameRoomName = client.data.ticTacToeGameRoom;
-        
-        if (!server_id || !gameRoomName) {
-            client.emit('tic-tac-toe-error', { message: 'Not in a game to play again' });
-            return;
-        }
-        
-        const gameRoomClients = io.sockets.adapter.rooms.get(gameRoomName);
-        
-        if (!gameRoomClients || gameRoomClients.size !== 2) {
-            client.emit('tic-tac-toe-error', { message: 'Need exactly 2 players for play again' });
-            return;
-        }
-        
-        client.data.ticTacToePlayAgainRequest = true;
-        
-        const players = [];
-        const playAgainRequests = [];
-        
-        gameRoomClients.forEach(socketId => {
-            const socket = io.sockets.sockets.get(socketId);
-            if (socket && socket.data && socket.data.user_id) {
-                players.push({
-                    user_id: socket.data.user_id,
-                    username: socket.data.username,
-                    avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
-                    ready: true
-                });
-                
-                const hasRequest = socket.data.ticTacToePlayAgainRequest || false;
-                playAgainRequests.push(hasRequest);
-            }
-        });
-        
-        const bothWantPlayAgain = playAgainRequests.every(request => request === true);
-        
-        if (bothWantPlayAgain) {
-            const newGameRoomName = `tic-tac-toe-game-${server_id}-${Date.now()}`;
-            
-            const gameData = {
-                players: players,
-                current_turn: players[Math.floor(Math.random() * 2)].user_id,
-                board: Array(9).fill(null),
-                game_id: `game-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                started_at: Date.now(),
-                room_name: newGameRoomName
-            };
-            
-            gameRoomClients.forEach(socketId => {
-                const socket = io.sockets.sockets.get(socketId);
-                if (socket) {
-                    socket.leave(gameRoomName);
-                    socket.join(newGameRoomName);
-                    socket.data.ticTacToeGameData = gameData;
-                    socket.data.ticTacToeGameRoom = newGameRoomName;
-                    socket.data.ticTacToePlayAgainRequest = false;
-                    socket.data.ticTacToeReady = true;
-                    socket.data.ticTacToeInGame = true;
-                }
-            });
-            
-            io.to(newGameRoomName).emit('tic-tac-toe-game-start', gameData);
-        } else {
-            client.to(gameRoomName).emit('tic-tac-toe-play-again-request', {
-                player: {
-                    user_id: client.data.user_id,
-                    username: client.data.username
-                }
-            });
-        }
-    }
-
-    static handleTicTacToePlayAgainResponse(io, client, data) {
-        const { accepted } = data;
-        const server_id = client.data.ticTacToeServerId;
-        const gameRoomName = client.data.ticTacToeGameRoom;
-        
-        if (!server_id || !gameRoomName) {
-            client.emit('tic-tac-toe-error', { message: 'Not in a game to respond to play again' });
-            return;
-        }
-        
-        const gameRoomClients = io.sockets.adapter.rooms.get(gameRoomName);
-        
-        if (!gameRoomClients || gameRoomClients.size !== 2) {
-            client.emit('tic-tac-toe-error', { message: 'Need exactly 2 players for play again response' });
-            return;
-        }
-        
-        if (accepted) {
-            const players = [];
-            let bothWantPlayAgain = true;
-            
-            gameRoomClients.forEach(socketId => {
-                const socket = io.sockets.sockets.get(socketId);
-                if (socket && socket.data && socket.data.user_id) {
-                    players.push({
-                        user_id: socket.data.user_id,
-                        username: socket.data.username,
-                        avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
-                        ready: true
-                    });
-                    
-                    if (!socket.data.ticTacToePlayAgainRequest && socket.id !== client.id) {
-                        bothWantPlayAgain = false;
-                    }
-                    
-                    socket.data.ticTacToeReady = true;
-                    socket.data.ticTacToeGameData = null;
-                    socket.data.ticTacToePlayAgainRequest = false;
-                }
-            });
-            
-            if (bothWantPlayAgain) {
-                const newGameRoomName = `tic-tac-toe-game-${server_id}-${Date.now()}`;
-                
-                const gameData = {
-                    players: players,
-                    current_turn: players[Math.floor(Math.random() * 2)].user_id,
-                    board: Array(9).fill(null),
-                    game_id: `game-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-                    started_at: Date.now(),
-                    room_name: newGameRoomName
-                };
-                
-                gameRoomClients.forEach(socketId => {
-                    const socket = io.sockets.sockets.get(socketId);
-                    if (socket) {
-                        socket.leave(gameRoomName);
-                        socket.join(newGameRoomName);
-                        socket.data.ticTacToeGameData = gameData;
-                        socket.data.ticTacToeGameRoom = newGameRoomName;
-                    }
-                });
-                
-                io.to(newGameRoomName).emit('tic-tac-toe-game-start', gameData);
-            } else {
-                io.to(gameRoomName).emit('tic-tac-toe-play-again-accepted', {
-                    player: {
-                        user_id: client.data.user_id,
-                        username: client.data.username
-                    }
-                });
-            }
-        } else {
-            gameRoomClients.forEach(socketId => {
-                const socket = io.sockets.sockets.get(socketId);
-                if (socket) {
-                    socket.data.ticTacToePlayAgainRequest = false;
-                    socket.data.ticTacToeInGame = false;
-                    socket.data.ticTacToeGameData = null;
-                    socket.data.ticTacToeGameRoom = null;
-                    socket.data.ticTacToeReady = false;
-                    socket.leave(gameRoomName);
-                }
-            });
-            
-            io.to(gameRoomName).emit('tic-tac-toe-play-again-declined', {
-                player: {
-                    user_id: client.data.user_id,
-                    username: client.data.username
-                }
-            });
-            
-            const roomName = `tic-tac-toe-server-${server_id}`;
-            const remainingLobbyPlayers = [];
-            
-            gameRoomClients.forEach(socketId => {
-                const socket = io.sockets.sockets.get(socketId);
-                if (socket && socket.data && socket.data.user_id) {
-                    remainingLobbyPlayers.push({
-                        user_id: socket.data.user_id,
-                        username: socket.data.username,
-                        avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
-                        ready: false
-                    });
-                }
-            });
-            
-            io.to(roomName).emit('tic-tac-toe-returned-to-lobby', {
-                players: remainingLobbyPlayers,
-                message: 'Game ended - returned to lobby',
-                lobby_count: remainingLobbyPlayers.length
-            });
-        }
     }
 }
 

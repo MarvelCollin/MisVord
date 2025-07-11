@@ -684,16 +684,6 @@ function setup(io) {
 
             ActivityHandler.handleTicTacToeLeave(io, client, data);
         });
-
-        client.on('tic-tac-toe-play-again-request', (data) => {
-
-            ActivityHandler.handleTicTacToePlayAgainRequest(io, client, data);
-        });
-
-        client.on('tic-tac-toe-play-again-response', (data) => {
-
-            ActivityHandler.handleTicTacToePlayAgainResponse(io, client, data);
-        });
         
         client.on('disconnect', () => {
 

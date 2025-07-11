@@ -373,8 +373,8 @@ class TicTacToeModal {
                         
                         <div id="game-result" class="text-center hidden">
                             <div id="winner-text" class="text-2xl font-bold mb-6"></div>
-                            <button id="new-game-button" class="new-game-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-200">
-                                <span class="relative z-10">Play Again</span>
+                            <button id="return-lobby-button" class="return-lobby-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-200">
+                                <span class="relative z-10">Return to Lobby</span>
                             </button>
                         </div>
                     </div>
@@ -707,7 +707,7 @@ class TicTacToeModal {
         const minimizeButton = modal.querySelector('#minimize-tic-tac-toe');
         const readyButton = modal.querySelector('#ready-button');
         const playButton = modal.querySelector('#play-button');
-        const newGameButton = modal.querySelector('#new-game-button');
+        const returnLobbyButton = modal.querySelector('#return-lobby-button');
         
         closeButton.addEventListener('click', () => {
             if (window.globalSocketManager.isReady()) {
@@ -722,13 +722,13 @@ class TicTacToeModal {
         });
         
         readyButton.addEventListener('click', () => {
-            const isReady = readyButton.textContent.includes('Ready for Battle');
+            const isReady = readyButton.textContent.includes('Ready to Play') || readyButton.textContent.includes('Ready for Battle');
             window.globalSocketManager.io.emit('tic-tac-toe-ready', { ready: isReady });
             if (isReady) {
                 readyButton.innerHTML = '<span class="relative z-10">Cancel Ready</span>';
                 readyButton.className = 'w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300';
             } else {
-                readyButton.innerHTML = '<span class="relative z-10">Ready for Battle</span>';
+                readyButton.innerHTML = '<span class="relative z-10">Ready to Play</span>';
                 readyButton.className = 'ready-button w-full py-3 px-6 rounded-lg font-bold text-white transition-all duration-300';
             }
         });
@@ -738,27 +738,23 @@ class TicTacToeModal {
             document.getElementById('game-section').classList.remove('hidden');
         });
         
-        newGameButton.addEventListener('click', () => {
-
-            
-            if (window.globalSocketManager.isReady()) {
-
+        if (returnLobbyButton) {
+            returnLobbyButton.addEventListener('click', () => {
+                document.getElementById('game-section').classList.add('hidden');
+                document.getElementById('welcome-section').classList.remove('hidden');
                 
-                window.globalSocketManager.io.emit('tic-tac-toe-play-again-request', {});
-                newGameButton.innerHTML = '<span class="relative z-10">Request Sent...</span>';
-                newGameButton.disabled = true;
-                newGameButton.className = 'w-full bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300 opacity-70 cursor-not-allowed';
+                const gameResult = document.getElementById('game-result');
+                if (gameResult) {
+                    gameResult.classList.add('hidden');
+                }
+                
+                this.currentGameData = null;
                 
                 if (window.showToast) {
-                    window.showToast('Play again request sent!', 'info');
+                    window.showToast('Returned to lobby', 'info');
                 }
-            } else {
-
-                if (window.showToast) {
-                    window.showToast('Connection not ready. Please try again.', 'error');
-                }
-            }
-        });
+            });
+        }
         
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
@@ -850,7 +846,6 @@ class TicTacToeModal {
 
             }
             
-            this.resetPlayAgainButton();
             this.updateGameInfo();
             this.createGameBoard();
             
@@ -874,36 +869,6 @@ class TicTacToeModal {
             if (window.showToast) {
                 window.showToast('Error: ' + data.message, 'error');
             }
-        });
-        io.on('tic-tac-toe-play-again-request', (data) => {
-
-            
-            const newGameButton = document.getElementById('new-game-button');
-
-            
-            if (newGameButton && newGameButton.textContent.includes('Request Sent')) {
-
-                
-                if (window.showToast) {
-                    window.showToast('Both players want to play again! Starting new game...', 'success');
-                }
-                newGameButton.innerHTML = '<span class="relative z-10">Starting Game...</span>';
-                newGameButton.className = 'w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-300';
-            } else {
-
-                this.showPlayAgainRequest(data.player);
-            }
-        });
-        io.on('tic-tac-toe-play-again-accepted', (data) => {
-            if (window.showToast) {
-                window.showToast(`${data.player.username} accepted! Waiting for game start...`, 'success');
-            }
-        });
-        io.on('tic-tac-toe-play-again-declined', (data) => {
-            if (window.showToast) {
-                window.showToast(`${data.player.username} declined to play again`, 'warning');
-            }
-            this.resetPlayAgainButton();
         });
         io.on('tic-tac-toe-player-left', (data) => {
             if (window.showToast) {
@@ -1015,82 +980,6 @@ class TicTacToeModal {
         } else {
             modal.style.display = 'none';
             this.isMinimized = true;
-        }
-    }
-
-    showPlayAgainRequest(player) {
-
-        
-        const gameResult = document.getElementById('game-result');
-        if (!gameResult) {
-
-            return;
-        }
-        
-        const newGameButton = document.getElementById('new-game-button');
-        if (newGameButton && newGameButton.textContent.includes('Request Sent')) {
-
-            if (window.showToast) {
-                window.showToast('Both players want to play again! Game starting...', 'success');
-            }
-            return;
-        }
-        
-        const existingRequest = document.getElementById('play-again-request');
-        if (existingRequest) {
-
-            existingRequest.remove();
-        }
-        
-        const requestDiv = document.createElement('div');
-        requestDiv.id = 'play-again-request';
-        requestDiv.className = 'mt-6 p-4 bg-gradient-to-r from-[#1a1d23] to-[#2c2f36] rounded-lg border border-[#5865f2] text-center';
-        requestDiv.innerHTML = `
-            <p class="text-white text-lg mb-4 font-bold">
-                ${player.username} wants to play again!
-            </p>
-            <div class="flex gap-3 justify-center">
-                <button id="accept-play-again" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all duration-300">
-                    Accept
-                </button>
-                <button id="decline-play-again" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-all duration-300">
-                    Decline
-                </button>
-            </div>
-        `;
-        
-        gameResult.appendChild(requestDiv);
-        
-        document.getElementById('accept-play-again').addEventListener('click', () => {
-            window.globalSocketManager.io.emit('tic-tac-toe-play-again-response', { accepted: true });
-            requestDiv.remove();
-            if (window.showToast) {
-                window.showToast('Accepted! Starting new game...', 'success');
-            }
-        });
-        
-        document.getElementById('decline-play-again').addEventListener('click', () => {
-            window.globalSocketManager.io.emit('tic-tac-toe-play-again-response', { accepted: false });
-            requestDiv.remove();
-            if (window.showToast) {
-                window.showToast('Play again declined', 'info');
-            }
-        });
-        
-        if (window.showToast) {
-            window.showToast(`${player.username} wants to play again!`, 'info');
-        }
-    }
-
-    resetPlayAgainButton() {
-        const newGameButton = document.getElementById('new-game-button');
-        if (newGameButton) {
-
-            newGameButton.innerHTML = '<span class="relative z-10">Play Again</span>';
-            newGameButton.disabled = false;
-            newGameButton.className = 'new-game-button py-3 px-8 rounded-lg font-bold text-white transition-all duration-300';
-        } else {
-
         }
     }
 }
