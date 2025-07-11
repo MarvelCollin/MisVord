@@ -764,21 +764,20 @@ class MentionHandler {
                 user_id: role
             });
         }
-        
-        let match;
+          let match;
         this.mentionRegex.lastIndex = 0;
         while ((match = this.mentionRegex.exec(content)) !== null) {
             const username = match[1];
-            if (['all', 'admin', 'members', 'owner'].includes(username.toLowerCase())) {
+            if (['admin', 'members', 'owner'].includes(username.toLowerCase())) {
                 continue;
             }
             const user = this.availableUsers.get(username.toLowerCase());
             
             if (user) {
                 mentions.push({
-                    type: 'user',
-                    username: user.username,
-                    user_id: user.id
+                type: 'user',
+                username: user.username,
+                user_id: user.id
                 });
             }
         }

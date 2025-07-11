@@ -1430,6 +1430,46 @@ class ServerController extends BaseController
         }
     }
 
+    public function getServerMembersForSocket($serverId)
+    {
+        header('Content-Type: application/json');
+
+        if (!$this->isValidSocketRequest()) {
+            return $this->forbidden('Unauthorized socket request');
+        }
+
+        if (!$serverId) {
+            return $this->validationError(['server_id' => 'Server ID is required']);
+        }
+
+        try {
+            $server = $this->serverRepository->find($serverId);
+            if (!$server) {
+                return $this->notFound('Server not found');
+            }
+
+            $members = $this->userServerMembershipRepository->getServerMembers($serverId);
+
+            $simplifiedMembers = array_map(function($member) {
+                return [
+                    'user_id' => $member['id'],
+                    'username' => $member['username'],
+                    'display_name' => $member['display_name'] ?? $member['username']
+                ];
+            }, $members);
+
+            return $this->success($simplifiedMembers);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to load server members: ' . $e->getMessage());
+        }
+    }
+
+    private function isValidSocketRequest()
+    {
+        $token = $_SERVER['HTTP_X_SOCKET_TOKEN'] ?? '';
+        return $token === 'socket-server-internal-auth-2025';
+    }
+
     public function promoteMember($serverId, $userId)
     {
         $this->requireAuth();

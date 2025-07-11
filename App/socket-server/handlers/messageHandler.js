@@ -949,11 +949,62 @@ class MessageHandler {
             if (mention.type === 'all') {
                 const allMentionPayload = { ...notificationPayload, type: 'all' };
 
-    
-                if (targetRoom) {
-                    client.to(targetRoom).emit('mention_notification', allMentionPayload);
+                if (notificationPayload.target_type === 'channel' && context.server_id) {
+                    console.log('📧 [MENTION-NOTIFICATIONS] Processing @all mention for server:', context.server_id);
+                    
+                    try {
+                        const response = await fetch(`http://app:1001/api/socket/servers/${context.server_id}/members`, {
+                            method: 'GET',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'User-Agent': 'SocketServer/1.0',
+                                'X-Socket-Token': 'socket-server-internal-auth-2025'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success && result.data) {
+                                const serverMembers = result.data;
+                                let notificationsSent = 0;
+                                
+                                for (const socket of io.sockets.sockets.values()) {
+                                    const socketUserId = socket.data?.user_id;
+                                    if (socketUserId && socketUserId.toString() !== messageData.user_id.toString()) {
+                                        const isMember = serverMembers.some(member => 
+                                            member.user_id?.toString() === socketUserId.toString()
+                                        );
+                                        if (isMember) {
+                                            socket.emit('mention_notification', allMentionPayload);
+                                            notificationsSent++;
+                                        }
+                                    }
+                                }
+                                console.log(`📧 [MENTION-NOTIFICATIONS] Sent @all notification to ${notificationsSent} server members`);
+                            } else {
+                                console.error('❌ [MENTION-NOTIFICATIONS] Failed to fetch server members:', result.message);
+                                if (targetRoom) {
+                                    client.to(targetRoom).emit('mention_notification', allMentionPayload);
+                                }
+                            }
+                        } else {
+                            console.error('❌ [MENTION-NOTIFICATIONS] Server members API error:', response.status);
+                            if (targetRoom) {
+                                client.to(targetRoom).emit('mention_notification', allMentionPayload);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('❌ [MENTION-NOTIFICATIONS] Error fetching server members:', error);
+                        if (targetRoom) {
+                            client.to(targetRoom).emit('mention_notification', allMentionPayload);
+                        }
+                    }
                 } else {
-                    io.emit('mention_notification', allMentionPayload);
+                    if (targetRoom) {
+                        client.to(targetRoom).emit('mention_notification', allMentionPayload);
+                    } else {
+                        io.emit('mention_notification', allMentionPayload);
+                    }
                 }
             } else if (mention.type === 'role') {
                 await this.handleRoleMention(io, client, notificationPayload, mention, targetRoom);
