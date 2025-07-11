@@ -598,17 +598,32 @@ class TicTacToeModal {
         
         if (data.is_draw) {
             winnerText.textContent = "It's a Draw!";
-            winnerText.className = 'text-2xl font-bold mb-6 text-yellow-400';
+            winnerText.className = 'text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-yellow-400';
             this.createFireworks('yellow');
+        } else if (data.reason === 'opponent_left') {
+            if (data.winner_user_id == this.userId) {
+                winnerText.textContent = 'You Won by Forfeit!';
+                winnerText.className = 'text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-green-400';
+                this.createFireworks('green');
+                this.createConfetti();
+                if (window.showToast) {
+                    window.showToast('Your opponent left the game!', 'success');
+                }
+            } else {
+                const winner = data.winner_player || this.currentGameData.players.find(p => p.user_id == data.winner_user_id);
+                winnerText.textContent = `${winner ? winner.username : 'Opponent'} Won by Forfeit!`;
+                winnerText.className = 'text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-red-400';
+                this.createFireworks('red');
+            }
         } else if (data.winner_user_id == this.userId) {
             winnerText.textContent = 'You Won!';
-            winnerText.className = 'text-2xl font-bold mb-6 text-green-400';
+            winnerText.className = 'text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-green-400';
             this.createFireworks('green');
             this.createConfetti();
         } else {
             const winner = this.currentGameData.players.find(p => p.user_id == data.winner_user_id);
             winnerText.textContent = `${winner ? winner.username : 'Opponent'} Won!`;
-            winnerText.className = 'text-2xl font-bold mb-6 text-red-400';
+            winnerText.className = 'text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6 text-red-400';
             this.createFireworks('red');
         }
 

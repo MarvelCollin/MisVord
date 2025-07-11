@@ -332,13 +332,30 @@ class ActivityHandler {
         if (isInGame && gameRoomName) {
             const gameRoomClients = io.sockets.adapter.rooms.get(gameRoomName);
             if (gameRoomClients && gameRoomClients.size > 1) {
-                client.to(gameRoomName).emit('tic-tac-toe-game-abandoned', {
-                    player: {
-                        user_id: client.data.user_id,
-                        username: client.data.username
-                    },
-                    reason: 'player_left'
+                let remainingPlayer = null;
+                gameRoomClients.forEach(socketId => {
+                    const socket = io.sockets.sockets.get(socketId);
+                    if (socket && socket.id !== client.id) {
+                        remainingPlayer = {
+                            user_id: socket.data.user_id,
+                            username: socket.data.username,
+                            avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png'
+                        };
+                    }
                 });
+                
+                if (remainingPlayer) {
+                    io.to(gameRoomName).emit('tic-tac-toe-game-end', {
+                        board: client.data.ticTacToeGameData ? client.data.ticTacToeGameData.board : Array(9).fill(null),
+                        winner: 'forfeit',
+                        is_draw: false,
+                        winner_user_id: remainingPlayer.user_id,
+                        game_data: client.data.ticTacToeGameData,
+                        winning_positions: null,
+                        reason: 'opponent_left',
+                        winner_player: remainingPlayer
+                    });
+                }
                 
                 gameRoomClients.forEach(socketId => {
                     const socket = io.sockets.sockets.get(socketId);
@@ -350,6 +367,54 @@ class ActivityHandler {
                         socket.leave(gameRoomName);
                     }
                 });
+                
+                setTimeout(() => {
+                    const roomName = `tic-tac-toe-server-${server_id}`;
+                    const allLobbyPlayers = [];
+                    
+                    const mainRoomClients = io.sockets.adapter.rooms.get(roomName);
+                    if (mainRoomClients) {
+                        mainRoomClients.forEach(socketId => {
+                            const socket = io.sockets.sockets.get(socketId);
+                            if (socket && socket.data && socket.data.user_id) {
+                                allLobbyPlayers.push({
+                                    user_id: socket.data.user_id,
+                                    username: socket.data.username,
+                                    avatar_url: socket.data.avatar_url || '/public/assets/common/default-profile-picture.png',
+                                    ready: false,
+                                    socketId: socketId
+                                });
+                            }
+                        });
+                    }
+                    
+                    if (remainingPlayer) {
+                        const existingPlayer = allLobbyPlayers.find(p => p.user_id === remainingPlayer.user_id);
+                        if (!existingPlayer) {
+                            allLobbyPlayers.push({
+                                user_id: remainingPlayer.user_id,
+                                username: remainingPlayer.username,
+                                avatar_url: remainingPlayer.avatar_url,
+                                ready: false
+                            });
+                        }
+                    }
+                    
+                    allLobbyPlayers.forEach(player => {
+                        if (player.socketId) {
+                            const socket = io.sockets.sockets.get(player.socketId);
+                            if (socket) {
+                                socket.data.ticTacToeReady = false;
+                            }
+                        }
+                    });
+                    
+                    io.to(roomName).emit('tic-tac-toe-returned-to-lobby', {
+                        players: allLobbyPlayers,
+                        message: `${remainingPlayer ? remainingPlayer.username : 'Player'} won by forfeit - returned to lobby`,
+                        lobby_count: allLobbyPlayers.length
+                    });
+                }, 2000);
             }
             client.leave(gameRoomName);
         }
