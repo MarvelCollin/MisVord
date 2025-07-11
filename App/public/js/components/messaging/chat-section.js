@@ -348,19 +348,28 @@ class ChatSection {
         const currentPath = window.location.pathname;
         const urlParams = new URLSearchParams(window.location.search);
         
+        console.log('🔍 [CHAT-SECTION] detectTargetId called:', {
+            chatType: this.chatType,
+            currentPath: currentPath,
+            urlParams: urlParams.toString()
+        });
+        
         if (this.chatType === 'channel') {
             const channelIdFromUrl = urlParams.get('channel');
             if (channelIdFromUrl) {
+                console.log('✅ [CHAT-SECTION] Found channel ID from URL:', channelIdFromUrl);
                 return channelIdFromUrl;
             }
             
             const chatIdMeta = document.querySelector('meta[name="chat-id"]');
             if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
+                console.log('✅ [CHAT-SECTION] Found channel ID from chat-id meta:', chatIdMeta.content);
                 return chatIdMeta.content;
             }
             
             const channelMeta = document.querySelector('meta[name="channel-id"]');
             if (channelMeta && channelMeta.content && channelMeta.content !== '') {
+                console.log('✅ [CHAT-SECTION] Found channel ID from channel-id meta:', channelMeta.content);
                 return channelMeta.content;
             }
             
@@ -368,6 +377,7 @@ class ChatSection {
             if (activeChannelElement) {
                 const channelId = activeChannelElement.getAttribute('data-channel-id');
                 if (channelId) {
+                    console.log('✅ [CHAT-SECTION] Found channel ID from active element:', channelId);
                     return channelId;
                 }
             }
@@ -376,37 +386,49 @@ class ChatSection {
             if (firstTextChannel) {
                 const channelId = firstTextChannel.getAttribute('data-channel-id');
                 if (channelId) {
+                    console.log('✅ [CHAT-SECTION] Found channel ID from first text channel:', channelId);
                     return channelId;
                 }
             }
             
+            console.warn('⚠️ [CHAT-SECTION] No channel ID found');
             return null;
         }
         
         if (this.chatType === 'direct') {
             const chatIdMeta = document.querySelector('meta[name="chat-id"]');
             if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
+                console.log('✅ [CHAT-SECTION] Found DM ID from chat-id meta:', chatIdMeta.content);
                 return chatIdMeta.content;
             }
             
             const dmMatch = currentPath.match(/\/home\/channels\/dm\/(\d+)/);
             if (dmMatch) {
+                console.log('✅ [CHAT-SECTION] Found DM ID from URL:', dmMatch[1]);
                 return dmMatch[1];
             }
             
             const roomIdFromUrl = urlParams.get('room');
             if (roomIdFromUrl) {
+                console.log('✅ [CHAT-SECTION] Found DM ID from room param:', roomIdFromUrl);
                 return roomIdFromUrl;
             }
             
             const roomMeta = document.querySelector('meta[name="room-id"]');
             if (roomMeta && roomMeta.content && roomMeta.content !== '') {
+                console.log('✅ [CHAT-SECTION] Found DM ID from room-id meta:', roomMeta.content);
                 return roomMeta.content;
             }
             
+            console.warn('⚠️ [CHAT-SECTION] No DM ID found. Available meta tags:', {
+                chatId: document.querySelector('meta[name="chat-id"]')?.content || 'not found',
+                roomId: document.querySelector('meta[name="room-id"]')?.content || 'not found',
+                allMetas: Array.from(document.querySelectorAll('meta[name]')).map(m => `${m.name}=${m.content}`)
+            });
             return null;
         }
         
+        console.warn('⚠️ [CHAT-SECTION] Unknown chat type:', this.chatType);
         return null;
     }
     
@@ -589,16 +611,30 @@ class ChatSection {
             if (!this.targetId) {
                 this.targetId = this.detectTargetId();
                 
-                if (!this.targetId) {
+                if (!this.targetId && this.chatType === 'direct') {
+                    console.log('🔄 [CHAT-SECTION] Retrying DM target ID detection...');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     this.targetId = this.detectTargetId();
                     
                     if (!this.targetId) {
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         this.targetId = this.detectTargetId();
+                        
+                        if (!this.targetId) {
+                            console.error('❌ [CHAT-SECTION] Could not detect DM target ID after retries');
+                            this.hideChatSkeleton();
+                            this.showEmptyState('Unable to load direct message. Please refresh the page.');
+                            return;
+                        }
                     }
                 }
             }
+            
+            console.log('✅ [CHAT-SECTION] Detected chat info:', {
+                chatType: this.chatType,
+                targetId: this.targetId,
+                url: window.location.href
+            });
             
             if (this.targetId) {
                 this.updateChannelHeader();
