@@ -73,6 +73,17 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                 
             </form>
         </div>
+        
+        <div class="bg-[#2b2d31] py-4 px-6 flex justify-end gap-3">
+            <button type="button" id="cancel-create-channel" 
+                    class="px-4 py-2 text-sm font-medium text-white hover:underline">
+                Cancel
+            </button>
+            <button type="submit" form="create-channel-form" id="create-channel-btn"
+                    class="bg-discord-blue text-white px-4 py-2 rounded text-sm font-medium hover:bg-opacity-80 transition-colors">
+                Create Channel
+            </button>
+        </div>
         </div>
     </div>
 </div>
