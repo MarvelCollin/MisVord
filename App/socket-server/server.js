@@ -7,11 +7,68 @@ const eventController = require('./controllers/eventController');
 const server = http.createServer((req, res) => {
     if (req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
+        const connectedClients = io.engine.clientsCount;
+        const authenticatedUsers = Array.from(io.sockets.sockets.values())
+            .filter(socket => socket.data?.authenticated).length;
+        
         res.end(JSON.stringify({ 
             status: 'ok', 
             uptime: process.uptime(),
-            service: 'socket-server'
+            service: 'socket-server',
+            port: process.env.SOCKET_PORT || 1002,
+            host: process.env.SOCKET_BIND_HOST || '0.0.0.0',
+            connectedClients,
+            authenticatedUsers,
+            corsOrigins: process.env.CORS_ALLOWED_ORIGINS?.split(',') || ['*'],
+            timestamp: new Date().toISOString(),
+            version: require('./package.json').version || '1.0.0'
         }));
+    } else if (req.url === '/socket-test') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end(`
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Socket.IO Test</title>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <h1>Socket.IO Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    
+    <script>
+        const socket = io();
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+        
+        function addMessage(message) {
+            const div = document.createElement('div');
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            messagesDiv.appendChild(div);
+        }
+        
+        socket.on('connect', () => {
+            statusDiv.textContent = 'Connected ✅';
+            statusDiv.style.color = 'green';
+            addMessage('Connected to socket server');
+        });
+        
+        socket.on('disconnect', () => {
+            statusDiv.textContent = 'Disconnected ❌';
+            statusDiv.style.color = 'red';
+            addMessage('Disconnected from socket server');
+        });
+        
+        socket.on('connect_error', (error) => {
+            statusDiv.textContent = 'Connection Error ❌';
+            statusDiv.style.color = 'red';
+            addMessage('Connection error: ' + error.message);
+        });
+    </script>
+</body>
+</html>
+        `);
     } else if (req.url.startsWith('/api')) {
         eventController.handleApiRequest(req, res);
     } else {

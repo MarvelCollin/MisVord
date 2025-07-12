@@ -32,9 +32,10 @@ class HealthController extends BaseController
                 ];
                 $health['status'] = 'degraded';
             }            try {
-                $socketHost = 'socket';
-                $socketPort = getenv('SOCKET_PORT') ?: '1002';
+                $socketHost = EnvLoader::get('SOCKET_HOST', 'socket');
+                $socketPort = EnvLoader::get('SOCKET_PORT', '1002');
                 $socketUrl = "http://{$socketHost}:{$socketPort}/health";
+                
                 $context = stream_context_create([
                     'http' => [
                         'timeout' => 5,
@@ -49,12 +50,20 @@ class HealthController extends BaseController
                     $health['components']['socket_server'] = [
                         'status' => 'healthy',
                         'message' => 'Socket server responding',
-                        'connections' => $socketResponse['connections'] ?? 0
+                        'host' => $socketHost,
+                        'port' => $socketPort,
+                        'uptime' => $socketResponse['uptime'] ?? 0,
+                        'connected_clients' => $socketResponse['connectedClients'] ?? 0,
+                        'authenticated_users' => $socketResponse['authenticatedUsers'] ?? 0,
+                        'cors_origins' => $socketResponse['corsOrigins'] ?? []
                     ];
                 } else {
                     $health['components']['socket_server'] = [
                         'status' => 'unhealthy',
-                        'message' => 'Socket server not responding'
+                        'message' => 'Socket server not responding',
+                        'host' => $socketHost,
+                        'port' => $socketPort,
+                        'url_tested' => $socketUrl
                     ];
                     $health['status'] = 'degraded';
                 }
