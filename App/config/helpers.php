@@ -21,7 +21,7 @@ function asset($path) {
     }
 
     $basePath = '';
-    if (php_sapi_name() === 'cli' || $host === 'localhost' || strpos($host, '127.0.0.1') !== false || $isVPS || $isMatchingDomain) {
+    if (php_sapi_name() === 'cli' || $host === 'localhost' || strpos($host, '127.0.0.1') !== false) {
         $basePath = '/misvord';
     }
 
@@ -58,9 +58,6 @@ function css($path) {
 
     if ($isVPS || $isMatchingDomain) {
         $finalUrl = preg_replace('#:\d+#', '', $baseUrl) . "/css/{$path}";
-        if (strpos($finalUrl, '/misvord') === false) {
-            $finalUrl = str_replace('/public/', '/misvord/public/', $finalUrl);
-        }
     } else {
         $finalUrl = "{$baseUrl}/css/{$path}";
     }
@@ -86,9 +83,6 @@ function js($path) {
 
     if ($isVPS || $isMatchingDomain) {
         $finalUrl = preg_replace('#:\d+#', '', $baseUrl) . "/js/{$path}";
-        if (strpos($finalUrl, '/misvord') === false) {
-            $finalUrl = str_replace('/public/', '/misvord/public/', $finalUrl);
-        }
     } else {
         $finalUrl = "{$baseUrl}/js/{$path}";
     }
@@ -127,7 +121,7 @@ function getBaseUrl() {
     $protocol = $useHttpsProtocol ? 'https' : 'http';
     $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
 
-    if ($isVPS || $isMatchingDomain) {
+    if (!$isVPS && !$isMatchingDomain) {
         if (strpos($scriptDir, '/misvord') === false) {
             $scriptDir = '/misvord';
         }
