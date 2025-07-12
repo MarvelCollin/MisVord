@@ -80,7 +80,7 @@ services:
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=${DB_PASS}
-      - SOCKET_PORT=1002
+      - SOCKET_PORT=${SOCKET_PORT}
       - SOCKET_BIND_HOST=0.0.0.0
       - SOCKET_BASE_PATH=/socket.io
       - SOCKET_HOST=${SOCKET_HOST:-localhost}
