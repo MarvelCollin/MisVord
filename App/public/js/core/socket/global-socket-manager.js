@@ -208,9 +208,11 @@
             
             console.log('🔧 [SOCKET] Environment-based connection:', {
                 host: this.socketHost,
-                port: this.socketPort,
+                port: this.socketPort || 'default',
                 secure: this.socketSecure,
-                url: `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`
+                url: this.socketPort ? 
+                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}` :
+                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}`
             });
             
         } catch (error) {
@@ -264,7 +266,9 @@
             throw new Error('Socket configuration incomplete - missing host or port from environment');
         }
         
-        const socketUrl = `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`;
+        const socketUrl = this.socketPort ? 
+            `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}` :
+            `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}`;
         this.log(`Connecting to socket: ${socketUrl}`);
         
         try {

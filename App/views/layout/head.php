@@ -52,12 +52,24 @@ if (!$socketHost || !$socketPort || !$socketBasePath) {
 }
 
 $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$frontendSocketHost = $currentHost;
+$isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
+$envDomain = EnvLoader::get('DOMAIN', 'localhost');
+$isMatchingDomain = strpos($currentHost, $envDomain) !== false && $envDomain !== 'localhost';
+
+if ($isVPS || $isMatchingDomain) {
+    $frontendSocketHost = $currentHost;
+    $frontendSocketPort = '';
+    $frontendSocketSecure = 'true';
+} else {
+    $frontendSocketHost = $currentHost;
+    $frontendSocketPort = $socketPort;
+    $frontendSocketSecure = $socketSecure;
+}
 ?>
 
 <meta name="socket-host" content="<?php echo htmlspecialchars($frontendSocketHost); ?>">
-<meta name="socket-port" content="<?php echo htmlspecialchars($socketPort); ?>">
-<meta name="socket-secure" content="<?php echo htmlspecialchars($socketSecure); ?>">
+<meta name="socket-port" content="<?php echo htmlspecialchars($frontendSocketPort); ?>">
+<meta name="socket-secure" content="<?php echo htmlspecialchars($frontendSocketSecure); ?>">
 <meta name="socket-base-path" content="<?php echo htmlspecialchars($socketBasePath); ?>">
 <meta name="app-url" content="<?php echo htmlspecialchars(EnvLoader::get('APP_URL')); ?>">
 
