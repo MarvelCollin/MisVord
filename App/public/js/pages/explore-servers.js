@@ -507,9 +507,42 @@ function extractServerDataFromCard(card) {
     };
 }
 
+function initInfiniteScrollIfNeeded() {
+    const container = document.getElementById('all-servers');
+    if (!container) return;
+
+    const existingTrigger = document.getElementById('infinite-loading-indicator');
+    if (existingTrigger) return;
+
+    const serverCount = container.querySelectorAll('.misvord-initial-server-card').length;
+    if (serverCount < 6) return;
+
+    let loadMoreTrigger = document.createElement('div');
+    loadMoreTrigger.id = 'infinite-loading-indicator';
+    loadMoreTrigger.className = 'col-span-full';
+    container.parentElement.appendChild(loadMoreTrigger);
+    
+    const observer = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !isLoading && hasMore) {
+            loadMoreServers();
+        } else if (entries[0].isIntersecting && !isLoading && !hasMore) {
+            loadMoreServers();
+        }
+    }, {
+        rootMargin: '0px 0px 500px 0px',
+    });
+
+    observer.observe(loadMoreTrigger);
+}
+
 function initInfiniteScroll() {
     const container = document.getElementById('all-servers');
     if (!container) return;
+
+    const serverCount = container.querySelectorAll('.misvord-initial-server-card').length;
+    if (serverCount < 6) {
+        return;
+    }
 
     let loadMoreTrigger = document.getElementById('infinite-loading-indicator');
     if (!loadMoreTrigger) {
@@ -523,7 +556,6 @@ function initInfiniteScroll() {
         if (entries[0].isIntersecting && !isLoading && hasMore) {
             loadMoreServers();
         } else if (entries[0].isIntersecting && !isLoading && !hasMore) {
-
             loadMoreServers();
         }
     }, {
@@ -594,6 +626,13 @@ async function fetchAndRenderServers(append = false) {
                 initJoinServerHandlersForNewCards(container);
                 initServerDetailTriggersForNewCards(container);
                 initLazyLoadingForNewCards(container);
+                
+                if (!append) {
+                    const serverCount = container.querySelectorAll('.misvord-initial-server-card').length;
+                    if (serverCount >= 6) {
+                        initInfiniteScrollIfNeeded();
+                    }
+                }
             }
 
             if (!append && data.servers.length === 0) {
