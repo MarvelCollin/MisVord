@@ -20,15 +20,15 @@ define('APP_NAME', 'MisVord');
 define('APP_VERSION', '1.0.0');
 
 $isProduction = EnvLoader::get('APP_ENV') === 'production';
+$isDevelopment = EnvLoader::get('APP_ENV') === 'development';
+
 if ($isProduction) {
     error_reporting(E_ERROR | E_PARSE);
     ini_set('display_errors', 0);
-
     AppLogger::getInstance()->configure(false, true);
 } else {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
-
     AppLogger::getInstance()->configure(true, true);
 }
 

@@ -28,17 +28,17 @@ services:
       - "${APP_PORT:-1001}:1001"
     environment:
       - IS_DOCKER=true
-      - APP_ENV=${APP_ENV:-production} 
-      - APP_DEBUG=${APP_DEBUG:-false} 
+      - APP_ENV=${APP_ENV:-development} 
+      - APP_DEBUG=${APP_DEBUG:-true} 
       - DB_HOST=db
       - DB_PORT=1003
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=${DB_PASS}
       - DB_CHARSET=utf8mb4
-      - IS_VPS=${IS_VPS:-true} 
-      - USE_HTTPS=${USE_HTTPS:-true} 
-      - DOMAIN=${DOMAIN:-marvelcollin.my.id}
+      - IS_VPS=${IS_VPS:-false} 
+      - USE_HTTPS=${USE_HTTPS:-false} 
+      - DOMAIN=${DOMAIN:-localhost}
       - PORT=1001
       - SOCKET_HOST=${SOCKET_HOST:-socket}
       - SOCKET_PORT=${SOCKET_PORT:-1002}

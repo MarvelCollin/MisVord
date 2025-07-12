@@ -63,6 +63,7 @@ RUN mkdir -p \
 
 # Set environment variables
 ENV IS_DOCKER=true \
+    APP_ENV=development \
     APACHE_DOCUMENT_ROOT=/var/www/html/public \
     APACHE_LOG_DIR=/var/log/apache2
 

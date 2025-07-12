@@ -3,11 +3,6 @@
 .gitignore
 .gitattributes
 
-# Environment and configuration
-.env
-.env.*
-!.env.example
-
 # IDE and editor files
 .vscode/
 .idea/
