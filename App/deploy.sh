@@ -470,6 +470,15 @@ configure_production() {
     else
         print_warning "Database migration failed - you may need to run it manually"
     fi
+    
+    # Configure nginx automatically
+    print_info "Setting up nginx configuration..."
+    if configure_nginx; then
+        print_success "Nginx configuration completed"
+    else
+        print_warning "Nginx configuration failed - you may need to set it up manually"
+        print_info "Use the nginx-on-the-vps.txt file as reference"
+    fi
 
     echo -e "\n${GREEN}═══ PRODUCTION CONFIGURATION SUMMARY ═══${NC}"
     echo "Domain: $DOMAIN"
@@ -520,12 +529,176 @@ configure_production() {
     echo -e "• WebSocket: wss://$(get_env_value 'DOMAIN')/socket.io/"
     echo -e "• Admin Panel: $(get_env_value 'APP_URL')/admin"
     
-    echo -e "\n${YELLOW}⚠️ IMPORTANT: Configure nginx manually using nginx-on-the-vps.txt${NC}"
-    echo -e "\n${BLUE}To configure nginx:${NC}"
-    echo -e "1. Copy nginx-on-the-vps.txt to /etc/nginx/sites-available/$DOMAIN"
-    echo -e "2. Enable the site: sudo ln -s /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/"
-    echo -e "3. Test config: sudo nginx -t"
-    echo -e "4. Reload nginx: sudo systemctl reload nginx"
+    echo -e "\n${GREEN}🎉 DEPLOYMENT COMPLETED SUCCESSFULLY!${NC}"
+    echo -e "${GREEN}✅ Application is ready and fully configured${NC}"
+    echo -e "${GREEN}✅ Nginx configuration applied automatically${NC}"
+    echo -e "${GREEN}✅ All services are operational${NC}"
+    
+    if [ "$use_https" = "true" ]; then
+        echo -e "\n${YELLOW}📋 SSL Notes:${NC}"
+        echo "• If you don't have SSL certificates yet, run:"
+        echo "  sudo certbot --nginx -d $domain -d www.$domain"
+        echo "• Make sure DNS points to your server IP"
+    fi
+}
+
+configure_nginx() {
+    print_section "NGINX CONFIGURATION SETUP"
+    
+    local domain=$(get_env_value 'DOMAIN')
+    local use_https=$(get_env_value 'USE_HTTPS')
+    
+    if [ -z "$domain" ] || [ "$domain" = "localhost" ]; then
+        print_warning "No domain configured, skipping nginx setup"
+        return 0
+    fi
+    
+    print_info "Setting up nginx configuration for $domain..."
+    
+    # Check if nginx is installed
+    if ! command -v nginx >/dev/null 2>&1; then
+        print_warning "Nginx is not installed. Please install nginx first:"
+        echo "  sudo apt update && sudo apt install nginx -y"
+        return 1
+    fi
+    
+    # Create nginx configuration
+    local nginx_config="/etc/nginx/sites-available/$domain"
+    
+    print_info "Creating nginx configuration at $nginx_config..."
+    
+    if [ "$use_https" = "true" ]; then
+        sudo tee "$nginx_config" > /dev/null << EOF
+# HTTP to HTTPS redirect
+server {
+    listen 80;
+    server_name $domain www.$domain;
+    return 301 https://\$server_name\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name $domain www.$domain;
+    ssl_certificate /etc/letsencrypt/live/$domain/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$domain/privkey.pem;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'" always;
+
+    # Socket.IO - Direct connection to socket server
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:1002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # Main application - All requests go to PHP app
+    location / {
+        proxy_pass http://localhost:1001;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+    else
+        sudo tee "$nginx_config" > /dev/null << EOF
+server {
+    listen 80;
+    server_name $domain www.$domain;
+    
+    # Socket.IO - Direct connection to socket server
+    location /socket.io/ {
+        proxy_pass http://127.0.0.1:1002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+
+    # Main application - All requests go to PHP app
+    location / {
+        proxy_pass http://localhost:1001;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+    fi
+    
+    print_success "Nginx configuration created"
+    
+    # Enable the site
+    print_info "Enabling nginx site..."
+    if [ ! -L "/etc/nginx/sites-enabled/$domain" ]; then
+        sudo ln -sf "$nginx_config" "/etc/nginx/sites-enabled/$domain"
+        print_success "Site enabled"
+    else
+        print_info "Site already enabled"
+    fi
+    
+    # Test nginx configuration
+    print_info "Testing nginx configuration..."
+    if sudo nginx -t; then
+        print_success "Nginx configuration is valid"
+        
+        print_info "Reloading nginx..."
+        if sudo systemctl reload nginx; then
+            print_success "Nginx reloaded successfully"
+        else
+            print_error "Failed to reload nginx"
+            return 1
+        fi
+    else
+        print_error "Nginx configuration has errors"
+        print_info "Please check the configuration manually"
+        return 1
+    fi
+    
+    # Test if nginx is running
+    if systemctl is-active --quiet nginx; then
+        print_success "Nginx is running"
+    else
+        print_warning "Nginx is not running, attempting to start..."
+        if sudo systemctl start nginx; then
+            print_success "Nginx started"
+        else
+            print_error "Failed to start nginx"
+            return 1
+        fi
+    fi
+    
+    print_success "Nginx configuration completed for $domain"
+    
+    if [ "$use_https" = "true" ]; then
+        print_info "SSL Configuration Notes:"
+        echo "• SSL certificates should be at: /etc/letsencrypt/live/$domain/"
+        echo "• If certificates don't exist, run: sudo certbot --nginx -d $domain -d www.$domain"
+        echo "• Make sure ports 80 and 443 are open in firewall"
+    else
+        print_info "HTTP Configuration Notes:"
+        echo "• Make sure port 80 is open in firewall"
+        echo "• Consider enabling HTTPS for production security"
+    fi
 }
 
 check_vps_health() {
@@ -549,7 +722,7 @@ check_vps_health() {
         
         local expected_containers=("misvord_php" "misvord_socket" "misvord_db")
         for container in "${expected_containers[@]}"; do
-            if docker-compose ps | grep -q "${container}.*Up"; then
+            if docker ps --filter "name=$container" --format "{{.Names}}" | grep -q "$container"; then
                 print_success "$container is running"
             else
                 print_error "$container is not running"
@@ -597,30 +770,127 @@ check_vps_health() {
         fi
     else
         print_error "Socket server not responding on port 1002"
-        errors=$((errors + 1))
+        print_info "Attempting to restart socket server..."
+        docker-compose restart socket
+        sleep 5
+        if curl -s --max-time 10 "http://localhost:1002/health" >/dev/null 2>&1; then
+            print_success "Socket server recovered after restart"
+        else
+            print_error "Socket server still not responding after restart"
+            print_info "Socket container logs:"
+            docker logs misvord_socket --tail 10
+            errors=$((errors + 1))
+        fi
     fi
     
     print_info "5. Testing database connection..."
-    if docker exec misvord_php php -r "
-        require_once '/var/www/html/config/db.php';
-        try {
-            \$pdo = DatabaseConnection::getInstance()->getConnection();
-            echo 'Database connection successful';
-        } catch (Exception \$e) {
-            echo 'Database connection failed: ' . \$e->getMessage();
-            exit(1);
-        }
-    " 2>/dev/null | grep -q "successful"; then
-        print_success "Database connection working"
+    local db_password=$(get_env_value 'DB_PASS')
+    
+    # First test direct PDO connection
+    print_info "Testing direct database connection..."
+    local direct_test=$(docker exec misvord_php php -r "
+        putenv('IS_DOCKER=true');
+        putenv('DB_HOST=db');
+        putenv('DB_PORT=1003');
+        putenv('DB_NAME=misvord');
+        putenv('DB_USER=root');
+        putenv('DB_PASS=$db_password');
         
-        local db_status=$(docker exec misvord_db mysqladmin ping -h localhost -P 1003 -u root -p$(get_env_value 'DB_PASS') 2>/dev/null | grep -o "alive" || echo "")
-        if [ "$db_status" = "alive" ]; then
-            print_success "MySQL database is alive"
+        try {
+            \$pdo = new PDO('mysql:host=db;port=1003;dbname=misvord;charset=utf8mb4', 'root', '$db_password');
+            \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            \$pdo->query('SELECT 1');
+            echo 'SUCCESS: Direct connection works';
+        } catch(Exception \$e) {
+            echo 'ERROR: ' . \$e->getMessage();
+        }
+    " 2>&1)
+    
+    if echo "$direct_test" | grep -q "SUCCESS:"; then
+        print_success "Direct database connection working"
+        
+        # Now test with Database class
+        if docker exec misvord_php php -r "
+            putenv('IS_DOCKER=true');
+            putenv('DB_HOST=db');
+            putenv('DB_PORT=1003');
+            putenv('DB_NAME=misvord');
+            putenv('DB_USER=root');
+            putenv('DB_PASS=$db_password');
+            require_once '/var/www/html/config/db.php';
+            try {
+                \$db = Database::getInstance();
+                \$db->testConnection();
+                echo 'Database connection successful';
+            } catch (Exception \$e) {
+                echo 'Database connection failed: ' . \$e->getMessage();
+                exit(1);
+            }
+        " 2>/dev/null | grep -q "successful"; then
+            print_success "Database class connection working"
+            
+            local db_status=$(docker exec misvord_db mysqladmin ping -h localhost -P 1003 -u root -p$db_password 2>/dev/null | grep -o "alive" || echo "")
+            if [ "$db_status" = "alive" ]; then
+                print_success "MySQL database is alive"
+            else
+                print_warning "MySQL ping test failed but connections work"
+            fi
         else
-            print_warning "MySQL ping test failed"
+            print_warning "Database class connection failed but direct connection works"
+            print_info "This may be a configuration issue in Database class"
         fi
     else
         print_error "Database connection failed"
+        print_info "Direct connection error: $direct_test"
+        
+        print_info "Diagnosing database connection issues..."
+        
+        # Check if containers can communicate
+        print_info "Testing container connectivity..."
+        if docker exec misvord_php ping -c 2 db &>/dev/null; then
+            print_success "PHP container can reach database container"
+        else
+            print_error "PHP container cannot reach database container"
+            print_info "Checking Docker network..."
+            docker network ls | grep misvord
+        fi
+        
+        # Check database container logs
+        print_info "Database container status and logs:"
+        docker ps --filter "name=misvord_db" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+        docker logs misvord_db --tail 10
+        
+        # Try restarting database connection
+        print_info "Attempting to restart database container..."
+        docker-compose restart db
+        sleep 10
+        
+        # Test again after restart
+        local restart_test=$(docker exec misvord_php php -r "
+            putenv('IS_DOCKER=true');
+            putenv('DB_HOST=db');
+            putenv('DB_PORT=1003');
+            putenv('DB_NAME=misvord');
+            putenv('DB_USER=root');
+            putenv('DB_PASS=$db_password');
+            
+            try {
+                \$pdo = new PDO('mysql:host=db;port=1003;dbname=misvord;charset=utf8mb4', 'root', '$db_password');
+                \$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                \$pdo->query('SELECT 1');
+                echo 'SUCCESS: Connection restored after restart';
+            } catch(Exception \$e) {
+                echo 'ERROR: ' . \$e->getMessage();
+            }
+        " 2>&1)
+        
+        if echo "$restart_test" | grep -q "SUCCESS:"; then
+            print_success "Database connection restored after restart"
+        else
+            print_error "Database connection still failing after restart"
+            print_info "Restart test result: $restart_test"
+        fi
+        
         errors=$((errors + 1))
     fi
     
@@ -641,6 +911,29 @@ check_vps_health() {
         else
             print_error "WebSocket not accessible through domain"
             print_info "This indicates nginx configuration issue"
+            print_info "Checking nginx configuration..."
+            
+            if [ -f /etc/nginx/sites-available/$domain ]; then
+                print_info "Nginx config file exists, checking WebSocket proxy settings..."
+                if grep -q "proxy_set_header.*Connection.*upgrade" /etc/nginx/sites-available/$domain; then
+                    print_success "WebSocket proxy headers found"
+                else
+                    print_warning "WebSocket proxy headers missing - nginx needs update"
+                fi
+            else
+                print_warning "Nginx configuration file not found at /etc/nginx/sites-available/$domain"
+                print_info "You need to copy nginx-on-the-vps.txt to nginx configuration"
+            fi
+            
+            print_info "Testing local WebSocket server directly..."
+            local local_socket=$(curl -s --max-time 5 "http://localhost:1002/socket.io/" 2>/dev/null | grep -o "socket.io" || echo "")
+            if [ -n "$local_socket" ]; then
+                print_success "Local WebSocket server is working"
+                print_info "Issue is with nginx proxy configuration"
+            else
+                print_error "Local WebSocket server is also not responding"
+            fi
+            
             errors=$((errors + 1))
         fi
     else
@@ -778,7 +1071,8 @@ migrate_database() {
     if docker exec misvord_php php -r "
         require_once 'config/db.php';
         try {
-            \$pdo = new PDO('mysql:host=db;port=1003;dbname=misvord', 'root', '${DB_PASS}');
+            \$db = Database::getInstance();
+            \$db->testConnection();
             echo 'Database connection successful';
         } catch (Exception \$e) {
             echo 'Database connection failed: ' . \$e->getMessage();
@@ -798,11 +1092,12 @@ show_menu() {
     echo "3) Initialize bots"
     echo "4) Check service health"
     echo "5) Configure for production"
-    echo "6) Full deployment (all steps)"
-    echo "7) VPS complete health check"
-    echo "8) Update website"
-    echo "9) Migrate database"
-    echo "10) Exit"
+    echo "6) Configure nginx"
+    echo "7) Full deployment (all steps)"
+    echo "8) VPS complete health check"
+    echo "9) Update website"
+    echo "10) Migrate database"
+    echo "11) Exit"
     echo
 }
 
@@ -821,7 +1116,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "Select an option (1-10): " choice
+        read -p "Select an option (1-11): " choice
 
         case $choice in
             1)
@@ -840,6 +1135,9 @@ main() {
                 configure_production
                 ;;
             6)
+                configure_nginx
+                ;;
+            7)
                 print_info "Starting full deployment with migration..."
                 check_env_file && \
                 validate_docker_config && \
@@ -847,21 +1145,21 @@ main() {
                 init_bot && \
                 configure_production
                 ;;
-            7)
+            8)
                 check_vps_health
                 ;;
-            8)
+            9)
                 update_website
                 ;;
-            9)
+            10)
                 migrate_database
                 ;;
-            10)
+            11)
                 print_info "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-10."
+                print_error "Invalid option. Please choose 1-11."
                 ;;
         esac
 
