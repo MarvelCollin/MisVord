@@ -150,8 +150,8 @@
 
         this.loadConnectionDetails();
 
-        if (!this.socketHost || !this.socketPort || this.socketHost === 'null' || this.socketHost === 'undefined') {
-            this.log('Socket connection details not found or invalid, skipping initialization');
+        if (!this.socketHost || !this.socketPort) {
+            this.error('Socket configuration incomplete - check .env file configuration');
             return false;
         }
 
@@ -187,23 +187,26 @@
     
     loadConnectionDetails() {
         try {
-            // Get socket configuration from meta tags (set by PHP environment)
             const metaSocketHost = document.querySelector('meta[name="socket-host"]')?.content;
             const metaSocketPort = document.querySelector('meta[name="socket-port"]')?.content;
             const metaSocketSecure = document.querySelector('meta[name="socket-secure"]')?.content;
             
-            this.socketHost = metaSocketHost || window.location.hostname;
-            this.socketPort = metaSocketPort || '1002';
+            if (!metaSocketHost || !metaSocketPort) {
+                throw new Error('Socket configuration missing from meta tags');
+            }
+            
+            this.socketHost = metaSocketHost;
+            this.socketPort = metaSocketPort;
             this.socketSecure = metaSocketSecure === 'true';
             
-            this.debug('Docker socket configuration:', {
+            this.debug('Environment-driven socket configuration:', {
                 host: this.socketHost,
                 port: this.socketPort,
                 secure: this.socketSecure,
-                source: 'meta-tags-only'
+                source: 'meta-tags-from-env'
             });
             
-            console.log('🔧 [SOCKET] Docker connection:', {
+            console.log('🔧 [SOCKET] Environment-based connection:', {
                 host: this.socketHost,
                 port: this.socketPort,
                 secure: this.socketSecure,
@@ -212,6 +215,7 @@
             
         } catch (error) {
             this.error('Error loading connection details:', error);
+            throw error;
         }
         
         let metaUserId = document.querySelector('meta[name="user-id"]')?.content;
@@ -256,9 +260,8 @@
             return true;
         }
         
-        if (!this.socketHost || this.socketHost === 'null' || this.socketHost === 'undefined') {
-            this.log('Invalid socket host detected, skipping connection');
-            return false;
+        if (!this.socketHost || !this.socketPort) {
+            throw new Error('Socket configuration incomplete - missing host or port from environment');
         }
         
         const socketUrl = `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`;
@@ -444,19 +447,19 @@
         });
         
         this.io.on('connect_error', (error) => {
-            if (!this.socketHost || this.socketHost === 'null' || this.socketHost === 'undefined') {
-                this.log('Socket host is invalid, skipping connection attempts');
-                return;
-            }
-            
-            this.error('Socket connection error', error);
+            this.error('Socket connection error - check environment configuration', error);
             this.lastError = error;
             this.reconnectAttempts++;
             
             this.debug('Connection error details', {
                 error: error.message,
                 reconnectAttempt: this.reconnectAttempts,
-                maxAttempts: this.maxReconnectAttempts
+                maxAttempts: this.maxReconnectAttempts,
+                socketConfig: {
+                    host: this.socketHost,
+                    port: this.socketPort,
+                    secure: this.socketSecure
+                }
             });
             
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {

@@ -1,3 +1,5 @@
+require('dotenv').config({ path: '../.env' });
+
 const http = require('http');
 const { Server } = require('socket.io');
 const socketConfig = require('./config/socket');
@@ -15,8 +17,8 @@ const server = http.createServer((req, res) => {
             status: 'ok', 
             uptime: process.uptime(),
             service: 'socket-server',
-            port: process.env.SOCKET_PORT || 1002,
-            host: process.env.SOCKET_BIND_HOST || '0.0.0.0',
+            port: process.env.SOCKET_PORT,
+            host: process.env.SOCKET_BIND_HOST,
             connectedClients,
             authenticatedUsers,
             corsOrigins: process.env.CORS_ALLOWED_ORIGINS?.split(',') || ['*'],
@@ -98,8 +100,16 @@ async function initializeTitiBot() {
 
 socketController.setup(io);
 
-const PORT = process.env.SOCKET_PORT || 1002;
-const HOST = process.env.SOCKET_BIND_HOST || '0.0.0.0';
+const PORT = process.env.SOCKET_PORT;
+const HOST = process.env.SOCKET_BIND_HOST;
+
+if (!PORT || !HOST) {
+    console.error('❌ [ERROR] Missing required environment variables:');
+    console.error('   SOCKET_PORT:', PORT);
+    console.error('   SOCKET_BIND_HOST:', HOST);
+    console.error('   Please check your .env file');
+    process.exit(1);
+}
 
 server.listen(PORT, HOST, async () => {
     console.log(`🚀 [STARTUP] Socket server running on ${HOST}:${PORT}`);

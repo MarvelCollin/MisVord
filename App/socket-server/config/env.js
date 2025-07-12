@@ -1,5 +1,5 @@
 const getPhpAppUrl = () => {
-    return process.env.PHP_APP_URL || 'http://app:1001';
+    return process.env.SOCKET_SERVER_LOCAL || process.env.APP_URL || 'http://app:1001';
 };
 
 const buildApiUrl = (endpoint) => {

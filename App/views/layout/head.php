@@ -38,22 +38,28 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
 <?php endif; ?>
 
 <?php
-// Load socket configuration from environment
-$socketHost = EnvLoader::get('SOCKET_HOST', 'socket');
-$socketPort = EnvLoader::get('SOCKET_PORT', '1002');
-$socketSecure = EnvLoader::get('SOCKET_SECURE', 'false');
-$domain = EnvLoader::get('DOMAIN', 'localhost');
-$useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
+$socketHost = EnvLoader::get('SOCKET_HOST');
+$socketPort = EnvLoader::get('SOCKET_PORT');
+$socketSecure = EnvLoader::get('SOCKET_SECURE');
+$socketBasePath = EnvLoader::get('SOCKET_BASE_PATH');
+
+if (!$socketHost || !$socketPort || !$socketBasePath) {
+    error_log('[HEAD.PHP] Missing required socket environment variables');
+    error_log('SOCKET_HOST: ' . ($socketHost ?: 'MISSING'));
+    error_log('SOCKET_PORT: ' . ($socketPort ?: 'MISSING'));
+    error_log('SOCKET_BASE_PATH: ' . ($socketBasePath ?: 'MISSING'));
+    throw new Exception('Socket configuration incomplete - check .env file');
+}
 
 $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
-
 $frontendSocketHost = $currentHost;
 ?>
 
 <meta name="socket-host" content="<?php echo htmlspecialchars($frontendSocketHost); ?>">
 <meta name="socket-port" content="<?php echo htmlspecialchars($socketPort); ?>">
 <meta name="socket-secure" content="<?php echo htmlspecialchars($socketSecure); ?>">
-<meta name="app-url" content="<?php echo htmlspecialchars(EnvLoader::get('APP_URL', 'http://localhost:1001')); ?>">
+<meta name="socket-base-path" content="<?php echo htmlspecialchars($socketBasePath); ?>">
+<meta name="app-url" content="<?php echo htmlspecialchars(EnvLoader::get('APP_URL')); ?>">
 
 <title><?php echo htmlspecialchars($page_title); ?></title>
 
@@ -1774,11 +1780,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (body.success) {
                     alert(body.message || 'Bot created successfully!');
                 } else {
-                    if (status === 409) {
-                        alert('Info: ' + (body.message || 'Bot already exists.'));
-                    } else {
-                        alert('Error: ' + (body.message || 'Could not create bot.'));
-                    }
+                    alert('Error creating bot: ' + (body.error || 'Unknown error'));
                 }
             })
             .catch(error => {
