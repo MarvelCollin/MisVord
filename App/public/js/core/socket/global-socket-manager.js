@@ -7,11 +7,6 @@
         this.connectionAttempts = 0;
         this.maxConnectionAttempts = 5;
         this.connectionTimeout = null;
-        this.authState = 'idle';
-        this.authTimeout = null;
-        this.authRetryCount = 0;
-        this.maxAuthRetries = 3;
-        this.authRetryDelay = 2000;
         this.userId = null;
         this.username = null;
         this.avatarUrl = null;
@@ -86,31 +81,6 @@
             this.error('Failed to initialize socket connection:', error);
             return false;
         }
-    }
-    
-    canAuthenticate() {
-        return this.isConnected && 
-               this.authState === 'idle' && 
-               this.userId && 
-               this.username;
-    }
-    
-    isAuthenticating() {
-        return this.authState === 'pending';
-    }
-    
-    resetAuthState() {
-        this.authState = 'idle';
-        this.authRetryCount = 0;
-        if (this.authTimeout) {
-            clearTimeout(this.authTimeout);
-            this.authTimeout = null;
-        }
-    }
-    
-    setAuthState(state) {
-        this.authState = state;
-        this.debug(`Auth state changed to: ${state}`);
     }
     
     setupUnloadHandler() {
@@ -357,16 +327,15 @@
             this.debug(`Socket connected with ID: ${this.io.id}`, { 
                 userId: this.userId,
                 socketId: this.io.id,
-                reconnectAttempts: this.reconnectAttempts,
-                authState: this.authState
+                reconnectAttempts: this.reconnectAttempts
             });
             
+
             this.setupActivityTracking();
             this.setupVoiceStateListeners();
             
-            if (this.canAuthenticate()) {
-                this.sendAuthentication();
-            }
+
+            this.sendAuthentication();
         });
         
         this.io.on('debug-test-response', (data) => {
@@ -382,18 +351,7 @@
         });
         
         this.io.on('auth-success', (data) => {
-            if (this.authState !== 'pending') {
-                this.debug('Received auth-success but not in pending state', {
-                    currentState: this.authState,
-                    socketId: this.io.id
-                });
-                return;
-            }
-            
             this.isAuthenticated = true;
-            this.setAuthState('success');
-            this.resetAuthState();
-            
             console.log('🔐 [SOCKET] Authentication successful!', {
                 userId: this.userId,
                 username: this.username,
@@ -412,11 +370,16 @@
             this.lastActivityTime = Date.now();
             this.isUserActive = true;
             
+
+
             const isInVoiceCall = this.isUserInVoiceCall();
             
             if (isInVoiceCall) {
+
+
                 this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails, 'authentication');
             } else {
+
                 this.currentPresenceStatus = 'online';
                 this.updatePresence('online', { type: 'active' }, 'authentication');
             }
@@ -424,17 +387,22 @@
             this.startPresenceHeartbeat();
             
             setTimeout(() => {
+
                 const stillInVoiceCall = this.isUserInVoiceCall();
                 
                 if (stillInVoiceCall) {
+
                     this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails, 'authentication');
                 } else {
                     this.updatePresence('online', { type: 'active' }, 'authentication');
+
                 }
                 
+
                 this.syncUnifiedVoiceState();
             }, 500);
             
+
             const event = new CustomEvent('globalSocketReady', {
                 detail: {
                     manager: this,
@@ -444,6 +412,7 @@
             
             window.dispatchEvent(event);
             
+
             const authEvent = new CustomEvent('socketAuthenticated', {
                 detail: {
                     manager: this,
@@ -453,32 +422,24 @@
             });
             
             window.dispatchEvent(authEvent);
+            
+
         });
         
         this.io.on('auth-error', (data) => {
             this.isAuthenticated = false;
-            this.setAuthState('failed');
             this.error('Socket authentication failed:', data);
             this.debug('Authentication error details', {
                 userId: this.userId,
                 username: this.username,
                 socketId: this.io.id,
-                errorData: data,
-                retryCount: this.authRetryCount
+                errorData: data
             });
             
-            if (this.authRetryCount < this.maxAuthRetries) {
-                this.authRetryCount++;
-                setTimeout(() => {
-                    if (this.isConnected && !this.isAuthenticated) {
-                        this.resetAuthState();
-                        this.sendAuthentication();
-                    }
-                }, this.authRetryDelay * this.authRetryCount);
-            } else {
-                this.error('Max authentication retries reached');
-                this.resetAuthState();
-            }
+            setTimeout(() => {
+
+                this.sendAuthentication();
+            }, 2000);
         });
         
         this.io.on('channel-joined', (data) => {
@@ -502,7 +463,6 @@
         this.io.on('disconnect', () => {
             this.isConnected = false;
             this.isAuthenticated = false;
-            this.resetAuthState();
             this.stopPresenceHeartbeat();
             this.stopActivityCheck();
             this.debug('Socket disconnected', {
@@ -704,25 +664,17 @@
     }
     
     sendAuthentication() {
-        if (!this.canAuthenticate()) {
-            this.debug('Cannot authenticate - conditions not met', {
+        if (!this.io || !this.userId || !this.username) {
+            this.error('Cannot authenticate: missing socket or user data', {
                 hasSocket: !!this.io,
-                isConnected: this.isConnected,
-                authState: this.authState,
                 userId: this.userId,
                 username: this.username
             });
             return false;
         }
         
-        if (this.isAuthenticating()) {
-            this.debug('Authentication already in progress, skipping');
-            return false;
-        }
-        
-        this.setAuthState('pending');
-        
         const sessionId = this.getSessionId();
+        
         this.avatarUrl = this.getAvatarUrl();
         
         const authData = {
@@ -738,15 +690,6 @@
         });
         
         this.io.emit('authenticate', authData);
-        
-        this.authTimeout = setTimeout(() => {
-            if (this.authState === 'pending') {
-                this.error('Authentication timeout');
-                this.setAuthState('timeout');
-                this.resetAuthState();
-            }
-        }, 10000);
-        
         return true;
     }
     
@@ -767,24 +710,16 @@
     }
     
     authenticate() {
-        if (!this.canAuthenticate()) {
-            this.debug('Cannot authenticate - conditions not met');
-            return false;
-        }
+        this.sendAuthentication();
+        this.setupActivityTracking();
+        this.startPresenceHeartbeat();
         
-        const authSent = this.sendAuthentication();
-        if (authSent) {
-            this.setupActivityTracking();
-            this.startPresenceHeartbeat();
-            
-            setTimeout(() => {
-                if (this.isConnected && this.isAuthenticated) {
-                    this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails);
-                }
-            }, 100);
-        }
-        
-        return authSent;
+        setTimeout(() => {
+            if (this.isConnected && this.isAuthenticated) {
+                this.updatePresence(this.currentPresenceStatus, this.currentActivityDetails);
+
+            }
+        }, 100);
     }
     
     joinChannel(channelId) {
@@ -1019,6 +954,8 @@
     }
     
     updatePresence(status, activityDetails = null, source = 'unknown') {
+
+
         const inVoice = (this.isUserInVoiceCall && typeof this.isUserInVoiceCall === 'function')
             ? this.isUserInVoiceCall()
             : (sessionStorage.getItem('isInVoiceCall') === 'true');
@@ -1027,19 +964,19 @@
             return false;
         }
 
-        if (!this.isReady()) {
-            console.warn(`[SOCKET] Presence update blocked: socket not ready. Source: ${source}`, {
-                connected: this.isConnected,
-                authenticated: this.isAuthenticated,
-                authState: this.authState
-            });
+        if (!this.isAuthenticated || !this.io) {
+            console.warn(`[SOCKET] Presence update blocked: socket not ready. Source: ${source}`);
             return false;
         }
+
 
         if (window.globalPresenceManager) {
             const isValidChange = window.globalPresenceManager.canUpdatePresence(status, activityDetails);
             
             if (!isValidChange) {
+
+                
+
                 window.dispatchEvent(new CustomEvent('presenceUpdateBlocked', {
                     detail: {
                         newStatus: status,
@@ -1054,9 +991,11 @@
             }
         }
         
+
+
         this.currentPresenceStatus = status;
         this.currentActivityDetails = activityDetails;
-        this.lastPresenceSource = source;
+        this.lastPresenceSource = source; // 
 
         const presenceData = {
             status: this.currentPresenceStatus,
@@ -1070,12 +1009,13 @@
         
         this.io.emit('update-presence', presenceData);
         
+
         window.dispatchEvent(new CustomEvent('ownPresenceUpdate', {
             detail: {
                 user_id: this.userId,
                 status: this.currentPresenceStatus,
                 activity_details: this.currentActivityDetails,
-                source: source
+                source: source // 
             }
         }));
         
@@ -1109,8 +1049,6 @@
     disconnect() {
         this.stopPresenceHeartbeat();
         this.stopActivityCheck();
-        this.resetAuthState();
-        
         if (this.io) {
             this.io.disconnect();
             this.io = null;
@@ -1125,10 +1063,7 @@
     }
     
     isReady() {
-        return this.isConnected && 
-               this.isAuthenticated && 
-               this.authState !== 'pending' && 
-               this.io !== null;
+        return this.isConnected && this.isAuthenticated && this.io !== null;
     }
     
     setupChannelListeners(channelId) {
@@ -1194,17 +1129,13 @@
         return {
             connected: this.isConnected,
             authenticated: this.isAuthenticated,
-            authState: this.authState,
-            authRetryCount: this.authRetryCount,
             socketId: this.io ? this.io.id : null,
             userId: this.userId,
             username: this.username,
             lastError: this.lastError,
             joinedChannels: Array.from(this.joinedChannels),
             joinedDMRooms: Array.from(this.joinedDMRooms),
-            joinedRooms: Array.from(this.joinedRooms),
-            canAuthenticate: this.canAuthenticate(),
-            isAuthenticating: this.isAuthenticating()
+            joinedRooms: Array.from(this.joinedRooms)
         };
     }
     
