@@ -212,13 +212,8 @@
             this.socketBasePath = metaSocketBasePath || '/socket.io';
             
             if (window.location.protocol === 'https:') {
+                console.warn('🔒 [SOCKET] Page loaded over HTTPS, forcing secure socket connection');
                 this.socketSecure = true;
-                console.log('🔒 [SOCKET] HTTPS detected, forcing secure socket connection');
-            }
-            
-            if (metaIsVPS && metaSocketHost !== 'localhost' && metaSocketHost !== '127.0.0.1') {
-                this.socketSecure = true;
-                console.log('🌐 [SOCKET] VPS mode detected, enforcing secure connection');
             }
             
             this.debug('Environment-driven socket configuration:', {
@@ -228,6 +223,7 @@
                 path: this.socketBasePath,
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
+                pageProtocol: window.location.protocol,
                 source: 'meta-tags-from-env'
             });
             
@@ -297,7 +293,15 @@
         const socketUrl = this.socketPort ? 
             `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}` :
             `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}`;
-        this.log(`Connecting to socket: ${socketUrl}`);
+        
+        this.log(`Connecting to socket: ${socketUrl} (secure: ${this.socketSecure})`);
+        this.debug('Full connection details:', {
+            url: socketUrl,
+            secure: this.socketSecure,
+            path: this.socketBasePath,
+            pageProtocol: window.location.protocol,
+            pageHost: window.location.hostname
+        });
         
         try {
             if (typeof io === 'undefined') {
@@ -306,27 +310,21 @@
             
             const socketConfig = {
                 path: this.socketBasePath,
-                transports: ['websocket', 'polling'],
+                transports: this.socketSecure ? ['websocket', 'polling'] : ['polling', 'websocket'],
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
                 reconnectionAttempts: 15,
-                timeout: 20000,
+                timeout: 30000,
                 forceNew: true,
                 upgrade: true,
-                rememberUpgrade: true,
-                autoConnect: true
+                rememberUpgrade: true
             };
             
             if (this.socketSecure || window.location.protocol === 'https:') {
                 socketConfig.secure = true;
                 socketConfig.rejectUnauthorized = false;
-                this.log('🔒 Secure socket connection configured');
-            }
-            
-            if (this.socketHost !== 'localhost' && this.socketHost !== '127.0.0.1') {
-                socketConfig.withCredentials = true;
-                this.log('🌐 Cross-origin credentials enabled for domain connection');
+                socketConfig.transports = ['polling', 'websocket'];
             }
             
             this.log('Socket.IO configuration:', socketConfig);
@@ -503,13 +501,20 @@
             
             this.debug('Connection error details', {
                 error: error.message,
+                errorType: error.type || 'unknown',
+                errorDescription: error.description || 'no description',
                 reconnectAttempt: this.reconnectAttempts,
                 maxAttempts: this.maxReconnectAttempts,
                 socketConfig: {
                     host: this.socketHost,
                     port: this.socketPort,
-                    secure: this.socketSecure
-                }
+                    secure: this.socketSecure,
+                    path: this.socketBasePath
+                },
+                currentUrl: window.location.href,
+                expectedSocketUrl: this.socketPort ? 
+                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}${this.socketBasePath}` :
+                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}${this.socketBasePath}`
             });
             
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {

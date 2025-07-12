@@ -57,12 +57,20 @@ $vpsHost = EnvLoader::get('DOMAIN', 'localhost');
 $pageIsHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
 $pageIsHttps = $pageIsHttps || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
 $pageIsHttps = $pageIsHttps || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https');
+$pageIsHttps = $pageIsHttps || ($isVPS && $useHttps);
+
+$realIsDocker = $isDocker || 
+    (getenv('IS_DOCKER') === 'true') || 
+    (isset($_SERVER['IS_DOCKER']) && $_SERVER['IS_DOCKER'] === 'true') ||
+    file_exists('/.dockerenv') ||
+    (isset($_SERVER['DB_HOST']) && $_SERVER['DB_HOST'] === 'db') ||
+    (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'app');
 
 if ($isVPS && $vpsHost !== 'localhost') {
     $frontendSocketHost = $vpsHost;
     $frontendSocketPort = '';
-    $frontendSocketSecure = $useHttps ? 'true' : ($pageIsHttps ? 'true' : 'false');
-} elseif ($isDocker && $currentHost === 'localhost') {
+    $frontendSocketSecure = $pageIsHttps ? 'true' : 'false';
+} elseif ($realIsDocker && !$isVPS) {
     $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;
     $frontendSocketSecure = $pageIsHttps ? 'true' : $socketSecure;
@@ -158,6 +166,7 @@ if ($isVPS && $vpsHost !== 'localhost') {
 
 <?php if (isset($include_socket_io) && $include_socket_io): ?>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
+    <script src="/public/js/debug/socket-diagnostics.js?v=<?php echo $cache_version; ?>"></script>
     
     <script>
     window.addEventListener('DOMContentLoaded', function() {

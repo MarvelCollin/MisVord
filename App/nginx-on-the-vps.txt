@@ -1,5 +1,6 @@
-# CORRECTED NGINX CONFIGURATION FOR MISVORD
+# UPDATED NGINX CONFIGURATION FOR MISVORD VPS DEPLOYMENT
 # Copy this to /etc/nginx/sites-available/marvelcollin.my.id on your VPS
+# Updated: July 13, 2025 - Fixed WebSocket and environment detection issues
 
 # HTTP to HTTPS redirect
 server {
@@ -14,14 +15,14 @@ server {
     ssl_certificate /etc/letsencrypt/live/marvelcollin.my.id/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/marvelcollin.my.id/privkey.pem;
     
-    # Security headers
+    # Enhanced security headers with WebSocket support
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: wss: ws: data:;" always;
+    add_header Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: wss: ws: data: blob:; worker-src 'self' blob:;" always;
 
-    # Socket.IO - FIXED WebSocket proxy
+    # Socket.IO WebSocket proxy with enhanced configuration
     location /socket.io/ {
         proxy_pass http://127.0.0.1:1002;
         proxy_http_version 1.1;
@@ -33,9 +34,18 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
         proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+        proxy_connect_timeout 60;
+        
+        # Additional headers for WebSocket stability
+        proxy_buffering off;
+        proxy_set_header Origin $http_origin;
+        proxy_set_header Sec-WebSocket-Extensions $http_sec_websocket_extensions;
+        proxy_set_header Sec-WebSocket-Key $http_sec_websocket_key;
+        proxy_set_header Sec-WebSocket-Version $http_sec_websocket_version;
     }
 
-    # Socket health endpoint
+    # Socket.IO health and diagnostic endpoints
     location /socket-health {
         proxy_pass http://127.0.0.1:1002/socket-health;
         proxy_set_header Host $host;
@@ -43,16 +53,36 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
+    
+    location /health {
+        proxy_pass http://127.0.0.1:1002/health;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
-    # REMOVED problematic static file location
-    # All requests go to PHP application which handles static files correctly
-
-    # Main application - All requests go to PHP app
+    # Main PHP application - All requests proxied to Docker container
     location / {
         proxy_pass http://localhost:1001;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port $server_port;
+        
+        # Enhanced timeout settings for VPS deployment
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        
+        # Buffer settings for better performance
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
     }
+    
+    # Error and access logs for debugging
+    error_log /var/log/nginx/marvelcollin.my.id.error.log;
+    access_log /var/log/nginx/marvelcollin.my.id.access.log;
 }

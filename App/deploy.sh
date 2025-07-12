@@ -400,13 +400,12 @@ configure_production() {
     update_env "APP_ENV" "production"
     update_env "APP_DEBUG" "false"
     update_env "IS_VPS" "true"
-    update_env "IS_DOCKER" "true"
+    update_env "IS_DOCKER" "false"
     update_env "USE_HTTPS" "$USE_HTTPS"
     update_env "DOMAIN" "$DOMAIN"
     update_env "DB_PASS" "$DB_PASS"
     update_env "SOCKET_HOST" "$DOMAIN"
     update_env "SOCKET_SECURE" "$USE_HTTPS"
-    update_env "SOCKET_PORT" ""
 
     if [ -n "$PUBLIC_IP" ]; then
         update_env "PUBLIC_IP" "$PUBLIC_IP"
@@ -534,11 +533,6 @@ configure_production() {
     echo -e "${GREEN}✅ Application is ready and fully configured${NC}"
     echo -e "${GREEN}✅ Nginx configuration applied automatically${NC}"
     echo -e "${GREEN}✅ All services are operational${NC}"
-    
-    echo -e "\n${YELLOW}🔧 DIAGNOSTIC TOOLS:${NC}"
-    echo -e "• Run WebSocket diagnostics: ./scripts/diagnose-websocket.sh"
-    echo -e "• Check environment config: ./scripts/configure-environment.sh verify"
-    echo -e "• Test socket health: curl -k https://$(get_env_value 'DOMAIN')/socket-health"
     
     if [ "$use_https" = "true" ]; then
         echo -e "\n${YELLOW}📋 SSL Notes:${NC}"
