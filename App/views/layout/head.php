@@ -57,27 +57,19 @@ $vpsHost = EnvLoader::get('DOMAIN', 'localhost');
 $pageIsHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
 $pageIsHttps = $pageIsHttps || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
 $pageIsHttps = $pageIsHttps || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https');
-$pageIsHttps = $pageIsHttps || ($isVPS && $useHttps);
-
-$realIsDocker = $isDocker || 
-    (getenv('IS_DOCKER') === 'true') || 
-    (isset($_SERVER['IS_DOCKER']) && $_SERVER['IS_DOCKER'] === 'true') ||
-    file_exists('/.dockerenv') ||
-    (isset($_SERVER['DB_HOST']) && $_SERVER['DB_HOST'] === 'db') ||
-    (isset($_SERVER['HTTP_HOST']) && $_SERVER['HTTP_HOST'] === 'app');
 
 if ($isVPS && $vpsHost !== 'localhost') {
     $frontendSocketHost = $vpsHost;
     $frontendSocketPort = '';
-    $frontendSocketSecure = $pageIsHttps ? 'true' : 'false';
-} elseif ($realIsDocker && !$isVPS) {
+    $frontendSocketSecure = 'true';
+} elseif ($isDocker) {
     $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;
-    $frontendSocketSecure = $pageIsHttps ? 'true' : $socketSecure;
+    $frontendSocketSecure = $socketSecure;
 } else {
-    $frontendSocketHost = $socketHost;
+    $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;
-    $frontendSocketSecure = $pageIsHttps ? 'true' : $socketSecure;
+    $frontendSocketSecure = $socketSecure;
 }
 ?>
 
@@ -167,6 +159,17 @@ if ($isVPS && $vpsHost !== 'localhost') {
 <?php if (isset($include_socket_io) && $include_socket_io): ?>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
     <script src="/public/js/debug/socket-diagnostics.js?v=<?php echo $cache_version; ?>"></script>
+    
+    <script>
+    console.log('🔧 [SOCKET-ENV] Environment configuration check:');
+    console.log('   PHP IS_VPS: <?php echo $isVPS ? "true" : "false"; ?>');
+    console.log('   PHP IS_DOCKER: <?php echo $isDocker ? "true" : "false"; ?>');
+    console.log('   PHP Socket Host: <?php echo $frontendSocketHost; ?>');
+    console.log('   PHP Socket Port: <?php echo $frontendSocketPort; ?>');
+    console.log('   PHP Socket Secure: <?php echo $frontendSocketSecure; ?>');
+    console.log('   PHP Page HTTPS: <?php echo $pageIsHttps ? "true" : "false"; ?>');
+    console.log('   PHP VPS Host: <?php echo $vpsHost; ?>');
+    </script>
     
     <script>
     window.addEventListener('DOMContentLoaded', function() {

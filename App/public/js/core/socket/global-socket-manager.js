@@ -223,7 +223,6 @@
                 path: this.socketBasePath,
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
-                pageProtocol: window.location.protocol,
                 source: 'meta-tags-from-env'
             });
             
@@ -310,7 +309,7 @@
             
             const socketConfig = {
                 path: this.socketBasePath,
-                transports: this.socketSecure ? ['websocket', 'polling'] : ['polling', 'websocket'],
+                transports: this.socketSecure ? ['polling', 'websocket'] : ['polling', 'websocket'],
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
@@ -501,20 +500,13 @@
             
             this.debug('Connection error details', {
                 error: error.message,
-                errorType: error.type || 'unknown',
-                errorDescription: error.description || 'no description',
                 reconnectAttempt: this.reconnectAttempts,
                 maxAttempts: this.maxReconnectAttempts,
                 socketConfig: {
                     host: this.socketHost,
                     port: this.socketPort,
-                    secure: this.socketSecure,
-                    path: this.socketBasePath
-                },
-                currentUrl: window.location.href,
-                expectedSocketUrl: this.socketPort ? 
-                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}${this.socketBasePath}` :
-                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}${this.socketBasePath}`
+                    secure: this.socketSecure
+                }
             });
             
             if (this.reconnectAttempts >= this.maxReconnectAttempts) {
