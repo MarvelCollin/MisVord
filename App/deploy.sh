@@ -518,7 +518,38 @@ configure_production() {
     echo -e "• Improved service health monitoring"
 }
 
-# Main menu
+update_website() {
+    print_section "UPDATING WEBSITE"
+
+    print_info "Resetting git repository to clean state..."
+    git reset --hard
+    
+    print_info "Cleaning untracked files and directories..."
+    git clean -fd
+    
+    print_info "Pulling latest changes from repository..."
+    git pull
+    
+    print_info "Final cleanup of untracked files..."
+    git clean -fd
+    
+    print_info "Restarting Docker containers..."
+    docker-compose restart
+    
+    print_success "Website update completed successfully!"
+    
+    print_info "Waiting for services to restart..."
+    sleep 10
+    
+    print_info "Checking service status after update..."
+    if docker-compose ps | grep -q "Up"; then
+        print_success "All services are running after update"
+    else
+        print_warning "Some services may not be running properly"
+        docker-compose ps
+    fi
+}
+
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
     echo "1) Check environment file"
@@ -527,7 +558,8 @@ show_menu() {
     echo "4) Check service health"
     echo "5) Configure for production"
     echo "6) Full deployment (all steps)"
-    echo "7) Exit"
+    echo "7) Update website"
+    echo "8) Exit"
     echo
 }
 
@@ -547,7 +579,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "Select an option (1-7): " choice
+        read -p "Select an option (1-8): " choice
 
         case $choice in
             1)
@@ -574,11 +606,14 @@ main() {
                 configure_production
                 ;;
             7)
+                update_website
+                ;;
+            8)
                 print_info "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-7."
+                print_error "Invalid option. Please choose 1-8."
                 ;;
         esac
 
