@@ -161,18 +161,6 @@ class ExploreController extends BaseController
         $initialData = $this->getPaginatedServers(1, 6);
         $servers = $initialData['servers'];
         $userServerIds = $this->getUserServerIds($currentUserId);
-        $featuredServers = $this->getFeaturedServers(3);
-
-        $allServers = array_merge($featuredServers, $servers);
-        $uniqueServers = [];
-        $seenIds = [];
-
-        foreach ($allServers as $server) {
-            if (!in_array($server['id'], $seenIds)) {
-                $uniqueServers[] = $server;
-                $seenIds[] = $server['id'];
-            }
-        }
 
         $categories = [
             'gaming' => 'Gaming',
@@ -185,9 +173,8 @@ class ExploreController extends BaseController
 
         return [
             'userServers' => $userServers,
-            'servers' => $uniqueServers,
+            'servers' => $servers,
             'userServerIds' => $userServerIds,
-            'featuredServers' => $featuredServers,
             'categories' => $categories,
             'currentUserId' => $currentUserId,
             'initialData' => $initialData

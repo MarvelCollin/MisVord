@@ -16,13 +16,13 @@ $exploreData = $exploreController->prepareExploreData();
 $userServers = $exploreData['userServers'];
 $servers = $exploreData['servers'];
 $userServerId = $exploreData['userServerIds'];
-$featuredServers = $exploreData['featuredServers'];
+$featuredServers = [];
 $categories = $exploreData['categories'];
 $initialData = $exploreData['initialData'];
 
 $GLOBALS['servers'] = $servers;
 $GLOBALS['userServerIds'] = $userServerId;
-$GLOBALS['featuredServers'] = $featuredServers;
+$GLOBALS['featuredServers'] = [];
 $GLOBALS['categories'] = $categories;
 $GLOBALS['initialData'] = $initialData;
 $GLOBALS['contentType'] = 'explore';

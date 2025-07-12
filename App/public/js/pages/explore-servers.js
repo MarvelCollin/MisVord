@@ -104,28 +104,17 @@ function initServerCards() {
 }
 
 function initCategoryFilter() {
-    const categoryFilter = document.getElementById('category-filter');
-    if (categoryFilter) {
-        categoryFilter.addEventListener('change', function () {
-            currentCategory = this.value || '';
-            applyFilters();
-            
-            this.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                this.style.transform = 'scale(1)';
-            }, 150);
-        });
-    }
-    
     const categoryItems = document.querySelectorAll('.category-item');
     categoryItems.forEach(item => {
         item.addEventListener('click', function() {
-            const categoryValue = this.getAttribute('data-category') || '';
+            categoryItems.forEach(cat => cat.classList.remove('active', 'bg-discord-light', 'text-white'));
+            categoryItems.forEach(cat => cat.classList.add('text-discord-lighter'));
             
-            categoryItems.forEach(cat => cat.classList.remove('active'));
-            this.classList.add('active');
+            this.classList.add('active', 'bg-discord-light', 'text-white');
+            this.classList.remove('text-discord-lighter');
             
-            currentCategory = categoryValue;
+            const category = this.getAttribute('data-category');
+            currentCategory = category;
             applyFilters();
         });
     });
@@ -633,35 +622,67 @@ function createServerCardElement(server) {
     cardWrapper.className = 'misvord-initial-server-card fade-in-up';
     
     const isJoined = server.is_member;
+    const bannerUrl = server.banner_url || '';
+    const iconUrl = server.image_url || '/public/assets/common/default-profile-picture.png';
+    const category = server.category || '';
+    const description = server.description || 'No description available';
+    const createdDate = server.created_at ? new Date(server.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
 
     cardWrapper.innerHTML = `
-        <div class="explore-server-card server-card bg-discord-darker rounded-xl overflow-hidden transition-all duration-300 cursor-pointer group/card" data-server-id="${server.id}" data-category="${server.category}">
-            <div class="server-banner h-32 relative overflow-hidden">
-                <img src="${server.banner_url || asset('landing-page/background.png')}" alt="${server.name} Banner" class="w-full h-full object-cover transition-transform duration-300 group-hover/card:scale-105" loading="lazy">
-                <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+        <div class="explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group" data-server-id="${server.id}" data-category="${category}">
+            <div class="server-banner h-32 bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 relative overflow-hidden">
+                ${bannerUrl ? `<img src="${bannerUrl}" alt="${server.name}" class="w-full h-full object-cover">` : ''}
             </div>
-            <div class="relative p-4 pt-8">
-                <div class="absolute -top-8 left-4 z-10">
-                    <div class="explore-server-icon-small server-icon rounded-xl w-16 h-16 bg-discord-dark-2 border-4 border-discord-darker transition-all duration-300 group-hover/card:scale-105 group-hover/card:shadow-lg">
-                        <img src="${server.image_url || '/public/assets/common/default-profile-picture.png'}" alt="${server.name} Icon" class="w-full h-full object-cover" loading="lazy">
+
+            <div class="relative px-5 pt-5 pb-5">
+                <div class="explore-server-icon-small server-icon-small absolute -top-8 left-5 w-16 h-16">
+                    <div class="w-full h-full rounded-xl bg-discord-dark p-1 shadow-xl relative overflow-hidden">
+                        <img src="${iconUrl}" alt="${server.name}" class="w-full h-full object-cover rounded-lg server-icon">
+                        <div class="absolute inset-0 ring-2 ring-white/20 rounded-lg"></div>
                     </div>
                 </div>
-                <div class="mt-8 flex justify-between items-start">
-                    <div>
-                        <h3 class="server-name text-lg font-bold text-white truncate">${server.name}</h3>
-                        <p class="text-xs text-gray-400 font-semibold uppercase tracking-wider">${server.category}</p>
+
+                <div class="mt-8 pl-2">
+                    <div class="flex items-center gap-2 mb-2">
+                        <h3 class="server-name font-bold text-lg text-white transition-colors flex-1">${server.name}</h3>
+                        ${category ? `<span class="category-badge">${category.charAt(0).toUpperCase() + category.slice(1)}</span>` : ''}
                     </div>
-                </div>
-                <p class="server-description text-sm text-gray-300 mt-2 h-10 line-clamp-2">${server.description}</p>
-                <div class="server-stats flex items-center text-xs text-gray-400 mt-3 gap-4">
-                    <span><i class="fas fa-users mr-1"></i> ${server.member_count.toLocaleString()} Members</span>
-                    <span><i class="fas fa-calendar-alt mr-1"></i> Created ${new Date(server.created_at).toLocaleDateString()}</span>
-                </div>
-                <div class="mt-4">
-                    <button class="join-server-btn w-full py-2 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${isJoined ? 'bg-discord-green text-white cursor-default' : 'bg-discord-blurple hover:bg-discord-blurple-dark text-white'}">
-                        <i class="fas ${isJoined ? 'fa-check' : 'fa-plus'} mr-2"></i>
-                        ${isJoined ? 'Joined' : 'Join Server'}
-                    </button>
+                    
+                    <p class="server-description text-discord-lighter text-sm mb-3 line-clamp-2 leading-relaxed">${description}</p>
+                    
+                    ${createdDate ? `
+                    <div class="server-created text-xs text-discord-lighter mb-3 flex items-center">
+                        <i class="fas fa-calendar-plus mr-1"></i>
+                        <span>Created ${createdDate}</span>
+                    </div>
+                    ` : ''}
+
+                    <div class="server-stats flex items-center text-xs text-discord-lighter mb-4">
+                        <span class="font-medium">${server.member_count.toLocaleString()} members</span>
+                    </div>
+
+                    <div class="mt-4 space-y-2">
+                        ${isJoined ? `
+                        <button onclick="event.preventDefault(); event.stopPropagation();" 
+                               class="join-server-btn w-full bg-discord-green/20 text-discord-green text-center py-2.5 text-sm rounded-lg hover:bg-discord-green/30 transition-all font-semibold border border-discord-green/30" 
+                               data-server-id="${server.id}">
+                            <i class="fas fa-check mr-2"></i>Joined
+                        </button>
+                        ` : `
+                        <button onclick="event.preventDefault(); event.stopPropagation();" 
+                               class="join-server-btn w-full bg-discord-primary text-white text-center py-2.5 text-sm rounded-lg hover:bg-discord-primary/90 transition-all font-semibold" 
+                               data-server-id="${server.id}">
+                            <i class="fas fa-plus mr-2"></i>Join Server
+                        </button>
+                        `}
+                        
+                        ${server.invite_link ? `
+                        <button onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText('${server.invite_link}'); if(window.showToast) window.showToast('Invite link copied!', 'success');" 
+                               class="w-full bg-discord-lighter/10 text-discord-lighter text-center py-2 text-xs rounded-lg hover:bg-discord-lighter/20 transition-all font-medium border border-discord-lighter/20">
+                            <i class="fas fa-link mr-1"></i>Copy Invite
+                        </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
         </div>

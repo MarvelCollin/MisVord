@@ -1,7 +1,6 @@
 <?php
 $servers = $GLOBALS['servers'] ?? [];
 $userServerId = $GLOBALS['userServerIds'] ?? [];
-$featuredServers = $GLOBALS['featuredServers'] ?? [];
 $categories = $GLOBALS['categories'] ?? [];
 
 require_once dirname(__DIR__) . '/explore/server-card.php';
@@ -34,13 +33,6 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
             </div>
             
             <div class="filter-controls">
-                <select id="category-filter" class="filter-dropdown" style="display: none;">
-                    <option value="">All Categories</option>
-                    <?php foreach ($categories as $key => $name): ?>
-                        <option value="<?php echo $key; ?>"><?php echo $name; ?></option>
-                    <?php endforeach; ?>
-                </select>
-
                 <div class="sort-container">
                     <button id="sort-btn" class="sort-btn">
                         <i class="fas fa-sort-amount-down"></i>

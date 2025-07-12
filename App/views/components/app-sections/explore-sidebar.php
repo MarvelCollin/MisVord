@@ -59,29 +59,6 @@ foreach ($servers as $server) {
     <?php include dirname(__DIR__) . '/common/user-profile.php'; ?>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const categoryItems = document.querySelectorAll('.category-item');
-
-    categoryItems.forEach(item => {
-        item.addEventListener('click', function() {
-            categoryItems.forEach(cat => cat.classList.remove('active', 'bg-discord-light', 'text-white'));
-            categoryItems.forEach(cat => cat.classList.add('text-discord-lighter'));
-            
-            this.classList.add('active', 'bg-discord-light', 'text-white');
-            this.classList.remove('text-discord-lighter');
-            
-            const category = this.getAttribute('data-category');
-            const categoryFilter = document.getElementById('category-filter');
-            if (categoryFilter) {
-                categoryFilter.value = category;
-                categoryFilter.dispatchEvent(new Event('change'));
-            }
-        });
-    });
-});
-</script>
-
 <style>
 .category-item.active {
     background-color: #5865f2 !important;
