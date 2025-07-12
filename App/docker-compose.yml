@@ -27,6 +27,7 @@ services:
     ports: 
       - "${APP_PORT:-1001}:1001"
     environment:
+      - IS_DOCKER=true
       - APP_ENV=${APP_ENV:-production} 
       - APP_DEBUG=${APP_DEBUG:-false} 
       - DB_HOST=db
@@ -41,6 +42,7 @@ services:
       - PORT=1001
       - SOCKET_HOST=${SOCKET_HOST:-socket}
       - SOCKET_PORT=${SOCKET_PORT:-1002}
+      - SOCKET_BIND_HOST=${SOCKET_BIND_HOST:-0.0.0.0}
       - VIDEOSDK_API_KEY=${VIDEOSDK_API_KEY}
       - VIDEOSDK_SECRET_KEY=${VIDEOSDK_SECRET_KEY}
       - VIDEOSDK_TOKEN=${VIDEOSDK_TOKEN}
@@ -69,6 +71,7 @@ services:
     ports:
       - "${SOCKET_PORT:-1002}:1002"
     environment:
+      - IS_DOCKER=true
       - DB_HOST=db
       - DB_PORT=1003
       - DB_NAME=misvord
@@ -76,7 +79,7 @@ services:
       - DB_PASS=${DB_PASS}
       - SOCKET_PORT=1002
       - SOCKET_BASE_PATH=/socket.io
-      - CORS_ALLOWED_ORIGINS=http://localhost:1001,http://127.0.0.1:1001,http://misvord_php:1001,${DOMAIN:-marvelcollin.my.id}
+      - CORS_ALLOWED_ORIGINS=http://localhost:1001,http://127.0.0.1:1001,http://app:1001,${DOMAIN:-localhost}:1001
       - PHP_APP_URL=${PHP_APP_URL:-http://app:1001}
     volumes:
       - ./socket-server:/app

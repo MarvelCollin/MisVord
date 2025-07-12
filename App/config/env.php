@@ -91,7 +91,8 @@ class EnvLoader {
             isset($_SERVER['IS_DOCKER']) || 
             getenv('CONTAINER') !== false ||
             isset($_SERVER['CONTAINER']) ||
-            file_exists('/.dockerenv')
+            file_exists('/.dockerenv') ||
+            (isset($_SERVER['DB_HOST']) && $_SERVER['DB_HOST'] === 'db')
         );
 
         if ($isDocker) {
