@@ -10,29 +10,25 @@ if (!class_exists('EnvLoader')) {
 }
 
 function asset($path) {
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://";
-    $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
-
-    $basePath = '';
-    if (php_sapi_name() === 'cli' || $host === 'localhost' || strpos($host, '127.0.0.1') !== false) {
-        $basePath = '/misvord';
+    $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $vpsHost = EnvLoader::get('DOMAIN', 'localhost');
+    $isVPSDomain = ($isVPS || strpos($host, $vpsHost) !== false) && $vpsHost !== 'localhost';
+    
+    $useHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+    if ($isVPSDomain) {
+        $useHttps = true;
+        $host = str_replace(':1001', '', $host);
     }
-
-    if (strpos($host, 'marvelcollin.my.id') !== false) {
-        $basePath = '/misvord';
-    }
-
-    if (strpos($basePath, '/public') === false) {
-        $basePath = $basePath . '/public';
-    }
-
+    
+    $protocol = $useHttps ? "https://" : "http://";
+    $basePath = '/public';
+    
     $path = '/' . ltrim($path, '/');
-
+    
     if (strpos($path, '/css/') === 0 || strpos($path, '/js/') === 0) {
-
-    } 
-
-    else if (strpos($path, '/assets/') !== 0) {
+        // CSS and JS paths are used as-is
+    } else if (strpos($path, '/assets/') !== 0) {
         $path = '/assets' . $path;
     }
 
@@ -46,16 +42,7 @@ function css($path) {
     }
 
     $baseUrl = getBaseUrl();
-
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
-
-    if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
-        $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/css/{$path}";
-    } else {
-        $finalUrl = "{$baseUrl}/css/{$path}";
-    }
-
+    $finalUrl = "{$baseUrl}/css/{$path}";
     $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
 
     return $finalUrl;
@@ -68,16 +55,7 @@ function js($path) {
     }
 
     $baseUrl = getBaseUrl();
-
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
-
-    if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
-        $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/js/{$path}";
-    } else {
-        $finalUrl = "{$baseUrl}/js/{$path}";
-    }
-
+    $finalUrl = "{$baseUrl}/js/{$path}";
     $finalUrl = preg_replace('#([^:])//+#', '$1/', $finalUrl);
 
     return $finalUrl;
@@ -85,13 +63,15 @@ function js($path) {
 
 function getBaseUrl() {
     if (php_sapi_name() === 'cli') {
-        // For CLI, use APP_URL from environment or fallback
         return EnvLoader::get('APP_URL', 'http://localhost:8000') . '/public';
     }
 
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
+    $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
+    $vpsHost = EnvLoader::get('DOMAIN', 'localhost');
+    $isVPSDomain = ($isVPS || strpos($host, $vpsHost) !== false) && $vpsHost !== 'localhost';
     
-    if (!strpos($host, ':') && isset($_SERVER['SERVER_PORT'])) {
+    if (!$isVPSDomain && !strpos($host, ':') && isset($_SERVER['SERVER_PORT'])) {
         $port = $_SERVER['SERVER_PORT'];
         if ($port != '80' && $port != '443') {
             $host .= ':' . $port;
@@ -99,23 +79,13 @@ function getBaseUrl() {
     }
 
     $useHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-
-    if (strpos($host, 'marvelcollin.my.id') !== false) {
+    if ($isVPSDomain) {
         $useHttps = true;
+        $host = str_replace(':1001', '', $host);
     }
 
     $protocol = $useHttps ? 'https' : 'http';
-    $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
-
-    if (strpos($host, 'marvelcollin.my.id') !== false) {
-        if (strpos($scriptDir, '/misvord') === false) {
-            $scriptDir = '/misvord';
-        }
-    }
-
-    if (strpos($scriptDir, '/public') === false) {
-        $scriptDir = $scriptDir . '/public';
-    }
+    $scriptDir = '/public';
 
     $baseUrl = "{$protocol}://{$host}{$scriptDir}";
 

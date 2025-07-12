@@ -52,8 +52,10 @@ $frontendSocketHost = $currentHost;
 
 $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
 $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
+$vpsHost = EnvLoader::get('DOMAIN', 'localhost');
+$isVPSDomain = ($isVPS || strpos($currentHost, $vpsHost) !== false) && $vpsHost !== 'localhost';
 
-if ($isVPS || strpos($currentHost, 'marvelcollin.my.id') !== false) {
+if ($isVPSDomain) {
     $frontendSocketHost = $currentHost;
     $socketPort = '';
     $socketSecure = 'true';
