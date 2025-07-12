@@ -114,7 +114,7 @@ check_env_file() {
         fi
     done
 
-    if [ ${
+    if [ ${#missing_vars[@]} -gt 0 ]; then
         print_error "Missing required environment variables:"
         for var in "${missing_vars[@]}"; do
             echo "  - $var"
@@ -377,7 +377,7 @@ verify_env_sync() {
         issues+=(".env DB_HOST should be 'db' for Docker deployment")
     fi
 
-    if [ ${
+    if [ ${#issues[@]} -gt 0 ]; then
         print_warning "Environment synchronization issues found:"
         for issue in "${issues[@]}"; do
             echo "  - $issue"
