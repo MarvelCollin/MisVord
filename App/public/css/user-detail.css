@@ -74,6 +74,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 5;
 }
 
 .user-avatar img {
@@ -91,22 +92,28 @@
   border-radius: 50%;
   background-color: var(--discord-green);
   border: 4px solid var(--discord-darker);
+  z-index: 10;
 }
 
-.user-status-indicator.appear {
+.user-status-indicator.online,
+.user-status-indicator.appear,
+.user-status-indicator.active {
   background-color: var(--discord-green);
 }
 
-.user-status-indicator.invisible {
-  background-color: var(--discord-lighter);
+.user-status-indicator.afk,
+.user-status-indicator.away {
+  background-color: #faa61a;
+}
+
+.user-status-indicator.inactive,
+.user-status-indicator.invisible,
+.user-status-indicator.offline {
+  background-color: #747f8d;
 }
 
 .user-status-indicator.do_not_disturb {
   background-color: var(--discord-red);
-}
-
-.user-status-indicator.offline {
-  background-color: #747f8d;
 }
 
 .user-status-indicator.banned {

@@ -22,7 +22,7 @@ class UserDetailModal {
         this.nameElement = this.modal.querySelector('#user-detail-name');
         this.usernameElement = this.modal.querySelector('#user-detail-username');
         this.discriminatorElement = this.modal.querySelector('#user-detail-discriminator');
-        this.statusIndicator = this.modal.querySelector('.user-status-indicator');
+        this.statusIndicator = this.modal.querySelector('#user-detail-status-indicator');
 
         this.aboutSection = this.modal.querySelector('#user-detail-bio');
         this.memberSinceSection = this.modal.querySelector('#user-detail-server-info');
@@ -55,11 +55,7 @@ class UserDetailModal {
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isVisible()) {
-                if (this.mutualDetailModal.classList.contains('active')) {
-                    this.hideMutualDetail();
-                } else {
-                    this.hide();
-                }
+                this.hide();
             }
         });
 
@@ -83,6 +79,26 @@ class UserDetailModal {
             this.mutualDetailModal.addEventListener('click', (e) => {
                 if (e.target === this.mutualDetailModal) {
                     this.hideMutualDetail();
+                }
+            });
+        }
+
+        window.addEventListener('ownPresenceUpdate', () => {
+            if (this.isVisible() && this.currentUserId) {
+                this.updateStatusIndicator(this.currentUserId);
+            }
+        });
+
+        window.addEventListener('user-presence-update', (event) => {
+            if (this.isVisible() && this.currentUserId && event.detail?.user_id === this.currentUserId) {
+                this.updateStatusIndicator(this.currentUserId);
+            }
+        });
+
+        if (window.globalSocketManager?.io) {
+            window.globalSocketManager.io.on('user-presence-update', (data) => {
+                if (this.isVisible() && this.currentUserId && data.user_id === this.currentUserId) {
+                    this.updateStatusIndicator(this.currentUserId);
                 }
             });
         }
@@ -165,6 +181,10 @@ class UserDetailModal {
                 setTimeout(() => {
                     if (userData) {
                         this.displayUserData(userData);
+                        
+                        if (this.currentUserId) {
+                            this.updateStatusIndicator(this.currentUserId);
+                        }
                     }
                 }, remainingTime);
             })
@@ -249,6 +269,7 @@ class UserDetailModal {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
                     <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar" class="opacity-30">
+                    <div class="user-status-indicator inactive" id="user-detail-status-indicator"></div>
                     <div class="skeleton-loading skeleton-avatar absolute top-0 left-0 right-0 bottom-0"></div>
                 </div>
             `;
@@ -310,6 +331,7 @@ class UserDetailModal {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
                     <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar">
+                    <div class="user-status-indicator inactive" id="user-detail-status-indicator"></div>
                 </div>
             `;
         }
@@ -493,11 +515,12 @@ class UserDetailModal {
 
                 const statusIndicator = document.createElement('div');
                 statusIndicator.className = 'user-status-indicator';
-                if (user.status) {
-                    statusIndicator.classList.add(user.status);
-                }
+                statusIndicator.id = 'user-detail-status-indicator';
                 avatarWrapper.appendChild(statusIndicator);
                 this.avatarContainer.appendChild(avatarWrapper);
+                
+                this.statusIndicator = statusIndicator;
+                this.updateStatusIndicator(user.id);
             }
 
             if (this.banner) {
@@ -878,6 +901,58 @@ class UserDetailModal {
     hideMutualDetail() {
         this.mutualDetailModal.classList.remove('active');
     }
+
+    getUserPresenceStatus(userId) {
+        if (!userId) return 'offline';
+        
+        const currentUserId = window.globalSocketManager?.userId;
+        
+        if (String(userId) === String(currentUserId)) {
+            const status = window.globalSocketManager?.currentPresenceStatus || 'online';
+            const activityDetails = window.globalSocketManager?.currentActivityDetails;
+            
+            const isInVoice = activityDetails?.type && 
+                             (activityDetails.type === 'In Voice Call' || 
+                              activityDetails.type.startsWith('In Voice'));
+            
+            if (isInVoice) return 'active';
+            
+            if (status === 'afk') return 'away';
+            if (status === 'online' || status === 'appear') return 'active';
+            if (status === 'do_not_disturb') return 'do_not_disturb';
+            return 'inactive';
+        }
+        
+        if (window.FriendsManager) {
+            const friendsManager = window.FriendsManager.getInstance();
+            const onlineUsers = friendsManager.cache.onlineUsers || {};
+            const userData = onlineUsers[userId];
+            
+            if (userData) {
+                const isInVoice = userData.activity_details?.type && 
+                                 (userData.activity_details.type === 'In Voice Call' || 
+                                  userData.activity_details.type.startsWith('In Voice'));
+                
+                if (isInVoice) return 'active';
+                
+                if (userData.status === 'afk') return 'away';
+                if (userData.status === 'online' || userData.status === 'appear') return 'active';
+                if (userData.status === 'do_not_disturb') return 'do_not_disturb';
+            }
+        }
+        
+        return 'inactive';
+    }
+
+    updateStatusIndicator(userId) {
+        if (!this.statusIndicator) return;
+        
+        const status = this.getUserPresenceStatus(userId);
+        
+        this.statusIndicator.className = 'user-status-indicator';
+        this.statusIndicator.classList.add(status);
+    }
+
 }
 
 const userDetailModal = new UserDetailModal();
