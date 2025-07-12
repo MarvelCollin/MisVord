@@ -433,7 +433,10 @@ configure_production() {
     # Apply configuration
     print_info "Applying production configuration..."
 
+    update_env "APP_ENV" "production"
+    update_env "APP_DEBUG" "false"
     update_env "IS_VPS" "true"
+    update_env "IS_DOCKER" "true"
     update_env "USE_HTTPS" "$USE_HTTPS"
     update_env "DOMAIN" "$DOMAIN"
     update_env "DB_PASS" "$DB_PASS"
@@ -449,13 +452,13 @@ configure_production() {
         update_env "APP_URL" "https://$DOMAIN"
         update_env "SESSION_SECURE" "true"
 
-        CORS_ORIGINS="https://$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
+        CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
         update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     else
         update_env "APP_URL" "http://$DOMAIN"
         update_env "SESSION_SECURE" "false"
 
-        CORS_ORIGINS="http://$DOMAIN,https://$DOMAIN,http://app:1001,http://localhost:1001"
+        CORS_ORIGINS="http://$DOMAIN,https://$DOMAIN,https://www.$DOMAIN,http://app:1001,http://localhost:1001"
         update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     fi
 
@@ -481,8 +484,15 @@ configure_production() {
     echo -e "\n${BLUE}═══ SOCKET CONFIGURATION VERIFICATION ═══${NC}"
     echo "Socket Host: $(get_env_value 'SOCKET_HOST')"
     echo "Socket Secure: $(get_env_value 'SOCKET_SECURE')"
-    echo "Expected Socket URL: $(get_env_value 'SOCKET_SECURE' | grep -q 'true' && echo 'wss' || echo 'ws')://$(get_env_value 'SOCKET_HOST')"
+    echo "Expected Frontend Socket URL: $(get_env_value 'SOCKET_SECURE' | grep -q 'true' && echo 'wss' || echo 'ws')://$(get_env_value 'SOCKET_HOST')"
     echo "CORS Origins: $(get_env_value 'CORS_ALLOWED_ORIGINS')"
+    
+    # Validate socket configuration
+    if [ "$(get_env_value 'SOCKET_HOST')" = "$DOMAIN" ]; then
+        print_success "✅ SOCKET_HOST correctly set to domain: $DOMAIN"
+    else
+        print_warning "⚠️ SOCKET_HOST mismatch - Expected: $DOMAIN, Got: $(get_env_value 'SOCKET_HOST')"
+    fi
 
     print_info "Restarting services with new configuration..."
     docker-compose down
