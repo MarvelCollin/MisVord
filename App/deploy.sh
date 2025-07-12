@@ -550,6 +550,45 @@ update_website() {
     fi
 }
 
+migrate_database() {
+    print_section "MIGRATING DATABASE"
+
+    print_info "Checking if app container is running..."
+    if ! docker-compose ps | grep -q "misvord_php.*Up"; then
+        print_warning "App container is not running. Starting services..."
+        docker-compose up -d
+        
+        print_info "Waiting for app container to be ready..."
+        sleep 10
+    fi
+
+    print_info "Running database migration with fresh start..."
+    if docker exec misvord_php php mv migrate:fresh; then
+        print_success "Database migration completed successfully!"
+    else
+        print_error "Database migration failed!"
+        print_info "Checking container logs for more details..."
+        docker-compose logs app --tail=20
+        return 1
+    fi
+
+    print_info "Verifying database connection..."
+    if docker exec misvord_php php -r "
+        require_once 'config/db.php';
+        try {
+            \$pdo = new PDO('mysql:host=db;port=1003;dbname=misvord', 'root', '${DB_PASS}');
+            echo 'Database connection successful';
+        } catch (Exception \$e) {
+            echo 'Database connection failed: ' . \$e->getMessage();
+            exit(1);
+        }
+    "; then
+        print_success "Database connection verified"
+    else
+        print_warning "Database connection verification failed"
+    fi
+}
+
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
     echo "1) Check environment file"
@@ -559,7 +598,8 @@ show_menu() {
     echo "5) Configure for production"
     echo "6) Full deployment (all steps)"
     echo "7) Update website"
-    echo "8) Exit"
+    echo "8) Migrate database"
+    echo "9) Exit"
     echo
 }
 
@@ -579,7 +619,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "Select an option (1-8): " choice
+        read -p "Select an option (1-9): " choice
 
         case $choice in
             1)
@@ -609,11 +649,14 @@ main() {
                 update_website
                 ;;
             8)
+                migrate_database
+                ;;
+            9)
                 print_info "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-8."
+                print_error "Invalid option. Please choose 1-9."
                 ;;
         esac
 
