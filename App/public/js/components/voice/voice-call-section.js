@@ -223,10 +223,6 @@ class VoiceCallSection {
         window.addEventListener("voiceStateChanged", (e) => this.handleVoiceStateChanged(e));
         window.addEventListener("voiceDisconnect", () => this.clearGrid());
         
-        window.addEventListener("bot-voice-participant-joined", (e) => this.handleBotParticipantJoined(e));
-        window.addEventListener("bot-voice-participant-left", (e) => this.handleBotParticipantLeft(e));
-        
-
         window.addEventListener("voiceStateChanged", (e) => this.handleUnifiedVoiceStateChanged(e));
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
@@ -333,6 +329,16 @@ class VoiceCallSection {
         
 
         this.updateConnectionStatus(true);
+        
+        setTimeout(() => {
+            this.rebuildGridFromVideoSDK();
+        }, 500);
+        
+        setTimeout(() => {
+            if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
+                window.voiceManager.checkAllParticipantsForExistingStreams();
+            }
+        }, 1500);
         
         if (!event.detail.skipJoinSound) {
             MusicLoaderStatic.playJoinVoiceSound();
@@ -447,6 +453,7 @@ class VoiceCallSection {
         if (determinedChannelId) {
             this.currentChannelId = determinedChannelId;
             this.currentChannelName = determinedChannelName;
+            this.syncButtonStates();
             return true;
         }
         
@@ -463,10 +470,13 @@ class VoiceCallSection {
         const { participant, data } = event.detail;
         if (!participant || this.participantElements.has(participant)) return;
         
-
+        if (!window.voiceManager || !window.voiceManager.participants.has(participant)) {
+            console.log(`🚫 [VOICE-CALL-SECTION] Participant ${participant} not found in VideoSDK manager - ignoring`);
+            return;
+        }
+        
         const userId = data?.user_id || data?.id;
         if (userId) {
-
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
@@ -492,6 +502,10 @@ class VoiceCallSection {
             element.style.opacity = '1';
             element.style.transform = 'translateY(0) scale(1)';
         }, 10);
+        
+        setTimeout(() => {
+            this.restoreExistingStreamsForParticipant(participant, data, element);
+        }, 100);
         
         this.updateGridLayout();
         this.updateParticipantCount();
@@ -540,100 +554,15 @@ class VoiceCallSection {
         }
     }
 
-    handleBotParticipantJoined(event) {
-        const { participant } = event.detail;
-        if (!participant || !participant.user_id) return;
-        
-        const botId = `bot-${participant.user_id}`;
-        
-        if (this.participantElements.has(botId)) return;
-        
-
-        const userId = participant.user_id;
-        if (userId) {
-
-            for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
-                const existingUserId = existingElement.getAttribute('data-user-id');
-                if (existingUserId === String(userId)) {
-                    console.log(`🔄 [VOICE-CALL-SECTION] Skipping duplicate bot - user ${userId} already exists as ${existingParticipantId}`);
-                    return;
-                }
-            }
-        }
-        
-        const botData = {
-            displayName: participant.username || 'TitiBot',
-            name: participant.username || 'TitiBot',
-            isBot: true,
-            user_id: participant.user_id,
-            avatar_url: participant.avatar_url || '/public/assets/landing-page/robot.webp',
-            channelId: participant.channelId || participant.channel_id,
-            status: participant.status || 'Ready to play music'
-        };
-        
-        const element = this.createParticipantElement(botId, botData);
-        const grid = document.getElementById("participantGrid");
-        if (grid) {
-            element.style.opacity = '0';
-            element.style.transform = 'translateY(20px) scale(0.8)';
-            element.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
-            
-            grid.appendChild(element);
-            this.participantElements.set(botId, element);
-            
-            setTimeout(() => {
-                element.style.opacity = '1';
-                element.style.transform = 'translateY(0) scale(1)';
-            }, 50);
-            
-            this.updateGridLayout();
-            this.updateParticipantCount();
-            
-            const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
-            if (window.ChannelVoiceParticipants && targetChannelId) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-
-                instance.updateSidebarForChannel(targetChannelId, 'append');
-            }
-        }
-    }
-    
-    handleBotParticipantLeft(event) {
-        const { participant } = event.detail;
-        if (!participant || !participant.user_id) return;
-        
-        console.log('🤖 [VOICE-CALL-SECTION] Bot left - removing from grid');
-        
-        const botId = `bot-${participant.user_id}`;
-        const element = this.participantElements.get(botId);
-        if (element) {
-
-            element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
-            element.style.opacity = '0';
-            element.style.transform = 'translateY(-30px) scale(0.7)';
-            
-            setTimeout(() => {
-                if (element.parentNode) {
-                    element.remove();
-                }
-                this.participantElements.delete(botId);
-                this.updateGridLayout();
-                this.updateParticipantCount();
-            }, 400);
-            
-            const targetChannelId = participant.channelId || participant.channel_id || this.currentChannelId;
-            if (window.ChannelVoiceParticipants && targetChannelId) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-
-                instance.updateSidebarForChannel(targetChannelId, 'full');
-            }
-        }
-    }
-    
     handleStreamEnabled(event) {
         const { participantId, kind, stream } = event.detail;
         const element = this.participantElements.get(participantId);
         if (!element) return;
+        
+        if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
+            console.log(`🚫 [VOICE-CALL-SECTION] Stream from non-VideoSDK participant ${participantId} - ignoring`);
+            return;
+        }
         
         if (kind === 'video' || kind === 'webcam') {
             this.showParticipantVideo(element, stream);
@@ -878,10 +807,8 @@ class VoiceCallSection {
     }
     
     clearGrid() {
-
         this.closeParticipantModal();
         
-
         if (this.duplicateCleanupInterval) {
             clearInterval(this.duplicateCleanupInterval);
             this.duplicateCleanupInterval = null;
@@ -900,6 +827,48 @@ class VoiceCallSection {
         }
     }
     
+    rebuildGridFromVideoSDK() {
+        if (!window.voiceManager || !window.voiceManager.participants) {
+            this.clearGrid();
+            return;
+        }
+        
+        console.log(`🔄 [VOICE-CALL-SECTION] Rebuilding grid from VideoSDK participants only`);
+        this.clearGrid();
+        
+        const grid = document.getElementById("participantGrid");
+        if (!grid) return;
+        
+        window.voiceManager.participants.forEach((participantData, participantId) => {
+            if (participantData && !this.participantElements.has(participantId)) {
+                const element = this.createParticipantElement(participantId, participantData);
+                grid.appendChild(element);
+                this.participantElements.set(participantId, element);
+                
+                this.restoreExistingStreamsForParticipant(participantId, participantData, element);
+            }
+        });
+        
+        this.updateGridLayout();
+        this.updateParticipantCount();
+    }
+    
+    restoreExistingStreamsForParticipant(participantId, participantData, element) {
+        if (!participantData.streams || participantData.streams.size === 0) return;
+        
+        console.log(`🔄 [VOICE-CALL-SECTION] Restoring ${participantData.streams.size} existing streams for participant ${participantId}`);
+        
+        participantData.streams.forEach((stream, kind) => {
+            if (kind === 'video' || kind === 'webcam') {
+                console.log(`🎥 [VOICE-CALL-SECTION] Restoring video stream for ${participantId}`);
+                this.showParticipantVideo(element, stream);
+            } else if (kind === 'share') {
+                console.log(`🖥️ [VOICE-CALL-SECTION] Restoring screen share for ${participantId}`);
+                this.createScreenShareCard(participantId, stream);
+            }
+        });
+    }
+    
     removeDuplicateCards() {
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
@@ -907,15 +876,19 @@ class VoiceCallSection {
         const seenUserIds = new Set();
         const cardsToRemove = [];
         
-
         const cards = grid.querySelectorAll('.participant-card');
         cards.forEach(card => {
             const userId = card.getAttribute('data-user-id');
             const participantId = card.getAttribute('data-participant-id');
             
+            if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
+                cardsToRemove.push({ card, participantId });
+                console.log(`🗑️ [VOICE-CALL-SECTION] Found non-VideoSDK card for participant ${participantId}, removing`);
+                return;
+            }
+            
             if (userId) {
                 if (seenUserIds.has(userId)) {
-
                     cardsToRemove.push({ card, participantId });
                     console.log(`🗑️ [VOICE-CALL-SECTION] Found duplicate card for user ${userId}, removing participant ${participantId}`);
                 } else {
@@ -924,7 +897,6 @@ class VoiceCallSection {
             }
         });
         
-
         cardsToRemove.forEach(({ card, participantId }) => {
             card.remove();
             this.participantElements.delete(participantId);
@@ -940,10 +912,19 @@ class VoiceCallSection {
     syncButtonStates() {
         if (!window.voiceManager) return;
         
+        const storedState = window.localStorageManager?.getUnifiedVoiceState();
+        
         this.updateMicButton(window.voiceManager.getMicState());
-        this.updateVideoButton(window.voiceManager.getVideoState());
+        this.updateVideoButton(storedState?.videoOn || window.voiceManager.getVideoState());
         this.updateDeafenButton(window.voiceManager.getDeafenState());
-        this.updateScreenButton(window.voiceManager.getScreenShareState());
+        this.updateScreenButton(storedState?.screenShareOn || window.voiceManager.getScreenShareState());
+        
+        if (storedState?.videoOn && window.voiceManager._videoOn !== storedState.videoOn) {
+            window.voiceManager._videoOn = storedState.videoOn;
+        }
+        if (storedState?.screenShareOn && window.voiceManager._screenShareOn !== storedState.screenShareOn) {
+            window.voiceManager._screenShareOn = storedState.screenShareOn;
+        }
     }
     
     updateMicButton(isOn) {

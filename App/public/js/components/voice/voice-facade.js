@@ -88,7 +88,9 @@ class VoiceFacade {
                     channelId,
                     channelName,
                     meetingId,
-                    connectionTime: Date.now()
+                    connectionTime: Date.now(),
+                    videoOn: window.voiceManager?._videoOn || currentState.videoOn || false,
+                    screenShareOn: window.voiceManager?._screenShareOn || currentState.screenShareOn || false
                 });
             } else {
                 window.localStorageManager.clearVoiceState();

@@ -331,6 +331,22 @@ class SimpleChannelSwitcher {
             window.voiceCallSection.ensureChannelSync();
         }
         
+        if (isConnectedToVoice || isConnectedInStorage) {
+            if (window.voiceManager && voiceState) {
+                window.voiceManager._videoOn = voiceState.videoOn || false;
+                window.voiceManager._screenShareOn = voiceState.screenShareOn || false;
+            }
+            if (window.voiceCallSection && typeof window.voiceCallSection.syncButtonStates === 'function') {
+                window.voiceCallSection.syncButtonStates();
+            }
+            
+            setTimeout(() => {
+                if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
+                    window.voiceManager.checkAllParticipantsForExistingStreams();
+                }
+            }, 1000);
+        }
+        
 
         if (isConnectedToVoice || isConnectedInStorage) {
             console.log(`🔄 [CHANNEL-SWITCHER] User already connected - syncing UI without sidebar refresh`);

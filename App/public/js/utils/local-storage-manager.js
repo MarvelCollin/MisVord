@@ -236,7 +236,9 @@ class LocalStorageManager {
             channelId: null,
             channelName: null,
             meetingId: null,
-            connectionTime: null
+            connectionTime: null,
+            videoOn: false,
+            screenShareOn: false
         });
     }
 
@@ -389,6 +391,22 @@ class LocalStorageManager {
             
             return newDeafenedState;
         }
+    }
+
+    setVideoState(isOn) {
+        const currentState = this.getUnifiedVoiceState();
+        return this.setUnifiedVoiceState({
+            ...currentState,
+            videoOn: isOn
+        });
+    }
+
+    setScreenShareState(isOn) {
+        const currentState = this.getUnifiedVoiceState();
+        return this.setUnifiedVoiceState({
+            ...currentState,
+            screenShareOn: isOn
+        });
     }
 
     showToast(message, type = 'info') {

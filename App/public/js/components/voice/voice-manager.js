@@ -417,6 +417,9 @@ class VoiceManager {
                     meetingId: this.currentMeetingId
                 });
             }
+            
+            this._videoOn = voiceState.videoOn || false;
+            this._screenShareOn = voiceState.screenShareOn || false;
         }
 
         else if (!this.isConnected && voiceState.isConnected && 
@@ -429,6 +432,15 @@ class VoiceManager {
     }
     
     cleanup() {
+        const shouldPreserveStates = this.isConnected && this.currentChannelId;
+        let videoState = false;
+        let screenShareState = false;
+        
+        if (shouldPreserveStates && window.localStorageManager) {
+            videoState = this._videoOn;
+            screenShareState = this._screenShareOn;
+        }
+        
         this.meeting = null;
         this.isConnected = false;
         this.isMeetingJoined = false;
@@ -448,13 +460,14 @@ class VoiceManager {
             window.globalSocketManager.updatePresence('online', { type: 'active' });
         }
         
-
         this.updateUnifiedVoiceState({
             isConnected: false,
             channelId: null,
             channelName: null,
             meetingId: null,
-            connectionTime: null
+            connectionTime: null,
+            videoOn: videoState,
+            screenShareOn: screenShareState
         });
     }
     
@@ -496,6 +509,11 @@ class VoiceManager {
             this.isMeetingJoined = true;
             this.localParticipant = this.meeting.localParticipant;
             this.handleParticipantJoined(this.meeting.localParticipant);
+            this.restoreVideoStatesFromStorage();
+            
+            setTimeout(() => {
+                this.checkAllParticipantsForExistingStreams();
+            }, 1000);
         });
         
         this.meeting.on('meeting-left', () => {
@@ -512,6 +530,32 @@ class VoiceManager {
         
         if (this.meeting.localParticipant) {
             this.setupStreamHandlers(this.meeting.localParticipant);
+        }
+    }
+    
+    async restoreVideoStatesFromStorage() {
+        if (!window.localStorageManager || !this.meeting || !this.localParticipant) return;
+        
+        const storedState = window.localStorageManager.getUnifiedVoiceState();
+        
+        if (storedState.videoOn && !this._videoOn) {
+            console.log('🎥 [VOICE-MANAGER] Restoring video state from storage');
+            try {
+                await this.meeting.enableWebcam();
+                this._videoOn = true;
+            } catch (error) {
+                console.error('Failed to restore video:', error);
+            }
+        }
+        
+        if (storedState.screenShareOn && !this._screenShareOn) {
+            console.log('🖥️ [VOICE-MANAGER] Restoring screen share state from storage');
+            try {
+                await this.meeting.enableScreenShare();
+                this._screenShareOn = true;
+            } catch (error) {
+                console.error('Failed to restore screen share:', error);
+            }
         }
     }
     
@@ -563,6 +607,8 @@ class VoiceManager {
         
         this.setupStreamHandlers(participant);
         
+        this.checkAndRestoreExistingStreams(participant);
+        
         window.dispatchEvent(new CustomEvent('participantJoined', {
             detail: { participant: participantKey, data: this.participants.get(participantKey) }
         }));
@@ -597,7 +643,6 @@ class VoiceManager {
         if (!participant) return;
         
         participant.on('stream-enabled', (stream) => {
-
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.set(stream.kind, stream);
@@ -613,7 +658,6 @@ class VoiceManager {
         });
         
         participant.on('stream-disabled', (stream) => {
-
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.delete(stream.kind);
@@ -626,6 +670,133 @@ class VoiceManager {
                 }
             }));
         });
+    }
+    
+    checkAndRestoreExistingStreams(participant) {
+        if (!participant) return;
+        
+        console.log(`🔍 [VOICE-MANAGER] Checking existing streams for participant ${participant.id}`);
+        console.log(`🔍 [VOICE-MANAGER] Participant object:`, {
+            id: participant.id,
+            webcamOn: participant.webcamOn,
+            screenShareOn: participant.screenShareOn,
+            micOn: participant.micOn,
+            hasWebcamStream: !!participant.webcamStream,
+            hasScreenShareStream: !!participant.screenShareStream,
+            hasMicStream: !!participant.micStream,
+            hasVideoStream: !!participant.videoStream,
+            hasStreamsObject: !!participant.streams
+        });
+        
+        setTimeout(() => {
+            if (participant.webcamOn && participant.webcamStream) {
+                console.log(`🎥 [VOICE-MANAGER] Found existing webcam stream for ${participant.id}`);
+                const participantData = this.participants.get(participant.id);
+                if (participantData) {
+                    participantData.streams.set('video', participant.webcamStream);
+                }
+                
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: participant.id,
+                        kind: 'video',
+                        stream: participant.webcamStream
+                    }
+                }));
+            }
+            
+            if (participant.screenShareOn && participant.screenShareStream) {
+                console.log(`🖥️ [VOICE-MANAGER] Found existing screen share stream for ${participant.id}`);
+                const participantData = this.participants.get(participant.id);
+                if (participantData) {
+                    participantData.streams.set('share', participant.screenShareStream);
+                }
+                
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: participant.id,
+                        kind: 'share',
+                        stream: participant.screenShareStream
+                    }
+                }));
+            }
+            
+            if (participant.micOn && participant.micStream) {
+                console.log(`🎤 [VOICE-MANAGER] Found existing mic stream for ${participant.id}`);
+                const participantData = this.participants.get(participant.id);
+                if (participantData) {
+                    participantData.streams.set('audio', participant.micStream);
+                }
+            }
+            
+            if (participant.videoStream) {
+                console.log(`🎥 [VOICE-MANAGER] Found existing video stream (alt) for ${participant.id}`);
+                const participantData = this.participants.get(participant.id);
+                if (participantData) {
+                    participantData.streams.set('video', participant.videoStream);
+                }
+                
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: participant.id,
+                        kind: 'video',
+                        stream: participant.videoStream
+                    }
+                }));
+            }
+            
+            if (participant.streams) {
+                console.log(`🔍 [VOICE-MANAGER] Checking participant.streams object for ${participant.id}:`, participant.streams);
+                
+                if (participant.streams.video) {
+                    console.log(`🎥 [VOICE-MANAGER] Found video in streams object for ${participant.id}`);
+                    const participantData = this.participants.get(participant.id);
+                    if (participantData) {
+                        participantData.streams.set('video', participant.streams.video);
+                    }
+                    
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participant.id,
+                            kind: 'video',
+                            stream: participant.streams.video
+                        }
+                    }));
+                }
+                
+                if (participant.streams.share) {
+                    console.log(`🖥️ [VOICE-MANAGER] Found share in streams object for ${participant.id}`);
+                    const participantData = this.participants.get(participant.id);
+                    if (participantData) {
+                        participantData.streams.set('share', participant.streams.share);
+                    }
+                    
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participant.id,
+                            kind: 'share',
+                            stream: participant.streams.share
+                        }
+                    }));
+                }
+            }
+        }, 200);
+    }
+    
+    checkAllParticipantsForExistingStreams() {
+        if (!this.meeting || !this.meeting.participants) return;
+        
+        console.log(`🔍 [VOICE-MANAGER] Checking all participants for existing streams`);
+        
+        this.meeting.participants.forEach((participant) => {
+            if (participant && this.participants.has(participant.id)) {
+                this.checkAndRestoreExistingStreams(participant);
+            }
+        });
+        
+        if (this.meeting.localParticipant && this.participants.has(this.meeting.localParticipant.id)) {
+            this.checkAndRestoreExistingStreams(this.meeting.localParticipant);
+        }
     }
     
     toggleMic() {
@@ -661,6 +832,10 @@ class VoiceManager {
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: { type: 'video', state: this._videoOn }
             }));
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.setVideoState(this._videoOn);
+            }
             
             return this._videoOn;
         } catch (error) {
@@ -698,6 +873,10 @@ class VoiceManager {
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: { type: 'screen', state: this._screenShareOn }
             }));
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.setScreenShareState(this._screenShareOn);
+            }
             
             return this._screenShareOn;
         } catch (error) {
@@ -892,7 +1071,13 @@ class VoiceManager {
                 state.meetingId = this.currentMeetingId;
             }
             
-            window.localStorageManager.setUnifiedVoiceState(state);
+            const stateWithVideoStates = {
+                ...state,
+                videoOn: this._videoOn,
+                screenShareOn: this._screenShareOn
+            };
+            
+            window.localStorageManager.setUnifiedVoiceState(stateWithVideoStates);
         }
     }
 }
