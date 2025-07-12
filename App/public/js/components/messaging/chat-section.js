@@ -216,7 +216,7 @@ class ChatSection {
             
             this.messageTimestamps = [];
             this.maxMessagesPerInterval = 5;
-            this.messageIntervalMs = 10000;
+            this.messageIntervalMs = 3000;
             this.isSending = false;
             this.isRateLimited = false;
             this.rateLimitTimer = null;

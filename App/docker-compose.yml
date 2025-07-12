@@ -82,7 +82,7 @@ services:
       - SOCKET_PORT=1002
       - SOCKET_BIND_HOST=0.0.0.0
       - SOCKET_BASE_PATH=/socket.io
-      - CORS_ALLOWED_ORIGINS=https://${DOMAIN:-localhost},http://${DOMAIN:-localhost},http://app:1001,http://localhost:1001,https://localhost:1001
+      - CORS_ALLOWED_ORIGINS=https://${DOMAIN:-localhost},https://www.${DOMAIN:-localhost},http://${DOMAIN:-localhost},http://www.${DOMAIN:-localhost},http://app:1001,http://localhost:1001,https://localhost:1001
       - PHP_APP_URL=${PHP_APP_URL:-http://app:1001}
     volumes:
       - ./socket-server:/app
