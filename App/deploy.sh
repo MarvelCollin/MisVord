@@ -1,44 +1,25 @@
 #!/bin/bash
 
-# MisVord VPS Deployment Script - COMPREHENSIVE VERSION
-# This script handles environment configuration, bot initialization, and production deployment
-
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Print functions
 print_success() { echo -e "${GREEN}✅ $1${NC}"; }
 print_error() { echo -e "${RED}❌ $1${NC}"; }
 print_warning() { echo -e "${YELLOW}⚠️ $1${NC}"; }
 print_info() { echo -e "${BLUE}ℹ️ $1${NC}"; }
 print_section() { echo -e "\n${BLUE}═══ $1 ═══${NC}"; }
 
-# Function to read current env value
 get_env_value() {
-    local key=show_menu() {
-    echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
-    echo "1) Check environment file"
-    echo "2) Validate Docker configuration"  
-    echo "3) Initialize bots"
-    echo "4) Check service health"
-    echo "5) Configure for production"
-    echo "6) Full deployment (all steps + migration)"
-    echo "7) VPS complete health check"
-    echo "8) Update website"
-    echo "9) Migrate database"
-    echo "10) Exit"
-    echo
-}env_file=${2:-.env}
+    local key=$1
+    local env_file=${2:-.env}
     grep "^${key}=" "$env_file" 2>/dev/null | cut -d'=' -f2- || echo ""
 }
 
-# Function to wait for service with retry
 wait_for_service() {
     local service_name=$1
     local port=$2
@@ -62,32 +43,27 @@ wait_for_service() {
     return 1
 }
 
-# Function to update env value
 update_env() {
     local key=$1
     local value=$2
     local env_file=${3:-.env}
 
     if grep -q "^${key}=" "$env_file" 2>/dev/null; then
-        # Key exists, update it
         if [[ "$OSTYPE" == "darwin"* ]]; then
             sed -i '' "s|^${key}=.*|${key}=${value}|" "$env_file"
         else
             sed -i "s|^${key}=.*|${key}=${value}|" "$env_file"
         fi
     else
-        # Key doesn't exist, add it
         echo "${key}=${value}" >> "$env_file"
     fi
     print_success "Updated ${key}=${value}"
 }
 
-# Function to check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to wait for user input with default
 read_with_default() {
     local prompt="$1"
     local default="$2"
@@ -108,7 +84,6 @@ read_with_default() {
     eval "$var_name='$user_input'"
 }
 
-# Function to check environment file
 check_env_file() {
     print_section "CHECKING ENVIRONMENT FILE"
 
@@ -119,7 +94,6 @@ check_env_file() {
 
     print_success ".env file found"
 
-    # Display current important settings
     echo -e "\n${YELLOW}Current Environment Settings:${NC}"
     echo "APP_ENV: $(get_env_value 'APP_ENV')"
     echo "IS_VPS: $(get_env_value 'IS_VPS')"
@@ -130,7 +104,6 @@ check_env_file() {
     echo "SOCKET_PORT: $(get_env_value 'SOCKET_PORT')"
     echo "SOCKET_BIND_HOST: $(get_env_value 'SOCKET_BIND_HOST')"
     
-    # Validate critical environment variables
     missing_vars=()
     required_vars=("APP_PORT" "SOCKET_PORT" "SOCKET_BIND_HOST" "DB_PASS")
     
@@ -153,11 +126,9 @@ check_env_file() {
     print_success "All required environment variables are set"
 }
 
-# Function to validate Docker configuration
 validate_docker_config() {
     print_section "VALIDATING DOCKER CONFIGURATION"
     
-    # Check if docker-compose.yml exists
     if [ ! -f "docker-compose.yml" ]; then
         print_error "docker-compose.yml not found!"
         return 1
@@ -165,19 +136,16 @@ validate_docker_config() {
     
     print_success "docker-compose.yml found"
     
-    # Validate Docker Compose environment variables for socket service
     if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker-compose.yml; then
         print_success "SOCKET_BIND_HOST correctly configured in docker-compose.yml"
     else
         print_error "SOCKET_BIND_HOST missing from docker-compose.yml socket service"
         print_info "Adding SOCKET_BIND_HOST to docker-compose.yml..."
         
-        # This would require more complex sed commands to insert into the right place
         print_warning "Please manually add 'SOCKET_BIND_HOST=0.0.0.0' to socket service environment in docker-compose.yml"
         return 1
     fi
     
-    # Check if socket server has proper environment handling
     if [ -f "socket-server/server.js" ]; then
         if grep -q "IS_DOCKER.*true" socket-server/server.js; then
             print_success "Socket server has Docker environment detection"
@@ -189,23 +157,18 @@ validate_docker_config() {
     print_success "Docker configuration validation completed"
 }
 
-# Function to fix common socket server issues
 fix_socket_issues() {
     print_section "FIXING SOCKET SERVER ISSUES"
     
-    # Check for common socket server problems
     print_info "Checking for common socket server issues..."
     
-    # Kill any existing node processes that might conflict
     print_info "Stopping any conflicting Node.js processes..."
     pkill -f "node.*server.js" 2>/dev/null || true
     
-    # Check if port 1002 is available
     if netstat -tuln 2>/dev/null | grep -q ":1002 "; then
         print_warning "Port 1002 is already in use"
         print_info "Attempting to free port 1002..."
         
-        # Try to find and kill process using port 1002
         PID=$(lsof -ti:1002 2>/dev/null || echo "")
         if [ -n "$PID" ]; then
             kill -9 $PID 2>/dev/null || true
@@ -215,7 +178,6 @@ fix_socket_issues() {
         print_success "Port 1002 is available"
     fi
     
-    # Rebuild socket container to ensure latest changes
     print_info "Rebuilding socket container with latest configuration..."
     docker-compose down socket 2>/dev/null || true
     docker-compose build socket
@@ -223,7 +185,6 @@ fix_socket_issues() {
     print_success "Socket server issues fixed"
 }
 
-# Function to initialize bot in database
 init_bot() {
     print_section "BOT INITIALIZATION"
 
@@ -235,7 +196,6 @@ init_bot() {
 
     print_info "Checking if TitiBot exists in database..."
 
-    # Check bot via simplified API call
     BOT_CHECK=$(curl -s "http://localhost:1001/api/bots/public-check/titibot" 2>/dev/null || echo "")
 
     if echo "$BOT_CHECK" | grep -q '"exists":true'; then
@@ -247,7 +207,6 @@ init_bot() {
     else
         print_warning "TitiBot not found. Creating TitiBot via API..."
 
-        # Create TitiBot using debug endpoint
         CREATE_RESULT=$(curl -s -X POST "http://localhost:1001/api/debug/create-titibot" 2>/dev/null || echo "")
 
         if echo "$CREATE_RESULT" | grep -q '"success":true'; then
@@ -263,7 +222,6 @@ init_bot() {
         fi
     fi
 
-    # Verify bot list
     print_info "Verifying bot list..."
     BOTS_LIST=$(curl -s "http://localhost:1001/api/bots" 2>/dev/null || echo "")
     if echo "$BOTS_LIST" | grep -q '"success":true'; then
@@ -274,7 +232,6 @@ init_bot() {
     fi
 }
 
-# Function to check service health
 check_services() {
     print_section "SERVICE HEALTH CHECK"
 
@@ -294,7 +251,6 @@ check_services() {
     print_info "Starting all services..."
     docker-compose up -d
 
-    # Wait for each service to be ready
     services=("app:1001" "socket:1002")
 
     for service in "${services[@]}"; do
@@ -312,7 +268,6 @@ check_services() {
         fi
     done
 
-    # Check database separately (no health endpoint)
     print_info "Checking database service..."
     if docker-compose ps | grep -q "misvord_db.*Up"; then
         print_success "Database container is running"
@@ -321,14 +276,11 @@ check_services() {
         docker-compose logs db | tail -10
     fi
 
-    # Final service verification with detailed socket check
     print_info "Running final service verification..."
     
-    # Check PHP application
     if curl -s "http://localhost:1001/health" >/dev/null 2>&1; then
         print_success "PHP application is responding"
         
-        # Get PHP app info
         APP_INFO=$(curl -s "http://localhost:1001/health" 2>/dev/null || echo "{}")
         if echo "$APP_INFO" | grep -q '"status":"ok"'; then
             print_success "PHP application health check passed"
@@ -402,18 +354,15 @@ check_services() {
     print_success "Service health check completed"
 }
 
-# Function to configure production environment
 configure_production() {
     print_section "PRODUCTION CONFIGURATION"
 
     echo -e "${YELLOW}This will configure the application for production deployment.${NC}"
     echo -e "${YELLOW}Please provide the following information:${NC}\n"
 
-    # Get domain
     current_domain=$(get_env_value 'DOMAIN')
     read_with_default "Enter your domain name" "$current_domain" "DOMAIN"
 
-    # Get SSL preference
     current_https=$(get_env_value 'USE_HTTPS')
     echo -e "\n${BLUE}Enable HTTPS/SSL?${NC}"
     echo "1) Yes (recommended for production)"
@@ -426,15 +375,12 @@ configure_production() {
         *) USE_HTTPS="true" ;;
     esac
 
-    # Get database password
     current_db_pass=$(get_env_value 'DB_PASS')
     read_with_default "Enter database password" "$current_db_pass" "DB_PASS"
 
-    # Get public IP (optional)
     current_public_ip=$(get_env_value 'PUBLIC_IP')
     read_with_default "Enter server public IP (optional)" "$current_public_ip" "PUBLIC_IP"
 
-    # Configure API keys (optional)
     echo -e "\n${YELLOW}API Configuration (press Enter to keep current values):${NC}"
 
     current_google_id=$(get_env_value 'GOOGLE_CLIENT_ID')
@@ -449,7 +395,6 @@ configure_production() {
     current_videosdk_secret=$(get_env_value 'VIDEOSDK_SECRET_KEY')
     read_with_default "VideoSDK Secret Key" "$current_videosdk_secret" "VIDEOSDK_SECRET_KEY"
 
-    # Apply configuration
     print_info "Applying production configuration..."
 
     update_env "APP_ENV" "production"
@@ -466,7 +411,6 @@ configure_production() {
         update_env "PUBLIC_IP" "$PUBLIC_IP"
     fi
 
-    # Update URLs based on HTTPS setting
     if [ "$USE_HTTPS" = "true" ]; then
         update_env "APP_URL" "https://$DOMAIN"
         update_env "SESSION_SECURE" "true"
@@ -479,7 +423,6 @@ configure_production() {
     
     update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
 
-    # Update API keys if provided
     if [ -n "$GOOGLE_CLIENT_ID" ]; then
         update_env "GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_ID"
     fi
@@ -504,7 +447,6 @@ configure_production() {
     echo "Expected Frontend Socket URL: $(get_env_value 'SOCKET_SECURE' | grep -q 'true' && echo 'wss' || echo 'ws')://$(get_env_value 'SOCKET_HOST')"
     echo "CORS Origins: $(get_env_value 'CORS_ALLOWED_ORIGINS')"
     
-    # Validate socket configuration
     if [ "$(get_env_value 'SOCKET_HOST')" = "$DOMAIN" ]; then
         print_success "✅ SOCKET_HOST correctly set to domain: $DOMAIN"
     else
@@ -529,7 +471,6 @@ configure_production() {
         print_warning "Database migration failed - you may need to run it manually"
     fi
 
-    # Display final configuration
     echo -e "\n${GREEN}═══ PRODUCTION CONFIGURATION SUMMARY ═══${NC}"
     echo "Domain: $DOMAIN"
     echo "HTTPS: $USE_HTTPS"
@@ -850,8 +791,6 @@ migrate_database() {
     fi
 }
 
-
-
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
     echo "1) Check environment file"
@@ -860,7 +799,7 @@ show_menu() {
     echo "4) Check service health"
     echo "5) Configure for production"
     echo "6) Full deployment (all steps)"
-    echo "7) Configure reverse proxy for WebSocket"
+    echo "7) VPS complete health check"
     echo "8) Update website"
     echo "9) Migrate database"
     echo "10) Exit"
