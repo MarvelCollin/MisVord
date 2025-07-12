@@ -375,6 +375,32 @@ configure_production() {
         *) USE_HTTPS="true" ;;
     esac
 
+    echo -e "\n${BLUE}Environment Type:${NC}"
+    echo "1) VPS Production (Docker + Nginx)"
+    echo "2) Local Development"
+    read -p "Choice (1-2): " env_choice
+
+    case $env_choice in
+        1) 
+            IS_VPS="true"
+            IS_DOCKER="true"
+            APP_ENV="production"
+            APP_DEBUG="false"
+            ;;
+        2) 
+            IS_VPS="false"
+            IS_DOCKER="false"
+            APP_ENV="development"
+            APP_DEBUG="true"
+            ;;
+        *) 
+            IS_VPS="true"
+            IS_DOCKER="true"
+            APP_ENV="production"
+            APP_DEBUG="false"
+            ;;
+    esac
+
     current_db_pass=$(get_env_value 'DB_PASS')
     read_with_default "Enter database password" "$current_db_pass" "DB_PASS"
 
@@ -397,15 +423,34 @@ configure_production() {
 
     print_info "Applying production configuration..."
 
-    update_env "APP_ENV" "production"
-    update_env "APP_DEBUG" "false"
-    update_env "IS_VPS" "true"
-    update_env "IS_DOCKER" "true"
+    update_env "APP_ENV" "$APP_ENV"
+    update_env "APP_DEBUG" "$APP_DEBUG"
+    update_env "IS_VPS" "$IS_VPS"
+    update_env "IS_DOCKER" "$IS_DOCKER"
     update_env "USE_HTTPS" "$USE_HTTPS"
     update_env "DOMAIN" "$DOMAIN"
     update_env "DB_PASS" "$DB_PASS"
-    update_env "SOCKET_HOST" "$DOMAIN"
-    update_env "SOCKET_SECURE" "$USE_HTTPS"
+    
+    if [ "$IS_VPS" = "true" ]; then
+        update_env "SOCKET_HOST" "$DOMAIN"
+        update_env "SOCKET_PORT" ""
+        update_env "SOCKET_SECURE" "$USE_HTTPS"
+        update_env "SOCKET_BIND_HOST" "0.0.0.0"
+        update_env "DB_HOST" "db"
+        update_env "PHP_APP_URL" "http://app:1001"
+    else
+        update_env "SOCKET_HOST" "localhost"
+        update_env "SOCKET_PORT" "1002"
+        update_env "SOCKET_SECURE" "false"
+        update_env "SOCKET_BIND_HOST" "0.0.0.0"
+        if [ "$IS_DOCKER" = "true" ]; then
+            update_env "DB_HOST" "db"
+            update_env "PHP_APP_URL" "http://app:1001"
+        else
+            update_env "DB_HOST" "localhost"
+            update_env "PHP_APP_URL" "http://localhost:1001"
+        fi
+    fi
 
     if [ -n "$PUBLIC_IP" ]; then
         update_env "PUBLIC_IP" "$PUBLIC_IP"
@@ -414,11 +459,19 @@ configure_production() {
     if [ "$USE_HTTPS" = "true" ]; then
         update_env "APP_URL" "https://$DOMAIN"
         update_env "SESSION_SECURE" "true"
-        CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
+        if [ "$IS_VPS" = "true" ]; then
+            CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
+        else
+            CORS_ORIGINS="https://localhost,http://localhost:1001,https://localhost:1001"
+        fi
     else
         update_env "APP_URL" "http://$DOMAIN"
         update_env "SESSION_SECURE" "false"
-        CORS_ORIGINS="http://$DOMAIN,https://$DOMAIN,https://www.$DOMAIN,http://app:1001,http://localhost:1001"
+        if [ "$IS_VPS" = "true" ]; then
+            CORS_ORIGINS="http://$DOMAIN,https://$DOMAIN,https://www.$DOMAIN,http://app:1001,http://localhost:1001"
+        else
+            CORS_ORIGINS="http://localhost,http://localhost:1001,https://localhost:1001"
+        fi
     fi
     
     update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
@@ -442,62 +495,101 @@ configure_production() {
     print_success "Production configuration applied"
 
     echo -e "\n${BLUE}═══ SOCKET CONFIGURATION VERIFICATION ═══${NC}"
+    echo "Environment: $APP_ENV"
+    echo "Is VPS: $IS_VPS"
+    echo "Is Docker: $IS_DOCKER"
     echo "Socket Host: $(get_env_value 'SOCKET_HOST')"
+    echo "Socket Port: $(get_env_value 'SOCKET_PORT')"
     echo "Socket Secure: $(get_env_value 'SOCKET_SECURE')"
-    echo "Expected Frontend Socket URL: $(get_env_value 'SOCKET_SECURE' | grep -q 'true' && echo 'wss' || echo 'ws')://$(get_env_value 'SOCKET_HOST')"
+    echo "Socket Bind Host: $(get_env_value 'SOCKET_BIND_HOST')"
+    
+    if [ "$IS_VPS" = "true" ]; then
+        echo "Expected Frontend Socket URL: $(get_env_value 'SOCKET_SECURE' | grep -q 'true' && echo 'wss' || echo 'ws')://$(get_env_value 'SOCKET_HOST')/socket.io"
+        echo "Backend Socket URL: http://localhost:1002"
+    else
+        echo "Expected Frontend Socket URL: ws://localhost:1002/socket.io"
+        echo "Backend Socket URL: http://localhost:1002"
+    fi
+    
     echo "CORS Origins: $(get_env_value 'CORS_ALLOWED_ORIGINS')"
     
-    if [ "$(get_env_value 'SOCKET_HOST')" = "$DOMAIN" ]; then
+    if [ "$IS_VPS" = "true" ] && [ "$(get_env_value 'SOCKET_HOST')" = "$DOMAIN" ]; then
         print_success "✅ SOCKET_HOST correctly set to domain: $DOMAIN"
+    elif [ "$IS_VPS" = "false" ] && [ "$(get_env_value 'SOCKET_HOST')" = "localhost" ]; then
+        print_success "✅ SOCKET_HOST correctly set to localhost for local development"
     else
-        print_warning "⚠️ SOCKET_HOST mismatch - Expected: $DOMAIN, Got: $(get_env_value 'SOCKET_HOST')"
+        print_warning "⚠️ SOCKET_HOST configuration issue - Check environment settings"
     fi
 
-    print_info "Restarting services with new configuration..."
-    docker-compose down
-    docker-compose build --no-cache
-    docker-compose up -d
+    if [ "$IS_VPS" = "true" ]; then
+        print_info "Restarting services with new configuration..."
+        docker-compose down
+        docker-compose build --no-cache
+        docker-compose up -d
 
-    print_info "Waiting for services to restart..."
-    sleep 20
+        print_info "Waiting for services to restart..."
+        sleep 20
 
-    print_success "Services restarted with production configuration"
-    
-    migrate_database
-    
-    if [ $? -eq 0 ]; then
-        print_success "Database migration completed"
+        print_success "Services restarted with production configuration"
+        
+        migrate_database
+        
+        if [ $? -eq 0 ]; then
+            print_success "Database migration completed"
+        else
+            print_warning "Database migration failed - you may need to run it manually"
+        fi
+        
+        print_info "Setting up nginx configuration..."
+        if configure_nginx; then
+            print_success "Nginx configuration completed"
+        else
+            print_warning "Nginx configuration failed - you may need to set it up manually"
+            print_info "Use the nginx-on-the-vps.txt file as reference"
+        fi
     else
-        print_warning "Database migration failed - you may need to run it manually"
-    fi
-    
-    # Configure nginx automatically
-    print_info "Setting up nginx configuration..."
-    if configure_nginx; then
-        print_success "Nginx configuration completed"
-    else
-        print_warning "Nginx configuration failed - you may need to set it up manually"
-        print_info "Use the nginx-on-the-vps.txt file as reference"
+        print_success "Local development configuration applied"
+        print_info "Start services manually with: docker-compose up -d (for Docker) or npm/php commands (for native)"
     fi
 
     echo -e "\n${GREEN}═══ PRODUCTION CONFIGURATION SUMMARY ═══${NC}"
+    echo "Environment: $APP_ENV"
+    echo "Is VPS: $IS_VPS"
+    echo "Is Docker: $IS_DOCKER"
     echo "Domain: $DOMAIN"
     echo "HTTPS: $USE_HTTPS"
     echo "App URL: $(get_env_value 'APP_URL')"
     echo "Socket Host: $(get_env_value 'SOCKET_HOST')"
+    echo "Socket Port: $(get_env_value 'SOCKET_PORT')"
     echo "Database: Configured with password"
-    echo "Services: app:1001, socket:1002, db:1003"
+    
+    if [ "$IS_VPS" = "true" ]; then
+        echo "Services: app:1001, socket:1002, db:1003"
+        echo -e "\n${BLUE}═══ CONNECTION INFORMATION ═══${NC}"
+        echo "App Service: http://localhost:1001"
+        echo "Socket Service: http://localhost:1002"
+        echo "Database: localhost:1003"
+        echo "PhpMyAdmin: http://localhost:1004"
+    else
+        echo "Services: Native PHP/Node.js or Docker Compose"
+        echo -e "\n${BLUE}═══ CONNECTION INFORMATION ═══${NC}"
+        echo "App Service: http://localhost:1001"
+        echo "Socket Service: http://localhost:1002"
+        echo "Database: localhost:1003"
+    fi
 
-    echo -e "\n${BLUE}═══ CONNECTION INFORMATION ═══${NC}"
-    echo "App Service: http://localhost:1001"
-    echo "Socket Service: http://localhost:1002"
-    echo "Database: localhost:1003"
-    echo "PhpMyAdmin: http://localhost:1004"
-
-    if [ "$USE_HTTPS" = "true" ]; then
+    if [ "$USE_HTTPS" = "true" ] && [ "$IS_VPS" = "true" ]; then
         echo -e "\n${YELLOW}⚠️ HTTPS SETUP NOTES:${NC}"
         echo "1. Configure SSL certificates for $DOMAIN"
         echo "2. Nginx configuration created for $DOMAIN"
+        echo "3. Make sure ports 80, 443, 1001, 1002 are open"
+        echo "4. DNS records should point to your server"
+    elif [ "$IS_VPS" = "false" ]; then
+        echo -e "\n${YELLOW}⚠️ LOCAL DEVELOPMENT NOTES:${NC}"
+        echo "1. Start socket server: cd socket-server && npm start"
+        echo "2. Start PHP server: php -S localhost:1001 -t public public/router.php"
+        echo "3. Or use Docker: docker-compose up -d"
+    fi
         echo "3. Update firewall: allow ports 80, 443"
         echo "4. Point domain $DOMAIN to server IP: $(get_env_value 'PUBLIC_IP')"
         echo "5. Test SSL: https://$DOMAIN"
@@ -1013,6 +1105,81 @@ check_vps_health() {
     fi
 }
 
+configure_local_development() {
+    print_section "LOCAL DEVELOPMENT CONFIGURATION"
+    
+    echo -e "${YELLOW}This will configure the application for local development.${NC}"
+    echo -e "${YELLOW}Choose development environment:${NC}\n"
+    
+    echo "1) Docker development (recommended)"
+    echo "2) Native PHP/Node.js"
+    read -p "Choice (1-2): " dev_choice
+    
+    case $dev_choice in
+        1) 
+            IS_DOCKER="true"
+            print_info "Configuring for Docker development..."
+            ;;
+        2) 
+            IS_DOCKER="false"
+            print_info "Configuring for native development..."
+            ;;
+        *) 
+            IS_DOCKER="true"
+            print_info "Defaulting to Docker development..."
+            ;;
+    esac
+    
+    print_info "Applying local development configuration..."
+    
+    update_env "APP_ENV" "development"
+    update_env "APP_DEBUG" "true"
+    update_env "IS_VPS" "false"
+    update_env "IS_DOCKER" "$IS_DOCKER"
+    update_env "USE_HTTPS" "false"
+    update_env "DOMAIN" "localhost"
+    update_env "SOCKET_HOST" "localhost"
+    update_env "SOCKET_PORT" "1002"
+    update_env "SOCKET_SECURE" "false"
+    update_env "SOCKET_BIND_HOST" "0.0.0.0"
+    update_env "APP_URL" "http://localhost:1001"
+    update_env "SESSION_SECURE" "false"
+    
+    if [ "$IS_DOCKER" = "true" ]; then
+        update_env "DB_HOST" "db"
+        update_env "PHP_APP_URL" "http://app:1001"
+        CORS_ORIGINS="http://localhost:1001,https://localhost:1001,http://app:1001"
+    else
+        update_env "DB_HOST" "localhost"
+        update_env "PHP_APP_URL" "http://localhost:1001"
+        CORS_ORIGINS="http://localhost:1001,https://localhost:1001"
+    fi
+    
+    update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
+    
+    print_success "Local development configuration applied"
+    
+    echo -e "\n${GREEN}═══ LOCAL DEVELOPMENT SUMMARY ═══${NC}"
+    echo "Environment: development"
+    echo "Docker: $IS_DOCKER"
+    echo "App URL: http://localhost:1001"
+    echo "Socket URL: ws://localhost:1002/socket.io"
+    echo "Database: localhost:1003"
+    
+    if [ "$IS_DOCKER" = "true" ]; then
+        echo -e "\n${BLUE}═══ DOCKER DEVELOPMENT COMMANDS ═══${NC}"
+        echo "Start: docker-compose up -d"
+        echo "Stop: docker-compose down"
+        echo "Logs: docker-compose logs -f"
+        echo "Rebuild: docker-compose build --no-cache"
+    else
+        echo -e "\n${BLUE}═══ NATIVE DEVELOPMENT COMMANDS ═══${NC}"
+        echo "Socket Server: cd socket-server && npm install && npm start"
+        echo "PHP Server: php -S localhost:1001 -t public public/router.php"
+        echo "Database: Start MySQL on localhost:1003"
+    fi
+}
+
 update_website() {
     print_section "UPDATING WEBSITE"
 
@@ -1097,7 +1264,8 @@ show_menu() {
     echo "8) VPS complete health check"
     echo "9) Update website"
     echo "10) Migrate database"
-    echo "11) Exit"
+    echo "11) Switch to local development"
+    echo "12) Exit"
     echo
 }
 
@@ -1116,7 +1284,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "Select an option (1-11): " choice
+        read -p "Select an option (1-12): " choice
 
         case $choice in
             1)
@@ -1155,11 +1323,14 @@ main() {
                 migrate_database
                 ;;
             11)
+                configure_local_development
+                ;;
+            12)
                 print_info "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-11."
+                print_error "Invalid option. Please choose 1-12."
                 ;;
         esac
 

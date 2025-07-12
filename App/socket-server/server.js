@@ -1,17 +1,26 @@
 const path = require('path');
 const fs = require('fs');
 
-// Check if running in Docker
 const isDocker = process.env.IS_DOCKER === 'true';
+const isVPS = process.env.IS_VPS === 'true';
 
 if (!isDocker) {
-    // Only load .env file if not in Docker (Docker uses environment variables directly)
     const envPath = path.resolve(__dirname, '..', '.env');
     console.log('🔍 [STARTUP] Loading .env from:', envPath);
     require('dotenv').config({ path: envPath });
 } else {
     console.log('🐳 [STARTUP] Running in Docker - using container environment variables');
 }
+
+console.log('🌍 [STARTUP] Environment configuration:', {
+    IS_DOCKER: process.env.IS_DOCKER,
+    IS_VPS: process.env.IS_VPS,
+    SOCKET_HOST: process.env.SOCKET_HOST,
+    SOCKET_PORT: process.env.SOCKET_PORT,
+    SOCKET_BIND_HOST: process.env.SOCKET_BIND_HOST,
+    SOCKET_SECURE: process.env.SOCKET_SECURE,
+    CORS_ALLOWED_ORIGINS: process.env.CORS_ALLOWED_ORIGINS
+});
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -123,12 +132,18 @@ async function initializeTitiBot() {
 
 socketController.setup(io);
 
-const PORT = process.env.SOCKET_PORT;
-const HOST = process.env.SOCKET_BIND_HOST;
+const PORT = '1002';
+const HOST = process.env.SOCKET_BIND_HOST || '0.0.0.0';
 
-if (!PORT || !HOST) {
-    console.error('❌ [ERROR] Missing required environment variables:');
-    console.error('   SOCKET_PORT:', PORT || 'UNDEFINED');
+console.log('🔧 [STARTUP] Server binding configuration:', {
+    PORT: PORT,
+    HOST: HOST,
+    SOCKET_PORT_ENV: process.env.SOCKET_PORT,
+    note: 'Server always binds to 1002, SOCKET_PORT is for frontend connection'
+});
+
+if (!HOST) {
+    console.error('❌ [ERROR] Missing required environment variable:');
     console.error('   SOCKET_BIND_HOST:', HOST || 'UNDEFINED');
     
     if (isDocker) {
@@ -137,7 +152,7 @@ if (!PORT || !HOST) {
         const envPath = path.resolve(__dirname, '..', '.env');
         console.error('   .env file path:', envPath);
         console.error('   .env file exists:', fs.existsSync(envPath));
-        console.error('   Please check your .env file exists and contains these variables');
+        console.error('   Please check your .env file exists and contains SOCKET_BIND_HOST');
     }
     
     process.exit(1);

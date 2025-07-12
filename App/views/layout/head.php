@@ -65,11 +65,11 @@ if ($isVPS && $vpsHost !== 'localhost') {
 } elseif ($isDocker) {
     $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;
-    $frontendSocketSecure = $socketSecure;
+    $frontendSocketSecure = $pageIsHttps ? 'true' : 'false';
 } else {
     $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;
-    $frontendSocketSecure = $socketSecure;
+    $frontendSocketSecure = $pageIsHttps ? 'true' : 'false';
 }
 ?>
 

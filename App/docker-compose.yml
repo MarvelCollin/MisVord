@@ -28,19 +28,19 @@ services:
       - "${APP_PORT:-1001}:1001"
     environment:
       - IS_DOCKER=true
-      - APP_ENV=${APP_ENV:-production} 
-      - APP_DEBUG=${APP_DEBUG:-false} 
+      - APP_ENV=${APP_ENV:-development} 
+      - APP_DEBUG=${APP_DEBUG:-true} 
       - DB_HOST=db
       - DB_PORT=1003
       - DB_NAME=misvord
       - DB_USER=root
       - DB_PASS=${DB_PASS}
       - DB_CHARSET=utf8mb4
-      - IS_VPS=${IS_VPS:-true} 
-      - USE_HTTPS=${USE_HTTPS:-true} 
-      - DOMAIN=${DOMAIN:-marvelcollin.my.id}
+      - IS_VPS=${IS_VPS:-false} 
+      - USE_HTTPS=${USE_HTTPS:-false} 
+      - DOMAIN=${DOMAIN:-localhost}
       - PORT=1001
-      - SOCKET_HOST=${SOCKET_HOST:-socket}
+      - SOCKET_HOST=${SOCKET_HOST:-localhost}
       - SOCKET_PORT=${SOCKET_PORT:-1002}
       - SOCKET_BIND_HOST=${SOCKET_BIND_HOST:-0.0.0.0}
       - SOCKET_SECURE=${SOCKET_SECURE:-false}
@@ -74,6 +74,7 @@ services:
       - "${SOCKET_PORT:-1002}:1002"
     environment:
       - IS_DOCKER=true
+      - IS_VPS=${IS_VPS:-false}
       - DB_HOST=db
       - DB_PORT=1003
       - DB_NAME=misvord
@@ -82,7 +83,9 @@ services:
       - SOCKET_PORT=1002
       - SOCKET_BIND_HOST=0.0.0.0
       - SOCKET_BASE_PATH=/socket.io
-      - CORS_ALLOWED_ORIGINS=https://${DOMAIN:-localhost},http://${DOMAIN:-localhost},http://app:1001,http://localhost:1001,https://localhost:1001
+      - SOCKET_HOST=${SOCKET_HOST:-localhost}
+      - SOCKET_SECURE=${SOCKET_SECURE:-false}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:1001,https://localhost:1001,http://app:1001}
       - PHP_APP_URL=${PHP_APP_URL:-http://app:1001}
     volumes:
       - ./socket-server:/app

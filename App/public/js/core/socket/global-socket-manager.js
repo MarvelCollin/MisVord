@@ -211,9 +211,13 @@
             this.socketSecure = metaSocketSecure === 'true';
             this.socketBasePath = metaSocketBasePath || '/socket.io';
             
-            if (window.location.protocol === 'https:') {
-                console.warn('🔒 [SOCKET] Page loaded over HTTPS, forcing secure socket connection');
+            if (window.location.protocol === 'https:' || metaIsVPS) {
+                console.warn('🔒 [SOCKET] HTTPS detected or VPS mode, forcing secure socket connection');
                 this.socketSecure = true;
+            }
+            
+            if (metaIsVPS && !this.socketPort) {
+                console.log('🌐 [SOCKET] VPS mode detected - using domain without port');
             }
             
             this.debug('Environment-driven socket configuration:', {
@@ -223,19 +227,20 @@
                 path: this.socketBasePath,
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
+                pageProtocol: window.location.protocol,
                 source: 'meta-tags-from-env'
             });
             
-            console.log('🔧 [SOCKET] Environment-based connection:', {
+            console.log('🔧 [SOCKET] Final connection config:', {
                 host: this.socketHost,
                 port: this.socketPort || 'default',
                 secure: this.socketSecure,
                 path: this.socketBasePath,
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
-                url: this.socketPort ? 
-                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}${this.socketBasePath}` :
-                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}${this.socketBasePath}`
+                finalUrl: this.socketPort ? 
+                    `${this.socketSecure ? 'wss' : 'ws'}://${this.socketHost}:${this.socketPort}${this.socketBasePath}` :
+                    `${this.socketSecure ? 'wss' : 'ws'}://${this.socketHost}${this.socketBasePath}`
             });
             
         } catch (error) {
@@ -299,7 +304,8 @@
             secure: this.socketSecure,
             path: this.socketBasePath,
             pageProtocol: window.location.protocol,
-            pageHost: window.location.hostname
+            pageHost: window.location.hostname,
+            finalSocketUrl: socketUrl + this.socketBasePath
         });
         
         try {
@@ -309,7 +315,7 @@
             
             const socketConfig = {
                 path: this.socketBasePath,
-                transports: this.socketSecure ? ['polling', 'websocket'] : ['polling', 'websocket'],
+                transports: ['polling', 'websocket'],
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
@@ -317,13 +323,13 @@
                 timeout: 30000,
                 forceNew: true,
                 upgrade: true,
-                rememberUpgrade: true
+                rememberUpgrade: true,
+                autoConnect: true
             };
             
             if (this.socketSecure || window.location.protocol === 'https:') {
                 socketConfig.secure = true;
                 socketConfig.rejectUnauthorized = false;
-                socketConfig.transports = ['polling', 'websocket'];
             }
             
             this.log('Socket.IO configuration:', socketConfig);
