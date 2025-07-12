@@ -83,7 +83,7 @@ RUN { \
     && sed -i 's/Listen 80/Listen 1001/g' /etc/apache2/ports.conf \
     && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:1001>/g' /etc/apache2/sites-available/000-default.conf \
     && echo "ServerName localhost" >> /etc/apache2/apache2.conf \
-    && a2enmod rewrite headers ssl \
+    && a2enmod rewrite headers \
     && echo "DirectoryIndex index.php index.html" >> /etc/apache2/apache2.conf
 
 # Set ownership and permissions in a single layer (faster and more efficient)
