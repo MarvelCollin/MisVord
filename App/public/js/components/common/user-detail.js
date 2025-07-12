@@ -269,9 +269,9 @@ class UserDetailModal {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
                     <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar" class="opacity-30">
-                    <div class="user-status-indicator inactive" id="user-detail-status-indicator"></div>
                     <div class="skeleton-loading skeleton-avatar absolute top-0 left-0 right-0 bottom-0"></div>
                 </div>
+                <div class="user-status-indicator inactive" id="user-detail-status-indicator"></div>
             `;
         }
         
@@ -331,8 +331,8 @@ class UserDetailModal {
             this.avatarContainer.innerHTML = `
                 <div class="user-avatar">
                     <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" id="user-detail-avatar">
-                    <div class="user-status-indicator inactive" id="user-detail-status-indicator"></div>
                 </div>
+                <div class="user-status-indicator inactive" id="user-detail-status-indicator"></div>
             `;
         }
         
@@ -516,8 +516,8 @@ class UserDetailModal {
                 const statusIndicator = document.createElement('div');
                 statusIndicator.className = 'user-status-indicator';
                 statusIndicator.id = 'user-detail-status-indicator';
-                avatarWrapper.appendChild(statusIndicator);
                 this.avatarContainer.appendChild(avatarWrapper);
+                this.avatarContainer.appendChild(statusIndicator);
                 
                 this.statusIndicator = statusIndicator;
                 this.updateStatusIndicator(user.id);
