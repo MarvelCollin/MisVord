@@ -27,6 +27,9 @@ $parsedUri = parse_url($requestUri, PHP_URL_PATH);
 if (strpos($parsedUri, '/misvord/public/') === 0) {
     $parsedUri = substr($parsedUri, strlen('/misvord/public'));
     $_SERVER['REQUEST_URI'] = $parsedUri;
+} elseif (strpos($parsedUri, '/misvord/') === 0) {
+    $parsedUri = substr($parsedUri, strlen('/misvord'));
+    $_SERVER['REQUEST_URI'] = $parsedUri;
 }
 
 if (preg_match('/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $parsedUri)) {
@@ -36,11 +39,6 @@ if (preg_match('/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/',
     }
     http_response_code(404);
     exit;
-}
-
-if (strpos($parsedUri, '/misvord/') === 0) {
-    $parsedUri = substr($parsedUri, strlen('/misvord'));
-    $_SERVER['REQUEST_URI'] = $parsedUri;
 }
 
 if (strpos($parsedUri, '/api/') === 0) {
