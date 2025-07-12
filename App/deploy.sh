@@ -1,5 +1,3 @@
-#!/bin/bash
-
 set -e
 
 RED='\033[0;31m'
@@ -84,7 +82,6 @@ read_with_default() {
     eval "$var_name='$user_input'"
 }
 
-# Function to check environment file
 check_env_file() {
     print_section "CHECKING ENVIRONMENT FILE"
 
@@ -95,7 +92,6 @@ check_env_file() {
 
     print_success ".env file found"
 
-    # Display current important settings
     echo -e "\n${YELLOW}Current Environment Settings:${NC}"
     echo "APP_ENV: $(get_env_value 'APP_ENV')"
     echo "IS_DOCKER: $(get_env_value 'IS_DOCKER')"
@@ -107,19 +103,18 @@ check_env_file() {
     echo "APP_PORT: $(get_env_value 'APP_PORT')"
     echo "SOCKET_PORT: $(get_env_value 'SOCKET_PORT')"
     echo "SOCKET_BIND_HOST: $(get_env_value 'SOCKET_BIND_HOST')"
-    
-    # Validate critical environment variables
+
     missing_vars=()
     required_vars=("APP_PORT" "SOCKET_PORT" "SOCKET_BIND_HOST" "DB_PASS" "DB_HOST")
-    
+
     for var in "${required_vars[@]}"; do
         value=$(get_env_value "$var")
         if [ -z "$value" ]; then
             missing_vars+=("$var")
         fi
     done
-    
-    if [ ${#missing_vars[@]} -gt 0 ]; then
+
+    if [ ${
         print_error "Missing required environment variables:"
         for var in "${missing_vars[@]}"; do
             echo "  - $var"
@@ -127,50 +122,45 @@ check_env_file() {
         print_warning "Please update your .env file before proceeding"
         return 1
     fi
-    
-    # Validate Docker-only configuration
+
     db_host=$(get_env_value 'DB_HOST')
     is_docker=$(get_env_value 'IS_DOCKER')
-    
+
     if [ "$db_host" != "db" ]; then
         print_warning "DB_HOST should be 'db' for Docker deployment"
         print_info "Current value: $db_host"
         print_info "Run configure_environment to fix this"
     fi
-    
+
     if [ "$is_docker" != "true" ]; then
         print_warning "IS_DOCKER should be 'true' for Docker deployment"
         print_info "Current value: $is_docker"
         print_info "Run configure_environment to fix this"
     fi
-    
+
     print_success "All required environment variables are set"
 }
 
-# Function to validate Docker configuration
 validate_docker_config() {
     print_section "VALIDATING DOCKER CONFIGURATION"
-    
-    # Check if docker-compose.yml exists
+
     if [ ! -f "docker-compose.yml" ]; then
         print_error "docker-compose.yml not found!"
         return 1
     fi
-    
+
     print_success "docker-compose.yml found"
-    
-    # Validate Docker environment variables are properly passed through
+
     if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker-compose.yml; then
         print_success "SOCKET_BIND_HOST correctly configured in docker-compose.yml"
     else
         print_error "SOCKET_BIND_HOST missing from docker-compose.yml socket service"
         return 1
     fi
-    
-    # Check if .env file has Docker-compatible settings
+
     db_host=$(get_env_value 'DB_HOST')
     is_docker=$(get_env_value 'IS_DOCKER')
-    
+
     if [ "$db_host" = "db" ] && [ "$is_docker" = "true" ]; then
         print_success "Environment configured for Docker deployment"
     else
@@ -178,34 +168,28 @@ validate_docker_config() {
         print_info "DB_HOST: $db_host (should be 'db')"
         print_info "IS_DOCKER: $is_docker (should be 'true')"
     fi
-    
-    # Validate docker-compose environment defaults
+
     if grep -q "APP_ENV=\${APP_ENV:-development}" docker-compose.yml; then
         print_success "Docker-compose defaults to development environment"
     else
         print_warning "Docker-compose may not have correct environment defaults"
     fi
-    
+
     print_success "Docker configuration validation completed"
 }
 
-# Function to fix common socket server issues
 fix_socket_issues() {
     print_section "FIXING SOCKET SERVER ISSUES"
-    
-    # Check for common socket server problems
+
     print_info "Checking for common socket server issues..."
-    
-    # Kill any existing node processes that might conflict
+
     print_info "Stopping any conflicting Node.js processes..."
     pkill -f "node.*server.js" 2>/dev/null || true
-    
-    # Check if port 1002 is available
+
     if netstat -tuln 2>/dev/null | grep -q ":1002 "; then
         print_warning "Port 1002 is already in use"
         print_info "Attempting to free port 1002..."
-        
-        # Try to find and kill process using port 1002
+
         PID=$(lsof -ti:1002 2>/dev/null || echo "")
         if [ -n "$PID" ]; then
             kill -9 $PID 2>/dev/null || true
@@ -214,16 +198,14 @@ fix_socket_issues() {
     else
         print_success "Port 1002 is available"
     fi
-    
-    # Rebuild socket container to ensure latest changes
+
     print_info "Rebuilding socket container with latest configuration..."
     docker-compose down socket 2>/dev/null || true
     docker-compose build socket
-    
+
     print_success "Socket server issues fixed"
 }
 
-# Function to initialize bot in database
 init_bot() {
     print_section "BOT INITIALIZATION"
 
@@ -235,7 +217,6 @@ init_bot() {
 
     print_info "Checking if TitiBot exists in database..."
 
-    # Check bot via simplified API call
     BOT_CHECK=$(curl -s "http://localhost:1001/api/bots/public-check/titibot" 2>/dev/null || echo "")
 
     if echo "$BOT_CHECK" | grep -q '"exists":true'; then
@@ -247,7 +228,6 @@ init_bot() {
     else
         print_warning "TitiBot not found. Creating TitiBot via API..."
 
-        # Create TitiBot using debug endpoint
         CREATE_RESULT=$(curl -s -X POST "http://localhost:1001/api/debug/create-titibot" 2>/dev/null || echo "")
 
         if echo "$CREATE_RESULT" | grep -q '"success":true'; then
@@ -263,7 +243,6 @@ init_bot() {
         fi
     fi
 
-    # Verify bot list
     print_info "Verifying bot list..."
     BOTS_LIST=$(curl -s "http://localhost:1001/api/bots" 2>/dev/null || echo "")
     if echo "$BOTS_LIST" | grep -q '"success":true'; then
@@ -274,7 +253,6 @@ init_bot() {
     fi
 }
 
-# Function to check service health
 check_services() {
     print_section "SERVICE HEALTH CHECK"
 
@@ -294,7 +272,6 @@ check_services() {
     print_info "Starting all services..."
     docker-compose up -d
 
-    # Wait for each service to be ready
     services=("app:1001" "socket:1002")
 
     for service in "${services[@]}"; do
@@ -312,7 +289,6 @@ check_services() {
         fi
     done
 
-    # Check database separately (no health endpoint)
     print_info "Checking database service..."
     if docker-compose ps | grep -q "misvord_db.*Up"; then
         print_success "Database container is running"
@@ -321,14 +297,11 @@ check_services() {
         docker-compose logs db | tail -10
     fi
 
-    # Final service verification with detailed socket check
     print_info "Running final service verification..."
-    
-    # Check PHP application
+
     if curl -s "http://localhost:1001/health" >/dev/null 2>&1; then
         print_success "PHP application is responding"
-        
-        # Get PHP app info
+
         APP_INFO=$(curl -s "http://localhost:1001/health" 2>/dev/null || echo "{}")
         if echo "$APP_INFO" | grep -q '"status":"ok"'; then
             print_success "PHP application health check passed"
@@ -337,23 +310,19 @@ check_services() {
         print_warning "PHP application health check failed"
     fi
 
-    # Check Socket server with detailed validation
     if curl -s "http://localhost:1002/health" >/dev/null 2>&1; then
         print_success "Socket server is responding"
-        
-        # Get socket server info
+
         SOCKET_INFO=$(curl -s "http://localhost:1002/health" 2>/dev/null || echo "{}")
         if echo "$SOCKET_INFO" | grep -q '"status":"ok"'; then
             print_success "Socket server health check passed"
-            
-            # Extract and display socket server details
+
             SERVICE=$(echo "$SOCKET_INFO" | grep -o '"service":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
             PORT=$(echo "$SOCKET_INFO" | grep -o '"port":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
             HOST=$(echo "$SOCKET_INFO" | grep -o '"host":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
-            
+
             print_info "Socket server details: $SERVICE on $HOST:$PORT"
-            
-            # Check if environment variables are properly loaded
+
             if [ "$HOST" = "0.0.0.0" ] && [ "$PORT" = "1002" ]; then
                 print_success "Socket server environment variables correctly loaded"
             else
@@ -365,8 +334,7 @@ check_services() {
         fi
     else
         print_warning "Socket server health check failed"
-        
-        # Check socket container logs for debugging
+
         print_info "Checking socket container logs for issues..."
         SOCKET_LOGS=$(docker-compose logs socket --tail=10 2>/dev/null || echo "")
         if echo "$SOCKET_LOGS" | grep -q "SOCKET_BIND_HOST.*UNDEFINED"; then
@@ -380,20 +348,17 @@ check_services() {
     print_success "Service health check completed"
 }
 
-# Function to verify environment sync
 verify_env_sync() {
     print_section "ENVIRONMENT SYNCHRONIZATION CHECK"
-    
+
     print_info "Checking .env and docker-compose.yml synchronization..."
-    
-    # Check if .env values match docker-compose defaults
+
     env_app_env=$(get_env_value 'APP_ENV')
     env_is_docker=$(get_env_value 'IS_DOCKER')
     env_db_host=$(get_env_value 'DB_HOST')
-    
+
     issues=()
-    
-    # Check APP_ENV
+
     if [ "$env_app_env" = "production" ]; then
         if ! grep -q "APP_ENV=\${APP_ENV:-production}" docker-compose.yml; then
             issues+=("docker-compose.yml should default to production when .env is production")
@@ -403,33 +368,30 @@ verify_env_sync() {
             issues+=("docker-compose.yml should default to development when .env is development")
         fi
     fi
-    
-    # Check Docker configuration
+
     if [ "$env_is_docker" != "true" ]; then
         issues+=(".env IS_DOCKER should be 'true' for Docker deployment")
     fi
-    
+
     if [ "$env_db_host" != "db" ]; then
         issues+=(".env DB_HOST should be 'db' for Docker deployment")
     fi
-    
-    # Report issues
-    if [ ${#issues[@]} -gt 0 ]; then
+
+    if [ ${
         print_warning "Environment synchronization issues found:"
         for issue in "${issues[@]}"; do
             echo "  - $issue"
         done
-        
+
         echo -e "\n${BLUE}Fix these issues? (y/N):${NC}"
         read -p "> " fix_choice
-        
+
         if [[ "$fix_choice" =~ ^[Yy]$ ]]; then
             print_info "Fixing synchronization issues..."
-            
-            # Fix .env for Docker
+
             update_env "IS_DOCKER" "true"
             update_env "DB_HOST" "db"
-            
+
             print_success "Environment synchronization fixed"
         fi
     else
@@ -437,21 +399,18 @@ verify_env_sync() {
     fi
 }
 
-# Function to quick VPS deployment
 quick_vps_deploy() {
     print_section "QUICK VPS DEPLOYMENT"
-    
+
     echo -e "${YELLOW}This will quickly configure and deploy to VPS${NC}"
     echo -e "${YELLOW}Make sure Docker and Docker Compose are installed!${NC}\n"
-    
-    # Quick domain setup
+
     read_with_default "Enter your domain name" "$(get_env_value 'DOMAIN')" "DOMAIN"
     read_with_default "Enter database password" "$(get_env_value 'DB_PASS')" "DB_PASS"
-    
-    # Quick HTTPS setup
+
     echo -e "\n${BLUE}Enable HTTPS? (recommended for production)${NC}"
     read -p "y/N: " https_choice
-    
+
     if [[ "$https_choice" =~ ^[Yy]$ ]]; then
         USE_HTTPS="true"
         SESSION_SECURE="true"
@@ -461,10 +420,9 @@ quick_vps_deploy() {
         SESSION_SECURE="false"
         APP_URL="http://$DOMAIN"
     fi
-    
+
     print_info "Applying VPS configuration..."
-    
-    # Apply all settings
+
     update_env "APP_ENV" "production"
     update_env "APP_DEBUG" "false"
     update_env "IS_DOCKER" "true"
@@ -475,39 +433,35 @@ quick_vps_deploy() {
     update_env "DB_PASS" "$DB_PASS"
     update_env "APP_URL" "$APP_URL"
     update_env "SESSION_SECURE" "$SESSION_SECURE"
-    
-    # CORS configuration
+
     if [ "$USE_HTTPS" = "true" ]; then
         CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001"
     else
         CORS_ORIGINS="http://$DOMAIN,http://www.$DOMAIN,http://app:1001"
     fi
     update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
-    
+
     print_success "VPS configuration applied"
-    
-    # Deploy services
+
     print_info "Starting VPS deployment..."
     docker-compose down 2>/dev/null || true
     docker-compose build --no-cache
     docker-compose up -d
-    
+
     print_info "Waiting for services to start..."
     sleep 30
-    
-    # Initialize bot
+
     print_info "Initializing bot system..."
     init_bot
-    
-    # Health check
+
     check_services
-    
+
     echo -e "\n${GREEN}🚀 VPS DEPLOYMENT COMPLETED!${NC}"
     echo -e "✅ Domain: $DOMAIN"
     echo -e "✅ HTTPS: $USE_HTTPS"
     echo -e "✅ App URL: $APP_URL"
     echo -e "✅ All services running in Docker"
-    
+
     if [ "$USE_HTTPS" = "true" ]; then
         echo -e "\n${YELLOW}⚠️ NEXT STEPS FOR HTTPS:${NC}"
         echo "1. Configure reverse proxy (Nginx/Apache)"
@@ -521,16 +475,15 @@ quick_vps_deploy() {
     fi
 }
 
-# Function to configure environment for Docker
 configure_environment() {
     print_section "ENVIRONMENT CONFIGURATION"
-    
+
     echo -e "${YELLOW}Configure environment for:${NC}"
     echo "1) Development (local Docker)"
     echo "2) Production (VPS Docker)"
     echo "3) Custom configuration"
     read -p "Choice (1-3): " env_choice
-    
+
     case $env_choice in
         1)
             print_info "Configuring for development environment..."
@@ -543,10 +496,9 @@ configure_environment() {
             update_env "DB_HOST" "db"
             update_env "SOCKET_HOST" "socket"
             update_env "SESSION_SECURE" "false"
-            
-            # Development CORS origins
+
             update_env "CORS_ALLOWED_ORIGINS" "http://localhost:1001,http://127.0.0.1:1001,http://app:1001"
-            
+
             print_success "Development environment configured"
             ;;
         2)
@@ -565,18 +517,16 @@ configure_environment() {
             ;;
     esac
 }
-# Function to configure production environment
+
 configure_production() {
     print_section "PRODUCTION CONFIGURATION"
 
     echo -e "${YELLOW}This will configure the application for production deployment.${NC}"
     echo -e "${YELLOW}Please provide the following information:${NC}\n"
 
-    # Get domain
     current_domain=$(get_env_value 'DOMAIN')
     read_with_default "Enter your domain name" "$current_domain" "DOMAIN"
 
-    # Get SSL preference
     current_https=$(get_env_value 'USE_HTTPS')
     echo -e "\n${BLUE}Enable HTTPS/SSL?${NC}"
     echo "1) Yes (recommended for production)"
@@ -589,15 +539,12 @@ configure_production() {
         *) USE_HTTPS="true" ;;
     esac
 
-    # Get database password
     current_db_pass=$(get_env_value 'DB_PASS')
     read_with_default "Enter database password" "$current_db_pass" "DB_PASS"
 
-    # Get public IP (optional)
     current_public_ip=$(get_env_value 'PUBLIC_IP')
     read_with_default "Enter server public IP (optional)" "$current_public_ip" "PUBLIC_IP"
 
-    # Configure API keys (optional)
     echo -e "\n${YELLOW}API Configuration (press Enter to keep current values):${NC}"
 
     current_google_id=$(get_env_value 'GOOGLE_CLIENT_ID')
@@ -612,10 +559,8 @@ configure_production() {
     current_videosdk_secret=$(get_env_value 'VIDEOSDK_SECRET_KEY')
     read_with_default "VideoSDK Secret Key" "$current_videosdk_secret" "VIDEOSDK_SECRET_KEY"
 
-    # Apply configuration
     print_info "Applying production configuration..."
 
-    # Core production settings
     update_env "APP_ENV" "production"
     update_env "APP_DEBUG" "false"
     update_env "IS_DOCKER" "true"
@@ -629,24 +574,20 @@ configure_production() {
         update_env "PUBLIC_IP" "$PUBLIC_IP"
     fi
 
-    # Update URLs based on HTTPS setting
     if [ "$USE_HTTPS" = "true" ]; then
         update_env "APP_URL" "https://$DOMAIN"
         update_env "SESSION_SECURE" "true"
 
-        # Update CORS origins
         CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
         update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     else
         update_env "APP_URL" "http://$DOMAIN"
         update_env "SESSION_SECURE" "false"
 
-        # Update CORS origins
         CORS_ORIGINS="http://$DOMAIN,http://www.$DOMAIN,https://$DOMAIN,http://app:1001,http://localhost:1001"
         update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     fi
 
-    # Update API keys if provided
     if [ -n "$GOOGLE_CLIENT_ID" ]; then
         update_env "GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_ID"
     fi
@@ -665,7 +606,6 @@ configure_production() {
 
     print_success "Production configuration applied"
 
-    # Restart services with new configuration
     print_info "Restarting services with new configuration..."
     docker-compose down
     docker-compose up -d
@@ -675,7 +615,6 @@ configure_production() {
 
     print_success "Services restarted with production configuration"
 
-    # Display final configuration
     echo -e "\n${GREEN}═══ PRODUCTION CONFIGURATION SUMMARY ═══${NC}"
     echo "Environment: production"
     echo "Docker Mode: enabled"
@@ -685,7 +624,6 @@ configure_production() {
     echo "Database: Configured with password"
     echo "Services: app:1001, socket:1002, db:1003"
 
-    # Show connection information
     echo -e "\n${BLUE}═══ CONNECTION INFORMATION ═══${NC}"
     echo "App Service: http://localhost:1001"
     echo "Socket Service: http://localhost:1002"
@@ -712,7 +650,7 @@ configure_production() {
     echo -e "✅ Database: Connected and configured"
     echo -e "✅ Socket server: Docker environment properly configured"
     echo -e "✅ Environment: $(get_env_value 'APP_ENV') mode"
-    
+
     echo -e "\n${BLUE}📋 Docker Configuration:${NC}"
     echo -e "• All services running in Docker containers"
     echo -e "• Database host: db (container)"
@@ -721,7 +659,6 @@ configure_production() {
     echo -e "• Health checks enabled for all services"
 }
 
-# Main menu
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
     echo "1) Check environment file"
@@ -736,7 +673,6 @@ show_menu() {
     echo
 }
 
-# Main execution
 main() {
     clear
     echo -e "${GREEN}"
@@ -799,11 +735,9 @@ main() {
     done
 }
 
-# Check if script is run from correct directory
 if [ ! -f "docker-compose.yml" ]; then
     print_error "Please run this script from the project root directory (where docker-compose.yml is located)"
     exit 1
 fi
 
-# Run main function
 main

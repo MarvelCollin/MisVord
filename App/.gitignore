@@ -6,3 +6,4 @@ rules2.txt
 vendor/
 .env
 storage/
+socket-server/node_modules/
