@@ -61,7 +61,7 @@ $pageIsHttps = $pageIsHttps || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['R
 if ($isVPS && $vpsHost !== 'localhost') {
     $frontendSocketHost = $vpsHost;
     $frontendSocketPort = '';
-    $frontendSocketSecure = ($socketSecure === 'true' || $useHttps || $pageIsHttps) ? 'true' : 'false';
+    $frontendSocketSecure = 'true';
 } elseif ($isDocker) {
     $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;

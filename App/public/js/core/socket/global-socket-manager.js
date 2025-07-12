@@ -299,7 +299,7 @@
                 throw new Error('Socket.io library (io) is not defined. This is normal on authentication pages.');
             }
             
-            this.io = io(socketUrl, {
+            const socketConfig = {
                 path: this.socketBasePath,
                 transports: ['websocket', 'polling'],
                 reconnection: true,
@@ -307,8 +307,18 @@
                 reconnectionDelayMax: 5000,
                 reconnectionAttempts: 15,
                 timeout: 20000,
-                forceNew: true
-            });
+                forceNew: true,
+                upgrade: true,
+                rememberUpgrade: true
+            };
+            
+            if (this.socketSecure || window.location.protocol === 'https:') {
+                socketConfig.secure = true;
+                socketConfig.rejectUnauthorized = false;
+            }
+            
+            this.log('Socket.IO configuration:', socketConfig);
+            this.io = io(socketUrl, socketConfig);
             
             this.setupEventHandlers();
             return true;

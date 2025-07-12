@@ -900,12 +900,12 @@ check_vps_health() {
         print_success "Domain $domain is accessible (HTTP $http_status)"
         
         print_info "7. Testing WebSocket through domain..."
-        local socket_url="https://$domain/socket.io/"
+        local socket_test_url="https://$domain/socket.io/?EIO=4&transport=polling"
         if [ "$(get_env_value 'USE_HTTPS')" != "true" ]; then
-            socket_url="http://$domain/socket.io/"
+            socket_test_url="http://$domain/socket.io/?EIO=4&transport=polling"
         fi
         
-        local socket_test=$(curl -s --max-time 10 "$socket_url" 2>/dev/null | grep -o "socket.io" || echo "")
+        local socket_test=$(curl -s --max-time 10 "$socket_test_url" 2>/dev/null | grep -o '"sid"' || echo "")
         if [ -n "$socket_test" ]; then
             print_success "WebSocket accessible through domain"
         else
@@ -926,7 +926,7 @@ check_vps_health() {
             fi
             
             print_info "Testing local WebSocket server directly..."
-            local local_socket=$(curl -s --max-time 5 "http://localhost:1002/socket.io/" 2>/dev/null | grep -o "socket.io" || echo "")
+            local local_socket=$(curl -s --max-time 5 "http://localhost:1002/socket.io/?EIO=4&transport=polling" 2>/dev/null | grep -o '"sid"' || echo "")
             if [ -n "$local_socket" ]; then
                 print_success "Local WebSocket server is working"
                 print_info "Issue is with nginx proxy configuration"
