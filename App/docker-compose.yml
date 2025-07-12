@@ -41,7 +41,7 @@ services:
       - DOMAIN=${DOMAIN:-marvelcollin.my.id}
       - PORT=1001
       - SOCKET_HOST=${SOCKET_HOST:-socket}
-      - SOCKET_PORT=${SOCKET_PORT:-1002}
+      - SOCKET_PORT=${SOCKET_PORT:-}
       - SOCKET_BIND_HOST=${SOCKET_BIND_HOST:-0.0.0.0}
       - SOCKET_SECURE=${SOCKET_SECURE:-false}
       - SOCKET_BASE_PATH=${SOCKET_BASE_PATH:-/socket.io}

@@ -61,15 +61,15 @@ $pageIsHttps = $pageIsHttps || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['R
 if ($isVPS && $vpsHost !== 'localhost') {
     $frontendSocketHost = $vpsHost;
     $frontendSocketPort = '';
-    $frontendSocketSecure = 'true';
-} elseif ($isDocker) {
+    $frontendSocketSecure = $useHttps ? 'true' : ($pageIsHttps ? 'true' : 'false');
+} elseif ($isDocker && $currentHost === 'localhost') {
     $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;
-    $frontendSocketSecure = $socketSecure;
+    $frontendSocketSecure = $pageIsHttps ? 'true' : $socketSecure;
 } else {
-    $frontendSocketHost = 'localhost';
+    $frontendSocketHost = $socketHost;
     $frontendSocketPort = $socketPort;
-    $frontendSocketSecure = $socketSecure;
+    $frontendSocketSecure = $pageIsHttps ? 'true' : $socketSecure;
 }
 ?>
 

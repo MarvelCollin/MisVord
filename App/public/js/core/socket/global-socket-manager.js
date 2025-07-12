@@ -211,9 +211,14 @@
             this.socketSecure = metaSocketSecure === 'true';
             this.socketBasePath = metaSocketBasePath || '/socket.io';
             
-            if (window.location.protocol === 'https:' && !this.socketSecure) {
-                console.warn('🔒 [SOCKET] Page loaded over HTTPS, forcing secure socket connection');
+            if (window.location.protocol === 'https:') {
                 this.socketSecure = true;
+                console.log('🔒 [SOCKET] HTTPS detected, forcing secure socket connection');
+            }
+            
+            if (metaIsVPS && metaSocketHost !== 'localhost' && metaSocketHost !== '127.0.0.1') {
+                this.socketSecure = true;
+                console.log('🌐 [SOCKET] VPS mode detected, enforcing secure connection');
             }
             
             this.debug('Environment-driven socket configuration:', {
@@ -309,12 +314,19 @@
                 timeout: 20000,
                 forceNew: true,
                 upgrade: true,
-                rememberUpgrade: true
+                rememberUpgrade: true,
+                autoConnect: true
             };
             
             if (this.socketSecure || window.location.protocol === 'https:') {
                 socketConfig.secure = true;
                 socketConfig.rejectUnauthorized = false;
+                this.log('🔒 Secure socket connection configured');
+            }
+            
+            if (this.socketHost !== 'localhost' && this.socketHost !== '127.0.0.1') {
+                socketConfig.withCredentials = true;
+                this.log('🌐 Cross-origin credentials enabled for domain connection');
             }
             
             this.log('Socket.IO configuration:', socketConfig);
