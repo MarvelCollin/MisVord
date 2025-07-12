@@ -451,16 +451,14 @@ configure_production() {
     if [ "$USE_HTTPS" = "true" ]; then
         update_env "APP_URL" "https://$DOMAIN"
         update_env "SESSION_SECURE" "true"
-
         CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
-        update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     else
         update_env "APP_URL" "http://$DOMAIN"
         update_env "SESSION_SECURE" "false"
-
         CORS_ORIGINS="http://$DOMAIN,https://$DOMAIN,https://www.$DOMAIN,http://app:1001,http://localhost:1001"
-        update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     fi
+    
+    update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
 
     # Update API keys if provided
     if [ -n "$GOOGLE_CLIENT_ID" ]; then
@@ -504,19 +502,22 @@ configure_production() {
 
     print_success "Services restarted with production configuration"
     
-    # Configure reverse proxy for WebSocket
-    print_info "Configuring reverse proxy for WebSocket connections..."
     configure_reverse_proxy "$DOMAIN"
+    
+    if [ $? -ne 0 ]; then
+        print_warning "Reverse proxy configuration failed - WebSocket may not work"
+        print_info "You can manually configure it later using option 7"
+    fi
 
     # Display final configuration
     echo -e "\n${GREEN}═══ PRODUCTION CONFIGURATION SUMMARY ═══${NC}"
     echo "Domain: $DOMAIN"
     echo "HTTPS: $USE_HTTPS"
     echo "App URL: $(get_env_value 'APP_URL')"
+    echo "Socket Host: $(get_env_value 'SOCKET_HOST')"
     echo "Database: Configured with password"
     echo "Services: app:1001, socket:1002, db:1003"
 
-    # Show connection information
     echo -e "\n${BLUE}═══ CONNECTION INFORMATION ═══${NC}"
     echo "App Service: http://localhost:1001"
     echo "Socket Service: http://localhost:1002"
@@ -524,31 +525,41 @@ configure_production() {
     echo "PhpMyAdmin: http://localhost:1004"
 
     if [ "$USE_HTTPS" = "true" ]; then
-        echo -e "\n${YELLOW}⚠️ HTTPS SETUP REQUIRED:${NC}"
-        echo "1. Configure reverse proxy (Nginx/Apache) for SSL"
-        echo "2. Obtain SSL certificates (Let's Encrypt recommended)"
-        echo "3. Update firewall: allow ports 80, 443, 1001, 1002"
-        echo "4. Point domain $DOMAIN to server IP"
+        echo -e "\n${YELLOW}⚠️ HTTPS SETUP NOTES:${NC}"
+        echo "1. Configure SSL certificates for $DOMAIN"
+        echo "2. Nginx configuration created for $DOMAIN"
+        echo "3. Update firewall: allow ports 80, 443"
+        echo "4. Point domain $DOMAIN to server IP: $(get_env_value 'PUBLIC_IP')"
+        echo "5. Test SSL: https://$DOMAIN"
     else
         echo -e "\n${YELLOW}⚠️ HTTP SETUP NOTES:${NC}"
         echo "1. Update firewall: allow ports 80, 1001, 1002"
-        echo "2. Point domain $DOMAIN to server IP"
+        echo "2. Point domain $DOMAIN to server IP: $(get_env_value 'PUBLIC_IP')"
         echo "3. Consider enabling HTTPS for production security"
     fi
 
     echo -e "\n${GREEN}🚀 DEPLOYMENT COMPLETED SUCCESSFULLY!${NC}"
     echo -e "✅ Application URL: $(get_env_value 'APP_URL')"
+    echo -e "✅ WebSocket URL: wss://$(get_env_value 'DOMAIN')/socket.io/"
     echo -e "✅ Bot system: TitiBot initialized"
     echo -e "✅ Services: All running and healthy"
     echo -e "✅ Database: Connected and configured"
+    echo -e "✅ Nginx: Reverse proxy configured for $(get_env_value 'DOMAIN')"
     echo -e "✅ Socket server: Environment variables properly configured"
     echo -e "✅ Docker: SOCKET_BIND_HOST=0.0.0.0 configured"
     
-    echo -e "\n${BLUE}📋 Recent Improvements:${NC}"
-    echo -e "• Fixed Docker environment variable loading for socket server"
-    echo -e "• Added proper IS_DOCKER detection in Node.js server"
-    echo -e "• Enhanced error reporting for environment issues"
-    echo -e "• Improved service health monitoring"
+    echo -e "\n${BLUE}📋 Full Stack Deployment Complete for $(get_env_value 'DOMAIN'):${NC}"
+    echo -e "• Application: PHP + Docker containers running"
+    echo -e "• Database: MySQL configured and migrated"
+    echo -e "• Socket Server: WebSocket connections enabled"
+    echo -e "• Nginx: Reverse proxy with SSL and WebSocket support"
+    echo -e "• Security: HTTPS enforced, secure sessions enabled"
+    echo -e "• Environment: Production-ready configuration"
+    
+    echo -e "\n${BLUE}🌐 Access Your Application:${NC}"
+    echo -e "• Website: $(get_env_value 'APP_URL')"
+    echo -e "• WebSocket: wss://$(get_env_value 'DOMAIN')/socket.io/"
+    echo -e "• Admin Panel: $(get_env_value 'APP_URL')/admin"
 }
 
 update_website() {
@@ -624,21 +635,33 @@ migrate_database() {
 
 # Function to configure reverse proxy for WebSocket
 configure_reverse_proxy() {
-    print_section "CONFIGURING REVERSE PROXY FOR WEBSOCKET"
+    print_section "CONFIGURING NGINX REVERSE PROXY"
     
     local domain=$1
     
-    # Detect web server
-    if command_exists nginx; then
-        print_info "Nginx detected - configuring WebSocket proxy..."
-        configure_nginx_websocket "$domain"
-    elif command_exists apache2 || command_exists httpd; then
-        print_info "Apache detected - configuring WebSocket proxy..."
-        configure_apache_websocket "$domain"
+    if ! command_exists nginx; then
+        print_error "Nginx not found! Please install Nginx first:"
+        echo "sudo apt update && sudo apt install -y nginx"
+        return 1
+    fi
+    
+    configure_nginx_websocket "$domain"
+    
+    if [ $? -eq 0 ]; then
+        print_success "Nginx reverse proxy configured successfully"
+        
+        print_info "Testing WebSocket endpoint..."
+        sleep 2
+        
+        if curl -f -s "https://$domain/socket.io/socket.io.js" >/dev/null 2>&1; then
+            print_success "WebSocket endpoint accessible via HTTPS"
+        else
+            print_warning "WebSocket endpoint test failed - check SSL certificates"
+        fi
+        
+        return 0
     else
-        print_warning "No web server detected (Nginx/Apache)"
-        print_info "Manual configuration required for WebSocket proxy"
-        show_manual_proxy_config "$domain"
+        print_error "Failed to configure Nginx reverse proxy"
         return 1
     fi
 }
@@ -649,27 +672,88 @@ configure_nginx_websocket() {
     local nginx_config="/etc/nginx/sites-available/$domain"
     local nginx_enabled="/etc/nginx/sites-enabled/$domain"
     
+    print_info "Configuring Nginx WebSocket proxy for $domain..."
+    
     if [ ! -f "$nginx_config" ]; then
-        print_warning "Nginx config file not found: $nginx_config"
-        print_info "Creating basic Nginx configuration..."
-        create_nginx_config "$domain"
+        print_info "Creating Nginx configuration for $domain..."
+        create_complete_nginx_config "$domain"
+    else
+        if grep -q "socket.io" "$nginx_config"; then
+            print_success "WebSocket proxy already configured for $domain"
+            return 0
+        fi
+        
+        print_info "Adding WebSocket configuration to existing Nginx config for $domain..."
+        add_websocket_to_existing_nginx "$domain"
     fi
     
-    # Check if WebSocket configuration already exists
-    if grep -q "socket.io" "$nginx_config"; then
-        print_success "WebSocket proxy configuration already exists"
+    if [ ! -L "$nginx_enabled" ]; then
+        ln -sf "$nginx_config" "$nginx_enabled"
+        print_success "Enabled Nginx site: $domain"
+    fi
+    
+    check_ssl_certificates "$domain"
+    
+    if nginx -t 2>/dev/null; then
+        systemctl reload nginx
+        print_success "Nginx WebSocket proxy configured successfully for $domain"
         return 0
+    else
+        print_error "Nginx configuration test failed for $domain"
+        nginx -t
+        return 1
     fi
-    
-    print_info "Adding WebSocket proxy configuration to Nginx..."
-    
-    # Backup existing config
-    cp "$nginx_config" "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)"
-    
-    # Add WebSocket proxy configuration
-    cat >> "$nginx_config" << EOF
+}
 
-    # WebSocket proxy for Socket.IO
+check_ssl_certificates() {
+    local domain=$1
+    local cert_file="/etc/ssl/certs/$domain.crt"
+    local key_file="/etc/ssl/private/$domain.key"
+    
+    print_info "Checking SSL certificates for $domain..."
+    
+    if [ -f "$cert_file" ] && [ -f "$key_file" ]; then
+        print_success "SSL certificates found for $domain"
+    else
+        print_warning "SSL certificates not found for $domain"
+        print_info "Expected locations:"
+        echo "  Certificate: $cert_file"
+        echo "  Private Key: $key_file"
+        print_info "To get SSL certificates:"
+        echo "  sudo certbot --nginx -d $domain -d www.$domain"
+        echo "  Or place your certificates in the expected locations"
+    fi
+}
+
+create_complete_nginx_config() {
+    local domain=$1
+    local nginx_config="/etc/nginx/sites-available/$domain"
+    
+    cat > "$nginx_config" << EOF
+server {
+    listen 80;
+    server_name $domain www.$domain;
+    return 301 https://\$server_name\$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name $domain www.$domain;
+    
+    ssl_certificate /etc/ssl/certs/$domain.crt;
+    ssl_certificate_key /etc/ssl/private/$domain.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
+    ssl_prefer_server_ciphers off;
+    
+    location / {
+        proxy_pass http://localhost:1001;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+    
     location /socket.io/ {
         proxy_pass http://localhost:1002;
         proxy_http_version 1.1;
@@ -682,18 +766,48 @@ configure_nginx_websocket() {
         proxy_cache_bypass \$http_upgrade;
         proxy_read_timeout 86400;
     }
+}
 EOF
     
-    # Test and reload Nginx
-    if nginx -t; then
-        systemctl reload nginx
-        print_success "Nginx WebSocket proxy configured successfully"
-    else
-        print_error "Nginx configuration test failed"
-        # Restore backup
-        cp "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)" "$nginx_config"
-        return 1
-    fi
+    print_success "Created complete Nginx configuration for $domain"
+    print_info "SSL certificate paths configured for:"
+    echo "  Certificate: /etc/ssl/certs/$domain.crt"
+    echo "  Private Key: /etc/ssl/private/$domain.key"
+    print_warning "Please ensure SSL certificates exist for $domain"
+}
+
+add_websocket_to_existing_nginx() {
+    local domain=$1
+    local nginx_config="/etc/nginx/sites-available/$domain"
+    
+    cp "$nginx_config" "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)"
+    
+    awk '
+    /location \/ \{/ { in_location = 1 }
+    /\}/ { 
+        if (in_location) {
+            in_location = 0
+            print $0
+            print ""
+            print "    location /socket.io/ {"
+            print "        proxy_pass http://localhost:1002;"
+            print "        proxy_http_version 1.1;"
+            print "        proxy_set_header Upgrade $http_upgrade;"
+            print "        proxy_set_header Connection \"upgrade\";"
+            print "        proxy_set_header Host $host;"
+            print "        proxy_set_header X-Real-IP $remote_addr;"
+            print "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
+            print "        proxy_set_header X-Forwarded-Proto $scheme;"
+            print "        proxy_cache_bypass $http_upgrade;"
+            print "        proxy_read_timeout 86400;"
+            print "    }"
+            next
+        }
+    }
+    { print }
+    ' "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)" > "$nginx_config"
+    
+    print_success "Added WebSocket configuration to existing Nginx config"
 }
 
 # Function to show manual proxy configuration
@@ -787,11 +901,11 @@ main() {
                 configure_production
                 ;;
             6)
-                print_info "Starting full deployment..."
-                check_env_file
-                validate_docker_config
-                check_services
-                init_bot
+                print_info "Starting full deployment with Nginx configuration..."
+                check_env_file && \
+                validate_docker_config && \
+                check_services && \
+                init_bot && \
                 configure_production
                 ;;
             7)
