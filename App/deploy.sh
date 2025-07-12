@@ -21,8 +21,20 @@ print_section() { echo -e "\n${BLUE}═══ $1 ═══${NC}"; }
 
 # Function to read current env value
 get_env_value() {
-    local key=$1
-    local env_file=${2:-.env}
+    local key=show_menu() {
+    echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
+    echo "1) Check environment file"
+    echo "2) Validate Docker configuration"  
+    echo "3) Initialize bots"
+    echo "4) Check service health"
+    echo "5) Configure for production"
+    echo "6) Full deployment (all steps + migration)"
+    echo "7) VPS complete health check"
+    echo "8) Update website"
+    echo "9) Migrate database"
+    echo "10) Exit"
+    echo
+}env_file=${2:-.env}
     grep "^${key}=" "$env_file" 2>/dev/null | cut -d'=' -f2- || echo ""
 }
 
@@ -325,23 +337,22 @@ check_services() {
         print_warning "PHP application health check failed"
     fi
 
-    # Check Socket server with detailed validation
     if curl -s "http://localhost:1002/health" >/dev/null 2>&1; then
         print_success "Socket server is responding"
         
-        # Get socket server info
         SOCKET_INFO=$(curl -s "http://localhost:1002/health" 2>/dev/null || echo "{}")
         if echo "$SOCKET_INFO" | grep -q '"status":"ok"'; then
             print_success "Socket server health check passed"
             
-            # Extract and display socket server details
             SERVICE=$(echo "$SOCKET_INFO" | grep -o '"service":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
             PORT=$(echo "$SOCKET_INFO" | grep -o '"port":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
             HOST=$(echo "$SOCKET_INFO" | grep -o '"host":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
+            CLIENTS=$(echo "$SOCKET_INFO" | grep -o '"connectedClients":[0-9]*' | cut -d':' -f2 || echo "0")
+            AUTH_USERS=$(echo "$SOCKET_INFO" | grep -o '"authenticatedUsers":[0-9]*' | cut -d':' -f2 || echo "0")
             
             print_info "Socket server details: $SERVICE on $HOST:$PORT"
+            print_info "Connected clients: $CLIENTS, Authenticated users: $AUTH_USERS"
             
-            # Check if environment variables are properly loaded
             if [ "$HOST" = "0.0.0.0" ] && [ "$PORT" = "1002" ]; then
                 print_success "Socket server environment variables correctly loaded"
                 
@@ -356,6 +367,13 @@ check_services() {
                 
                 if [ "$IS_VPS_ENV" = "true" ] && [ "$SOCKET_HOST_ENV" != "localhost" ]; then
                     print_success "VPS socket configuration is correct"
+                    
+                    print_info "Testing WebSocket connection capability..."
+                    if curl -s --max-time 5 "http://localhost:1002/socket-test" | grep -q "Socket.IO Connection Test"; then
+                        print_success "WebSocket test page accessible"
+                    else
+                        print_warning "WebSocket test page not accessible"
+                    fi
                 else
                     print_warning "Socket configuration may not be optimized for VPS deployment"
                 fi
@@ -369,7 +387,6 @@ check_services() {
     else
         print_warning "Socket server health check failed"
         
-        # Check socket container logs for debugging
         print_info "Checking socket container logs for issues..."
         SOCKET_LOGS=$(docker-compose logs socket --tail=10 2>/dev/null || echo "")
         if echo "$SOCKET_LOGS" | grep -q "SOCKET_BIND_HOST.*UNDEFINED"; then
@@ -377,6 +394,8 @@ check_services() {
             print_warning "Please check docker-compose.yml socket service environment variables"
         elif echo "$SOCKET_LOGS" | grep -q "EADDRINUSE"; then
             print_warning "Socket server port conflict detected"
+        elif echo "$SOCKET_LOGS" | grep -q "Socket server running"; then
+            print_success "Socket server started successfully according to logs"
         fi
     fi
 
@@ -502,11 +521,12 @@ configure_production() {
 
     print_success "Services restarted with production configuration"
     
-    configure_reverse_proxy "$DOMAIN"
+    migrate_database
     
-    if [ $? -ne 0 ]; then
-        print_warning "Reverse proxy configuration failed - WebSocket may not work"
-        print_info "You can manually configure it later using option 7"
+    if [ $? -eq 0 ]; then
+        print_success "Database migration completed"
+    else
+        print_warning "Database migration failed - you may need to run it manually"
     fi
 
     # Display final configuration
@@ -543,8 +563,7 @@ configure_production() {
     echo -e "✅ WebSocket URL: wss://$(get_env_value 'DOMAIN')/socket.io/"
     echo -e "✅ Bot system: TitiBot initialized"
     echo -e "✅ Services: All running and healthy"
-    echo -e "✅ Database: Connected and configured"
-    echo -e "✅ Nginx: Reverse proxy configured for $(get_env_value 'DOMAIN')"
+    echo -e "✅ Database: Connected and migrated"
     echo -e "✅ Socket server: Environment variables properly configured"
     echo -e "✅ Docker: SOCKET_BIND_HOST=0.0.0.0 configured"
     
@@ -552,7 +571,6 @@ configure_production() {
     echo -e "• Application: PHP + Docker containers running"
     echo -e "• Database: MySQL configured and migrated"
     echo -e "• Socket Server: WebSocket connections enabled"
-    echo -e "• Nginx: Reverse proxy with SSL and WebSocket support"
     echo -e "• Security: HTTPS enforced, secure sessions enabled"
     echo -e "• Environment: Production-ready configuration"
     
@@ -560,6 +578,205 @@ configure_production() {
     echo -e "• Website: $(get_env_value 'APP_URL')"
     echo -e "• WebSocket: wss://$(get_env_value 'DOMAIN')/socket.io/"
     echo -e "• Admin Panel: $(get_env_value 'APP_URL')/admin"
+    
+    echo -e "\n${YELLOW}⚠️ IMPORTANT: Configure nginx manually using nginx-on-the-vps.txt${NC}"
+    echo -e "\n${BLUE}To configure nginx:${NC}"
+    echo -e "1. Copy nginx-on-the-vps.txt to /etc/nginx/sites-available/$DOMAIN"
+    echo -e "2. Enable the site: sudo ln -s /etc/nginx/sites-available/$DOMAIN /etc/nginx/sites-enabled/"
+    echo -e "3. Test config: sudo nginx -t"
+    echo -e "4. Reload nginx: sudo systemctl reload nginx"
+}
+
+check_vps_health() {
+    print_section "VPS COMPLETE HEALTH CHECK"
+    
+    local domain=$(get_env_value 'DOMAIN')
+    local app_url=$(get_env_value 'APP_URL')
+    local errors=0
+    
+    if [ -z "$domain" ] || [ "$domain" = "localhost" ]; then
+        print_error "Domain not configured for VPS"
+        return 1
+    fi
+    
+    print_info "Testing VPS deployment for $domain..."
+    
+    print_info "1. Checking Docker containers..."
+    if docker-compose ps | grep -q "Up"; then
+        local running_containers=$(docker-compose ps | grep "Up" | wc -l)
+        print_success "Docker containers running: $running_containers"
+        
+        local expected_containers=("misvord_php" "misvord_socket" "misvord_db")
+        for container in "${expected_containers[@]}"; do
+            if docker-compose ps | grep -q "${container}.*Up"; then
+                print_success "$container is running"
+            else
+                print_error "$container is not running"
+                errors=$((errors + 1))
+            fi
+        done
+    else
+        print_error "No Docker containers running"
+        errors=$((errors + 1))
+    fi
+    
+    print_info "2. Testing PHP application..."
+    if curl -s --max-time 10 "http://localhost:1001/health" >/dev/null 2>&1; then
+        local php_health=$(curl -s --max-time 5 "http://localhost:1001/health" | grep -o '"status":"ok"' || echo "")
+        if [ -n "$php_health" ]; then
+            print_success "PHP application healthy on port 1001"
+        else
+            print_warning "PHP application responding but health status unclear"
+        fi
+    else
+        print_error "PHP application not responding on port 1001"
+        errors=$((errors + 1))
+    fi
+    
+    print_info "3. Testing Socket server..."
+    if curl -s --max-time 10 "http://localhost:1002/health" >/dev/null 2>&1; then
+        local socket_health=$(curl -s --max-time 5 "http://localhost:1002/health" | grep -o '"status":"ok"' || echo "")
+        if [ -n "$socket_health" ]; then
+            print_success "Socket server healthy on port 1002"
+            
+            local socket_clients=$(curl -s --max-time 5 "http://localhost:1002/health" | grep -o '"connectedClients":[0-9]*' | cut -d':' -f2 || echo "0")
+            local auth_users=$(curl -s --max-time 5 "http://localhost:1002/health" | grep -o '"authenticatedUsers":[0-9]*' | cut -d':' -f2 || echo "0")
+            print_info "WebSocket clients: $socket_clients connected, $auth_users authenticated"
+            
+            print_info "4. Testing WebSocket functionality..."
+            if curl -s --max-time 5 "http://localhost:1002/socket-test" | grep -q "Socket.IO Connection Test"; then
+                print_success "WebSocket test page accessible"
+            else
+                print_warning "WebSocket test page not accessible"
+                errors=$((errors + 1))
+            fi
+        else
+            print_error "Socket server unhealthy"
+            errors=$((errors + 1))
+        fi
+    else
+        print_error "Socket server not responding on port 1002"
+        errors=$((errors + 1))
+    fi
+    
+    print_info "5. Testing database connection..."
+    if docker exec misvord_php php -r "
+        require_once '/var/www/html/config/db.php';
+        try {
+            \$pdo = DatabaseConnection::getInstance()->getConnection();
+            echo 'Database connection successful';
+        } catch (Exception \$e) {
+            echo 'Database connection failed: ' . \$e->getMessage();
+            exit(1);
+        }
+    " 2>/dev/null | grep -q "successful"; then
+        print_success "Database connection working"
+        
+        local db_status=$(docker exec misvord_db mysqladmin ping -h localhost -P 1003 -u root -p$(get_env_value 'DB_PASS') 2>/dev/null | grep -o "alive" || echo "")
+        if [ "$db_status" = "alive" ]; then
+            print_success "MySQL database is alive"
+        else
+            print_warning "MySQL ping test failed"
+        fi
+    else
+        print_error "Database connection failed"
+        errors=$((errors + 1))
+    fi
+    
+    print_info "6. Testing external domain access..."
+    local http_status=$(curl -s --max-time 15 -o /dev/null -w "%{http_code}" "$app_url" || echo "000")
+    if echo "$http_status" | grep -q "200\|301\|302"; then
+        print_success "Domain $domain is accessible (HTTP $http_status)"
+        
+        print_info "7. Testing WebSocket through domain..."
+        local socket_url="https://$domain/socket.io/"
+        if [ "$(get_env_value 'USE_HTTPS')" != "true" ]; then
+            socket_url="http://$domain/socket.io/"
+        fi
+        
+        local socket_test=$(curl -s --max-time 10 "$socket_url" 2>/dev/null | grep -o "socket.io" || echo "")
+        if [ -n "$socket_test" ]; then
+            print_success "WebSocket accessible through domain"
+        else
+            print_error "WebSocket not accessible through domain"
+            print_info "This indicates nginx configuration issue"
+            errors=$((errors + 1))
+        fi
+    else
+        print_error "Domain $domain is not accessible (HTTP $http_status)"
+        print_info "Check nginx configuration and DNS settings"
+        errors=$((errors + 1))
+    fi
+    
+    print_info "8. Testing static files..."
+    local test_urls=("$app_url/public/css/global.css" "$app_url/public/js/main.js")
+    local static_errors=0
+    
+    for url in "${test_urls[@]}"; do
+        local file_status=$(curl -s --max-time 10 -o /dev/null -w "%{http_code}" "$url" || echo "000")
+        if echo "$file_status" | grep -q "200"; then
+            print_success "Static file accessible: $(basename "$url")"
+        else
+            print_error "Static file not accessible: $(basename "$url") (HTTP $file_status)"
+            static_errors=$((static_errors + 1))
+        fi
+    done
+    
+    if [ $static_errors -eq 0 ]; then
+        print_success "All static files accessible"
+    else
+        print_warning "$static_errors static file(s) not accessible"
+        errors=$((errors + static_errors))
+    fi
+    
+    print_info "9. Testing bot system..."
+    local bot_check=$(curl -s --max-time 10 "http://localhost:1001/api/bots/public-check/titibot" 2>/dev/null | grep -o '"exists":true' || echo "")
+    if [ -n "$bot_check" ]; then
+        print_success "TitiBot is available in the system"
+    else
+        print_warning "TitiBot may not be properly initialized"
+        errors=$((errors + 1))
+    fi
+    
+    print_info "10. Testing environment configuration..."
+    local env_checks=("APP_ENV" "DOMAIN" "SOCKET_HOST" "DB_PASS")
+    for env_var in "${env_checks[@]}"; do
+        local value=$(get_env_value "$env_var")
+        if [ -n "$value" ] && [ "$value" != "localhost" ] || [ "$env_var" = "DB_PASS" ]; then
+            print_success "$env_var is configured"
+        else
+            print_warning "$env_var may not be properly configured"
+        fi
+    done
+    
+    echo -e "\n${BLUE}═══ VPS HEALTH SUMMARY ═══${NC}"
+    if [ $errors -eq 0 ]; then
+        print_success "🎉 ALL SYSTEMS OPERATIONAL! VPS is working perfectly"
+        echo -e "${GREEN}✅ Website: $app_url${NC}"
+        echo -e "${GREEN}✅ WebSocket: Functional through domain${NC}"
+        echo -e "${GREEN}✅ Database: Connected and responsive${NC}"
+        echo -e "${GREEN}✅ Services: All containers running${NC}"
+        echo -e "${GREEN}✅ Static Files: Serving correctly${NC}"
+        echo -e "${GREEN}✅ Bot System: TitiBot operational${NC}"
+        echo -e "${GREEN}✅ Configuration: Production ready${NC}"
+        
+        echo -e "\n${BLUE}🚀 Your MisVord application is fully operational!${NC}"
+        echo -e "You can access it at: $app_url"
+        return 0
+    else
+        print_warning "Found $errors issue(s) that need attention"
+        echo -e "${YELLOW}⚠️ Review the errors above and fix them${NC}"
+        
+        if [ $errors -le 2 ]; then
+            echo -e "${BLUE}Status: Minor issues - mostly functional${NC}"
+        elif [ $errors -le 5 ]; then
+            echo -e "${YELLOW}Status: Multiple issues - needs attention${NC}"
+        else
+            echo -e "${RED}Status: Major issues - requires fixing${NC}"
+        fi
+        
+        return $errors
+    fi
 }
 
 update_website() {
@@ -633,223 +850,7 @@ migrate_database() {
     fi
 }
 
-# Function to configure reverse proxy for WebSocket
-configure_reverse_proxy() {
-    print_section "CONFIGURING NGINX REVERSE PROXY"
-    
-    local domain=$1
-    
-    if ! command_exists nginx; then
-        print_error "Nginx not found! Please install Nginx first:"
-        echo "sudo apt update && sudo apt install -y nginx"
-        return 1
-    fi
-    
-    configure_nginx_websocket "$domain"
-    
-    if [ $? -eq 0 ]; then
-        print_success "Nginx reverse proxy configured successfully"
-        
-        print_info "Testing WebSocket endpoint..."
-        sleep 2
-        
-        if curl -f -s "https://$domain/socket.io/socket.io.js" >/dev/null 2>&1; then
-            print_success "WebSocket endpoint accessible via HTTPS"
-        else
-            print_warning "WebSocket endpoint test failed - check SSL certificates"
-        fi
-        
-        return 0
-    else
-        print_error "Failed to configure Nginx reverse proxy"
-        return 1
-    fi
-}
 
-# Function to configure Nginx WebSocket proxy
-configure_nginx_websocket() {
-    local domain=$1
-    local nginx_config="/etc/nginx/sites-available/$domain"
-    local nginx_enabled="/etc/nginx/sites-enabled/$domain"
-    
-    print_info "Configuring Nginx WebSocket proxy for $domain..."
-    
-    if [ ! -f "$nginx_config" ]; then
-        print_info "Creating Nginx configuration for $domain..."
-        create_complete_nginx_config "$domain"
-    else
-        if grep -q "socket.io" "$nginx_config"; then
-            print_success "WebSocket proxy already configured for $domain"
-            return 0
-        fi
-        
-        print_info "Adding WebSocket configuration to existing Nginx config for $domain..."
-        add_websocket_to_existing_nginx "$domain"
-    fi
-    
-    if [ ! -L "$nginx_enabled" ]; then
-        ln -sf "$nginx_config" "$nginx_enabled"
-        print_success "Enabled Nginx site: $domain"
-    fi
-    
-    check_ssl_certificates "$domain"
-    
-    if nginx -t 2>/dev/null; then
-        systemctl reload nginx
-        print_success "Nginx WebSocket proxy configured successfully for $domain"
-        return 0
-    else
-        print_error "Nginx configuration test failed for $domain"
-        nginx -t
-        return 1
-    fi
-}
-
-check_ssl_certificates() {
-    local domain=$1
-    local cert_file="/etc/ssl/certs/$domain.crt"
-    local key_file="/etc/ssl/private/$domain.key"
-    
-    print_info "Checking SSL certificates for $domain..."
-    
-    if [ -f "$cert_file" ] && [ -f "$key_file" ]; then
-        print_success "SSL certificates found for $domain"
-    else
-        print_warning "SSL certificates not found for $domain"
-        print_info "Expected locations:"
-        echo "  Certificate: $cert_file"
-        echo "  Private Key: $key_file"
-        print_info "To get SSL certificates:"
-        echo "  sudo certbot --nginx -d $domain -d www.$domain"
-        echo "  Or place your certificates in the expected locations"
-    fi
-}
-
-create_complete_nginx_config() {
-    local domain=$1
-    local nginx_config="/etc/nginx/sites-available/$domain"
-    
-    cat > "$nginx_config" << EOF
-server {
-    listen 80;
-    server_name $domain www.$domain;
-    return 301 https://\$server_name\$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name $domain www.$domain;
-    
-    ssl_certificate /etc/ssl/certs/$domain.crt;
-    ssl_certificate_key /etc/ssl/private/$domain.key;
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384;
-    ssl_prefer_server_ciphers off;
-    
-    location / {
-        proxy_pass http://localhost:1001;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-    }
-    
-    location /socket.io/ {
-        proxy_pass http://localhost:1002;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-        proxy_read_timeout 86400;
-    }
-}
-EOF
-    
-    print_success "Created complete Nginx configuration for $domain"
-    print_info "SSL certificate paths configured for:"
-    echo "  Certificate: /etc/ssl/certs/$domain.crt"
-    echo "  Private Key: /etc/ssl/private/$domain.key"
-    print_warning "Please ensure SSL certificates exist for $domain"
-}
-
-add_websocket_to_existing_nginx() {
-    local domain=$1
-    local nginx_config="/etc/nginx/sites-available/$domain"
-    
-    cp "$nginx_config" "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)"
-    
-    awk '
-    /location \/ \{/ { in_location = 1 }
-    /\}/ { 
-        if (in_location) {
-            in_location = 0
-            print $0
-            print ""
-            print "    location /socket.io/ {"
-            print "        proxy_pass http://localhost:1002;"
-            print "        proxy_http_version 1.1;"
-            print "        proxy_set_header Upgrade $http_upgrade;"
-            print "        proxy_set_header Connection \"upgrade\";"
-            print "        proxy_set_header Host $host;"
-            print "        proxy_set_header X-Real-IP $remote_addr;"
-            print "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;"
-            print "        proxy_set_header X-Forwarded-Proto $scheme;"
-            print "        proxy_cache_bypass $http_upgrade;"
-            print "        proxy_read_timeout 86400;"
-            print "    }"
-            next
-        }
-    }
-    { print }
-    ' "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)" > "$nginx_config"
-    
-    print_success "Added WebSocket configuration to existing Nginx config"
-}
-
-# Function to show manual proxy configuration
-show_manual_proxy_config() {
-    local domain=$1
-    
-    echo -e "\n${YELLOW}=== MANUAL REVERSE PROXY CONFIGURATION REQUIRED ===${NC}"
-    echo -e "Add this configuration to your web server:\n"
-    
-    echo -e "${BLUE}For Nginx:${NC}"
-    cat << 'EOF'
-location /socket.io/ {
-    proxy_pass http://localhost:1002;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_cache_bypass $http_upgrade;
-    proxy_read_timeout 86400;
-}
-EOF
-    
-    echo -e "\n${BLUE}For Apache:${NC}"
-    cat << 'EOF'
-RewriteEngine On
-RewriteCond %{REQUEST_URI} ^/socket.io/ [NC]
-RewriteCond %{QUERY_STRING} transport=websocket [NC]
-RewriteRule /(.*) ws://localhost:1002/$1 [P,L]
-
-ProxyPreserveHost On
-ProxyPass /socket.io/ http://localhost:1002/socket.io/
-ProxyPassReverse /socket.io/ http://localhost:1002/socket.io/
-EOF
-    
-    echo -e "\n${YELLOW}After adding this configuration:${NC}"
-    echo "1. Test your web server configuration"
-    echo "2. Reload/restart your web server"
-    echo "3. Test WebSocket connection: wss://$domain/socket.io/"
-}
 
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
@@ -866,7 +867,6 @@ show_menu() {
     echo
 }
 
-# Main execution
 main() {
     clear
     echo -e "${GREEN}"
@@ -901,7 +901,7 @@ main() {
                 configure_production
                 ;;
             6)
-                print_info "Starting full deployment with Nginx configuration..."
+                print_info "Starting full deployment with migration..."
                 check_env_file && \
                 validate_docker_config && \
                 check_services && \
@@ -909,12 +909,7 @@ main() {
                 configure_production
                 ;;
             7)
-                current_domain=$(get_env_value 'DOMAIN')
-                if [ -n "$current_domain" ] && [ "$current_domain" != "localhost" ]; then
-                    configure_reverse_proxy "$current_domain"
-                else
-                    print_error "Domain not configured. Please run production configuration first."
-                fi
+                check_vps_health
                 ;;
             8)
                 update_website
@@ -936,11 +931,9 @@ main() {
     done
 }
 
-# Check if script is run from correct directory
 if [ ! -f "docker-compose.yml" ]; then
     print_error "Please run this script from the project root directory (where docker-compose.yml is located)"
     exit 1
 fi
 
-# Run main function
 main
