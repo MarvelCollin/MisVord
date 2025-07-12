@@ -1271,7 +1271,11 @@ Route::get('/api/media/gifs', function() {
 });
 
 Route::get('/storage/(.+)', function($filename) {
-    $filePath = "/tmp/storage/{$filename}";
+    if (getenv('IS_DOCKER') === 'true') {
+        $filePath = "/tmp/storage/{$filename}";
+    } else {
+        $filePath = __DIR__ . "/../public/storage/{$filename}";
+    }
     
     if (file_exists($filePath)) {
         $mimeType = mime_content_type($filePath);

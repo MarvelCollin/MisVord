@@ -5,23 +5,20 @@ if (!defined('VIEWS_PATH')) define('VIEWS_PATH', ROOT_PATH . '/views');
 if (!defined('PUBLIC_PATH')) define('PUBLIC_PATH', ROOT_PATH . '/public');
 if (!defined('MIGRATIONS_PATH')) define('MIGRATIONS_PATH', ROOT_PATH . '/migrations');
 
+if (!class_exists('EnvLoader')) {
+    require_once __DIR__ . '/env.php';
+}
+
 function asset($path) {
-    $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
-    
-    $envDomain = EnvLoader::get('DOMAIN', 'localhost');
-    $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
-    $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
-    
-    $isMatchingDomain = strpos($host, $envDomain) !== false && $envDomain !== 'localhost';
-    
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https://" : "http://";
-    if ($isVPS || $useHttps || $isMatchingDomain) {
-        $protocol = "https://";
-        $host = preg_replace('/:\d+$/', '', $host);
-    }
+    $host = isset($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'localhost';
 
     $basePath = '';
     if (php_sapi_name() === 'cli' || $host === 'localhost' || strpos($host, '127.0.0.1') !== false) {
+        $basePath = '/misvord';
+    }
+
+    if (strpos($host, 'marvelcollin.my.id') !== false) {
         $basePath = '/misvord';
     }
 
@@ -51,13 +48,10 @@ function css($path) {
     $baseUrl = getBaseUrl();
 
     $host = $_SERVER['HTTP_HOST'] ?? '';
-    $envDomain = EnvLoader::get('DOMAIN', 'localhost');
-    $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
-    
-    $isMatchingDomain = strpos($host, $envDomain) !== false && $envDomain !== 'localhost';
+    $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
 
-    if ($isVPS || $isMatchingDomain) {
-        $finalUrl = preg_replace('#:\d+#', '', $baseUrl) . "/css/{$path}";
+    if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
+        $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/css/{$path}";
     } else {
         $finalUrl = "{$baseUrl}/css/{$path}";
     }
@@ -76,13 +70,10 @@ function js($path) {
     $baseUrl = getBaseUrl();
 
     $host = $_SERVER['HTTP_HOST'] ?? '';
-    $envDomain = EnvLoader::get('DOMAIN', 'localhost');
-    $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
-    
-    $isMatchingDomain = strpos($host, $envDomain) !== false && $envDomain !== 'localhost';
+    $isMarvelDomain = strpos($host, 'marvelcollin.my.id') !== false;
 
-    if ($isVPS || $isMatchingDomain) {
-        $finalUrl = preg_replace('#:\d+#', '', $baseUrl) . "/js/{$path}";
+    if ($isMarvelDomain && strpos($baseUrl, '/misvord') === false) {
+        $finalUrl = str_replace("://{$host}", "://{$host}/misvord", $baseUrl) . "/js/{$path}";
     } else {
         $finalUrl = "{$baseUrl}/js/{$path}";
     }
@@ -94,34 +85,29 @@ function js($path) {
 
 function getBaseUrl() {
     if (php_sapi_name() === 'cli') {
+        // For CLI, use APP_URL from environment or fallback
         return EnvLoader::get('APP_URL', 'http://localhost:8000') . '/public';
     }
 
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost:8000';
     
-    $envDomain = EnvLoader::get('DOMAIN', 'localhost');
-    $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
-    $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
-    
-    $isMatchingDomain = strpos($host, $envDomain) !== false && $envDomain !== 'localhost';
-    
-    if (!$isVPS && !$isMatchingDomain && !strpos($host, ':') && isset($_SERVER['SERVER_PORT'])) {
+    if (!strpos($host, ':') && isset($_SERVER['SERVER_PORT'])) {
         $port = $_SERVER['SERVER_PORT'];
         if ($port != '80' && $port != '443') {
             $host .= ':' . $port;
         }
     }
 
-    $useHttpsProtocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-    if ($isVPS || $useHttps || $isMatchingDomain) {
-        $useHttpsProtocol = true;
-        $host = preg_replace('/:\d+$/', '', $host);
+    $useHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+
+    if (strpos($host, 'marvelcollin.my.id') !== false) {
+        $useHttps = true;
     }
 
-    $protocol = $useHttpsProtocol ? 'https' : 'http';
+    $protocol = $useHttps ? 'https' : 'http';
     $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? ''), '/');
 
-    if (!$isVPS && !$isMatchingDomain) {
+    if (strpos($host, 'marvelcollin.my.id') !== false) {
         if (strpos($scriptDir, '/misvord') === false) {
             $scriptDir = '/misvord';
         }

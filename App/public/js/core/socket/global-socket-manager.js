@@ -150,7 +150,7 @@
 
         this.loadConnectionDetails();
 
-        if (!this.socketHost || !this.socketPort) {
+        if (!this.socketHost) {
             this.error('Socket configuration incomplete - check .env file configuration');
             return false;
         }
@@ -191,12 +191,12 @@
             const metaSocketPort = document.querySelector('meta[name="socket-port"]')?.content;
             const metaSocketSecure = document.querySelector('meta[name="socket-secure"]')?.content;
             
-            if (!metaSocketHost || !metaSocketPort) {
-                throw new Error('Socket configuration missing from meta tags');
+            if (!metaSocketHost) {
+                throw new Error('Socket configuration missing from meta tags - no host');
             }
             
             this.socketHost = metaSocketHost;
-            this.socketPort = metaSocketPort;
+            this.socketPort = metaSocketPort || '';
             this.socketSecure = metaSocketSecure === 'true';
             
             this.debug('Environment-driven socket configuration:', {
@@ -262,8 +262,8 @@
             return true;
         }
         
-        if (!this.socketHost || !this.socketPort) {
-            throw new Error('Socket configuration incomplete - missing host or port from environment');
+        if (!this.socketHost) {
+            throw new Error('Socket configuration incomplete - missing host from environment');
         }
         
         const socketUrl = this.socketPort ? 

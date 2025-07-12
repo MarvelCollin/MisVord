@@ -1,8 +1,17 @@
 const path = require('path');
 const fs = require('fs');
 
-console.log('🐳 [STARTUP] Running in Docker - using container environment variables');
-console.log('� [STARTUP] Environment:', process.env.APP_ENV || 'development');
+// Check if running in Docker
+const isDocker = process.env.IS_DOCKER === 'true';
+
+if (!isDocker) {
+    // Only load .env file if not in Docker (Docker uses environment variables directly)
+    const envPath = path.resolve(__dirname, '..', '.env');
+    console.log('🔍 [STARTUP] Loading .env from:', envPath);
+    require('dotenv').config({ path: envPath });
+} else {
+    console.log('🐳 [STARTUP] Running in Docker - using container environment variables');
+}
 
 const http = require('http');
 const { Server } = require('socket.io');

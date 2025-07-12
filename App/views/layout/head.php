@@ -3,6 +3,10 @@ if (!function_exists('css')) {
     require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 }
 
+if (!class_exists('EnvLoader')) {
+    require_once dirname(dirname(__DIR__)) . '/config/env.php';
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -38,38 +42,27 @@ window.currentUserAvatar = <?php echo json_encode($_SESSION['avatar_url'] ?? '/p
 <?php endif; ?>
 
 <?php
-$socketHost = EnvLoader::get('SOCKET_HOST');
-$socketPort = EnvLoader::get('SOCKET_PORT');
-$socketSecure = EnvLoader::get('SOCKET_SECURE');
-$socketBasePath = EnvLoader::get('SOCKET_BASE_PATH');
-
-if (!$socketHost || !$socketPort || !$socketBasePath) {
-    error_log('[HEAD.PHP] Missing required socket environment variables');
-    error_log('SOCKET_HOST: ' . ($socketHost ?: 'MISSING'));
-    error_log('SOCKET_PORT: ' . ($socketPort ?: 'MISSING'));
-    error_log('SOCKET_BASE_PATH: ' . ($socketBasePath ?: 'MISSING'));
-    throw new Exception('Socket configuration incomplete - check .env file');
-}
+$socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
+$socketPort = EnvLoader::get('SOCKET_PORT', '1002');
+$socketSecure = EnvLoader::get('SOCKET_SECURE', 'false');
+$socketBasePath = EnvLoader::get('SOCKET_BASE_PATH', '/socket.io');
 
 $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
-$envDomain = EnvLoader::get('DOMAIN', 'localhost');
-$isMatchingDomain = strpos($currentHost, $envDomain) !== false && $envDomain !== 'localhost';
+$frontendSocketHost = $currentHost;
 
-if ($isVPS || $isMatchingDomain) {
+$isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
+$useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
+
+if ($isVPS || strpos($currentHost, 'marvelcollin.my.id') !== false) {
     $frontendSocketHost = $currentHost;
-    $frontendSocketPort = '';
-    $frontendSocketSecure = 'true';
-} else {
-    $frontendSocketHost = $currentHost;
-    $frontendSocketPort = $socketPort;
-    $frontendSocketSecure = $socketSecure;
+    $socketPort = '';
+    $socketSecure = 'true';
 }
 ?>
 
 <meta name="socket-host" content="<?php echo htmlspecialchars($frontendSocketHost); ?>">
-<meta name="socket-port" content="<?php echo htmlspecialchars($frontendSocketPort); ?>">
-<meta name="socket-secure" content="<?php echo htmlspecialchars($frontendSocketSecure); ?>">
+<meta name="socket-port" content="<?php echo htmlspecialchars($socketPort); ?>">
+<meta name="socket-secure" content="<?php echo htmlspecialchars($socketSecure); ?>">
 <meta name="socket-base-path" content="<?php echo htmlspecialchars($socketBasePath); ?>">
 <meta name="app-url" content="<?php echo htmlspecialchars(EnvLoader::get('APP_URL')); ?>">
 
