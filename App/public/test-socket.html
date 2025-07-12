@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Connection Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #36393F;
+            color: white;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        .success { background-color: #3BA55C; }
+        .error { background-color: #ED4245; }
+        .warning { background-color: #FAA61A; }
+        .info { background-color: #5865F2; }
+        .test-buttons {
+            margin: 20px 0;
+        }
+        button {
+            background-color: #5865F2;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #4752C4;
+        }
+        #logs {
+            background-color: #202225;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔌 Socket.IO Connection Test</h1>
+    
+    <div class="test-buttons">
+        <button onclick="testLocalhost()">Test localhost:1002</button>
+        <button onclick="testLocalhost1001()">Test localhost:1001</button>
+        <button onclick="testCurrentHost()">Test Current Host</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+    </div>
+    
+    <div id="status" class="status info">Ready to test...</div>
+    
+    <h3>Connection Logs</h3>
+    <div id="logs"></div>
+
+    <script>
+        let currentSocket = null;
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#5865F2',
+                success: '#3BA55C',
+                error: '#ED4245',
+                warning: '#FAA61A'
+            };
+            
+            const logDiv = document.getElementById('logs');
+            const logEntry = document.createElement('div');
+            logEntry.style.color = colors[type] || colors.info;
+            logEntry.style.marginBottom = '5px';
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        function disconnectCurrent() {
+            if (currentSocket) {
+                currentSocket.disconnect();
+                currentSocket = null;
+                log('Disconnected previous socket', 'info');
+            }
+        }
+        
+        function testConnection(url, description) {
+            disconnectCurrent();
+            
+            log(`🔄 Testing connection to ${description}: ${url}`, 'info');
+            updateStatus(`Testing ${description}...`, 'warning');
+            
+            try {
+                currentSocket = io(url, {
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000,
+                    forceNew: true
+                });
+                
+                let connectTimeout = setTimeout(() => {
+                    log(`❌ Connection timeout after 10 seconds`, 'error');
+                    updateStatus(`Connection to ${description} failed (timeout)`, 'error');
+                }, 10000);
+                
+                currentSocket.on('connect', () => {
+                    clearTimeout(connectTimeout);
+                    log(`✅ Successfully connected to ${description}`, 'success');
+                    log(`   Socket ID: ${currentSocket.id}`, 'success');
+                    updateStatus(`Connected to ${description}`, 'success');
+                });
+                
+                currentSocket.on('connect_error', (error) => {
+                    clearTimeout(connectTimeout);
+                    log(`❌ Connection error: ${error.message}`, 'error');
+                    log(`   Error type: ${error.type || 'unknown'}`, 'error');
+                    updateStatus(`Connection to ${description} failed`, 'error');
+                });
+                
+                currentSocket.on('disconnect', (reason) => {
+                    log(`🔌 Disconnected from ${description}: ${reason}`, 'warning');
+                    updateStatus(`Disconnected from ${description}`, 'warning');
+                });
+                
+            } catch (error) {
+                log(`💥 Error creating socket: ${error.message}`, 'error');
+                updateStatus(`Error testing ${description}`, 'error');
+            }
+        }
+        
+        function testLocalhost() {
+            testConnection('http://localhost:1002', 'Socket Server (1002)');
+        }
+        
+        function testLocalhost1001() {
+            testConnection('http://localhost:1001', 'PHP App (1001)');
+        }
+        
+        function testCurrentHost() {
+            const currentUrl = `${window.location.protocol}//${window.location.hostname}:1002`;
+            testConnection(currentUrl, 'Current Host:1002');
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        // Auto-detect and test the configuration that should be used
+        document.addEventListener('DOMContentLoaded', function() {
+            log('🚀 Socket.IO Connection Test Tool loaded', 'info');
+            log(`Current page: ${window.location.href}`, 'info');
+            log(`Current protocol: ${window.location.protocol}`, 'info');
+            log(`Current host: ${window.location.hostname}`, 'info');
+            log('', 'info');
+            log('Click the test buttons above to check different socket configurations', 'info');
+            log('Expected working configuration: localhost:1002', 'info');
+            
+            // Auto-test the expected configuration
+            setTimeout(() => {
+                log('🔍 Auto-testing expected configuration...', 'info');
+                testLocalhost();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

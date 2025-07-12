@@ -46,26 +46,40 @@ $socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
 $socketPort = EnvLoader::get('SOCKET_PORT', '1002');
 $socketSecure = EnvLoader::get('SOCKET_SECURE', 'false');
 $socketBasePath = EnvLoader::get('SOCKET_BASE_PATH', '/socket.io');
+$isDocker = EnvLoader::get('IS_DOCKER', 'false') === 'true';
 
 $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$frontendSocketHost = $currentHost;
 
+// Determine the frontend socket configuration based on environment
 $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
 $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
 $vpsHost = EnvLoader::get('DOMAIN', 'localhost');
 $isVPSDomain = ($isVPS || strpos($currentHost, $vpsHost) !== false) && $vpsHost !== 'localhost';
 
-if ($isVPSDomain) {
+if ($isDocker) {
+    // Docker environment: frontend browser connects to localhost (host machine)
+    $frontendSocketHost = 'localhost';
+    $frontendSocketPort = $socketPort; // Use the exposed socket port
+    $frontendSocketSecure = $socketSecure;
+} elseif ($isVPSDomain) {
+    // VPS with custom domain: use external domain without port (reverse proxy)
     $frontendSocketHost = $currentHost;
-    $socketPort = '';
-    $socketSecure = 'true';
+    $frontendSocketPort = ''; // No port for reverse proxy
+    $frontendSocketSecure = 'true';
+} else {
+    // Local development: use localhost with socket port
+    $frontendSocketHost = 'localhost';
+    $frontendSocketPort = $socketPort; // Use actual socket port
+    $frontendSocketSecure = $socketSecure;
 }
 ?>
 
 <meta name="socket-host" content="<?php echo htmlspecialchars($frontendSocketHost); ?>">
-<meta name="socket-port" content="<?php echo htmlspecialchars($socketPort); ?>">
-<meta name="socket-secure" content="<?php echo htmlspecialchars($socketSecure); ?>">
+<meta name="socket-port" content="<?php echo htmlspecialchars($frontendSocketPort); ?>">
+<meta name="socket-secure" content="<?php echo htmlspecialchars($frontendSocketSecure); ?>">
 <meta name="socket-base-path" content="<?php echo htmlspecialchars($socketBasePath); ?>">
+<meta name="is-docker" content="<?php echo $isDocker ? 'true' : 'false'; ?>">
+<meta name="is-vps" content="<?php echo $isVPS ? 'true' : 'false'; ?>">
 <meta name="app-url" content="<?php echo htmlspecialchars(EnvLoader::get('APP_URL')); ?>">
 
 <title><?php echo htmlspecialchars($page_title); ?></title>

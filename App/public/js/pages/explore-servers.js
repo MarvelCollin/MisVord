@@ -514,8 +514,10 @@ function initInfiniteScrollIfNeeded() {
     const existingTrigger = document.getElementById('infinite-loading-indicator');
     if (existingTrigger) return;
 
-    const serverCount = container.querySelectorAll('.misvord-initial-server-card').length;
-    if (serverCount < 6) return;
+    const publicServerCount = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
+        .filter(card => card.getAttribute('data-server-id')).length;
+    
+    if (publicServerCount < 6) return;
 
     let loadMoreTrigger = document.createElement('div');
     loadMoreTrigger.id = 'infinite-loading-indicator';
@@ -539,8 +541,10 @@ function initInfiniteScroll() {
     const container = document.getElementById('all-servers');
     if (!container) return;
 
-    const serverCount = container.querySelectorAll('.misvord-initial-server-card').length;
-    if (serverCount < 6) {
+    const publicServerCount = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
+        .filter(card => card.getAttribute('data-server-id')).length;
+    
+    if (publicServerCount < 6) {
         return;
     }
 
@@ -628,8 +632,10 @@ async function fetchAndRenderServers(append = false) {
                 initLazyLoadingForNewCards(container);
                 
                 if (!append) {
-                    const serverCount = container.querySelectorAll('.misvord-initial-server-card').length;
-                    if (serverCount >= 6) {
+                    const publicServerCount = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
+                        .filter(card => card.getAttribute('data-server-id')).length;
+                    
+                    if (publicServerCount >= 6) {
                         initInfiniteScrollIfNeeded();
                     }
                 }

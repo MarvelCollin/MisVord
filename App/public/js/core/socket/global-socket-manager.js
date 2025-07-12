@@ -58,6 +58,13 @@
                 avatarUrl: this.avatarUrl
             });
             
+            this.loadConnectionDetails();
+            
+            if (!this.socketHost) {
+                this.error('Socket configuration incomplete - missing host from environment');
+                return false;
+            }
+            
             this.connect();
             
 
@@ -190,6 +197,8 @@
             const metaSocketHost = document.querySelector('meta[name="socket-host"]')?.content;
             const metaSocketPort = document.querySelector('meta[name="socket-port"]')?.content;
             const metaSocketSecure = document.querySelector('meta[name="socket-secure"]')?.content;
+            const metaIsDocker = document.querySelector('meta[name="is-docker"]')?.content === 'true';
+            const metaIsVPS = document.querySelector('meta[name="is-vps"]')?.content === 'true';
             
             if (!metaSocketHost) {
                 throw new Error('Socket configuration missing from meta tags - no host');
@@ -203,6 +212,8 @@
                 host: this.socketHost,
                 port: this.socketPort,
                 secure: this.socketSecure,
+                isDocker: metaIsDocker,
+                isVPS: metaIsVPS,
                 source: 'meta-tags-from-env'
             });
             
@@ -210,6 +221,8 @@
                 host: this.socketHost,
                 port: this.socketPort || 'default',
                 secure: this.socketSecure,
+                isDocker: metaIsDocker,
+                isVPS: metaIsVPS,
                 url: this.socketPort ? 
                     `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}` :
                     `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}`
