@@ -83,12 +83,47 @@ class EnvLoader {
         self::$loadedPath = $envPath;
         error_log("✅ Environment variables loaded successfully from: " . $envPath);
     }    public static function get($key, $default = null) {
+
         self::load();
 
-        $value = $_SERVER[$key] ?? getenv($key) ?? $_ENV[$key] ?? self::$envVars[$key];
+        $isDocker = (
+            getenv('IS_DOCKER') === 'true' || 
+            isset($_SERVER['IS_DOCKER']) || 
+            getenv('CONTAINER') !== false ||
+            isset($_SERVER['CONTAINER']) ||
+            file_exists('/.dockerenv') ||
+            (isset($_SERVER['DB_HOST']) && $_SERVER['DB_HOST'] === 'db')
+        );
+
+        if ($isDocker) {
+
+            $dockerSources = [
+                $_SERVER[$key] ?? null,
+                getenv($key),
+                $_ENV[$key] ?? null
+            ];
+
+            foreach ($dockerSources as $value) {
+                if ($value !== false && $value !== null && $value !== '') {
+                    error_log("EnvLoader Debug - Found $key in Docker environment: " . substr($value, 0, 10) . "...");
+                    return $value;
+                }
+            }
+
+            error_log("EnvLoader Debug - $key not found in Docker environment, checking .env file");
+        }
+
+        $value = self::$envVars[$key] ?? $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
 
         if ($value !== false && $value !== null && $value !== '') {
+            if ($isDocker) {
+                error_log("EnvLoader Debug - Found $key in .env file: " . substr($value, 0, 10) . "...");
+            }
             return $value;
+        }
+
+        if ($isDocker) {
+            error_log("EnvLoader Debug - $key not found anywhere, using default: " . ($default ?? 'null'));
         }
 
         return $default;

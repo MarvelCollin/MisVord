@@ -1,32 +1,25 @@
 #!/bin/bash
 
-# MisVord VPS Deployment Script - COMPREHENSIVE VERSION
-# This script handles environment configuration, bot initialization, and production deployment
-
 set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
-# Print functions
 print_success() { echo -e "${GREEN}✅ $1${NC}"; }
 print_error() { echo -e "${RED}❌ $1${NC}"; }
 print_warning() { echo -e "${YELLOW}⚠️ $1${NC}"; }
 print_info() { echo -e "${BLUE}ℹ️ $1${NC}"; }
 print_section() { echo -e "\n${BLUE}═══ $1 ═══${NC}"; }
 
-# Function to read current env value
 get_env_value() {
     local key=$1
     local env_file=${2:-.env}
     grep "^${key}=" "$env_file" 2>/dev/null | cut -d'=' -f2- || echo ""
 }
 
-# Function to wait for service with retry
 wait_for_service() {
     local service_name=$1
     local port=$2
@@ -50,32 +43,27 @@ wait_for_service() {
     return 1
 }
 
-# Function to update env value
 update_env() {
     local key=$1
     local value=$2
     local env_file=${3:-.env}
 
     if grep -q "^${key}=" "$env_file" 2>/dev/null; then
-        # Key exists, update it
         if [[ "$OSTYPE" == "darwin"* ]]; then
             sed -i '' "s|^${key}=.*|${key}=${value}|" "$env_file"
         else
             sed -i "s|^${key}=.*|${key}=${value}|" "$env_file"
         fi
     else
-        # Key doesn't exist, add it
         echo "${key}=${value}" >> "$env_file"
     fi
     print_success "Updated ${key}=${value}"
 }
 
-# Function to check if command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Function to wait for user input with default
 read_with_default() {
     local prompt="$1"
     local default="$2"
@@ -110,9 +98,11 @@ check_env_file() {
     # Display current important settings
     echo -e "\n${YELLOW}Current Environment Settings:${NC}"
     echo "APP_ENV: $(get_env_value 'APP_ENV')"
+    echo "IS_DOCKER: $(get_env_value 'IS_DOCKER')"
     echo "IS_VPS: $(get_env_value 'IS_VPS')"
     echo "USE_HTTPS: $(get_env_value 'USE_HTTPS')"
     echo "DOMAIN: $(get_env_value 'DOMAIN')"
+    echo "DB_HOST: $(get_env_value 'DB_HOST')"
     echo "DB_PASS: $(get_env_value 'DB_PASS')"
     echo "APP_PORT: $(get_env_value 'APP_PORT')"
     echo "SOCKET_PORT: $(get_env_value 'SOCKET_PORT')"
@@ -120,7 +110,7 @@ check_env_file() {
     
     # Validate critical environment variables
     missing_vars=()
-    required_vars=("APP_PORT" "SOCKET_PORT" "SOCKET_BIND_HOST" "DB_PASS")
+    required_vars=("APP_PORT" "SOCKET_PORT" "SOCKET_BIND_HOST" "DB_PASS" "DB_HOST")
     
     for var in "${required_vars[@]}"; do
         value=$(get_env_value "$var")
@@ -138,6 +128,22 @@ check_env_file() {
         return 1
     fi
     
+    # Validate Docker-only configuration
+    db_host=$(get_env_value 'DB_HOST')
+    is_docker=$(get_env_value 'IS_DOCKER')
+    
+    if [ "$db_host" != "db" ]; then
+        print_warning "DB_HOST should be 'db' for Docker deployment"
+        print_info "Current value: $db_host"
+        print_info "Run configure_environment to fix this"
+    fi
+    
+    if [ "$is_docker" != "true" ]; then
+        print_warning "IS_DOCKER should be 'true' for Docker deployment"
+        print_info "Current value: $is_docker"
+        print_info "Run configure_environment to fix this"
+    fi
+    
     print_success "All required environment variables are set"
 }
 
@@ -153,25 +159,31 @@ validate_docker_config() {
     
     print_success "docker-compose.yml found"
     
-    # Validate Docker Compose environment variables for socket service
+    # Validate Docker environment variables are properly passed through
     if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker-compose.yml; then
         print_success "SOCKET_BIND_HOST correctly configured in docker-compose.yml"
     else
         print_error "SOCKET_BIND_HOST missing from docker-compose.yml socket service"
-        print_info "Adding SOCKET_BIND_HOST to docker-compose.yml..."
-        
-        # This would require more complex sed commands to insert into the right place
-        print_warning "Please manually add 'SOCKET_BIND_HOST=0.0.0.0' to socket service environment in docker-compose.yml"
         return 1
     fi
     
-    # Check if socket server has proper environment handling
-    if [ -f "socket-server/server.js" ]; then
-        if grep -q "IS_DOCKER.*true" socket-server/server.js; then
-            print_success "Socket server has Docker environment detection"
-        else
-            print_warning "Socket server may not have proper Docker environment handling"
-        fi
+    # Check if .env file has Docker-compatible settings
+    db_host=$(get_env_value 'DB_HOST')
+    is_docker=$(get_env_value 'IS_DOCKER')
+    
+    if [ "$db_host" = "db" ] && [ "$is_docker" = "true" ]; then
+        print_success "Environment configured for Docker deployment"
+    else
+        print_warning "Environment may not be optimized for Docker"
+        print_info "DB_HOST: $db_host (should be 'db')"
+        print_info "IS_DOCKER: $is_docker (should be 'true')"
+    fi
+    
+    # Validate docker-compose environment defaults
+    if grep -q "APP_ENV=\${APP_ENV:-development}" docker-compose.yml; then
+        print_success "Docker-compose defaults to development environment"
+    else
+        print_warning "Docker-compose may not have correct environment defaults"
     fi
     
     print_success "Docker configuration validation completed"
@@ -368,6 +380,191 @@ check_services() {
     print_success "Service health check completed"
 }
 
+# Function to verify environment sync
+verify_env_sync() {
+    print_section "ENVIRONMENT SYNCHRONIZATION CHECK"
+    
+    print_info "Checking .env and docker-compose.yml synchronization..."
+    
+    # Check if .env values match docker-compose defaults
+    env_app_env=$(get_env_value 'APP_ENV')
+    env_is_docker=$(get_env_value 'IS_DOCKER')
+    env_db_host=$(get_env_value 'DB_HOST')
+    
+    issues=()
+    
+    # Check APP_ENV
+    if [ "$env_app_env" = "production" ]; then
+        if ! grep -q "APP_ENV=\${APP_ENV:-production}" docker-compose.yml; then
+            issues+=("docker-compose.yml should default to production when .env is production")
+        fi
+    elif [ "$env_app_env" = "development" ]; then
+        if ! grep -q "APP_ENV=\${APP_ENV:-development}" docker-compose.yml; then
+            issues+=("docker-compose.yml should default to development when .env is development")
+        fi
+    fi
+    
+    # Check Docker configuration
+    if [ "$env_is_docker" != "true" ]; then
+        issues+=(".env IS_DOCKER should be 'true' for Docker deployment")
+    fi
+    
+    if [ "$env_db_host" != "db" ]; then
+        issues+=(".env DB_HOST should be 'db' for Docker deployment")
+    fi
+    
+    # Report issues
+    if [ ${#issues[@]} -gt 0 ]; then
+        print_warning "Environment synchronization issues found:"
+        for issue in "${issues[@]}"; do
+            echo "  - $issue"
+        done
+        
+        echo -e "\n${BLUE}Fix these issues? (y/N):${NC}"
+        read -p "> " fix_choice
+        
+        if [[ "$fix_choice" =~ ^[Yy]$ ]]; then
+            print_info "Fixing synchronization issues..."
+            
+            # Fix .env for Docker
+            update_env "IS_DOCKER" "true"
+            update_env "DB_HOST" "db"
+            
+            print_success "Environment synchronization fixed"
+        fi
+    else
+        print_success "Environment is properly synchronized"
+    fi
+}
+
+# Function to quick VPS deployment
+quick_vps_deploy() {
+    print_section "QUICK VPS DEPLOYMENT"
+    
+    echo -e "${YELLOW}This will quickly configure and deploy to VPS${NC}"
+    echo -e "${YELLOW}Make sure Docker and Docker Compose are installed!${NC}\n"
+    
+    # Quick domain setup
+    read_with_default "Enter your domain name" "$(get_env_value 'DOMAIN')" "DOMAIN"
+    read_with_default "Enter database password" "$(get_env_value 'DB_PASS')" "DB_PASS"
+    
+    # Quick HTTPS setup
+    echo -e "\n${BLUE}Enable HTTPS? (recommended for production)${NC}"
+    read -p "y/N: " https_choice
+    
+    if [[ "$https_choice" =~ ^[Yy]$ ]]; then
+        USE_HTTPS="true"
+        SESSION_SECURE="true"
+        APP_URL="https://$DOMAIN"
+    else
+        USE_HTTPS="false" 
+        SESSION_SECURE="false"
+        APP_URL="http://$DOMAIN"
+    fi
+    
+    print_info "Applying VPS configuration..."
+    
+    # Apply all settings
+    update_env "APP_ENV" "production"
+    update_env "APP_DEBUG" "false"
+    update_env "IS_DOCKER" "true"
+    update_env "IS_VPS" "true"
+    update_env "USE_HTTPS" "$USE_HTTPS"
+    update_env "DOMAIN" "$DOMAIN"
+    update_env "DB_HOST" "db"
+    update_env "DB_PASS" "$DB_PASS"
+    update_env "APP_URL" "$APP_URL"
+    update_env "SESSION_SECURE" "$SESSION_SECURE"
+    
+    # CORS configuration
+    if [ "$USE_HTTPS" = "true" ]; then
+        CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001"
+    else
+        CORS_ORIGINS="http://$DOMAIN,http://www.$DOMAIN,http://app:1001"
+    fi
+    update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
+    
+    print_success "VPS configuration applied"
+    
+    # Deploy services
+    print_info "Starting VPS deployment..."
+    docker-compose down 2>/dev/null || true
+    docker-compose build --no-cache
+    docker-compose up -d
+    
+    print_info "Waiting for services to start..."
+    sleep 30
+    
+    # Initialize bot
+    print_info "Initializing bot system..."
+    init_bot
+    
+    # Health check
+    check_services
+    
+    echo -e "\n${GREEN}🚀 VPS DEPLOYMENT COMPLETED!${NC}"
+    echo -e "✅ Domain: $DOMAIN"
+    echo -e "✅ HTTPS: $USE_HTTPS"
+    echo -e "✅ App URL: $APP_URL"
+    echo -e "✅ All services running in Docker"
+    
+    if [ "$USE_HTTPS" = "true" ]; then
+        echo -e "\n${YELLOW}⚠️ NEXT STEPS FOR HTTPS:${NC}"
+        echo "1. Configure reverse proxy (Nginx/Apache)"
+        echo "2. Get SSL certificate (certbot/Let's Encrypt)"
+        echo "3. Point $DOMAIN to this server"
+        echo "4. Open firewall ports: 80, 443, 1001, 1002"
+    else
+        echo -e "\n${YELLOW}⚠️ NEXT STEPS:${NC}"
+        echo "1. Point $DOMAIN to this server"
+        echo "2. Open firewall ports: 80, 1001, 1002"
+    fi
+}
+
+# Function to configure environment for Docker
+configure_environment() {
+    print_section "ENVIRONMENT CONFIGURATION"
+    
+    echo -e "${YELLOW}Configure environment for:${NC}"
+    echo "1) Development (local Docker)"
+    echo "2) Production (VPS Docker)"
+    echo "3) Custom configuration"
+    read -p "Choice (1-3): " env_choice
+    
+    case $env_choice in
+        1)
+            print_info "Configuring for development environment..."
+            update_env "APP_ENV" "development"
+            update_env "APP_DEBUG" "true"
+            update_env "IS_DOCKER" "true"
+            update_env "IS_VPS" "false"
+            update_env "USE_HTTPS" "false"
+            update_env "DOMAIN" "localhost"
+            update_env "DB_HOST" "db"
+            update_env "SOCKET_HOST" "socket"
+            update_env "SESSION_SECURE" "false"
+            
+            # Development CORS origins
+            update_env "CORS_ALLOWED_ORIGINS" "http://localhost:1001,http://127.0.0.1:1001,http://app:1001"
+            
+            print_success "Development environment configured"
+            ;;
+        2)
+            print_info "Configuring for production environment..."
+            configure_production
+            return
+            ;;
+        3)
+            print_info "Custom configuration mode..."
+            configure_production
+            return
+            ;;
+        *)
+            print_error "Invalid choice"
+            return 1
+            ;;
+    esac
+}
 # Function to configure production environment
 configure_production() {
     print_section "PRODUCTION CONFIGURATION"
@@ -418,11 +615,14 @@ configure_production() {
     # Apply configuration
     print_info "Applying production configuration..."
 
+    # Core production settings
     update_env "APP_ENV" "production"
     update_env "APP_DEBUG" "false"
+    update_env "IS_DOCKER" "true"
     update_env "IS_VPS" "true"
     update_env "USE_HTTPS" "$USE_HTTPS"
     update_env "DOMAIN" "$DOMAIN"
+    update_env "DB_HOST" "db"
     update_env "DB_PASS" "$DB_PASS"
 
     if [ -n "$PUBLIC_IP" ]; then
@@ -477,6 +677,8 @@ configure_production() {
 
     # Display final configuration
     echo -e "\n${GREEN}═══ PRODUCTION CONFIGURATION SUMMARY ═══${NC}"
+    echo "Environment: production"
+    echo "Docker Mode: enabled"
     echo "Domain: $DOMAIN"
     echo "HTTPS: $USE_HTTPS"
     echo "App URL: $(get_env_value 'APP_URL')"
@@ -508,26 +710,29 @@ configure_production() {
     echo -e "✅ Bot system: TitiBot initialized"
     echo -e "✅ Services: All running and healthy"
     echo -e "✅ Database: Connected and configured"
-    echo -e "✅ Socket server: Environment variables properly configured"
-    echo -e "✅ Docker: SOCKET_BIND_HOST=0.0.0.0 configured"
+    echo -e "✅ Socket server: Docker environment properly configured"
+    echo -e "✅ Environment: $(get_env_value 'APP_ENV') mode"
     
-    echo -e "\n${BLUE}📋 Recent Improvements:${NC}"
-    echo -e "• Fixed Docker environment variable loading for socket server"
-    echo -e "• Added proper IS_DOCKER detection in Node.js server"
-    echo -e "• Enhanced error reporting for environment issues"
-    echo -e "• Improved service health monitoring"
+    echo -e "\n${BLUE}📋 Docker Configuration:${NC}"
+    echo -e "• All services running in Docker containers"
+    echo -e "• Database host: db (container)"
+    echo -e "• Socket host: socket (container)"
+    echo -e "• Environment variables properly loaded"
+    echo -e "• Health checks enabled for all services"
 }
 
 # Main menu
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
     echo "1) Check environment file"
-    echo "2) Validate Docker configuration"  
-    echo "3) Initialize bots"
-    echo "4) Check service health"
-    echo "5) Configure for production"
-    echo "6) Full deployment (all steps)"
-    echo "7) Exit"
+    echo "2) Configure environment (Dev/Prod)"
+    echo "3) Quick VPS deploy"
+    echo "4) Validate Docker configuration"  
+    echo "5) Initialize bots"
+    echo "6) Check service health"
+    echo "7) Configure for production"
+    echo "8) Full deployment (all steps)"
+    echo "9) Exit"
     echo
 }
 
@@ -547,38 +752,45 @@ main() {
 
     while true; do
         show_menu
-        read -p "Select an option (1-7): " choice
+        read -p "Select an option (1-9): " choice
 
         case $choice in
             1)
                 check_env_file
                 ;;
             2)
-                validate_docker_config
+                configure_environment
                 ;;
             3)
-                init_bot
+                quick_vps_deploy
                 ;;
             4)
-                check_services
+                validate_docker_config
                 ;;
             5)
-                configure_production
+                init_bot
                 ;;
             6)
+                check_services
+                ;;
+            7)
+                configure_production
+                ;;
+            8)
                 print_info "Starting full deployment..."
                 check_env_file
+                verify_env_sync
+                configure_environment
                 validate_docker_config
                 check_services
                 init_bot
-                configure_production
                 ;;
-            7)
+            9)
                 print_info "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-7."
+                print_error "Invalid option. Please choose 1-9."
                 ;;
         esac
 

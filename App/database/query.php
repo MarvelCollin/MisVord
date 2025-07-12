@@ -30,7 +30,15 @@ class Query {
             try {
                 require_once __DIR__ . '/../config/env.php';
 
-                $dbHost = EnvLoader::get('DB_HOST', 'db');
+                $isDocker = (
+                    getenv('IS_DOCKER') === 'true' || 
+                    isset($_SERVER['IS_DOCKER']) || 
+                    getenv('CONTAINER') !== false ||
+                    isset($_SERVER['CONTAINER']) ||
+                    file_exists('/.dockerenv')
+                );
+
+                $dbHost = $isDocker ? 'db' : EnvLoader::get('DB_HOST', 'localhost');
                 $port = EnvLoader::get('DB_PORT', '1003');
                 $dbname = EnvLoader::get('DB_NAME', 'misvord');
                 $username = EnvLoader::get('DB_USER', 'root');

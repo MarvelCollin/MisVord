@@ -1,6 +1,10 @@
 <?php
 
-define('APP_ROOT', '/var/www/html');
+if (getenv('IS_DOCKER') === 'true') {
+    define('APP_ROOT', '/var/www/html');
+} else {
+    define('APP_ROOT', dirname(__DIR__));
+}
 
 
 require_once APP_ROOT . '/config/session.php';

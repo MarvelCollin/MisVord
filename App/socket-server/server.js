@@ -1,8 +1,8 @@
 const path = require('path');
 const fs = require('fs');
 
-console.log(' [STARTUP] Running in Docker - using container environment variables');
-console.log('🐳 [STARTUP] Environment:', process.env.APP_ENV || 'development');
+console.log('🐳 [STARTUP] Running in Docker - using container environment variables');
+console.log('� [STARTUP] Environment:', process.env.APP_ENV || 'development');
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -107,13 +107,22 @@ socketController.setup(io);
 const PORT = process.env.SOCKET_PORT;
 const HOST = process.env.SOCKET_BIND_HOST;
 
-    if (!PORT || !HOST) {
-        console.error('❌ [ERROR] Missing required environment variables:');
-        console.error('   SOCKET_PORT:', PORT || 'UNDEFINED');
-        console.error('   SOCKET_BIND_HOST:', HOST || 'UNDEFINED');
+if (!PORT || !HOST) {
+    console.error('❌ [ERROR] Missing required environment variables:');
+    console.error('   SOCKET_PORT:', PORT || 'UNDEFINED');
+    console.error('   SOCKET_BIND_HOST:', HOST || 'UNDEFINED');
+    
+    if (isDocker) {
         console.error('   Running in Docker - check docker-compose.yml environment variables');
-        process.exit(1);
+    } else {
+        const envPath = path.resolve(__dirname, '..', '.env');
+        console.error('   .env file path:', envPath);
+        console.error('   .env file exists:', fs.existsSync(envPath));
+        console.error('   Please check your .env file exists and contains these variables');
     }
+    
+    process.exit(1);
+}
 
 server.listen(PORT, HOST, async () => {
     console.log(`🚀 [STARTUP] Socket server running on ${HOST}:${PORT}`);
