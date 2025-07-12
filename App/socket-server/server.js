@@ -1,4 +1,17 @@
-require('dotenv').config({ path: '../.env' });
+const path = require('path');
+const fs = require('fs');
+
+// Check if running in Docker
+const isDocker = process.env.IS_DOCKER === 'true';
+
+if (!isDocker) {
+    // Only load .env file if not in Docker (Docker uses environment variables directly)
+    const envPath = path.resolve(__dirname, '..', '.env');
+    console.log('🔍 [STARTUP] Loading .env from:', envPath);
+    require('dotenv').config({ path: envPath });
+} else {
+    console.log('🐳 [STARTUP] Running in Docker - using container environment variables');
+}
 
 const http = require('http');
 const { Server } = require('socket.io');
@@ -105,9 +118,18 @@ const HOST = process.env.SOCKET_BIND_HOST;
 
 if (!PORT || !HOST) {
     console.error('❌ [ERROR] Missing required environment variables:');
-    console.error('   SOCKET_PORT:', PORT);
-    console.error('   SOCKET_BIND_HOST:', HOST);
-    console.error('   Please check your .env file');
+    console.error('   SOCKET_PORT:', PORT || 'UNDEFINED');
+    console.error('   SOCKET_BIND_HOST:', HOST || 'UNDEFINED');
+    
+    if (isDocker) {
+        console.error('   Running in Docker - check docker-compose.yml environment variables');
+    } else {
+        const envPath = path.resolve(__dirname, '..', '.env');
+        console.error('   .env file path:', envPath);
+        console.error('   .env file exists:', fs.existsSync(envPath));
+        console.error('   Please check your .env file exists and contains these variables');
+    }
+    
     process.exit(1);
 }
 
@@ -124,6 +146,14 @@ server.listen(PORT, HOST, async () => {
             console.log('⚠️ [STARTUP] TitiBot initialization failed');
         }
     }, 2000);
+}).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`❌ [ERROR] Port ${PORT} is already in use`);
+        console.error('   Please stop the existing server or use a different port');
+    } else {
+        console.error('❌ [ERROR] Server error:', err.message);
+    }
+    process.exit(1);
 });
 
 process.on('SIGTERM', () => {
