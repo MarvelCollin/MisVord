@@ -16,6 +16,7 @@
         this.socketHost = null;
         this.socketPort = null;
         this.socketSecure = false;
+        this.socketBasePath = '/socket.io';
         this.lastError = null;
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = Infinity;
@@ -197,6 +198,7 @@
             const metaSocketHost = document.querySelector('meta[name="socket-host"]')?.content;
             const metaSocketPort = document.querySelector('meta[name="socket-port"]')?.content;
             const metaSocketSecure = document.querySelector('meta[name="socket-secure"]')?.content;
+            const metaSocketBasePath = document.querySelector('meta[name="socket-base-path"]')?.content;
             const metaIsDocker = document.querySelector('meta[name="is-docker"]')?.content === 'true';
             const metaIsVPS = document.querySelector('meta[name="is-vps"]')?.content === 'true';
             
@@ -207,6 +209,7 @@
             this.socketHost = metaSocketHost;
             this.socketPort = metaSocketPort || '';
             this.socketSecure = metaSocketSecure === 'true';
+            this.socketBasePath = metaSocketBasePath || '/socket.io';
             
             if (window.location.protocol === 'https:' && !this.socketSecure) {
                 console.warn('🔒 [SOCKET] Page loaded over HTTPS, forcing secure socket connection');
@@ -217,6 +220,7 @@
                 host: this.socketHost,
                 port: this.socketPort,
                 secure: this.socketSecure,
+                path: this.socketBasePath,
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
                 source: 'meta-tags-from-env'
@@ -226,11 +230,12 @@
                 host: this.socketHost,
                 port: this.socketPort || 'default',
                 secure: this.socketSecure,
+                path: this.socketBasePath,
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
                 url: this.socketPort ? 
-                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}` :
-                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}`
+                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}${this.socketBasePath}` :
+                    `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}${this.socketBasePath}`
             });
             
         } catch (error) {
@@ -295,6 +300,7 @@
             }
             
             this.io = io(socketUrl, {
+                path: this.socketBasePath,
                 transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionDelay: 1000,
