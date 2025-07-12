@@ -20,11 +20,21 @@ const socketController = require('./controllers/socketController');
 const eventController = require('./controllers/eventController');
 
 const server = http.createServer((req, res) => {
-    if (req.url === '/health') {
+    if (req.url === '/health' || req.url === '/socket-health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        const connectedClients = io.engine.clientsCount;
-        const authenticatedUsers = Array.from(io.sockets.sockets.values())
-            .filter(socket => socket.data?.authenticated).length;
+        
+        let connectedClients = 0;
+        let authenticatedUsers = 0;
+        
+        try {
+            if (typeof io !== 'undefined' && io.engine) {
+                connectedClients = io.engine.clientsCount || 0;
+                authenticatedUsers = Array.from(io.sockets.sockets.values())
+                    .filter(socket => socket.data?.authenticated).length;
+            }
+        } catch (error) {
+            console.log('Health check: io not ready yet');
+        }
         
         res.end(JSON.stringify({ 
             status: 'ok', 
