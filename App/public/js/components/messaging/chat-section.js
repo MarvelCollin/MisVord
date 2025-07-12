@@ -214,6 +214,14 @@ class ChatSection {
             this.mentionHandler = null;
             this.tts = new TextToSpeech();
             
+            this.messageTimestamps = [];
+            this.maxMessagesPerInterval = 5;
+            this.messageIntervalMs = 10000;
+            this.isSending = false;
+            this.isRateLimited = false;
+            this.rateLimitTimer = null;
+            this.isSending = false;
+            
             window.chatSection = this;
             
             this.init().catch(error => {
@@ -707,6 +715,30 @@ class ChatSection {
         if (this.messageForm) {
             this.messageForm.addEventListener('submit', (e) => {
                 e.preventDefault();
+                if (!this.isSending && !this.isRateLimited && this.sendReceiveHandler) {
+                    this.sendReceiveHandler.sendMessage();
+                } else {
+                    console.warn('⚠️ [CHAT-SECTION] Cannot send message - either sending, rate limited, or handler not initialized');
+                }
+            });
+        } else {
+            console.warn('⚠️ [CHAT-SECTION] Message form not found');
+        }
+        
+        if (this.sendButton) {
+            this.sendButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (this.sendButton.disabled || this.isRateLimited || this.isSending) {
+                    if (this.isRateLimited) {
+                        this.showNotification('You are sending messages too quickly. Please wait.', 'warning');
+                    } else if (this.isSending) {
+                        this.showNotification('Please wait, your message is being sent.', 'info');
+                    }
+                    return;
+                }
+                
                 if (this.sendReceiveHandler) {
                     this.sendReceiveHandler.sendMessage();
                 } else {
@@ -714,7 +746,7 @@ class ChatSection {
                 }
             });
         } else {
-            console.warn('⚠️ [CHAT-SECTION] Message form not found');
+            console.warn('⚠️ [CHAT-SECTION] Send button not found for click handler');
         }
         
 
@@ -724,6 +756,10 @@ class ChatSection {
                 if (this.messageInput.value.trim().length > 0) {
                     this.handleTypingEvent();
                 }
+            });
+            
+            this.messageInput.addEventListener('keyup', () => {
+                this.updateSendButton();
             });
             
             this.messageInput.addEventListener('blur', () => {
@@ -745,7 +781,7 @@ class ChatSection {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     this.handleStopTypingEvent();
-                    if (this.sendReceiveHandler) {
+                    if (!this.isSending && !this.isRateLimited && this.sendReceiveHandler) {
                         this.sendReceiveHandler.sendMessage();
                     }
                 }
@@ -763,6 +799,10 @@ class ChatSection {
                         this.handleTypingEvent();
                     });
                     
+                    this.messageInput.addEventListener('keyup', () => {
+                        this.updateSendButton();
+                    });
+                    
                     this.messageInput.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
                             if (this.replyingTo) {
@@ -776,7 +816,7 @@ class ChatSection {
                         
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
-                            if (this.sendReceiveHandler) {
+                            if (!this.isSending && !this.isRateLimited && this.sendReceiveHandler) {
                                 this.sendReceiveHandler.sendMessage();
                             }
                         }
@@ -862,6 +902,8 @@ class ChatSection {
                 }
             });
         }
+        
+        this.updateSendButton();
     }
     
     handleMessageActions(e) {
@@ -1368,19 +1410,75 @@ class ChatSection {
         
         const hasContent = this.messageInput && (this.messageInput.value ? this.messageInput.value.trim().length > 0 : this.messageInput.textContent.trim().length > 0);
         const hasFiles = this.fileUploadHandler && this.fileUploadHandler.hasFiles();
-        const canSend = hasContent || hasFiles;
+        const canSend = (hasContent || hasFiles) && !this.isSending && !this.isRateLimited;
         
         this.sendButton.disabled = !canSend;
         this.sendButton.classList.toggle('opacity-50', !canSend);
         this.sendButton.classList.toggle('cursor-not-allowed', !canSend);
         
+        if (this.isSending) {
+            this.sendButton.classList.add('sending');
+            this.sendButton.title = 'Sending message...';
+            this.sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        } else if (this.isRateLimited) {
+            this.sendButton.classList.add('rate-limited');
+            this.sendButton.title = 'Rate limited - please wait';
+            this.sendButton.innerHTML = '<i class="fas fa-clock"></i>';
+        } else {
+            this.sendButton.classList.remove('rate-limited', 'sending');
+            this.sendButton.title = 'Send message';
+            this.sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        }
+        
         if (canSend) {
-            this.sendButton.classList.add('hover:bg-[#5865f2]', 'text-[#dcddde]');
+            this.sendButton.classList.add('hover:bg-[#5865f2]', 'text-[#dcddde]', 'hover:text-white');
             this.sendButton.classList.remove('text-[#b9bbbe]');
         } else {
-            this.sendButton.classList.remove('hover:bg-[#5865f2]', 'text-[#dcddde]');
+            this.sendButton.classList.remove('hover:bg-[#5865f2]', 'text-[#dcddde]', 'hover:text-white');
             this.sendButton.classList.add('text-[#b9bbbe]');
         }
+    }
+    
+    checkRateLimit() {
+        const now = Date.now();
+        this.messageTimestamps = this.messageTimestamps.filter(timestamp => 
+            now - timestamp < this.messageIntervalMs
+        );
+        
+        if (this.messageTimestamps.length >= this.maxMessagesPerInterval) {
+            const oldestTimestamp = Math.min(...this.messageTimestamps);
+            const timeUntilReset = this.messageIntervalMs - (now - oldestTimestamp);
+            const secondsUntilReset = Math.ceil(timeUntilReset / 1000);
+            
+            this.isRateLimited = true;
+            this.updateSendButton();
+            
+            this.showNotification(`Slow down! You can send ${this.maxMessagesPerInterval} messages every ${this.messageIntervalMs / 1000} seconds. Try again in ${secondsUntilReset} seconds.`, 'warning');
+            
+            const rateLimitTimer = setTimeout(() => {
+                this.isRateLimited = false;
+                this.updateSendButton();
+                this.showNotification('Rate limit cleared - you can send messages again!', 'success');
+            }, timeUntilReset);
+            
+            this.rateLimitTimer = rateLimitTimer;
+            
+            return false;
+        }
+        
+        this.messageTimestamps.push(now);
+        return true;
+    }
+    
+    resetRateLimit() {
+        this.messageTimestamps = [];
+        this.isSending = false;
+        this.isRateLimited = false;
+        if (this.rateLimitTimer) {
+            clearTimeout(this.rateLimitTimer);
+            this.rateLimitTimer = null;
+        }
+        this.updateSendButton();
     }
     
     resizeTextarea() {

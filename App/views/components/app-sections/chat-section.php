@@ -927,11 +927,11 @@ if (!function_exists('renderMessage')) {
                 <button
                     id="send-button"
                     type="submit"
-                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled
                     title="Send message"
                 >
-                    <i class="fas fa-paper-plane"></i>
+                    <i class="fas fa-paper-plane text-sm transition-transform duration-200 hover:scale-110"></i>
                 </button>
             </div>
         </form>

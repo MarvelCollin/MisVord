@@ -1,4 +1,3 @@
-
 :root {
   --scrollbar-thin-thumb: #1e1f22;
   --scrollbar-thin-track: transparent;
@@ -408,33 +407,43 @@
 }
 
 
-#upload-button,
-#message-form button[type="submit"] {
-  position: absolute;
-  bottom: 8px;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #b9bbbe;
-  transition: color 0.2s ease;
+#send-button {
+  transition: all 0.2s ease-in-out;
+  border-radius: 4px;
 }
 
-#upload-button {
-  left: 0;
+#send-button:hover:not(:disabled):not(.rate-limited):not(.sending) {
+  background-color: #5865f2 !important;
+  color: #ffffff !important;
+  transform: scale(1.05);
 }
 
-#message-form button[type="submit"] {
-  right: 0;
+#send-button:active:not(:disabled):not(.rate-limited):not(.sending) {
+  transform: scale(0.95);
 }
 
-#upload-button:hover,
-#message-form button[type="submit"]:hover {
-  color: #dcddde;
+#send-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+#send-button i {
+  transition: transform 0.2s ease-in-out;
+  font-size: 14px;
+}
+
+#send-button:hover:not(:disabled):not(.rate-limited):not(.sending) i {
+  transform: scale(1.1);
+}
+
+#send-button.rate-limited i,
+#send-button.sending i {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 #chat-messages::-webkit-scrollbar {
@@ -1302,4 +1311,38 @@ button {
 
 .messages-container .bubble-message-group + .bubble-message-group:not(.grouped) {
     margin-top: 17px !important;
+}
+
+.send-button:disabled {
+    background-color: #6b7280 !important;
+    cursor: not-allowed !important;
+    opacity: 0.5;
+}
+
+.send-button.sending {
+    background-color: #3b82f6 !important;
+    animation: pulse 1s infinite;
+    cursor: wait !important;
+}
+
+.send-button.rate-limited {
+    background-color: #ef4444 !important;
+    animation: shake 0.5s ease-in-out;
+    cursor: not-allowed !important;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+.send-button i {
+    transition: all 0.3s ease;
+    pointer-events: none;
 }

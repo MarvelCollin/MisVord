@@ -9,6 +9,21 @@ class SendReceiveHandler {
             return;
         }
         
+        if (this.chatSection.isSending) {
+            console.warn('⚠️ [SEND-RECEIVE] Already sending a message');
+            return;
+        }
+        
+        if (this.chatSection.isRateLimited) {
+            console.warn('⚠️ [SEND-RECEIVE] Rate limited - cannot send message');
+            this.chatSection.showNotification('You are sending messages too quickly. Please wait a moment.', 'warning');
+            return;
+        }
+        
+        if (!this.chatSection.checkRateLimit()) {
+            return;
+        }
+        
         let content;
         if (messageInput.getAttribute('contenteditable') === 'true') {
             content = messageInput.textContent || messageInput.innerText || '';
@@ -28,6 +43,9 @@ class SendReceiveHandler {
             this.chatSection.showNotification('Connection error. Please try again.', 'error');
             return;
         }
+        
+        this.chatSection.isSending = true;
+        this.chatSection.updateSendButton();
         
         try {
             const options = { message_type: 'text' };
@@ -92,6 +110,9 @@ class SendReceiveHandler {
         } catch (error) {
             console.error('❌ Error sending message:', error);
             this.chatSection.showNotification('Failed to send message: ' + error.message, 'error');
+        } finally {
+            this.chatSection.isSending = false;
+            this.chatSection.updateSendButton();
         }
     }
 
