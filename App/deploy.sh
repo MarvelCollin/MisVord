@@ -68,7 +68,15 @@ check_env_file() {
     echo "SOCKET_BIND_HOST: $(get_env_value 'SOCKET_BIND_HOST')"
     
     missing_vars=()
-    required_vars=("APP_PORT" "SOCKET_PORT" "SOCKET_BIND_HOST" "DB_PASS")
+    is_vps=$(get_env_value 'IS_VPS')
+    
+    # Base required variables
+    required_vars=("APP_PORT" "SOCKET_BIND_HOST" "DB_PASS")
+    
+    # SOCKET_PORT is only required for development/non-VPS environments
+    if [ "$is_vps" != "true" ]; then
+        required_vars+=("SOCKET_PORT")
+    fi
     
     for var in "${required_vars[@]}"; do
         value=$(get_env_value "$var")
@@ -384,7 +392,8 @@ configure_production() {
     echo "HTTPS: $(get_env_value 'USE_HTTPS')"
     echo "App URL: $(get_env_value 'APP_URL')"
     echo "Socket Host: $(get_env_value 'SOCKET_HOST')"
-    echo "Socket Port: $(get_env_value 'SOCKET_PORT')"
+    socket_port=$(get_env_value 'SOCKET_PORT')
+    echo "Socket Port: ${socket_port:-'(empty - using standard HTTPS port)'}"
     echo "Socket Secure: $(get_env_value 'SOCKET_SECURE')"
 
     echo -e "\n${GREEN}🚀 DEPLOYMENT COMPLETED SUCCESSFULLY!${NC}"
@@ -928,7 +937,25 @@ configure_local_development() {
     echo "Environment: $(get_env_value 'APP_ENV')"
     echo "Docker: $(get_env_value 'IS_DOCKER')"
     echo "App URL: $(get_env_value 'APP_URL')"
-    echo "Socket URL: ws://$(get_env_value 'SOCKET_HOST'):$(get_env_value 'SOCKET_PORT')/socket.io"
+    socket_host=$(get_env_value 'SOCKET_HOST')
+    socket_port=$(get_env_value 'SOCKET_PORT')
+    socket_secure=$(get_env_value 'SOCKET_SECURE')
+    
+    # Determine protocol based on SOCKET_SECURE
+    if [ "$socket_secure" = "true" ]; then
+        protocol="wss://"
+    else
+        protocol="ws://"
+    fi
+    
+    # Build URL with or without port
+    if [ -n "$socket_port" ]; then
+        socket_url="${protocol}${socket_host}:${socket_port}/socket.io"
+    else
+        socket_url="${protocol}${socket_host}/socket.io"
+    fi
+    
+    echo "Socket URL: $socket_url"
     echo "Database: localhost:1003"
     
     echo -e "\n${BLUE}═══ DOCKER DEVELOPMENT COMMANDS ═══${NC}"
