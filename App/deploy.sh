@@ -503,6 +503,10 @@ configure_production() {
     sleep 20
 
     print_success "Services restarted with production configuration"
+    
+    # Configure reverse proxy for WebSocket
+    print_info "Configuring reverse proxy for WebSocket connections..."
+    configure_reverse_proxy "$DOMAIN"
 
     # Display final configuration
     echo -e "\n${GREEN}═══ PRODUCTION CONFIGURATION SUMMARY ═══${NC}"
@@ -618,6 +622,121 @@ migrate_database() {
     fi
 }
 
+# Function to configure reverse proxy for WebSocket
+configure_reverse_proxy() {
+    print_section "CONFIGURING REVERSE PROXY FOR WEBSOCKET"
+    
+    local domain=$1
+    
+    # Detect web server
+    if command_exists nginx; then
+        print_info "Nginx detected - configuring WebSocket proxy..."
+        configure_nginx_websocket "$domain"
+    elif command_exists apache2 || command_exists httpd; then
+        print_info "Apache detected - configuring WebSocket proxy..."
+        configure_apache_websocket "$domain"
+    else
+        print_warning "No web server detected (Nginx/Apache)"
+        print_info "Manual configuration required for WebSocket proxy"
+        show_manual_proxy_config "$domain"
+        return 1
+    fi
+}
+
+# Function to configure Nginx WebSocket proxy
+configure_nginx_websocket() {
+    local domain=$1
+    local nginx_config="/etc/nginx/sites-available/$domain"
+    local nginx_enabled="/etc/nginx/sites-enabled/$domain"
+    
+    if [ ! -f "$nginx_config" ]; then
+        print_warning "Nginx config file not found: $nginx_config"
+        print_info "Creating basic Nginx configuration..."
+        create_nginx_config "$domain"
+    fi
+    
+    # Check if WebSocket configuration already exists
+    if grep -q "socket.io" "$nginx_config"; then
+        print_success "WebSocket proxy configuration already exists"
+        return 0
+    fi
+    
+    print_info "Adding WebSocket proxy configuration to Nginx..."
+    
+    # Backup existing config
+    cp "$nginx_config" "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)"
+    
+    # Add WebSocket proxy configuration
+    cat >> "$nginx_config" << EOF
+
+    # WebSocket proxy for Socket.IO
+    location /socket.io/ {
+        proxy_pass http://localhost:1002;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_read_timeout 86400;
+    }
+EOF
+    
+    # Test and reload Nginx
+    if nginx -t; then
+        systemctl reload nginx
+        print_success "Nginx WebSocket proxy configured successfully"
+    else
+        print_error "Nginx configuration test failed"
+        # Restore backup
+        cp "$nginx_config.backup.$(date +%Y%m%d_%H%M%S)" "$nginx_config"
+        return 1
+    fi
+}
+
+# Function to show manual proxy configuration
+show_manual_proxy_config() {
+    local domain=$1
+    
+    echo -e "\n${YELLOW}=== MANUAL REVERSE PROXY CONFIGURATION REQUIRED ===${NC}"
+    echo -e "Add this configuration to your web server:\n"
+    
+    echo -e "${BLUE}For Nginx:${NC}"
+    cat << 'EOF'
+location /socket.io/ {
+    proxy_pass http://localhost:1002;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_cache_bypass $http_upgrade;
+    proxy_read_timeout 86400;
+}
+EOF
+    
+    echo -e "\n${BLUE}For Apache:${NC}"
+    cat << 'EOF'
+RewriteEngine On
+RewriteCond %{REQUEST_URI} ^/socket.io/ [NC]
+RewriteCond %{QUERY_STRING} transport=websocket [NC]
+RewriteRule /(.*) ws://localhost:1002/$1 [P,L]
+
+ProxyPreserveHost On
+ProxyPass /socket.io/ http://localhost:1002/socket.io/
+ProxyPassReverse /socket.io/ http://localhost:1002/socket.io/
+EOF
+    
+    echo -e "\n${YELLOW}After adding this configuration:${NC}"
+    echo "1. Test your web server configuration"
+    echo "2. Reload/restart your web server"
+    echo "3. Test WebSocket connection: wss://$domain/socket.io/"
+}
+
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
     echo "1) Check environment file"
@@ -626,9 +745,10 @@ show_menu() {
     echo "4) Check service health"
     echo "5) Configure for production"
     echo "6) Full deployment (all steps)"
-    echo "7) Update website"
-    echo "8) Migrate database"
-    echo "9) Exit"
+    echo "7) Configure reverse proxy for WebSocket"
+    echo "8) Update website"
+    echo "9) Migrate database"
+    echo "10) Exit"
     echo
 }
 
@@ -648,7 +768,7 @@ main() {
 
     while true; do
         show_menu
-        read -p "Select an option (1-9): " choice
+        read -p "Select an option (1-10): " choice
 
         case $choice in
             1)
@@ -675,17 +795,25 @@ main() {
                 configure_production
                 ;;
             7)
-                update_website
+                current_domain=$(get_env_value 'DOMAIN')
+                if [ -n "$current_domain" ] && [ "$current_domain" != "localhost" ]; then
+                    configure_reverse_proxy "$current_domain"
+                else
+                    print_error "Domain not configured. Please run production configuration first."
+                fi
                 ;;
             8)
-                migrate_database
+                update_website
                 ;;
             9)
+                migrate_database
+                ;;
+            10)
                 print_info "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-9."
+                print_error "Invalid option. Please choose 1-10."
                 ;;
         esac
 
