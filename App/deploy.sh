@@ -484,7 +484,9 @@ configure_production() {
     echo "Expected Socket URL: $(get_env_value 'SOCKET_SECURE' | grep -q 'true' && echo 'wss' || echo 'ws')://$(get_env_value 'SOCKET_HOST')"
     echo "CORS Origins: $(get_env_value 'CORS_ALLOWED_ORIGINS')"
 
+    print_info "Restarting services with new configuration..."
     docker-compose down
+    docker-compose build --no-cache
     docker-compose up -d
 
     print_info "Waiting for services to restart..."

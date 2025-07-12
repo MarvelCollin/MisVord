@@ -208,6 +208,11 @@
             this.socketPort = metaSocketPort || '';
             this.socketSecure = metaSocketSecure === 'true';
             
+            if (window.location.protocol === 'https:' && !this.socketSecure) {
+                console.warn('🔒 [SOCKET] Page loaded over HTTPS, forcing secure socket connection');
+                this.socketSecure = true;
+            }
+            
             this.debug('Environment-driven socket configuration:', {
                 host: this.socketHost,
                 port: this.socketPort,

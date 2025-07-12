@@ -54,10 +54,14 @@ $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
 $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
 $vpsHost = EnvLoader::get('DOMAIN', 'localhost');
 
+$pageIsHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+$pageIsHttps = $pageIsHttps || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+$pageIsHttps = $pageIsHttps || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https');
+
 if ($isVPS && $vpsHost !== 'localhost') {
     $frontendSocketHost = $vpsHost;
     $frontendSocketPort = '';
-    $frontendSocketSecure = $useHttps ? 'true' : 'false';
+    $frontendSocketSecure = ($socketSecure === 'true' || $useHttps || $pageIsHttps) ? 'true' : 'false';
 } elseif ($isDocker) {
     $frontendSocketHost = 'localhost';
     $frontendSocketPort = $socketPort;
