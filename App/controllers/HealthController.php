@@ -115,7 +115,7 @@ class HealthController extends BaseController
     public function socketStatus()
     {
         try {
-            $socketHost = $_ENV['SOCKET_HOST'] ?? 'localhost';
+            $socketHost = EnvLoader::get('SOCKET_HOST', 'socket');
             $socketPort = $_ENV['SOCKET_PORT'] ?? '1002';
 
             $endpoints = [

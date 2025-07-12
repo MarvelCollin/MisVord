@@ -51,7 +51,7 @@ class ConfigManager {
             'port' => EnvLoader::get('SOCKET_PORT', '1002'),
             'base_path' => EnvLoader::get('SOCKET_BASE_PATH', '/socket.io'),
             'subpath' => EnvLoader::get('SOCKET_SUBPATH', ''),
-            'server_local' => EnvLoader::get('SOCKET_SERVER_LOCAL', 'http://localhost:1002'),
+            'server_local' => EnvLoader::get('SOCKET_SERVER_LOCAL', 'http://socket:1002'),
             'api_key' => EnvLoader::get('SOCKET_API_KEY', ''),
             'secure_port' => EnvLoader::get('SOCKET_SECURE_PORT', '1443')
         ];

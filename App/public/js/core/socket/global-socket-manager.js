@@ -192,67 +192,26 @@
             const metaSocketPort = document.querySelector('meta[name="socket-port"]')?.content;
             const metaSocketSecure = document.querySelector('meta[name="socket-secure"]')?.content;
             
-            let socketHost = metaSocketHost || 'localhost';
-            let socketPort = metaSocketPort || '1002';
-            let socketSecure = metaSocketSecure === 'true';
+            this.socketHost = metaSocketHost || window.location.hostname;
+            this.socketPort = metaSocketPort || '1002';
+            this.socketSecure = metaSocketSecure === 'true';
             
-            // Fallback: Auto-detect from current page if meta tags not available
-            const currentHost = window.location.hostname || 'localhost';
-            const currentPort = window.location.port || '';
-            const currentProtocol = window.location.protocol || 'http:';
-            
-            // Log current environment for debugging
-            this.debug('Environment detection:', {
-                metaSocketHost,
-                metaSocketPort, 
-                metaSocketSecure,
-                currentHost,
-                currentPort,
-                currentProtocol,
-                href: window.location.href
-            });
-            
-            if (!metaSocketHost && currentHost && currentHost !== 'localhost' && currentHost !== '127.0.0.1' && currentHost !== 'null') {
-                socketHost = currentHost;
-                socketSecure = currentProtocol === 'https:';
-                this.debug('Using auto-detected host:', socketHost);
-            }
-            
-            // Only try to auto-detect port if we have a non-standard port
-            if (currentPort && currentPort !== '' && currentPort !== '80' && currentPort !== '443') {
-                const basePort = parseInt(currentPort);
-                if (!isNaN(basePort)) {
-                    if (basePort === 1001) {
-                        socketPort = '1002';
-                    } else {
-                        socketPort = (basePort + 1).toString();
-                    }
-                    this.debug('Using auto-detected port:', socketPort);
-                }
-            }
-            
-            this.socketHost = socketHost;
-            this.socketPort = socketPort;
-            this.socketSecure = socketSecure;
-            
-            console.log('🔧 [SOCKET] Connection details loaded:', {
+            this.debug('Docker socket configuration:', {
                 host: this.socketHost,
                 port: this.socketPort,
                 secure: this.socketSecure,
-                url: `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`,
-                detectedFrom: {
-                    currentHost,
-                    currentPort,
-                    currentProtocol
-                }
+                source: 'meta-tags-only'
+            });
+            
+            console.log('🔧 [SOCKET] Docker connection:', {
+                host: this.socketHost,
+                port: this.socketPort,
+                secure: this.socketSecure,
+                url: `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}`
             });
             
         } catch (error) {
             this.error('Error loading connection details:', error);
-            // Fallback to safe defaults
-            this.socketHost = 'localhost';
-            this.socketPort = '1002';
-            this.socketSecure = false;
         }
         
         let metaUserId = document.querySelector('meta[name="user-id"]')?.content;

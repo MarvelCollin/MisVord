@@ -108,9 +108,12 @@ foreach ($members as $member) {
 <script>
 <?php
 // Get socket URL from environment
-$socketServerLocal = EnvLoader::get('SOCKET_SERVER_LOCAL', 'http://localhost:1002');
+$socketHost = EnvLoader::get('SOCKET_HOST', 'socket');
+$socketPort = EnvLoader::get('SOCKET_PORT', '1002');
+$currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$socketServerLocal = "http://{$currentHost}:{$socketPort}";
 ?>
-const SOCKET_URL = window.SOCKET_URL || '<?php echo htmlspecialchars($socketServerLocal); ?>';
+const SOCKET_URL = '<?php echo htmlspecialchars($socketServerLocal); ?>';
 let searchTimeout = null;
 let currentSearchQuery = '';
 let searchResults = [];

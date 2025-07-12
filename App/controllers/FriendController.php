@@ -298,7 +298,7 @@ class FriendController extends BaseController
     private function getOnlineUsersFromSocket()
     {
         try {
-            $socketHost = $_ENV['SOCKET_HOST'] ?? 'socket-server';
+            $socketHost = EnvLoader::get('SOCKET_HOST', 'socket');
             $socketPort = $_ENV['SOCKET_PORT'] ?? '3000';
             $url = "http://{$socketHost}:{$socketPort}/api/online-users";
 
