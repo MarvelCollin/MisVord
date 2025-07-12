@@ -344,6 +344,21 @@ check_services() {
             # Check if environment variables are properly loaded
             if [ "$HOST" = "0.0.0.0" ] && [ "$PORT" = "1002" ]; then
                 print_success "Socket server environment variables correctly loaded"
+                
+                SOCKET_HOST_ENV=$(get_env_value 'SOCKET_HOST')
+                SOCKET_SECURE_ENV=$(get_env_value 'SOCKET_SECURE')
+                IS_VPS_ENV=$(get_env_value 'IS_VPS')
+                
+                echo -e "\n${BLUE}Socket Frontend Configuration:${NC}"
+                echo "Frontend will connect to: $SOCKET_HOST_ENV"
+                echo "Secure connection: $SOCKET_SECURE_ENV"
+                echo "VPS mode: $IS_VPS_ENV"
+                
+                if [ "$IS_VPS_ENV" = "true" ] && [ "$SOCKET_HOST_ENV" != "localhost" ]; then
+                    print_success "VPS socket configuration is correct"
+                else
+                    print_warning "Socket configuration may not be optimized for VPS deployment"
+                fi
             else
                 print_warning "Socket server environment may not be configured correctly"
                 echo "Expected: 0.0.0.0:1002, Got: $HOST:$PORT"
@@ -418,12 +433,12 @@ configure_production() {
     # Apply configuration
     print_info "Applying production configuration..."
 
-    update_env "APP_ENV" "production"
-    update_env "APP_DEBUG" "false"
     update_env "IS_VPS" "true"
     update_env "USE_HTTPS" "$USE_HTTPS"
     update_env "DOMAIN" "$DOMAIN"
     update_env "DB_PASS" "$DB_PASS"
+    update_env "SOCKET_HOST" "$DOMAIN"
+    update_env "SOCKET_SECURE" "$USE_HTTPS"
 
     if [ -n "$PUBLIC_IP" ]; then
         update_env "PUBLIC_IP" "$PUBLIC_IP"
@@ -434,15 +449,13 @@ configure_production() {
         update_env "APP_URL" "https://$DOMAIN"
         update_env "SESSION_SECURE" "true"
 
-        # Update CORS origins
-        CORS_ORIGINS="https://$DOMAIN,https://www.$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
+        CORS_ORIGINS="https://$DOMAIN,http://$DOMAIN,http://app:1001,http://localhost:1001"
         update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     else
         update_env "APP_URL" "http://$DOMAIN"
         update_env "SESSION_SECURE" "false"
 
-        # Update CORS origins
-        CORS_ORIGINS="http://$DOMAIN,http://www.$DOMAIN,https://$DOMAIN,http://app:1001,http://localhost:1001"
+        CORS_ORIGINS="http://$DOMAIN,https://$DOMAIN,http://app:1001,http://localhost:1001"
         update_env "CORS_ALLOWED_ORIGINS" "$CORS_ORIGINS"
     fi
 
@@ -465,8 +478,12 @@ configure_production() {
 
     print_success "Production configuration applied"
 
-    # Restart services with new configuration
-    print_info "Restarting services with new configuration..."
+    echo -e "\n${BLUE}═══ SOCKET CONFIGURATION VERIFICATION ═══${NC}"
+    echo "Socket Host: $(get_env_value 'SOCKET_HOST')"
+    echo "Socket Secure: $(get_env_value 'SOCKET_SECURE')"
+    echo "Expected Socket URL: $(get_env_value 'SOCKET_SECURE' | grep -q 'true' && echo 'wss' || echo 'ws')://$(get_env_value 'SOCKET_HOST')"
+    echo "CORS Origins: $(get_env_value 'CORS_ALLOWED_ORIGINS')"
+
     docker-compose down
     docker-compose up -d
 

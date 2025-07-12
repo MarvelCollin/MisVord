@@ -50,26 +50,21 @@ $isDocker = EnvLoader::get('IS_DOCKER', 'false') === 'true';
 
 $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
 
-// Determine the frontend socket configuration based on environment
 $isVPS = EnvLoader::get('IS_VPS', 'false') === 'true';
 $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
 $vpsHost = EnvLoader::get('DOMAIN', 'localhost');
-$isVPSDomain = ($isVPS || strpos($currentHost, $vpsHost) !== false) && $vpsHost !== 'localhost';
 
-if ($isDocker) {
-    // Docker environment: frontend browser connects to localhost (host machine)
+if ($isVPS && $vpsHost !== 'localhost') {
+    $frontendSocketHost = $vpsHost;
+    $frontendSocketPort = '';
+    $frontendSocketSecure = $useHttps ? 'true' : 'false';
+} elseif ($isDocker) {
     $frontendSocketHost = 'localhost';
-    $frontendSocketPort = $socketPort; // Use the exposed socket port
+    $frontendSocketPort = $socketPort;
     $frontendSocketSecure = $socketSecure;
-} elseif ($isVPSDomain) {
-    // VPS with custom domain: use external domain without port (reverse proxy)
-    $frontendSocketHost = $currentHost;
-    $frontendSocketPort = ''; // No port for reverse proxy
-    $frontendSocketSecure = 'true';
 } else {
-    // Local development: use localhost with socket port
     $frontendSocketHost = 'localhost';
-    $frontendSocketPort = $socketPort; // Use actual socket port
+    $frontendSocketPort = $socketPort;
     $frontendSocketSecure = $socketSecure;
 }
 ?>
