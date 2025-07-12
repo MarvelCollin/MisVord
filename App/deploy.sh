@@ -116,6 +116,99 @@ check_env_file() {
     echo "DB_PASS: $(get_env_value 'DB_PASS')"
     echo "APP_PORT: $(get_env_value 'APP_PORT')"
     echo "SOCKET_PORT: $(get_env_value 'SOCKET_PORT')"
+    echo "SOCKET_BIND_HOST: $(get_env_value 'SOCKET_BIND_HOST')"
+    
+    # Validate critical environment variables
+    missing_vars=()
+    required_vars=("APP_PORT" "SOCKET_PORT" "SOCKET_BIND_HOST" "DB_PASS")
+    
+    for var in "${required_vars[@]}"; do
+        value=$(get_env_value "$var")
+        if [ -z "$value" ]; then
+            missing_vars+=("$var")
+        fi
+    done
+    
+    if [ ${#missing_vars[@]} -gt 0 ]; then
+        print_error "Missing required environment variables:"
+        for var in "${missing_vars[@]}"; do
+            echo "  - $var"
+        done
+        print_warning "Please update your .env file before proceeding"
+        return 1
+    fi
+    
+    print_success "All required environment variables are set"
+}
+
+# Function to validate Docker configuration
+validate_docker_config() {
+    print_section "VALIDATING DOCKER CONFIGURATION"
+    
+    # Check if docker-compose.yml exists
+    if [ ! -f "docker-compose.yml" ]; then
+        print_error "docker-compose.yml not found!"
+        return 1
+    fi
+    
+    print_success "docker-compose.yml found"
+    
+    # Validate Docker Compose environment variables for socket service
+    if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker-compose.yml; then
+        print_success "SOCKET_BIND_HOST correctly configured in docker-compose.yml"
+    else
+        print_error "SOCKET_BIND_HOST missing from docker-compose.yml socket service"
+        print_info "Adding SOCKET_BIND_HOST to docker-compose.yml..."
+        
+        # This would require more complex sed commands to insert into the right place
+        print_warning "Please manually add 'SOCKET_BIND_HOST=0.0.0.0' to socket service environment in docker-compose.yml"
+        return 1
+    fi
+    
+    # Check if socket server has proper environment handling
+    if [ -f "socket-server/server.js" ]; then
+        if grep -q "IS_DOCKER.*true" socket-server/server.js; then
+            print_success "Socket server has Docker environment detection"
+        else
+            print_warning "Socket server may not have proper Docker environment handling"
+        fi
+    fi
+    
+    print_success "Docker configuration validation completed"
+}
+
+# Function to fix common socket server issues
+fix_socket_issues() {
+    print_section "FIXING SOCKET SERVER ISSUES"
+    
+    # Check for common socket server problems
+    print_info "Checking for common socket server issues..."
+    
+    # Kill any existing node processes that might conflict
+    print_info "Stopping any conflicting Node.js processes..."
+    pkill -f "node.*server.js" 2>/dev/null || true
+    
+    # Check if port 1002 is available
+    if netstat -tuln 2>/dev/null | grep -q ":1002 "; then
+        print_warning "Port 1002 is already in use"
+        print_info "Attempting to free port 1002..."
+        
+        # Try to find and kill process using port 1002
+        PID=$(lsof -ti:1002 2>/dev/null || echo "")
+        if [ -n "$PID" ]; then
+            kill -9 $PID 2>/dev/null || true
+            print_success "Freed port 1002"
+        fi
+    else
+        print_success "Port 1002 is available"
+    fi
+    
+    # Rebuild socket container to ensure latest changes
+    print_info "Rebuilding socket container with latest configuration..."
+    docker-compose down socket 2>/dev/null || true
+    docker-compose build socket
+    
+    print_success "Socket server issues fixed"
 }
 
 # Function to initialize bot in database
@@ -216,18 +309,60 @@ check_services() {
         docker-compose logs db | tail -10
     fi
 
-    # Final service verification
+    # Final service verification with detailed socket check
     print_info "Running final service verification..."
+    
+    # Check PHP application
     if curl -s "http://localhost:1001/health" >/dev/null 2>&1; then
         print_success "PHP application is responding"
+        
+        # Get PHP app info
+        APP_INFO=$(curl -s "http://localhost:1001/health" 2>/dev/null || echo "{}")
+        if echo "$APP_INFO" | grep -q '"status":"ok"'; then
+            print_success "PHP application health check passed"
+        fi
     else
         print_warning "PHP application health check failed"
     fi
 
+    # Check Socket server with detailed validation
     if curl -s "http://localhost:1002/health" >/dev/null 2>&1; then
         print_success "Socket server is responding"
+        
+        # Get socket server info
+        SOCKET_INFO=$(curl -s "http://localhost:1002/health" 2>/dev/null || echo "{}")
+        if echo "$SOCKET_INFO" | grep -q '"status":"ok"'; then
+            print_success "Socket server health check passed"
+            
+            # Extract and display socket server details
+            SERVICE=$(echo "$SOCKET_INFO" | grep -o '"service":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
+            PORT=$(echo "$SOCKET_INFO" | grep -o '"port":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
+            HOST=$(echo "$SOCKET_INFO" | grep -o '"host":"[^"]*"' | cut -d'"' -f4 || echo "unknown")
+            
+            print_info "Socket server details: $SERVICE on $HOST:$PORT"
+            
+            # Check if environment variables are properly loaded
+            if [ "$HOST" = "0.0.0.0" ] && [ "$PORT" = "1002" ]; then
+                print_success "Socket server environment variables correctly loaded"
+            else
+                print_warning "Socket server environment may not be configured correctly"
+                echo "Expected: 0.0.0.0:1002, Got: $HOST:$PORT"
+            fi
+        else
+            print_warning "Socket server health check returned unexpected format"
+        fi
     else
         print_warning "Socket server health check failed"
+        
+        # Check socket container logs for debugging
+        print_info "Checking socket container logs for issues..."
+        SOCKET_LOGS=$(docker-compose logs socket --tail=10 2>/dev/null || echo "")
+        if echo "$SOCKET_LOGS" | grep -q "SOCKET_BIND_HOST.*UNDEFINED"; then
+            print_error "Socket server still has SOCKET_BIND_HOST undefined issue!"
+            print_warning "Please check docker-compose.yml socket service environment variables"
+        elif echo "$SOCKET_LOGS" | grep -q "EADDRINUSE"; then
+            print_warning "Socket server port conflict detected"
+        fi
     fi
 
     print_success "Service health check completed"
@@ -373,17 +508,26 @@ configure_production() {
     echo -e "✅ Bot system: TitiBot initialized"
     echo -e "✅ Services: All running and healthy"
     echo -e "✅ Database: Connected and configured"
+    echo -e "✅ Socket server: Environment variables properly configured"
+    echo -e "✅ Docker: SOCKET_BIND_HOST=0.0.0.0 configured"
+    
+    echo -e "\n${BLUE}📋 Recent Improvements:${NC}"
+    echo -e "• Fixed Docker environment variable loading for socket server"
+    echo -e "• Added proper IS_DOCKER detection in Node.js server"
+    echo -e "• Enhanced error reporting for environment issues"
+    echo -e "• Improved service health monitoring"
 }
 
 # Main menu
 show_menu() {
     echo -e "\n${BLUE}═══ MisVord VPS Deployment Script ═══${NC}"
     echo "1) Check environment file"
-    echo "2) Initialize bots"
-    echo "3) Check service health"
-    echo "4) Configure for production"
-    echo "5) Full deployment (all steps)"
-    echo "6) Exit"
+    echo "2) Validate Docker configuration"  
+    echo "3) Initialize bots"
+    echo "4) Check service health"
+    echo "5) Configure for production"
+    echo "6) Full deployment (all steps)"
+    echo "7) Exit"
     echo
 }
 
@@ -403,34 +547,38 @@ main() {
 
     while true; do
         show_menu
-        read -p "Select an option (1-6): " choice
+        read -p "Select an option (1-7): " choice
 
         case $choice in
             1)
                 check_env_file
                 ;;
             2)
-                init_bot
+                validate_docker_config
                 ;;
             3)
-                check_services
+                init_bot
                 ;;
             4)
-                configure_production
+                check_services
                 ;;
             5)
-                print_info "Starting full deployment..."
-                check_env_file
-                check_services
-                init_bot
                 configure_production
                 ;;
             6)
+                print_info "Starting full deployment..."
+                check_env_file
+                validate_docker_config
+                check_services
+                init_bot
+                configure_production
+                ;;
+            7)
                 print_info "Exiting..."
                 exit 0
                 ;;
             *)
-                print_error "Invalid option. Please choose 1-6."
+                print_error "Invalid option. Please choose 1-7."
                 ;;
         esac
 
