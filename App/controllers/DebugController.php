@@ -245,7 +245,18 @@ class DebugController extends BaseController
         // Socket server health check
         $socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
         $socketPort = EnvLoader::get('SOCKET_PORT', '3001');
-        $socketUrl = "http://{$socketHost}:{$socketPort}/health";
+        $isProduction = EnvLoader::get('APP_ENV', 'development') === 'production';
+        $isVps = EnvLoader::get('IS_VPS', 'false') === 'true';
+        $isDocker = getenv('IS_DOCKER') === 'true';
+        
+        // For Docker environment, use internal service name and port
+        if ($isDocker) {
+            $healthCheckUrl = "http://socket:1002/health";
+        } else {
+            // For local development or direct VPS access
+            $protocol = 'http';
+            $healthCheckUrl = "{$protocol}://{$socketHost}:{$socketPort}/health";
+        }
         
         $context = stream_context_create([
             'http' => [
@@ -254,18 +265,18 @@ class DebugController extends BaseController
             ]
         ]);
         
-        $response = @file_get_contents($socketUrl, false, $context);
+        $response = @file_get_contents($healthCheckUrl, false, $context);
         if ($response !== false) {
             $checks['socket_server'] = [
                 'status' => 'healthy',
                 'message' => 'Socket server responding',
-                'url' => $socketUrl
+                'url' => $healthCheckUrl
             ];
         } else {
             $checks['socket_server'] = [
                 'status' => 'unhealthy',
                 'message' => 'Socket server not responding',
-                'url' => $socketUrl
+                'url' => $healthCheckUrl
             ];
         }
         

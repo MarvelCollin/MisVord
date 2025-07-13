@@ -1,0 +1,2668 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A modern Discord-like communication platform">
+<meta name="author" content="MisVord Team">
+<meta name="robots" content="index, follow">
+
+<meta name="user-authenticated" content="false">
+
+
+
+<meta name="socket-host" content="localhost">
+<meta name="socket-port" content="1002">
+<meta name="socket-secure" content="false">
+<meta name="socket-base-path" content="/socket.io">
+<meta name="is-docker" content="true">
+<meta name="is-vps" content="false">
+<meta name="app-url" content="http://localhost">
+
+<title>System Debug Panel - MisVord</title>
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
+<link rel="shortcut icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdnjs.cloudflare.com">
+<link rel="preconnect" href="https://cdn.tailwindcss.com">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Font Awesome CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+<!-- Fetch Polyfill for legacy browsers -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/whatwg-fetch/3.6.2/fetch.umd.min.js"></script>
+
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    discord: {
+                        'primary': '#5865F2',
+                        'green': '#3BA55C',
+                        'yellow': '#FAA61A',
+                        'red': '#ED4245',
+                        'background': '#36393F',
+                        'dark': '#202225',
+                        'darker': '#18191C',
+                        'light': '#42464D',
+                        'lighter': '#B9BBBE',
+                    }
+                }
+            },
+            fontFamily: {
+                sans: ['Inter', 'sans-serif']
+            }
+        }
+    }
+</script>
+
+<link rel="stylesheet" href="http://localhost:1001/public/css/global.css?v=1752395292">
+<link rel="stylesheet" href="http://localhost:1001/public/css/lazy-loading.css?v=1752395292">
+<link rel="stylesheet" href="http://localhost:1001/public/css/friends-mobile-menu.css?v=1752395292">
+<link rel="stylesheet" href="http://localhost:1001/public/css/user-detail.css">
+
+<link rel="stylesheet" href="http://localhost:1001/public/css/server-dropdown.css?v=1752395292">
+
+
+
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
+    <script src="/public/js/debug/socket-diagnostics.js?v=1752395292"></script>
+    
+    <script>
+    console.log('🔧 [SOCKET-ENV] Environment configuration check:');
+    console.log('   PHP IS_VPS: false');
+    console.log('   PHP IS_DOCKER: true');
+    console.log('   PHP Socket Host: localhost');
+    console.log('   PHP Socket Port: 1002');
+    console.log('   PHP Socket Secure: false');
+    console.log('   PHP Page HTTPS: false');
+    console.log('   PHP VPS Host: localhost');
+    </script>
+    
+    <script>
+    window.addEventListener('DOMContentLoaded', function() {
+        if (typeof io === 'undefined') {
+            return;
+        }
+        
+        const isAuthenticated = document.querySelector('meta[name="user-authenticated"]')?.content === 'true';
+        const userId = document.querySelector('meta[name="user-id"]')?.content;
+        const username = document.querySelector('meta[name="username"]')?.content;
+        
+        if (!isAuthenticated) {
+            return;
+        }
+        
+        let checkCount = 0;
+        const maxChecks = 20;
+        
+        const checkSocketManager = () => {
+            checkCount++;
+            
+            if (window.globalSocketManager) {
+                setTimeout(() => {
+                    const status = window.globalSocketManager.getStatus();
+                    
+                    if (!status.connected && !status.lastError) {
+                        if (isAuthenticated && userId && username) {
+                            window.__SOCKET_INITIALISED__ = false;
+                            const initResult = window.globalSocketManager.init({ user_id: userId, username: username });
+                        }
+                    }
+                }, 1000);
+                
+                return;
+            }
+            
+            if (checkCount >= maxChecks) {
+                return;
+            }
+            
+            setTimeout(checkSocketManager, 500);
+        };
+        
+        setTimeout(checkSocketManager, 500);
+    });
+    
+    window.addEventListener('globalSocketReady', function(event) {
+    });
+    
+    window.addEventListener('socketAuthenticated', function(event) {
+    });
+    
+    window.testSocketConnection = function() {
+        if (typeof io === 'undefined') {
+            return false;
+        }
+        
+        if (!window.globalSocketManager) {
+            return false;
+        }
+        
+        const status = window.globalSocketManager.getStatus();
+        
+        if (status.connected && status.authenticated) {
+            if (window.chatSection) {
+                const chatStatus = window.chatSection.getDetailedSocketStatus();
+                
+                if (chatStatus.isReady && window.chatSection.targetId) {
+                    window.chatSection.joinSocketRoom();
+                }
+            }
+            
+            return true;
+        }
+        
+        const userData = {
+            user_id: document.querySelector('meta[name="user-id"]')?.content,
+            username: document.querySelector('meta[name="username"]')?.content
+        };
+        
+        if (!userData.user_id || !userData.username) {
+            return false;
+        }
+        
+        window.__SOCKET_INITIALISED__ = false;
+        
+        const initResult = window.globalSocketManager.init(userData);
+        
+        setTimeout(() => {
+            const newStatus = window.globalSocketManager.getStatus();
+        }, 2000);
+        
+        return true;
+    };
+    
+    window.shouldInitializeSocket = function() {
+        const isAuthPage = document.body?.getAttribute('data-page') === 'auth';
+        const isLandingPage = window.location.pathname === '/';
+        const hasUserData = document.querySelector('meta[name="user-id"]')?.content;
+        
+        return !isAuthPage && !isLandingPage && hasUserData;
+    };
+    
+    window.ensureSocketInitialized = function() {
+        if (!window.shouldInitializeSocket()) {
+            return false;
+        }
+        
+        if (window.globalSocketManager?.isReady()) {
+            return true;
+        }
+        
+        if (!window.globalSocketManager) {
+            console.warn('⚠️ [SOCKET] GlobalSocketManager not available');
+            return false;
+        }
+        
+        const userData = {
+            user_id: document.querySelector('meta[name="user-id"]')?.content,
+            username: document.querySelector('meta[name="username"]')?.content
+        };
+        
+        if (!userData.user_id || !userData.username) {
+            console.warn('⚠️ [SOCKET] No user data available for socket initialization');
+            return false;
+        }
+        
+        try {
+            window.__SOCKET_INITIALISED__ = false;
+            const result = window.globalSocketManager.init(userData);
+            return result;
+        } catch (error) {
+            console.error('❌ [SOCKET] Error ensuring socket initialization:', error);
+            return false;
+        }
+    };
+    
+    window.addEventListener('error', function(event) {
+        if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
+        }
+    });
+    </script>
+
+
+<script>
+function showPresenceDebugPanel() {
+    const existingModal = document.getElementById('presence-debug-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'presence-debug-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
+    
+    modal.innerHTML = `
+        <div class="bg-discord-dark rounded-lg border border-purple-500 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-user-circle mr-2 text-purple-400"></i>
+                    Presence System Debug Panel
+                    <span id="presence-status-indicator" class="ml-2 px-2 py-1 text-xs rounded bg-green-700 text-green-300">Ready</span>
+                </h2>
+                <button onclick="document.getElementById('presence-debug-modal').remove()" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 flex overflow-hidden">
+                <div class="w-1/3 border-r border-gray-700 p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4">Current Status</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Current Presence:</div>
+                            <div id="current-presence-status" class="text-lg font-semibold text-green-400">Loading...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Activity Details:</div>
+                            <div id="current-activity-details" class="text-sm text-blue-400">Loading...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Last Change Source:</div>
+                            <div id="last-presence-source" class="text-sm font-mono text-yellow-400">N/A</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Voice Call Status:</div>
+                            <div id="voice-call-status" class="text-sm text-purple-400">Checking...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Socket Status:</div>
+                            <div id="socket-connection-status" class="text-sm text-yellow-400">Checking...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">VideoSDK Status:</div>
+                            <div id="videosdk-status" class="text-sm text-indigo-400">Detecting...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Meeting ID:</div>
+                            <div id="meeting-id-status" class="text-xs font-mono text-cyan-400">N/A</div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold text-white mb-4 mt-6">Quick Actions</h3>
+                    <div class="space-y-2">
+                        <button onclick="runPresenceHierarchyTest()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-list mr-1"></i>Test Hierarchy
+                        </button>
+                        <button onclick="runVoiceProtectionTest()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-shield-alt mr-1"></i>Test Voice Protection
+                        </button>
+                        <button onclick="runAllPresenceTests()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-play mr-1"></i>Run All Tests
+                        </button>
+                        <button onclick="refreshPresenceStatus()" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-sync mr-1"></i>Refresh Status
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex flex-col">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="text-lg font-semibold text-white">Manual Presence Control</h3>
+                        <div class="mt-3 space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="setPresenceStatus('online', {type: 'active'})" class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-circle mr-1"></i>Set Online
+                                </button>
+                                <button onclick="setPresenceStatus('afk', {type: 'afk'})" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-moon mr-1"></i>Set AFK
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="setPresenceStatus('online', {type: 'In Voice - Test Channel'})" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-microphone mr-1"></i>Set Voice Call
+                                </button>
+                                <button onclick="setPresenceStatus('online', {type: 'playing Tic Tac Toe'})" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-gamepad mr-1"></i>Set Gaming
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-white">Debug Logs</h3>
+                            <button onclick="clearPresenceDebugLogs()" class="text-red-400 hover:text-red-300 text-sm">
+                                <i class="fas fa-trash mr-1"></i>Clear
+                            </button>
+                        </div>
+                        <div id="presence-debug-logs" class="bg-black rounded p-3 h-64 overflow-y-auto font-mono text-xs text-green-400">
+                            <div class="text-gray-500">Presence debug logs will appear here...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    initializePresenceDebugPanel();
+}
+
+function initializePresenceDebugPanel() {
+    addPresenceDebugLog('🚀 Presence Debug Panel initialized', 'success');
+    refreshPresenceStatus();
+    
+    window.addEventListener('ownPresenceUpdate', (e) => {
+        const { source, status, activity_details } = e.detail;
+        const inVoice = sessionStorage.getItem('isInVoiceCall')==='true';
+        if(inVoice){
+            const activityType = activity_details?.type || '';
+            if(!activityType.toLowerCase().includes('in voice')){
+                const channelName = sessionStorage.getItem('voiceChannelName') || 'Voice';
+                if(window.globalSocketManager?.isReady()){
+                    window.globalSocketManager.updatePresence('online',{type:`In Voice - ${channelName}`},'presence-watchdog');
+                    addPresenceDebugLog(`[WATCHDOG] Restored In Voice presence (overrode "${activityType}")`, 'warning');
+                }
+            }
+        }
+        addPresenceDebugLog(`[EVENT] ownPresenceUpdate from "${source}" | Status: ${status} | Activity: ${activity_details?.type || 'none'}`, 'info');
+        refreshPresenceStatus();
+    });
+
+    window.addEventListener('presenceUpdateBlocked', (e) => {
+        const { source, newStatus, newActivity, currentStatus, currentActivity } = e.detail;
+        addPresenceDebugLog(`[EVENT] Update from "${source}" BLOCKED. Attempted: ${newStatus} (${newActivity?.type}), Current: ${currentStatus} (${currentActivity?.type})`, 'warning');
+        refreshPresenceStatus();
+    });
+
+    if (window.globalSocketManager?.io) {
+        addPresenceDebugLog('🔌 Socket connection detected', 'success');
+    } else {
+        addPresenceDebugLog('⚠️ Socket not ready - limited functionality', 'warning');
+    }
+
+    window.addEventListener('voiceConnect', () => {
+        addPresenceDebugLog('🎤 VoiceConnect event detected - updating VideoSDK status', 'info');
+        refreshPresenceStatus();
+    });
+    window.addEventListener('voiceDisconnect', () => {
+        addPresenceDebugLog('🔇 VoiceDisconnect event detected - updating VideoSDK status', 'info');
+        refreshPresenceStatus();
+    });
+}
+
+function refreshPresenceStatus() {
+    const socketManager = window.globalSocketManager;
+    
+    const currentPresenceEl = document.getElementById('current-presence-status');
+    const activityDetailsEl = document.getElementById('current-activity-details');
+    const voiceCallStatusEl = document.getElementById('voice-call-status');
+    const socketStatusEl = document.getElementById('socket-connection-status');
+    const lastSourceEl = document.getElementById('last-presence-source');
+    const videosdkStatusEl = document.getElementById('videosdk-status');
+    const meetingIdEl = document.getElementById('meeting-id-status');
+    
+    if (socketManager?.isReady()) {
+        const status = socketManager.currentPresenceStatus || 'Unknown';
+        const activity = socketManager.currentActivityDetails;
+        const isInVoice = socketManager.isUserInVoiceCall();
+        const lastSource = socketManager.lastPresenceSource || 'N/A';
+        const videosdkConnected = (window.videoSDKManager && window.videoSDKManager.isMeetingJoined) || sessionStorage.getItem('isInVoiceCall')==='true';
+        const meetingId = window.videoSDKManager?.meeting?.id || window.voiceManager?.currentMeetingId || 'N/A';
+        
+        if (currentPresenceEl) currentPresenceEl.textContent = status;
+        if (activityDetailsEl) activityDetailsEl.textContent = activity?.type || 'None';
+        if (lastSourceEl) lastSourceEl.textContent = lastSource;
+        if (voiceCallStatusEl) {
+            voiceCallStatusEl.textContent = isInVoice ? 'In Voice Call' : 'Not in voice';
+            voiceCallStatusEl.className = isInVoice ? 'text-sm text-purple-400' : 'text-sm text-gray-400';
+        }
+        if (socketStatusEl) {
+            socketStatusEl.textContent = 'Connected';
+            socketStatusEl.className = 'text-sm text-green-400';
+        }
+        if (videosdkStatusEl) {
+            videosdkStatusEl.textContent = videosdkConnected ? 'Connected' : 'Not Connected';
+            videosdkStatusEl.className = videosdkConnected ? 'text-sm text-indigo-400' : 'text-sm text-gray-400';
+        }
+        if (meetingIdEl) {
+            meetingIdEl.textContent = meetingId;
+            meetingIdEl.className = meetingId !== 'N/A' ? 'text-xs font-mono text-cyan-400' : 'text-xs font-mono text-gray-500';
+        }
+    } else {
+        if (currentPresenceEl) currentPresenceEl.textContent = 'Disconnected';
+        if (activityDetailsEl) activityDetailsEl.textContent = 'N/A';
+        if (voiceCallStatusEl) voiceCallStatusEl.textContent = 'N/A';
+        if (socketStatusEl) {
+            socketStatusEl.textContent = 'Disconnected';
+            socketStatusEl.className = 'text-sm text-red-400';
+        }
+        if (lastSourceEl) lastSourceEl.textContent = 'N/A';
+        if (videosdkStatusEl) {
+            const videosdkConnected = sessionStorage.getItem('isInVoiceCall')==='true';
+            videosdkStatusEl.textContent = videosdkConnected ? 'Connected' : 'Not Connected';
+            videosdkStatusEl.className = videosdkConnected ? 'text-sm text-indigo-400' : 'text-sm text-gray-400';
+        }
+        if (meetingIdEl) {
+            const meetingId = window.voiceManager?.currentMeetingId || 'N/A';
+            meetingIdEl.textContent = meetingId;
+            meetingIdEl.className = meetingId !== 'N/A' ? 'text-xs font-mono text-cyan-400' : 'text-xs font-mono text-gray-500';
+        }
+    }
+}
+
+function setPresenceStatus(status, activityDetails) {
+    if (!window.globalSocketManager?.isReady()) {
+        addPresenceDebugLog('❌ Cannot set presence - socket not ready', 'error');
+        return;
+    }
+    
+    addPresenceDebugLog(`🎯 Setting presence: ${status} | ${activityDetails?.type || 'No activity'}`, 'info');
+    
+    const result = window.globalSocketManager.updatePresence(status, activityDetails, 'manual-debug-panel');
+    
+    if (result !== false) {
+        addPresenceDebugLog('✅ Presence set successfully', 'success');
+    } else {
+        addPresenceDebugLog('❌ Presence update was blocked by hierarchy protection', 'warning');
+    }
+    
+    refreshPresenceStatus();
+}
+
+function runPresenceHierarchyTest() {
+    addPresenceDebugLog('🧪 Starting presence hierarchy test...', 'info');
+    
+    if (window.testPresenceHierarchy) {
+        window.testPresenceHierarchy().then(result => {
+            if (result) {
+                addPresenceDebugLog('✅ Presence hierarchy test passed!', 'success');
+            } else {
+                addPresenceDebugLog('❌ Presence hierarchy test failed', 'error');
+            }
+        }).catch(error => {
+            addPresenceDebugLog(`💥 Hierarchy test error: ${error.message}`, 'error');
+        });
+    } else {
+        addPresenceDebugLog('❌ testPresenceHierarchy function not found', 'error');
+    }
+}
+
+function runVoiceProtectionTest() {
+    addPresenceDebugLog('🛡️ Starting voice call protection test...', 'info');
+    
+    if (window.testVoiceCallProtection) {
+        window.testVoiceCallProtection().then(result => {
+            if (result) {
+                addPresenceDebugLog('✅ Voice protection test passed!', 'success');
+            } else {
+                addPresenceDebugLog('❌ Voice protection test failed', 'error');
+            }
+        }).catch(error => {
+            addPresenceDebugLog(`💥 Voice protection test error: ${error.message}`, 'error');
+        });
+    } else {
+        addPresenceDebugLog('❌ testVoiceCallProtection function not found', 'error');
+    }
+}
+
+function runAllPresenceTests() {
+    addPresenceDebugLog('🚀 Starting all presence system tests...', 'info');
+    
+    if (window.runAllPresenceTests && typeof window.runAllPresenceTests === 'function') {
+        window.runAllPresenceTests().then(result => {
+            if (result) {
+                addPresenceDebugLog('🎉 All presence tests passed!', 'success');
+            } else {
+                addPresenceDebugLog('💥 Some presence tests failed', 'error');
+            }
+        }).catch(error => {
+            addPresenceDebugLog(`❌ Test suite error: ${error.message}`, 'error');
+        });
+    } else {
+        addPresenceDebugLog('❌ runAllPresenceTests function not found', 'error');
+    }
+}
+
+let presenceDebugLogCount = 0;
+function addPresenceDebugLog(message, type = 'info') {
+    const logsContainer = document.getElementById('presence-debug-logs');
+    if (!logsContainer) return;
+    
+    presenceDebugLogCount++;
+    const timestamp = new Date().toLocaleTimeString();
+    const colors = {
+        info: 'text-green-400',
+        warning: 'text-yellow-400',
+        error: 'text-red-400',
+        success: 'text-blue-400'
+    };
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `${colors[type] || 'text-green-400'} mb-1`;
+    logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+    
+    logsContainer.appendChild(logEntry);
+    logsContainer.scrollTop = logsContainer.scrollHeight;
+    
+    if (presenceDebugLogCount > 50) {
+        logsContainer.removeChild(logsContainer.firstChild);
+        presenceDebugLogCount--;
+    }
+}
+
+function clearPresenceDebugLogs() {
+    const logsContainer = document.getElementById('presence-debug-logs');
+    if (logsContainer) {
+        logsContainer.innerHTML = '<div class="text-gray-500">Logs cleared...</div>';
+        presenceDebugLogCount = 0;
+    }
+}
+</script>
+
+<script>
+function showBotDebugPanel() {
+    const existingModal = document.getElementById('bot-debug-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'bot-debug-modal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4';
+    
+    modal.innerHTML = `
+        <div class="bg-discord-dark rounded-lg border border-blue-500 max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-700">
+                <h2 class="text-xl font-bold text-white flex items-center">
+                    <i class="fas fa-robot mr-2 text-blue-400"></i>
+                    Bot System Debug Panel
+                    <span id="bot-status-indicator" class="ml-2 px-2 py-1 text-xs rounded bg-green-700 text-green-300">Ready</span>
+                </h2>
+                <button onclick="document.getElementById('bot-debug-modal').remove()" class="text-gray-400 hover:text-white text-xl">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="flex-1 flex overflow-hidden">
+                <div class="w-1/3 border-r border-gray-700 p-4">
+                    <h3 class="text-lg font-semibold text-white mb-4">Bot Status</h3>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Bot Component:</div>
+                            <div id="bot-component-status" class="text-lg font-semibold text-green-400">Loading...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Voice Connection:</div>
+                            <div id="bot-voice-status" class="text-sm text-blue-400">Loading...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3 border-l-4 border-purple-500">
+                            <div class="text-sm text-gray-400 flex items-center">
+                                <i class="fas fa-music mr-1 text-purple-400"></i>Music Status:
+                            </div>
+                            <div id="music-player-status" class="text-sm text-purple-400">Loading...</div>
+                            <div class="text-xs text-gray-400 mt-1">Currently Playing:</div>
+                            <div id="currently-playing-song" class="text-xs text-purple-300">None</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3 border-l-4 border-purple-500">
+                            <div class="text-sm text-gray-400 flex items-center">
+                                <i class="fas fa-headphones mr-1 text-purple-400"></i>Music Listeners:
+                            </div>
+                            <div id="music-listeners" class="text-xs text-purple-300">None</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Current Channel:</div>
+                            <div id="bot-current-channel" class="text-sm text-yellow-400">N/A</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">User Voice State:</div>
+                            <div id="user-voice-state" class="text-sm text-cyan-400">Checking...</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-3">
+                            <div class="text-sm text-gray-400">Socket Connection:</div>
+                            <div id="bot-socket-status" class="text-sm text-green-400">Checking...</div>
+                        </div>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold text-white mb-4 mt-6">Quick Actions</h3>
+                    <div class="space-y-2">
+                        <button onclick="testBotCommand()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-play mr-1"></i>Test Bot Command
+                        </button>
+                        <button onclick="testVoiceJoin()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-microphone mr-1"></i>Test Voice Join
+                        </button>
+                        <button onclick="testMusicPlay()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-music mr-1"></i>Test Music Play
+                        </button>
+                        <button onclick="testVoiceContextDetection()" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-search mr-1"></i>Test Voice Detection
+                        </button>
+                        <button onclick="checkMusicListeners()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-headphones mr-1"></i>Check Music Listeners
+                        </button>
+                        <button onclick="trackMusicPlayback()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-heartbeat mr-1"></i>Track Music Playback
+                        </button>
+                        <button onclick="validateMusicState()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-stethoscope mr-1"></i>Validate Music State
+                        </button>
+                        <button onclick="refreshBotStatus()" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-3 rounded text-sm">
+                            <i class="fas fa-sync mr-1"></i>Refresh Status
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 flex flex-col">
+                    <div class="p-4 border-b border-gray-700">
+                        <h3 class="text-lg font-semibold text-white">Manual Bot Control</h3>
+                        <div class="mt-3 space-y-3">
+                            <div class="flex gap-2">
+                                <input type="text" id="bot-command-input" placeholder="/titibot play song name" class="flex-1 bg-gray-800 text-white px-3 py-2 rounded text-sm">
+                                <button onclick="sendBotCommand()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded text-sm">
+                                    <i class="fas fa-paper-plane mr-1"></i>Send
+                                </button>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="sendBotCommand('/titibot play test')" class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-play mr-1"></i>Play Test
+                                </button>
+                                <button onclick="sendBotCommand('/titibot stop')" class="bg-red-600 hover:bg-red-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-stop mr-1"></i>Stop
+                                </button>
+                                <button onclick="sendBotCommand('/titibot next')" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded text-sm">
+                                    <i class="fas fa-forward mr-1"></i>Next
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 p-4">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-semibold text-white">Bot Debug Logs</h3>
+                            <button onclick="clearBotDebugLogs()" class="text-red-400 hover:text-red-300 text-sm">
+                                <i class="fas fa-trash mr-1"></i>Clear
+                            </button>
+                        </div>
+                        <div id="bot-debug-logs" class="bg-black rounded p-3 h-64 overflow-y-auto font-mono text-xs text-green-400">
+                            <div class="text-gray-500">Bot debug logs will appear here...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    initializeBotDebugPanel();
+}
+
+function initializeBotDebugPanel() {
+    addBotDebugLog('🤖 Bot Debug Panel initialized', 'success');
+    refreshBotStatus();
+    
+
+    if (window.globalSocketManager?.io) {
+        window.globalSocketManager.io.on('bot-voice-participant-joined', (data) => {
+            addBotDebugLog(`🎤 Bot joined voice channel: ${data.channel_id}`, 'success');
+            refreshBotStatus();
+        });
+        
+        window.globalSocketManager.io.on('bot-voice-participant-left', (data) => {
+            addBotDebugLog(`🔇 Bot left voice channel: ${data.channel_id}`, 'info');
+            refreshBotStatus();
+        });
+        
+        window.globalSocketManager.io.on('bot-music-command', (data) => {
+            const actionType = data.music_data?.action || 'unknown';
+            const songQuery = data.music_data?.query || 'N/A';
+            
+            addBotDebugLog(`🎵 Music command received: ${actionType} - ${songQuery}`, 'info');
+            
+
+            setTimeout(() => {
+                refreshBotStatus();
+                setTimeout(refreshBotStatus, 2000); // 
+            }, 500);
+        });
+        
+        window.globalSocketManager.io.on('bot-response', (data) => {
+            addBotDebugLog(`💬 Bot response: ${data.message}`, 'info');
+        });
+    }
+    
+
+    setupMusicPlayerTracking();
+}
+
+function setupMusicPlayerTracking() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    if (!musicPlayer || !musicPlayer.audio) {
+        addBotDebugLog('⚠️ Music player not available for event tracking', 'warning');
+        
+
+        setTimeout(setupMusicPlayerTracking, 1000);
+        return;
+    }
+    
+
+    ['play', 'playing', 'pause', 'ended', 'error'].forEach(eventName => {
+        musicPlayer.audio.addEventListener(eventName, () => {
+            addBotDebugLog(`🔊 Audio event: ${eventName}`, 'info');
+            refreshBotStatus();
+        });
+    });
+    
+    addBotDebugLog('✅ Music player tracking initialized', 'success');
+}
+
+
+let musicTrackingInterval = null;
+function trackMusicPlayback() {
+    if (musicTrackingInterval) {
+        clearInterval(musicTrackingInterval);
+        musicTrackingInterval = null;
+        addBotDebugLog('⏹️ Music tracking stopped', 'info');
+        return;
+    }
+    
+    addBotDebugLog('▶️ Starting music tracking (will update every 3 seconds)', 'success');
+    
+
+    checkCurrentMusicStatus();
+    
+
+    musicTrackingInterval = setInterval(() => {
+        checkCurrentMusicStatus();
+    }, 3000);
+}
+
+function checkCurrentMusicStatus() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    if (!musicPlayer) {
+        addBotDebugLog('❌ Music player not available', 'error');
+        return;
+    }
+    
+    const isPlaying = musicPlayer.isPlaying || 
+                      (musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src);
+                      
+    if (isPlaying) {
+        let songInfo = '';
+        if (musicPlayer.currentSong && musicPlayer.currentSong.title) {
+            songInfo = `"${musicPlayer.currentSong.title}" by ${musicPlayer.currentSong.artist || 'Unknown'}`;
+        } else if (musicPlayer.audio && musicPlayer.audio.src) {
+            songInfo = `Audio from: ${musicPlayer.audio.src.substring(0, 30)}...`;
+        } else {
+            songInfo = 'Unknown track';
+        }
+        
+
+        let position = '';
+        if (musicPlayer.audio) {
+            const current = Math.round(musicPlayer.audio.currentTime || 0);
+            const total = Math.round(musicPlayer.audio.duration || 0);
+            position = `${current}/${total}s`;
+        }
+        
+        addBotDebugLog(`🎵 Currently playing: ${songInfo} (${position})`, 'success');
+        
+
+        const currentlyPlayingSongEl = document.getElementById('currently-playing-song');
+        if (currentlyPlayingSongEl) {
+            currentlyPlayingSongEl.textContent = songInfo;
+            currentlyPlayingSongEl.className = 'text-xs text-purple-300 font-semibold';
+        }
+        
+
+        const musicPlayerEl = document.getElementById('music-player-status');
+        if (musicPlayerEl) {
+            musicPlayerEl.textContent = 'Playing';
+            musicPlayerEl.className = 'text-sm text-green-400';
+        }
+    } else {
+        addBotDebugLog('⏸️ No music currently playing', 'info');
+    }
+}
+
+function refreshBotStatus() {
+    const botComponentEl = document.getElementById('bot-component-status');
+    const botVoiceEl = document.getElementById('bot-voice-status');
+    const musicPlayerEl = document.getElementById('music-player-status');
+    const currentlyPlayingSongEl = document.getElementById('currently-playing-song');
+    const musicListenersEl = document.getElementById('music-listeners');
+    const botChannelEl = document.getElementById('bot-current-channel');
+    const userVoiceEl = document.getElementById('user-voice-state');
+    const botSocketEl = document.getElementById('bot-socket-status');
+    
+    if (botComponentEl) {
+        const botInitialized = window.BotComponent?.isInitialized();
+        botComponentEl.textContent = botInitialized ? 'Initialized' : 'Not Initialized';
+        botComponentEl.className = botInitialized ? 'text-lg font-semibold text-green-400' : 'text-lg font-semibold text-red-400';
+    }
+    
+    if (botVoiceEl) {
+        const voiceConnected = window.voiceManager?.isConnected;
+        botVoiceEl.textContent = voiceConnected ? 'Connected' : 'Disconnected';
+        botVoiceEl.className = voiceConnected ? 'text-sm text-green-400' : 'text-sm text-red-400';
+    }
+    
+
+    if (musicPlayerEl) {
+        const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+        if (musicPlayer) {
+
+            const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
+
+            const isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
+            
+            musicPlayerEl.textContent = isPlaying ? 'Playing' : 'Not Playing';
+            musicPlayerEl.className = isPlaying ? 'text-sm text-green-400' : 'text-sm text-gray-400';
+            
+
+            const musicInfo = getMusicPlaybackInfo();
+            
+            if (currentlyPlayingSongEl) {
+
+                const currentTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
+                if (currentTrack && isPlaying) {
+                    currentlyPlayingSongEl.textContent = `${currentTrack.title} by ${currentTrack.artist || 'Unknown'}`;
+                    currentlyPlayingSongEl.className = 'text-xs text-purple-300 font-semibold';
+                } else {
+                    currentlyPlayingSongEl.textContent = 'None';
+                    currentlyPlayingSongEl.className = 'text-xs text-gray-400';
+                }
+            }
+            
+
+            if (musicListenersEl) {
+                if (musicInfo.listeners.length > 0) {
+                    musicListenersEl.innerHTML = musicInfo.listeners.map(listener => 
+                        `<div class="flex items-center mt-1">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
+                            ${listener.username || listener.user_id} (${listener.listening ? 'Listening' : 'In Voice'})
+                        </div>`
+                    ).join('');
+                } else {
+                    musicListenersEl.textContent = 'No listeners detected';
+                    musicListenersEl.className = 'text-xs text-gray-400';
+                }
+                
+
+                if (musicInfo.isPlaying) {
+                    addBotDebugLog(`🎵 Music playing: "${musicInfo.songTitle}" for ${musicInfo.listeners.length} users`, 'info');
+                }
+            }
+        } else {
+            musicPlayerEl.textContent = 'Not Available';
+            musicPlayerEl.className = 'text-sm text-red-400';
+            
+            if (currentlyPlayingSongEl) {
+                currentlyPlayingSongEl.textContent = 'Music player not available';
+                currentlyPlayingSongEl.className = 'text-xs text-red-400';
+            }
+        }
+    }
+    
+    if (botChannelEl) {
+        const currentChannel = window.voiceManager?.currentChannelId || 'N/A';
+        botChannelEl.textContent = currentChannel;
+        botChannelEl.className = currentChannel !== 'N/A' ? 'text-sm text-yellow-400' : 'text-sm text-gray-400';
+    }
+    
+    if (userVoiceEl) {
+        const userInVoice = window.unifiedVoiceStateManager?.getState()?.isConnected;
+        userVoiceEl.textContent = userInVoice ? 'In Voice' : 'Not In Voice';
+        userVoiceEl.className = userInVoice ? 'text-sm text-cyan-400' : 'text-sm text-gray-400';
+    }
+    
+    if (botSocketEl) {
+        const socketReady = window.globalSocketManager?.isReady();
+        botSocketEl.textContent = socketReady ? 'Connected' : 'Disconnected';
+        botSocketEl.className = socketReady ? 'text-sm text-green-400' : 'text-sm text-red-400';
+    }
+    
+
+    const debugInfo = analyzeVoiceContextForBot();
+    addBotDebugLog(`🔍 Voice Context Analysis: ${debugInfo.summary}`, debugInfo.status);
+    if (debugInfo.details) {
+        addBotDebugLog(`   Details: ${debugInfo.details}`, 'info');
+    }
+    if (debugInfo.recommendation) {
+        addBotDebugLog(`   💡 ${debugInfo.recommendation}`, 'warning');
+    }
+}
+
+
+function analyzeVoiceContextForBot() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentChannelId = urlParams.get('channel');
+    const currentChannelType = urlParams.get('type');
+    const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+    const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+    
+    const unifiedState = window.unifiedVoiceStateManager?.getState();
+    const voiceManagerConnected = window.voiceManager?.isConnected;
+    const voiceManagerChannelId = window.voiceManager?.currentChannelId;
+    
+
+    let voiceChannelId = null;
+    let userInVoice = false;
+    let detectionMethod = 'none';
+    
+    if (unifiedState && unifiedState.isConnected && unifiedState.channelId) {
+        voiceChannelId = unifiedState.channelId;
+        userInVoice = true;
+        detectionMethod = 'unifiedVoiceStateManager';
+    } else if (metaChannelType === 'voice' && currentChannelId) {
+        voiceChannelId = currentChannelId;
+        userInVoice = false; // 
+        detectionMethod = 'currentVoiceChannelPage';
+    }
+    
+    const botWouldWork = voiceChannelId && userInVoice;
+    
+    let summary = '';
+    let status = 'info';
+    let details = '';
+    let recommendation = '';
+    
+    if (botWouldWork) {
+        summary = 'Bot commands should work correctly';
+        status = 'success';
+        details = `Detection: ${detectionMethod}, Channel: ${voiceChannelId}`;
+    } else if (voiceChannelId && !userInVoice) {
+        summary = 'Bot commands will FAIL - detected as not in voice';
+        status = 'error';
+        details = `Detection: ${detectionMethod}, Channel: ${voiceChannelId}, UserInVoice: ${userInVoice}`;
+        recommendation = 'This is the bug! You ARE in voice but detection says you are not.';
+    } else if (unifiedState?.isConnected && !voiceChannelId) {
+        summary = 'Voice connected but no channel ID detected';
+        status = 'warning';
+        details = `UnifiedState connected: ${unifiedState.isConnected}, ChannelId: ${unifiedState.channelId}`;
+        recommendation = 'Voice state manager missing channel context';
+    } else {
+        summary = 'No voice context detected';
+        status = 'error';
+        details = `Currently viewing: ${currentChannelType} channel ${currentChannelId}`;
+        recommendation = 'Join a voice channel first';
+    }
+    
+    return { summary, status, details, recommendation };
+}
+
+
+function sendBotCommand(command) {
+    const input = document.getElementById('bot-command-input');
+    const messageText = command || input?.value;
+    
+    if (!messageText) {
+        addBotDebugLog('❌ No command to send', 'error');
+        return;
+    }
+    
+    addBotDebugLog(`📤 Sending command: ${messageText}`, 'info');
+    
+    if (!window.globalSocketManager?.isReady()) {
+        addBotDebugLog('❌ Socket not ready', 'error');
+        return;
+    }
+    
+
+    addBotDebugLog('🔍 Analyzing voice context before sending...', 'info');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentChannelId = urlParams.get('channel');
+    const currentChannelType = urlParams.get('type');
+    const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+    const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+    
+    addBotDebugLog(`   📍 URL Context: Channel ${currentChannelId}, Type ${currentChannelType}`, 'info');
+    addBotDebugLog(`   🏷️ Meta Context: Channel ${metaChannelId}, Type ${metaChannelType}`, 'info');
+    
+    const unifiedState = window.unifiedVoiceStateManager?.getState();
+    if (unifiedState) {
+        addBotDebugLog(`   🎤 Unified Voice State: Connected ${unifiedState.isConnected}, Channel ${unifiedState.channelId}`, 'info');
+    } else {
+        addBotDebugLog(`   🎤 Unified Voice State: Not available`, 'warning');
+    }
+    
+    const voiceManagerState = {
+        connected: window.voiceManager?.isConnected,
+        channelId: window.voiceManager?.currentChannelId,
+        meetingId: window.voiceManager?.currentMeetingId
+    };
+    addBotDebugLog(`   🎙️ Voice Manager: Connected ${voiceManagerState.connected}, Channel ${voiceManagerState.channelId}`, 'info');
+    
+
+    let voiceChannelId = null;
+    let userInVoice = false;
+    let detectionMethod = 'none';
+    
+    if (unifiedState && unifiedState.isConnected && unifiedState.channelId) {
+        voiceChannelId = unifiedState.channelId;
+        userInVoice = true;
+        detectionMethod = 'unifiedVoiceStateManager';
+        addBotDebugLog(`   ✅ Voice context from UnifiedVoiceState: channel ${voiceChannelId}`, 'success');
+    } else {
+        if (metaChannelType === 'voice' && currentChannelId) {
+            voiceChannelId = currentChannelId;
+            userInVoice = false; // 
+            detectionMethod = 'currentVoiceChannelPage';
+            addBotDebugLog(`   ⚠️ Voice context from current page view: channel ${voiceChannelId} (userInVoice: false)`, 'warning');
+        } else {
+            addBotDebugLog(`   ❌ No voice context detected`, 'error');
+        }
+    }
+    
+    const payload = {
+        message: messageText,
+        target_type: 'channel',
+        target_id: '1'
+    };
+    
+    if (voiceChannelId) {
+        payload.voice_context = {
+            voice_channel_id: voiceChannelId,
+            user_in_voice: userInVoice
+        };
+        addBotDebugLog(`   🎯 Voice context attached: ${JSON.stringify(payload.voice_context)}`, 'info');
+        
+        if (!userInVoice) {
+            addBotDebugLog(`   🚨 WARNING: userInVoice is false - bot will reject this command!`, 'error');
+        }
+    } else {
+        addBotDebugLog(`   ❌ No voice context to attach`, 'error');
+    }
+    
+    window.globalSocketManager.io.emit('save-and-send-message', payload);
+    
+    if (input) {
+        input.value = '';
+    }
+    
+    addBotDebugLog('✅ Command sent successfully', 'success');
+}
+
+function testBotCommand() {
+    addBotDebugLog('🧪 Testing bot command detection...', 'info');
+    
+    if (!window.BotComponent?.isInitialized()) {
+        addBotDebugLog('❌ Bot component not initialized', 'error');
+        return;
+    }
+    
+    const testMessage = '/titibot hello';
+    addBotDebugLog(`📤 Sending test message: ${testMessage}`, 'info');
+    
+    if (window.globalSocketManager?.isReady()) {
+        window.globalSocketManager.io.emit('save-and-send-message', {
+            message: testMessage,
+            target_type: 'channel',
+            target_id: '1'
+        });
+        addBotDebugLog('✅ Test message sent', 'success');
+    } else {
+        addBotDebugLog('❌ Socket not ready', 'error');
+    }
+}
+
+function testVoiceJoin() {
+    addBotDebugLog('🎤 Testing bot voice join...', 'info');
+    
+    const userVoiceState = window.unifiedVoiceStateManager?.getState();
+    if (!userVoiceState?.isConnected) {
+        addBotDebugLog('❌ User not in voice channel', 'error');
+        return;
+    }
+    
+    let channelId = userVoiceState.channelId;
+    if (!channelId && userVoiceState.meetingId?.includes('voice_channel_')) {
+        channelId = userVoiceState.meetingId.replace('voice_channel_', '');
+    }
+    
+    if (!channelId) {
+        addBotDebugLog('❌ Could not determine voice channel ID', 'error');
+        return;
+    }
+    
+    addBotDebugLog(`📤 Attempting to join voice channel: ${channelId}`, 'info');
+    sendBotCommand('/titibot join');
+}
+
+function testMusicPlay() {
+    addBotDebugLog('🎵 Testing music play...', 'info');
+    sendBotCommand('/titibot play never gonna give you up');
+}
+
+function getMusicPlaybackInfo() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    const result = {
+        isPlaying: false,
+        songTitle: 'None',
+        songArtist: 'None',
+        listeners: [],
+        voiceChannelId: null,
+        debug: {}
+    };
+    
+    if (!musicPlayer) {
+        addBotDebugLog('❌ Music player not available for debugging', 'warning');
+        return result;
+    }
+    
+
+    const isAudioPlaying = musicPlayer.audio && !musicPlayer.audio.paused && musicPlayer.audio.src;
+    
+
+    result.isPlaying = isAudioPlaying || musicPlayer.isPlaying || false;
+    
+
+    result.debug = {
+        audioElement: {
+            src: musicPlayer.audio?.src || 'none',
+            paused: musicPlayer.audio?.paused,
+            currentTime: musicPlayer.audio?.currentTime,
+            duration: musicPlayer.audio?.duration
+        },
+        isPlayingFlag: musicPlayer.isPlaying,
+        currentSong: musicPlayer.currentSong,
+        currentTrack: musicPlayer.currentTrack,
+        queue: musicPlayer.queue?.length || 0
+    };
+    
+
+    if (musicPlayer.currentSong) {
+        result.songTitle = musicPlayer.currentSong.title || 'Unknown';
+        result.songArtist = musicPlayer.currentSong.artist || 'Unknown';
+    } else if (musicPlayer.currentTrack) {
+        result.songTitle = musicPlayer.currentTrack.title || 'Unknown';
+        result.songArtist = musicPlayer.currentTrack.artist || 'Unknown';
+    } else if (musicPlayer.queue && musicPlayer.queue.length > 0 && musicPlayer.currentIndex >= 0) {
+
+        const currentQueueItem = musicPlayer.queue[musicPlayer.currentIndex];
+        if (currentQueueItem) {
+            result.songTitle = currentQueueItem.title || 'Unknown';
+            result.songArtist = currentQueueItem.artist || 'Unknown';
+        }
+    }
+    
+
+    if (result.isPlaying && result.songTitle === 'None' && musicPlayer.audio?.src) {
+        const url = musicPlayer.audio.src;
+        try {
+
+            const urlParts = url.split('/');
+            const filename = urlParts[urlParts.length - 1].split('?')[0];
+            result.songTitle = decodeURIComponent(filename) || 'Unknown track';
+            result.songArtist = 'Unknown artist';
+        } catch (e) {
+            result.songTitle = 'Playing unknown track';
+        }
+    }
+    
+
+    const voiceContext = window.debugTitiBotVoiceContext ? window.debugTitiBotVoiceContext() : null;
+    if (voiceContext && voiceContext.voiceChannelId) {
+        result.voiceChannelId = voiceContext.voiceChannelId;
+    } else {
+        result.voiceChannelId = window.unifiedVoiceStateManager?.getState()?.channelId || 
+                               window.voiceManager?.currentChannelId || 
+                               null;
+    }
+    
+
+    if (result.voiceChannelId) {
+
+        const participants = getVoiceChannelParticipants(result.voiceChannelId);
+        
+
+        result.listeners = participants.map(participant => {
+
+            const isBot = participant.isBot || participant.user_id === '4' || participant.username?.toLowerCase() === 'titibot';
+            
+
+            const isInSameChannel = participant.channelId === result.voiceChannelId;
+            
+
+            const isListening = isInSameChannel && (isBot || result.isPlaying);
+            
+            return {
+                user_id: participant.user_id,
+                username: participant.username || 'Unknown',
+                isBot: isBot,
+                listening: isListening
+            };
+        });
+    }
+    
+    return result;
+}
+
+
+function getVoiceChannelParticipants(channelId) {
+    if (!channelId) return [];
+    
+    const participantMap = new Map();
+    
+    const extractUserId = (id, name) => {
+        if (!id) return null;
+        const idStr = String(id);
+        if (/^\d+$/.test(idStr)) return idStr;
+        if (idStr.includes('_')) {
+            const parts = idStr.split('_');
+            const lastPart = parts[parts.length - 1];
+            if (/^\d+$/.test(lastPart)) return lastPart;
+        }
+        if (name && name.includes('_')) {
+            const nameParts = name.split('_');
+            const lastPart = nameParts[nameParts.length - 1];
+            if (/^\d+$/.test(lastPart)) return lastPart;
+        }
+        return null;
+    };
+    
+    const addParticipant = (userId, username, isBot = false, isSelf = false) => {
+        const normalizedId = extractUserId(userId, username) || userId;
+        if (!participantMap.has(normalizedId)) {
+            participantMap.set(normalizedId, {
+                user_id: normalizedId,
+                username: username || 'Unknown',
+                channelId: channelId,
+                isBot: isBot,
+                isSelf: isSelf
+            });
+        }
+    };
+    
+    if (window.videoSDKManager && window.videoSDKManager.meeting) {
+        const peers = window.videoSDKManager.meeting.participants;
+        if (peers) {
+            peers.forEach(peer => {
+                if (peer.id) {
+                    addParticipant(peer.id, peer.displayName || 'Unknown');
+                }
+            });
+        }
+    }
+    
+    if (window.BotComponent && window.BotComponent.voiceBots) {
+        window.BotComponent.voiceBots.forEach((botData, botId) => {
+            if (botData.channel_id === channelId) {
+                addParticipant(botId, botData.username || 'Bot', true);
+            }
+        });
+    }
+    
+    const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+    const currentUsername = document.querySelector('meta[name="username"]')?.content;
+    const userInVoice = window.unifiedVoiceStateManager?.getState()?.isConnected && 
+                       window.unifiedVoiceStateManager?.getState()?.channelId === channelId;
+                       
+    if (currentUserId && userInVoice && !participantMap.has(currentUserId)) {
+        addParticipant(currentUserId, currentUsername || 'You', false, true);
+    }
+    
+    return Array.from(participantMap.values());
+}
+
+
+function checkMusicListeners() {
+    addBotDebugLog('🎵 Checking music playback and listeners...', 'info');
+    
+    const musicInfo = getMusicPlaybackInfo();
+    
+
+    addBotDebugLog('🔍 Analyzing music player state...', 'info');
+    const debugInfo = musicInfo.debug;
+    
+
+    const audio = debugInfo.audioElement;
+    if (audio.src && audio.src !== 'none') {
+        addBotDebugLog(`🎧 Audio element has source: ${audio.src.substring(0, 30)}...`, 'info');
+        addBotDebugLog(`   Paused: ${audio.paused}, Time: ${Math.round(audio.currentTime || 0)}/${Math.round(audio.duration || 0)}s`, 'info');
+    } else {
+        addBotDebugLog('❌ Audio element has no source', 'warning');
+    }
+    
+
+    addBotDebugLog(`🔄 Player state variables:`, 'info');
+    addBotDebugLog(`   isPlaying flag: ${debugInfo.isPlayingFlag}`, debugInfo.isPlayingFlag ? 'success' : 'warning');
+    addBotDebugLog(`   Has currentSong: ${!!debugInfo.currentSong}`, debugInfo.currentSong ? 'success' : 'info');
+    addBotDebugLog(`   Has currentTrack: ${!!debugInfo.currentTrack}`, debugInfo.currentTrack ? 'success' : 'info');
+    addBotDebugLog(`   Queue size: ${debugInfo.queue}`, 'info');
+    
+
+    if (!musicInfo.voiceChannelId) {
+        addBotDebugLog('❌ No voice channel detected', 'error');
+        return;
+    }
+    
+    addBotDebugLog(`🎤 Voice Channel: ${musicInfo.voiceChannelId}`, 'info');
+    
+    if (musicInfo.isPlaying) {
+        addBotDebugLog(`🎵 Now Playing: "${musicInfo.songTitle}" by ${musicInfo.songArtist}`, 'success');
+    } else {
+        addBotDebugLog('⏹️ No music currently playing', 'warning');
+    }
+    
+
+    analyzeMusicCommandFlow();
+    
+    addBotDebugLog(`👥 Detected ${musicInfo.listeners.length} participants in voice channel:`, 'info');
+    
+    musicInfo.listeners.forEach(listener => {
+        const icon = listener.isBot ? '🤖' : '👤';
+        const status = listener.listening ? 'Listening' : 'Not listening';
+        const style = listener.listening ? 'success' : 'info';
+        
+        addBotDebugLog(`   ${icon} ${listener.username} (${listener.user_id}): ${status}`, style);
+    });
+    
+
+    const listenersCount = musicInfo.listeners.filter(l => l.listening).length;
+    
+    if (musicInfo.isPlaying && listenersCount > 0) {
+        addBotDebugLog(`✅ Music is playing for ${listenersCount} listener(s)`, 'success');
+    } else if (musicInfo.isPlaying) {
+        addBotDebugLog(`⚠️ Music is playing but no one is listening!`, 'warning');
+    } else if (listenersCount > 0) {
+        addBotDebugLog(`⚠️ Detected ${listenersCount} listeners but no music is playing`, 'warning');
+    } else {
+        addBotDebugLog(`ℹ️ No music playing and no listeners`, 'info');
+    }
+}
+
+function analyzeMusicCommandFlow() {
+    const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
+    if (!musicPlayer) {
+        addBotDebugLog('❌ Music player not available for flow analysis', 'error');
+        return;
+    }
+    
+    addBotDebugLog('🔄 Analyzing music command flow...', 'info');
+    
+
+    const socketManager = window.globalSocketManager;
+    if (socketManager && socketManager.isReady()) {
+        addBotDebugLog('1️⃣ Socket ready for command reception', 'success');
+    } else {
+        addBotDebugLog('1️⃣ Socket not ready - command reception may fail', 'warning');
+    }
+    
+
+    if (musicPlayer._audioInitialized) {
+        addBotDebugLog('2️⃣ Music player properly initialized', 'success');
+    } else {
+        addBotDebugLog('2️⃣ Music player not fully initialized', 'warning');
+    }
+    
+
+    const audioContext = musicPlayer._audioContext;
+    if (audioContext) {
+        const contextState = audioContext.state;
+        addBotDebugLog(`3️⃣ Audio context state: ${contextState}`, 
+            contextState === 'running' ? 'success' : 'warning');
+    } else {
+        addBotDebugLog('3️⃣ No audio context available', 'warning');
+    }
+    
+
+    const lastFoundTrack = musicPlayer.currentSong || musicPlayer.currentTrack;
+    if (lastFoundTrack) {
+        addBotDebugLog(`4️⃣ Last found track: ${lastFoundTrack.title || 'Unknown'}`, 'success');
+        if (lastFoundTrack.previewUrl) {
+            addBotDebugLog(`   Has preview URL: ${lastFoundTrack.previewUrl.substring(0, 30)}...`, 'success');
+        } else {
+            addBotDebugLog('   No preview URL available', 'warning');
+        }
+    } else {
+        addBotDebugLog('4️⃣ No track has been found/loaded', 'warning');
+    }
+    
+
+    if (typeof musicPlayer.processBotMusicCommand === 'function') {
+        addBotDebugLog('5️⃣ Music command processor available', 'success');
+    } else {
+        addBotDebugLog('5️⃣ Music command processor missing!', 'error');
+    }
+}
+
+function testVoiceContextDetection() {
+    addBotDebugLog('🔍 Testing voice context detection for bot commands...', 'info');
+    
+
+    let voiceChannelId = null;
+    let userInVoice = false;
+    let detectionMethod = 'none';
+    
+    addBotDebugLog('🔍 Step 1: Checking unified voice state manager...', 'info');
+    const voiceState = window.unifiedVoiceStateManager?.getState();
+    
+    if (voiceState && voiceState.isConnected && voiceState.channelId) {
+        voiceChannelId = voiceState.channelId;
+        userInVoice = true;
+        detectionMethod = 'unifiedVoiceStateManager';
+        addBotDebugLog(`✅ Primary detection successful: channel ${voiceChannelId}`, 'success');
+    } 
+    else if (window.voiceManager && window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
+        voiceChannelId = window.voiceManager.currentChannelId;
+        userInVoice = true;
+        detectionMethod = 'voiceManagerConnected';
+        addBotDebugLog(`✅ Secondary detection successful: channel ${voiceChannelId}`, 'success');
+    }
+    else if (sessionStorage.getItem('isInVoiceCall') === 'true') {
+        const sessionVoiceChannelId = sessionStorage.getItem('voiceChannelId') || 
+                                    sessionStorage.getItem('currentVoiceChannelId');
+        if (sessionVoiceChannelId) {
+            voiceChannelId = sessionVoiceChannelId;
+            userInVoice = true;
+            detectionMethod = 'sessionStorageVoiceCall';
+            addBotDebugLog(`✅ Tertiary detection successful: channel ${voiceChannelId}`, 'success');
+        }
+    }
+    else {
+        addBotDebugLog('🔍 Step 2: Checking current page context...', 'info');
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentChannelId = urlParams.get('channel');
+        const metaChannelType = document.querySelector('meta[name="channel-type"]')?.content;
+
+        if (metaChannelType === 'voice' && currentChannelId) {
+            voiceChannelId = currentChannelId;
+            const channelElement = document.querySelector(`[data-channel-id="${currentChannelId}"][data-channel-type="voice"]`);
+            if (channelElement) {
+                const hasVoiceIndicator = document.querySelector('.voice-call-app:not(.hidden)') || 
+                                        document.querySelector('[data-voice-connected="true"]') ||
+                                        window.videoSDKManager?.isMeetingJoined;
+                
+                userInVoice = hasVoiceIndicator || false;
+                detectionMethod = hasVoiceIndicator ? 'currentVoiceChannelPage+connected' : 'currentVoiceChannelPage+notConnected';
+                
+                addBotDebugLog(`🔍 Page detection: channel ${voiceChannelId}, connected: ${userInVoice}`, userInVoice ? 'success' : 'warning');
+            }
+        }
+    }
+    
+
+    if (voiceChannelId && !userInVoice) {
+        addBotDebugLog('🔍 Step 3: Performing additional verification checks...', 'info');
+        
+        if (window.videoSDKManager && window.videoSDKManager.isMeetingJoined) {
+            userInVoice = true;
+            detectionMethod += '+videoSDKVerified';
+            addBotDebugLog('✅ VideoSDK connection verified - user IS in voice', 'success');
+        }
+        
+        if (!userInVoice) {
+            const voiceUIVisible = document.querySelector('.voice-call-app:not(.hidden)') || 
+                                 document.querySelector('.voice-controls:not(.hidden)') ||
+                                 document.querySelector('[data-voice-status="connected"]');
+            
+            if (voiceUIVisible) {
+                userInVoice = true;
+                detectionMethod += '+voiceUIVerified';
+                addBotDebugLog('✅ Voice UI indicators verified - user IS in voice', 'success');
+            }
+        }
+        
+        if (!userInVoice && window.unifiedVoiceStateManager) {
+            const freshState = window.unifiedVoiceStateManager.getState();
+            if (freshState && freshState.isConnected) {
+                userInVoice = true;
+                detectionMethod += '+freshStateVerified';
+                addBotDebugLog('✅ Fresh unified state verified - user IS in voice', 'success');
+            }
+        }
+    }
+    
+
+    addBotDebugLog('🎯 FINAL DETECTION RESULT:', 'info');
+    addBotDebugLog(`   Voice Channel ID: ${voiceChannelId || 'None'}`, voiceChannelId ? 'success' : 'error');
+    addBotDebugLog(`   User In Voice: ${userInVoice}`, userInVoice ? 'success' : 'error');
+    addBotDebugLog(`   Detection Method: ${detectionMethod}`, 'info');
+    
+    if (voiceChannelId && userInVoice) {
+        addBotDebugLog('🎉 SUCCESS: Bot commands should work!', 'success');
+        return true;
+    } else if (voiceChannelId && !userInVoice) {
+        addBotDebugLog('❌ FAILURE: Bot will reject commands (detected as not in voice)', 'error');
+        addBotDebugLog('💡 This indicates the bug is still present', 'warning');
+        return false;
+    } else {
+        addBotDebugLog('❌ FAILURE: No voice context detected', 'error');
+        addBotDebugLog('💡 User may not be in a voice channel', 'warning');
+        return false;
+    }
+}
+
+let botDebugLogCount = 0;
+function addBotDebugLog(message, type = 'info') {
+    const logsContainer = document.getElementById('bot-debug-logs');
+    if (!logsContainer) return;
+    
+    botDebugLogCount++;
+    const timestamp = new Date().toLocaleTimeString();
+    const colors = {
+        info: 'text-green-400',
+        warning: 'text-yellow-400',
+        error: 'text-red-400',
+        success: 'text-blue-400'
+    };
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `${colors[type] || 'text-green-400'} mb-1`;
+    logEntry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+    
+    logsContainer.appendChild(logEntry);
+    logsContainer.scrollTop = logsContainer.scrollHeight;
+    
+    if (botDebugLogCount > 50) {
+        logsContainer.removeChild(logsContainer.firstChild);
+        botDebugLogCount--;
+    }
+}
+
+function clearBotDebugLogs() {
+    const logsContainer = document.getElementById('bot-debug-logs');
+    if (logsContainer) {
+        logsContainer.innerHTML = '<div class="text-gray-500">Logs cleared...</div>';
+        botDebugLogCount = 0;
+    }
+}
+
+function testParticipantDeduplication() {
+    addBotDebugLog('🧪 Testing participant deduplication fix...', 'info');
+    
+    const voiceChannelId = window.unifiedVoiceStateManager?.getState()?.channelId;
+    if (!voiceChannelId) {
+        addBotDebugLog('❌ No voice channel detected', 'error');
+        return;
+    }
+    
+    const participants = getVoiceChannelParticipants(voiceChannelId);
+    
+    addBotDebugLog(`📊 Found ${participants.length} participants:`, 'info');
+    participants.forEach(p => {
+        addBotDebugLog(`   👤 ${p.username} (${p.user_id}) ${p.isBot ? '🤖' : ''} ${p.isSelf ? '👆' : ''}`, 'info');
+    });
+    
+    const uniqueIds = new Set(participants.map(p => p.user_id));
+    if (uniqueIds.size !== participants.length) {
+        addBotDebugLog(`❌ DUPLICATION STILL EXISTS! ${participants.length} participants but only ${uniqueIds.size} unique IDs`, 'error');
+        
+        const duplicates = participants.filter((p, index) => 
+            participants.findIndex(other => other.user_id === p.user_id) !== index
+        );
+        duplicates.forEach(dup => {
+            addBotDebugLog(`   🔄 Duplicate: ${dup.username} (${dup.user_id})`, 'error');
+        });
+        return false;
+    } else {
+        addBotDebugLog(`✅ NO DUPLICATES FOUND! All ${participants.length} participants are unique`, 'success');
+        return true;
+    }
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.addEventListener) {
+        window.addEventListener('globalSocketReady', function(event) {
+            if (event.detail?.manager?.io) {
+                event.detail.manager.io.on('debug-test-response', function(response) {
+                    if (response.success) {
+
+                    } else {
+                        console.error('❌ Debug test failed on server:', response);
+                    }
+                });
+            }
+        });
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === '1') {
+            e.preventDefault();
+            
+
+            showPresenceDebugPanel();
+        }
+        
+        if (e.ctrlKey && e.key === '2') {
+            e.preventDefault();
+            
+
+            showBotDebugPanel();
+        }
+        
+        if (e.ctrlKey && e.key === '3') {
+            e.preventDefault();
+            
+            if (window.voiceDebugPanel) {
+                window.voiceDebugPanel.togglePanel();
+            } else {
+                console.log('Loading voice debug panel...');
+
+                const existingScript = document.querySelector('script[src*="debug-panel-voice.js"]');
+                if (existingScript) {
+
+                    if (window.VoiceDebugPanel && !window.voiceDebugPanel) {
+                        window.voiceDebugPanel = new window.VoiceDebugPanel();
+                        setTimeout(() => window.voiceDebugPanel.togglePanel(), 100);
+                    }
+                } else {
+
+                    const script = document.createElement('script');
+                    script.src = '/public/js/components/voice/debug-panel-voice.js?v=' + Date.now();
+                    script.onload = function() {
+                        console.log('Voice debug panel loaded');
+                        if (window.voiceDebugPanel) {
+                            window.voiceDebugPanel.togglePanel();
+                        } else if (window.VoiceDebugPanel) {
+                            window.voiceDebugPanel = new window.VoiceDebugPanel();
+                            setTimeout(() => window.voiceDebugPanel.togglePanel(), 100);
+                        }
+                    };
+                    document.head.appendChild(script);
+                }
+            }
+        }
+    });
+    
+
+
+    
+    window.addEventListener('error', function(event) {
+        if (event.message && (event.message.includes('socket') || event.message.includes('Socket') || event.message.includes('io'))) {
+            console.error('🚨 SOCKET-RELATED ERROR:', event.error);
+        }
+    });
+});
+</script>
+
+
+<script src="http://localhost:1001/public/js/utils/lazy-loader.js?v=1752395292" type="module"></script>
+
+<script>
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === '9') {
+            e.preventDefault();
+            
+            fetch('/api/bot/create-titibot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                return response.json().then(data => ({
+                    status: response.status,
+                    body: data
+                }));
+            })
+            .then(({ status, body }) => {
+                if (body.success) {
+                    alert(body.message || 'Bot created successfully!');
+                } else {
+                    alert('Error creating bot: ' + (body.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error creating titibot:', error);
+                alert('An unexpected error occurred.');
+            });
+        }
+    });
+</script>
+<body class="bg-gray-900 text-white">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <div class="bg-gray-800 shadow-lg border-b border-gray-700">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <h1 class="text-3xl font-bold text-white">🔧 System Debug Panel</h1>
+                        <span class="ml-4 px-3 py-1 bg-red-600 text-white text-sm rounded-full">RESTRICTED ACCESS</span>
+                    </div>                        <div class="flex items-center space-x-4">
+                            <span class="text-gray-300" id="current-time">2025-07-13 15:28:12</span>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                                <span class="text-green-400 text-sm">Live Monitoring</span>
+                            </div>
+                            <button onclick="toggleAutoRefresh()" id="autoRefreshBtn" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm text-white">
+                                Auto-Refresh: ON
+                            </button>
+                            <a href="/home" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white">Back to App</a>
+                            <a href="/debug?logout=1" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-white">Logout</a>
+                        </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Quick Status Overview -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-2">Environment</h3>
+                    <div class="text-2xl font-bold text-green-400">
+                        DEVELOPMENT                    </div>
+                    <p class="text-gray-400 text-sm">
+                        Local Mode                    </p>
+                </div>
+
+                <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-2">Socket Server</h3>
+                    <div class="text-2xl font-bold text-green-400">
+                        HEALTHY                    </div>
+                    <p class="text-gray-400 text-sm">
+                        socket                    </p>
+                </div>
+
+                <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-2">Database</h3>
+                    <div class="text-2xl font-bold text-green-400">
+                        HEALTHY                    </div>
+                    <p class="text-gray-400 text-sm">
+                        2 users
+                    </p>
+                </div>
+
+                <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-lg font-semibold mb-2">Disk Usage</h3>
+                    <div class="text-2xl font-bold text-green-400">
+                        8.8%
+                    </div>
+                    <p class="text-gray-400 text-sm">
+                        88.12GB / 1006.85GB
+                    </p>
+                </div>
+            </div>
+
+            <!-- Main Content Tabs -->
+            <div class="bg-gray-800 rounded-lg border border-gray-700">
+                <div class="border-b border-gray-700">
+                    <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                        <button onclick="switchTab('overview')" id="tab-overview" class="tab-button border-b-2 border-blue-500 py-4 px-1 text-blue-400 font-medium">
+                            System Overview
+                        </button>
+                        <button onclick="switchTab('health')" id="tab-health" class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-400 hover:text-gray-300">
+                            Health Checks
+                        </button>
+                        <button onclick="switchTab('database')" id="tab-database" class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-400 hover:text-gray-300">
+                            Database
+                        </button>
+                        <button onclick="switchTab('socket')" id="tab-socket" class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-400 hover:text-gray-300">
+                            Socket Status
+                        </button>
+                        <button onclick="switchTab('docker')" id="tab-docker" class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-400 hover:text-gray-300">
+                            Docker
+                        </button>
+                        <button onclick="switchTab('ssl')" id="tab-ssl" class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-400 hover:text-gray-300">
+                            SSL/Security
+                        </button>
+                        <button onclick="switchTab('environment')" id="tab-environment" class="tab-button border-b-2 border-transparent py-4 px-1 text-gray-400 hover:text-gray-300">
+                            Environment Comparison
+                        </button>
+                    </nav>
+                </div>
+
+                <div class="p-6">
+                    <!-- System Overview Tab -->
+                    <div id="content-overview" class="tab-content">
+                        <h2 class="text-2xl font-bold mb-6">System Overview</h2>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Server Information -->
+                            <div class="space-y-4">
+                                <h3 class="text-xl font-semibold border-b border-gray-700 pb-2">Server Information</h3>
+                                <div class="space-y-2">
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Php Version:</span>
+                                        <span class="text-white font-mono">8.2.29</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Server Software:</span>
+                                        <span class="text-white font-mono">Apache/2.4.62 (Debian)</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Server Name:</span>
+                                        <span class="text-white font-mono">localhost</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Document Root:</span>
+                                        <span class="text-white font-mono">/var/www/html</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Request Time:</span>
+                                        <span class="text-white font-mono">2025-07-13 15:28:12</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Memory Limit:</span>
+                                        <span class="text-white font-mono">512M</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Max Execution Time:</span>
+                                        <span class="text-white font-mono">60</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Upload Max Filesize:</span>
+                                        <span class="text-white font-mono">100M</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Post Max Size:</span>
+                                        <span class="text-white font-mono">100M</span>
+                                    </div>
+                                                                    </div>
+                            </div>
+
+                            <!-- Environment Configuration -->
+                            <div class="space-y-4">
+                                <h3 class="text-xl font-semibold border-b border-gray-700 pb-2">Environment</h3>
+                                <div class="space-y-2">
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">App Env:</span>
+                                        <span class="text-white font-mono">development</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">App Debug:</span>
+                                        <span class="text-white font-mono">true</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">App Url:</span>
+                                        <span class="text-white font-mono">http://localhost</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Is Docker:</span>
+                                        <span class="text-white font-mono">true</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Is Vps:</span>
+                                        <span class="text-white font-mono">false</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Timezone:</span>
+                                        <span class="text-white font-mono">Asia/Jakarta</span>
+                                    </div>
+                                                                    </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Checks Tab -->
+                    <div id="content-health" class="tab-content hidden">
+                        <h2 class="text-2xl font-bold mb-6">System Health Checks</h2>
+                        
+                        <div class="space-y-6">
+                                                        <div class="bg-gray-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-semibold">Database</h3>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium
+                                        bg-green-600 text-white">
+                                        HEALTHY                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-300">
+                                    <pre class="whitespace-pre-wrap">{
+    "status": "healthy",
+    "message": "Database connection successful",
+    "stats": {
+        "total_users": 2
+    }
+}</pre>
+                                </div>
+                            </div>
+                                                        <div class="bg-gray-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-semibold">Socket Server</h3>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium
+                                        bg-green-600 text-white">
+                                        HEALTHY                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-300">
+                                    <pre class="whitespace-pre-wrap">{
+    "status": "healthy",
+    "message": "Socket server responding",
+    "url": "http:\/\/socket:1002\/health"
+}</pre>
+                                </div>
+                            </div>
+                                                        <div class="bg-gray-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-semibold">Disk Space</h3>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium
+                                        bg-green-600 text-white">
+                                        HEALTHY                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-300">
+                                    <pre class="whitespace-pre-wrap">{
+    "status": "healthy",
+    "used_percent": 8.8,
+    "used_gb": 88.12,
+    "total_gb": 1006.85,
+    "free_gb": 918.74
+}</pre>
+                                </div>
+                            </div>
+                                                        <div class="bg-gray-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-semibold">Ssl Certificate</h3>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium
+                                        bg-gray-600 text-white">
+                                        NOT_APPLICABLE                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-300">
+                                    <pre class="whitespace-pre-wrap">{
+    "status": "not_applicable",
+    "message": "HTTPS not configured or local development",
+    "domain": "localhost"
+}</pre>
+                                </div>
+                            </div>
+                                                        <div class="bg-gray-700 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="text-lg font-semibold">Nginx Status</h3>
+                                    <span class="px-3 py-1 rounded-full text-sm font-medium
+                                        bg-gray-600 text-white">
+                                        UNKNOWN                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-300">
+                                    <pre class="whitespace-pre-wrap">{
+    "status": "unknown",
+    "running": false,
+    "config_test": "sh: 1: nginx: not found",
+    "note": "nginx status detection works only on Linux\/VPS with shell access"
+}</pre>
+                                </div>
+                            </div>
+                                                    </div>
+                    </div>
+
+                    <!-- Database Tab -->
+                    <div id="content-database" class="tab-content hidden">
+                        <h2 class="text-2xl font-bold mb-6">Database Information</h2>
+                        
+                        <div class="space-y-6">
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">Connection Status</h3>
+                                <div class="bg-blue-500 text-white p-3 rounded-md mb-6 text-left overflow-auto max-h-36"><strong>Database Connection Settings:</strong><br>Host: db<br>Port: 1003<br>Database: misvord<br>User: root<br>Docker: Yes<br></div><div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
+                Database connection successful! Server: 8.0.42
+            </div><div class="bg-green-500 text-white p-3 rounded-md mb-6 text-center">
+                User table creation attempted!
+            </div>                            </div>
+
+                                                        <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">Database Statistics</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                        <div class="text-center">
+                                        <div class="text-2xl font-bold text-blue-400">2</div>
+                                        <div class="text-gray-400">Total Users</div>
+                                    </div>
+                                                                    </div>
+                            </div>
+                                                    </div>
+                    </div>
+
+                    <!-- Socket Status Tab -->
+                    <div id="content-socket" class="tab-content hidden">
+                        <h2 class="text-2xl font-bold mb-6">Socket Server Status</h2>
+                        
+                        <div class="space-y-6">
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">Configuration</h3>
+                                <div class="space-y-2">
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Socket Host:</span>
+                                        <span class="text-white font-mono">socket</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Socket Port:</span>
+                                        <span class="text-white font-mono">1002</span>
+                                    </div>
+                                                                        <div class="flex justify-between">
+                                        <span class="text-gray-400">Socket Protocol:</span>
+                                        <span class="text-white font-mono">http</span>
+                                    </div>
+                                                                    </div>
+                            </div>
+
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">Health Check Results</h3>
+                                <pre class="text-sm text-gray-300 whitespace-pre-wrap">{
+    "status": "healthy",
+    "message": "Socket server responding",
+    "url": "http:\/\/socket:1002\/health"
+}</pre>
+                            </div>
+
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">Real-Time Socket Monitoring</h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <h4 class="font-semibold mb-2 text-green-400">Primary Connection</h4>
+                                        <button onclick="testSocket()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white w-full mb-2">
+                                            Test Primary Host
+                                        </button>
+                                        <div class="text-xs text-gray-400">
+                                            Host: socket                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <h4 class="font-semibold mb-2 text-orange-400">Fallback System</h4>
+                                        <button onclick="testSocketFallback()" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded text-white w-full mb-2">
+                                            Test Fallback Hosts
+                                        </button>
+                                        <div class="text-xs text-gray-400">
+                                            Auto www/non-www variants
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <button onclick="testFullSocket()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white">
+                                        🔍 Complete System Test
+                                    </button>
+                                    <button onclick="monitorSocketHealth()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-white">
+                                        📊 Start Health Monitor
+                                    </button>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <button onclick="testSocketSecurity()" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded text-white">
+                                        🔒 Security Test (WSS)
+                                    </button>
+                                    <button onclick="clearTestResults()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white">
+                                        🗑️ Clear Results
+                                    </button>
+                                </div>
+                                
+                                <!-- Live Status Indicators -->
+                                <div class="mb-4 p-3 bg-gray-800 rounded">
+                                    <h4 class="font-semibold mb-2">Live Connection Status</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                                        <div class="flex items-center">
+                                            <div id="primaryStatus" class="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
+                                            <span>Primary Host</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <div id="fallbackStatus" class="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
+                                            <span>Fallback System</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <div id="securityStatus" class="w-3 h-3 bg-gray-500 rounded-full mr-2"></div>
+                                            <span>SSL/WSS Security</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="socket-test-result" class="mt-4 text-sm bg-black rounded p-3 max-h-80 overflow-y-auto font-mono">
+                                    <div class="text-green-400">[SYSTEM] Socket monitoring panel ready...</div>
+                                    <div class="text-gray-400">[INFO] Click any test button to begin monitoring</div>
+                                </div>
+                                
+                                <!-- Socket Fallback Configuration Display -->
+                                <div class="mt-6 pt-4 border-t border-gray-600">
+                                    <h4 class="text-md font-semibold mb-3">Fallback Host Configuration</h4>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center">
+                                            <span class="text-green-400 w-6">1.</span>
+                                            <span class="font-mono text-white"></span>
+                                            <span class="text-gray-400 ml-2">(Primary)</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <span class="text-yellow-400 w-6">2.</span>
+                                            <span class="font-mono text-white">
+                                                www.                                            </span>
+                                            <span class="text-gray-400 ml-2">(Fallback)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Docker Tab -->
+                    <div id="content-docker" class="tab-content hidden">
+                        <h2 class="text-2xl font-bold mb-6">Docker Container Status</h2>
+                        
+                        <div class="space-y-4">
+                                                            <div class="bg-gray-700 rounded-lg p-4">
+                                    <p class="text-gray-300">Docker information not available</p>
+                                </div>
+                                                    </div>
+                    </div>
+
+                    <!-- SSL/Security Tab -->
+                    <div id="content-ssl" class="tab-content hidden">
+                        <h2 class="text-2xl font-bold mb-6">SSL Certificate & Security</h2>
+                        
+                        <div class="space-y-6">
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">SSL Certificate Status</h3>
+                                <pre class="text-sm text-gray-300 whitespace-pre-wrap">{
+    "status": "not_applicable",
+    "message": "HTTPS not configured or local development",
+    "domain": "localhost"
+}</pre>
+                            </div>
+
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">Nginx Status</h3>
+                                <pre class="text-sm text-gray-300 whitespace-pre-wrap">{
+    "status": "unknown",
+    "running": false,
+    "config_test": "sh: 1: nginx: not found",
+    "note": "nginx status detection works only on Linux\/VPS with shell access"
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Environment Comparison Tab -->
+                    <div id="content-environment" class="tab-content hidden">
+                        <h2 class="text-2xl font-bold mb-6">Environment Configuration Comparison</h2>
+                        
+                        <!-- Current Environment Status -->
+                        <div class="bg-blue-800 rounded-lg p-4 mb-6">
+                            <h3 class="text-lg font-semibold mb-2">Current Environment Status</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <span class="text-gray-300">Active Environment:</span>
+                                    <span class="font-bold text-green-400">
+                                        DEVELOPMENT                                    </span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-300">Current Host:</span>
+                                    <span class="font-bold text-white">localhost:1001</span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-300">Socket Host:</span>
+                                    <span class="font-bold text-white">socket</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuration Comparison Table -->
+                        <div class="bg-gray-700 rounded-lg p-4 mb-6">
+                            <h3 class="text-lg font-semibold mb-4">Configuration Comparison</h3>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="border-b border-gray-600">
+                                            <th class="text-left py-2 px-3 text-gray-300">Configuration Key</th>
+                                            <th class="text-left py-2 px-3 text-red-400">Production</th>
+                                            <th class="text-left py-2 px-3 text-green-400">Development</th>
+                                            <th class="text-left py-2 px-3 text-gray-300">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                                                            </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Raw Configuration Files -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Production Configuration -->
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3 text-red-400">🔥 Production (.env.production)</h3>
+                                <div class="space-y-2 max-h-96 overflow-y-auto">
+                                                                            <p class="text-red-400">⚠️ Production environment file not found or empty!</p>
+                                                                    </div>
+                            </div>
+
+                            <!-- Development Configuration -->
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3 text-green-400">🛠️ Development (.env.development)</h3>
+                                <div class="space-y-2 max-h-96 overflow-y-auto">
+                                                                            <p class="text-red-400">⚠️ Development environment file not found or empty!</p>
+                                                                    </div>
+                            </div>
+                        </div>
+
+                        <!-- Environment Recommendations -->
+                        <div class="bg-yellow-800 rounded-lg p-4 mt-6">
+                            <h3 class="text-lg font-semibold mb-3 text-yellow-200">💡 Environment Recommendations</h3>
+                            <ul class="text-yellow-100 space-y-2">
+                                <li>• Ensure production uses HTTPS (APP_URL, SOCKET_PROTOCOL)</li>
+                                <li>• Production should have APP_DEBUG=false for security</li>
+                                <li>• Socket hosts should match the domain environment (www/non-www consistency)</li>
+                                <li>• Database credentials should be different between environments</li>
+                                <li>• Production should use secure session settings</li>
+                            </ul>
+                        </div>
+
+                        <!-- Environment Validation -->
+                        <div class="bg-purple-800 rounded-lg p-4 mt-6">
+                            <h3 class="text-lg font-semibold mb-3 text-purple-200">🔍 Environment Validation</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- Critical Settings Check -->
+                                <div class="space-y-2">
+                                    <h4 class="font-semibold text-purple-100">Critical Settings</h4>
+                                                                        <div class="flex items-center space-x-2">
+                                        <span class="text-red-400">❌</span>
+                                        <span class="text-purple-100">APP_ENV:</span>
+                                        <span class="font-mono text-sm text-red-400">development</span>
+                                    </div>
+                                                                        <div class="flex items-center space-x-2">
+                                        <span class="text-red-400">❌</span>
+                                        <span class="text-purple-100">APP_DEBUG:</span>
+                                        <span class="font-mono text-sm text-red-400">true</span>
+                                    </div>
+                                                                        <div class="flex items-center space-x-2">
+                                        <span class="text-red-400">❌</span>
+                                        <span class="text-purple-100">APP_URL:</span>
+                                        <span class="font-mono text-sm text-red-400"></span>
+                                    </div>
+                                                                    </div>
+                                
+                                <!-- Domain Consistency Check -->
+                                <div class="space-y-2">
+                                    <h4 class="font-semibold text-purple-100">Domain Consistency</h4>
+                                                                        <div class="flex items-center space-x-2">
+                                        <span class="text-red-400">❌</span>
+                                        <span class="text-purple-100">APP_URL & SOCKET_HOST match</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-green-400">✅</span>
+                                        <span class="text-purple-100">WWW consistency</span>
+                                    </div>
+                                    <div class="text-sm text-purple-200 mt-2">
+                                        APP: <br>
+                                        Socket:                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Actions -->
+                        <div class="bg-indigo-800 rounded-lg p-4 mt-6">
+                            <h3 class="text-lg font-semibold mb-3 text-indigo-200">⚡ Quick Actions</h3>
+                            <div class="flex flex-wrap gap-3">
+                                <button onclick="testEnvironmentSockets()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white">
+                                    Test Both Environment Sockets
+                                </button>
+                                <button onclick="copyEnvironmentDiff()" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-white">
+                                    Copy Differences to Clipboard
+                                </button>
+                                <button onclick="switchTab('socket')" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-white">
+                                    Go to Socket Testing
+                                </button>
+                            </div>
+                            <div id="environment-test-results" class="mt-4 p-3 bg-gray-700 rounded hidden">
+                                <h4 class="font-semibold mb-2">Test Results:</h4>
+                                <div id="environment-test-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Remove active styling from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('border-blue-500', 'text-blue-400');
+                button.classList.add('border-transparent', 'text-gray-400');
+            });
+            
+            // Show selected tab content
+            document.getElementById('content-' + tabName).classList.remove('hidden');
+            
+            // Style active tab button
+            const activeTab = document.getElementById('tab-' + tabName);
+            activeTab.classList.remove('border-transparent', 'text-gray-400');
+            activeTab.classList.add('border-blue-500', 'text-blue-400');
+        }
+
+        function testSocket() {
+            const resultDiv = document.getElementById('socket-test-result');
+            resultDiv.innerHTML = '<div class="text-yellow-400">🔄 Testing primary socket connection...</div>';
+            
+            const socketHost = "socket";
+            const socketSecure = false;
+            const protocol = socketSecure ? 'wss://' : 'ws://';
+            const socketUrl = protocol + socketHost + '/socket.io/';
+            
+            appendToResults(`🔍 Testing URL: ${socketUrl}`);
+            
+            try {
+                const socket = io(socketUrl, {
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000,
+                    forceNew: true
+                });
+                
+                const startTime = Date.now();
+                
+                socket.on('connect', () => {
+                    const connectTime = Date.now() - startTime;
+                    appendToResults(`✅ Primary socket connected successfully in ${connectTime}ms`);
+                    appendToResults(`📊 Transport: ${socket.io.engine.transport.name}`);
+                    socket.disconnect();
+                });
+                
+                socket.on('connect_error', (error) => {
+                    appendToResults(`❌ Primary socket connection failed: ${error.message}`);
+                });
+                
+                setTimeout(() => {
+                    if (!socket.connected) {
+                        appendToResults(`⏰ Primary socket connection timeout (10s)`);
+                        socket.disconnect();
+                    }
+                }, 10000);
+                
+            } catch (error) {
+                appendToResults(`💥 Socket test error: ${error.message}`);
+            }
+        }
+
+        function testSocketFallback() {
+            const resultDiv = document.getElementById('socket-test-result');
+            appendToResults('🔄 Testing fallback socket hosts...');
+            
+            const primaryHost = 'socket';
+            const socketSecure = false;
+            const protocol = socketSecure ? 'wss://' : 'ws://';
+            
+            // Generate fallback hosts
+            const fallbackHosts = [];
+            if (primaryHost.startsWith('www.')) {
+                fallbackHosts.push(primaryHost.replace('www.', ''));
+            } else if (!primaryHost.includes('localhost')) {
+                fallbackHosts.push('www.' + primaryHost);
+            }
+            fallbackHosts.push(primaryHost);
+            
+            // Remove duplicates
+            const uniqueHosts = [...new Set(fallbackHosts)];
+            
+            appendToResults(`📋 Testing ${uniqueHosts.length} host(s): ${uniqueHosts.join(', ')}`);
+            
+            let testCount = 0;
+            uniqueHosts.forEach((host, index) => {
+                const socketUrl = protocol + host + '/socket.io/';
+                appendToResults(`\n🔍 [${index + 1}] Testing: ${socketUrl}`);
+                
+                try {
+                    const socket = io(socketUrl, {
+                        transports: ['websocket', 'polling'],
+                        timeout: 8000,
+                        forceNew: true
+                    });
+                    
+                    const startTime = Date.now();
+                    
+                    socket.on('connect', () => {
+                        const connectTime = Date.now() - startTime;
+                        appendToResults(`✅ [${index + 1}] Connected in ${connectTime}ms (${socket.io.engine.transport.name})`);
+                        socket.disconnect();
+                        testCount++;
+                    });
+                    
+                    socket.on('connect_error', (error) => {
+                        appendToResults(`❌ [${index + 1}] Failed: ${error.message}`);
+                        testCount++;
+                    });
+                    
+                    setTimeout(() => {
+                        if (!socket.connected) {
+                            appendToResults(`⏰ [${index + 1}] Timeout`);
+                            socket.disconnect();
+                            testCount++;
+                        }
+                    }, 8000);
+                    
+                } catch (error) {
+                    appendToResults(`💥 [${index + 1}] Error: ${error.message}`);
+                    testCount++;
+                }
+            });
+        }
+
+        function testFullSocket() {
+            appendToResults('🚀 Starting comprehensive socket test...');
+            
+            // Test primary first
+            testSocket();
+            
+            // Wait a bit then test fallbacks
+            setTimeout(() => {
+                testSocketFallback();
+            }, 2000);
+            
+            // Test HTTP endpoints
+            setTimeout(() => {
+                testSocketEndpoints();
+            }, 4000);
+        }
+
+        function testSocketEndpoints() {
+            appendToResults('\n🌐 Testing socket HTTP endpoints...');
+            
+            const socketHost = 'socket';
+            const socketSecure = false;
+            const protocol = socketSecure ? 'https://' : 'http://';
+            
+            const endpoints = [
+                '/health',
+                '/socket-health',
+                '/socket.io/'
+            ];
+            
+            endpoints.forEach(endpoint => {
+                const url = protocol + socketHost + endpoint;
+                appendToResults(`🔍 Testing HTTP: ${url}`);
+                
+                fetch(url, { 
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'no-cache'
+                })
+                .then(response => {
+                    appendToResults(`✅ HTTP ${endpoint}: Status ${response.status} (${response.statusText})`);
+                })
+                .catch(error => {
+                    appendToResults(`❌ HTTP ${endpoint}: ${error.message}`);
+                });
+            });
+        }
+
+        function appendToResults(message) {
+            const resultDiv = document.getElementById('socket-test-result');
+            const timestamp = new Date().toLocaleTimeString();
+            resultDiv.innerHTML += `<div class="text-gray-300">[${timestamp}] ${message}</div>`;
+            resultDiv.scrollTop = resultDiv.scrollHeight;
+        }
+
+        function clearTestResults() {
+            const resultDiv = document.getElementById('socket-test-result');
+            resultDiv.innerHTML = '<div class="text-gray-500">Socket test results cleared. Click a test button to start testing.</div>';
+        }
+
+        function testEnvironmentSockets() {
+            const resultsDiv = document.getElementById('environment-test-results');
+            const contentDiv = document.getElementById('environment-test-content');
+            
+            resultsDiv.classList.remove('hidden');
+            contentDiv.innerHTML = '<div class="text-yellow-400">🔄 Testing socket connections for both environments...</div>';
+            
+            const prodSocket = "N\/A";
+            const devSocket = "N\/A";
+            const prodSecure = false;
+            const devSecure = false;
+            
+            let results = [];
+            
+            // Test production socket
+            if (prodSocket !== 'N/A') {
+                const prodProtocol = prodSecure ? 'wss://' : 'ws://';
+                const prodUrl = prodProtocol + prodSocket + '/socket.io/';
+                results.push(`🔥 Production: Testing ${prodUrl}`);
+                
+                try {
+                    const prodSocketTest = io(prodUrl, { timeout: 5000 });
+                    prodSocketTest.on('connect', () => {
+                        results.push('✅ Production socket: Connected successfully');
+                        prodSocketTest.disconnect();
+                        updateResults();
+                    });
+                    prodSocketTest.on('connect_error', (error) => {
+                        results.push(`❌ Production socket: ${error.message}`);
+                        updateResults();
+                    });
+                } catch (error) {
+                    results.push(`❌ Production socket: ${error.message}`);
+                }
+            }
+            
+            // Test development socket
+            if (devSocket !== 'N/A') {
+                const devProtocol = devSecure ? 'wss://' : 'ws://';
+                const devUrl = devProtocol + devSocket + ':' + "3001" + '/socket.io/';
+                results.push(`🛠️ Development: Testing ${devUrl}`);
+                
+                try {
+                    const devSocketTest = io(devUrl, { timeout: 5000 });
+                    devSocketTest.on('connect', () => {
+                        results.push('✅ Development socket: Connected successfully');
+                        devSocketTest.disconnect();
+                        updateResults();
+                    });
+                    devSocketTest.on('connect_error', (error) => {
+                        results.push(`❌ Development socket: ${error.message}`);
+                        updateResults();
+                    });
+                } catch (error) {
+                    results.push(`❌ Development socket: ${error.message}`);
+                }
+            }
+            
+            function updateResults() {
+                contentDiv.innerHTML = results.map(result => `<div>${result}</div>`).join('');
+            }
+            
+            // Initial update
+            updateResults();
+            
+            // Add timeout for final results
+            setTimeout(() => {
+                if (!results.some(r => r.includes('✅') || r.includes('❌'))) {
+                    results.push('⏰ Timeout: No response from socket servers');
+                    updateResults();
+                }
+            }, 10000);
+        }
+        
+        function copyEnvironmentDiff() {
+            const prodConfig = [];
+            const devConfig = [];
+            
+            let differences = "=== MisVord Environment Configuration Differences ===\n\n";
+            
+            const allKeys = [...new Set([...Object.keys(prodConfig), ...Object.keys(devConfig)])].sort();
+            
+            allKeys.forEach(key => {
+                const prodValue = prodConfig[key] || 'NOT_SET';
+                const devValue = devConfig[key] || 'NOT_SET';
+                
+                if (prodValue !== devValue) {
+                    differences += `${key}:\n`;
+                    differences += `  Production:  ${prodValue}\n`;
+                    differences += `  Development: ${devValue}\n\n`;
+                }
+            });
+            
+            if (differences === "=== MisVord Environment Configuration Differences ===\n\n") {
+                differences += "No differences found between environments.\n";
+            }
+            
+            navigator.clipboard.writeText(differences).then(() => {
+                alert('Environment differences copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy to clipboard:', err);
+                // Fallback: show in modal or new window
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(`<pre>${differences}</pre>`);
+            });
+        }
+
+        // Auto-refresh and live monitoring
+        let autoRefreshEnabled = true;
+        let autoRefreshInterval;
+
+        function updateCurrentTime() {
+            const timeElement = document.getElementById('current-time');
+            if (timeElement) {
+                timeElement.textContent = new Date().toLocaleString();
+            }
+        }
+
+        function toggleAutoRefresh() {
+            const btn = document.getElementById('autoRefreshBtn');
+            autoRefreshEnabled = !autoRefreshEnabled;
+            
+            if (autoRefreshEnabled) {
+                btn.textContent = 'Auto-Refresh: ON';
+                btn.className = 'bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm text-white';
+                startAutoRefresh();
+            } else {
+                btn.textContent = 'Auto-Refresh: OFF';
+                btn.className = 'bg-gray-600 hover:bg-gray-700 px-3 py-1 rounded text-sm text-white';
+                clearInterval(autoRefreshInterval);
+            }
+        }
+
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(() => {
+                if (autoRefreshEnabled) {
+                    location.reload();
+                }
+            }, 30000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update time every second
+            setInterval(updateCurrentTime, 1000);
+            
+            // Start auto-refresh
+            if (autoRefreshEnabled) {
+                startAutoRefresh();
+            }
+            
+            // Initialize socket test results
+            const resultDiv = document.getElementById('socket-test-result');
+            if (resultDiv && !resultDiv.innerHTML.trim()) {
+                resultDiv.innerHTML = '<div class="text-gray-500">Ready for socket testing. Click a test button above to begin.</div>';
+            }
+        });
+    </script>
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</body>
+</html>
