@@ -377,6 +377,77 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Frontend Socket Diagnostics -->
+                            <div class="bg-gray-700 rounded-lg p-4">
+                                <h3 class="text-lg font-semibold mb-3">Frontend Socket Diagnostics</h3>
+                                <p class="text-sm text-gray-400 mb-4">Real-time analysis of how the frontend connects to socket.io</p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div class="bg-gray-800 p-3 rounded">
+                                        <h4 class="font-semibold mb-2 text-blue-400">Meta Tag Configuration</h4>
+                                        <div class="space-y-1 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Host:</span>
+                                                <span id="meta-socket-host" class="text-white font-mono">Loading...</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Port:</span>
+                                                <span id="meta-socket-port" class="text-white font-mono">Loading...</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Secure:</span>
+                                                <span id="meta-socket-secure" class="text-white font-mono">Loading...</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Path:</span>
+                                                <span id="meta-socket-path" class="text-white font-mono">Loading...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-gray-800 p-3 rounded">
+                                        <h4 class="font-semibold mb-2 text-green-400">Frontend Connection Status</h4>
+                                        <div class="space-y-1 text-sm">
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Status:</span>
+                                                <span id="frontend-status" class="px-2 py-1 rounded text-xs">
+                                                    <i class="fas fa-circle text-gray-400 mr-1"></i>Unknown
+                                                </span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Final URL:</span>
+                                                <span id="frontend-url" class="text-white font-mono text-xs break-all">N/A</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Last Error:</span>
+                                                <span id="frontend-error" class="text-red-400 font-mono text-xs">None</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span class="text-gray-400">Attempts:</span>
+                                                <span id="frontend-attempts" class="text-white font-mono">0</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+                                    <button onclick="testFrontendSocketConfig()" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-white text-sm">
+                                        🔍 Test Frontend Config
+                                    </button>
+                                    <button onclick="simulateSocketConnection()" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-white text-sm">
+                                        🔌 Simulate Connection
+                                    </button>
+                                    <button onclick="diagnoseConnectionError()" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded text-white text-sm">
+                                        🚨 Diagnose Error
+                                    </button>
+                                </div>
+
+                                <div id="frontend-diagnostics-result" class="mt-4 text-sm bg-black rounded p-3 max-h-60 overflow-y-auto font-mono">
+                                    <div class="text-blue-400">[FRONTEND] Diagnostics panel ready...</div>
+                                    <div class="text-gray-400">[INFO] Click any test button to begin frontend analysis</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -949,6 +1020,237 @@ require_once dirname(__DIR__) . '/layout/head.php';
             }, 30000);
         }
 
+        // Frontend Socket Diagnostics Functions
+        function testFrontendSocketConfig() {
+            updateFrontendConfig();
+            const resultDiv = document.getElementById('frontend-diagnostics-result');
+            resultDiv.innerHTML = '<div class="text-yellow-400">[FRONTEND] 🔄 Testing frontend socket configuration...</div>';
+            
+            const metaHost = document.querySelector('meta[name="socket-host"]')?.content;
+            const metaPort = document.querySelector('meta[name="socket-port"]')?.content;
+            const metaSecure = document.querySelector('meta[name="socket-secure"]')?.content;
+            const metaPath = document.querySelector('meta[name="socket-base-path"]')?.content;
+            const isVPS = document.querySelector('meta[name="is-vps"]')?.content === 'true';
+            const isDocker = document.querySelector('meta[name="is-docker"]')?.content === 'true';
+            
+            appendToFrontendResults(`[CONFIG] Meta host: ${metaHost || 'undefined'}`);
+            appendToFrontendResults(`[CONFIG] Meta port: ${metaPort || 'undefined'}`);
+            appendToFrontendResults(`[CONFIG] Meta secure: ${metaSecure || 'undefined'}`);
+            appendToFrontendResults(`[CONFIG] Meta path: ${metaPath || 'undefined'}`);
+            appendToFrontendResults(`[CONFIG] Is VPS: ${isVPS}`);
+            appendToFrontendResults(`[CONFIG] Is Docker: ${isDocker}`);
+            appendToFrontendResults(`[CONFIG] Current page protocol: ${window.location.protocol}`);
+            appendToFrontendResults(`[CONFIG] Current page host: ${window.location.host}`);
+            
+            // Construct the socket URL that frontend would use
+            let finalHost = metaHost;
+            let finalPort = metaPort;
+            let finalSecure = metaSecure === 'true';
+            
+            if (window.location.protocol === 'https:' || isVPS) {
+                finalSecure = true;
+                appendToFrontendResults(`[AUTO] Forcing secure connection due to HTTPS/VPS`);
+            }
+            
+            const protocol = finalSecure ? 'wss://' : 'ws://';
+            const portPart = finalPort ? `:${finalPort}` : '';
+            const finalUrl = `${protocol}${finalHost}${portPart}${metaPath || '/socket.io/'}`;
+            
+            appendToFrontendResults(`[RESULT] Final socket URL: ${finalUrl}`);
+            
+            document.getElementById('frontend-url').textContent = finalUrl;
+            document.getElementById('frontend-status').innerHTML = '<i class="fas fa-circle text-yellow-400 mr-1"></i>Configured';
+        }
+
+        function simulateSocketConnection() {
+            const resultDiv = document.getElementById('frontend-diagnostics-result');
+            resultDiv.innerHTML = '<div class="text-yellow-400">[FRONTEND] 🔌 Simulating socket.io connection...</div>';
+            
+            const metaHost = document.querySelector('meta[name="socket-host"]')?.content;
+            const metaPort = document.querySelector('meta[name="socket-port"]')?.content;
+            const metaSecure = document.querySelector('meta[name="socket-secure"]')?.content;
+            const metaPath = document.querySelector('meta[name="socket-base-path"]')?.content;
+            const isVPS = document.querySelector('meta[name="is-vps"]')?.content === 'true';
+            
+            if (!metaHost) {
+                appendToFrontendResults(`[ERROR] No socket host found in meta tags!`);
+                document.getElementById('frontend-error').textContent = 'Missing meta tags';
+                return;
+            }
+            
+            let finalSecure = metaSecure === 'true';
+            if (window.location.protocol === 'https:' || isVPS) {
+                finalSecure = true;
+            }
+            
+            const protocol = finalSecure ? 'wss://' : 'ws://';
+            const portPart = metaPort ? `:${metaPort}` : '';
+            const socketUrl = `${protocol}${metaHost}${portPart}${metaPath || '/socket.io/'}`;
+            
+            appendToFrontendResults(`[CONNECT] Attempting connection to: ${socketUrl}`);
+            document.getElementById('frontend-url').textContent = socketUrl;
+            
+            let attempts = 0;
+            const maxAttempts = 3;
+            
+            function attemptConnection(url, attemptNum) {
+                attempts = attemptNum;
+                document.getElementById('frontend-attempts').textContent = attempts;
+                
+                appendToFrontendResults(`[ATTEMPT ${attemptNum}] Connecting to ${url}...`);
+                
+                try {
+                    const socket = io(url, {
+                        transports: ['websocket', 'polling'],
+                        timeout: 8000,
+                        forceNew: true
+                    });
+                    
+                    const startTime = Date.now();
+                    
+                    socket.on('connect', () => {
+                        const connectTime = Date.now() - startTime;
+                        appendToFrontendResults(`[SUCCESS] ✅ Connected in ${connectTime}ms`);
+                        appendToFrontendResults(`[INFO] Transport: ${socket.io.engine.transport.name}`);
+                        document.getElementById('frontend-status').innerHTML = '<i class="fas fa-circle text-green-400 mr-1"></i>Connected';
+                        document.getElementById('frontend-error').textContent = 'None';
+                        socket.disconnect();
+                    });
+                    
+                    socket.on('connect_error', (error) => {
+                        appendToFrontendResults(`[ERROR] ❌ Connection failed: ${error.message}`);
+                        document.getElementById('frontend-error').textContent = error.message;
+                        document.getElementById('frontend-status').innerHTML = '<i class="fas fa-circle text-red-400 mr-1"></i>Error';
+                        
+                        if (attemptNum < maxAttempts) {
+                            // Try fallback URL
+                            let fallbackHost = metaHost;
+                            if (metaHost.startsWith('www.')) {
+                                fallbackHost = metaHost.replace('www.', '');
+                            } else if (!metaHost.includes('localhost')) {
+                                fallbackHost = 'www.' + metaHost;
+                            }
+                            
+                            if (fallbackHost !== metaHost) {
+                                const fallbackUrl = `${protocol}${fallbackHost}${portPart}${metaPath || '/socket.io/'}`;
+                                appendToFrontendResults(`[FALLBACK] Trying fallback host: ${fallbackHost}`);
+                                setTimeout(() => attemptConnection(fallbackUrl, attemptNum + 1), 2000);
+                            }
+                        } else {
+                            appendToFrontendResults(`[FAILED] All connection attempts exhausted`);
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        if (!socket.connected) {
+                            appendToFrontendResults(`[TIMEOUT] Connection timeout after 8 seconds`);
+                            socket.disconnect();
+                        }
+                    }, 8000);
+                    
+                } catch (error) {
+                    appendToFrontendResults(`[EXCEPTION] ${error.message}`);
+                    document.getElementById('frontend-error').textContent = error.message;
+                }
+            }
+            
+            attemptConnection(socketUrl, 1);
+        }
+
+        function diagnoseConnectionError() {
+            const resultDiv = document.getElementById('frontend-diagnostics-result');
+            resultDiv.innerHTML = '<div class="text-red-400">[FRONTEND] 🚨 Diagnosing connection issues...</div>';
+            
+            // Get current configuration
+            const metaHost = document.querySelector('meta[name="socket-host"]')?.content;
+            const metaPort = document.querySelector('meta[name="socket-port"]')?.content;
+            const metaSecure = document.querySelector('meta[name="socket-secure"]')?.content;
+            const appUrl = document.querySelector('meta[name="app-url"]')?.content;
+            const isVPS = document.querySelector('meta[name="is-vps"]')?.content === 'true';
+            const isDocker = document.querySelector('meta[name="is-docker"]')?.content === 'true';
+            
+            appendToFrontendResults(`[DIAGNOSIS] Starting comprehensive error analysis...`);
+            
+            // Check 1: Meta tags presence
+            if (!metaHost) {
+                appendToFrontendResults(`[CRITICAL] ❌ Missing socket-host meta tag`);
+            } else {
+                appendToFrontendResults(`[OK] ✅ Socket host meta tag found: ${metaHost}`);
+            }
+            
+            // Check 2: Protocol mismatch
+            const pageHttps = window.location.protocol === 'https:';
+            const socketSecure = metaSecure === 'true';
+            
+            if (pageHttps && !socketSecure && !isVPS) {
+                appendToFrontendResults(`[WARNING] ⚠️ HTTPS page but socket not secure (potential mixed content)`);
+            }
+            
+            // Check 3: Host comparison with current page
+            const currentHost = window.location.hostname;
+            if (metaHost && metaHost !== currentHost && !metaHost.includes(currentHost) && !currentHost.includes(metaHost.replace('www.', ''))) {
+                appendToFrontendResults(`[WARNING] ⚠️ Socket host (${metaHost}) differs from page host (${currentHost})`);
+            }
+            
+            // Check 4: Port accessibility 
+            if (metaPort && isVPS) {
+                appendToFrontendResults(`[WARNING] ⚠️ VPS mode with explicit port - may cause issues`);
+            }
+            
+            // Check 5: Common error patterns
+            const commonErrors = [
+                { pattern: 'ERR_CONNECTION_REFUSED', cause: 'Socket server not running or wrong port' },
+                { pattern: 'ERR_NAME_NOT_RESOLVED', cause: 'DNS/hostname resolution issue' },
+                { pattern: 'ERR_CERT_AUTHORITY_INVALID', cause: 'SSL certificate issue' },
+                { pattern: 'Mixed Content', cause: 'HTTPS page trying to connect to HTTP socket' },
+                { pattern: 'CORS error', cause: 'Cross-origin request blocked' },
+                { pattern: 'timeout', cause: 'Socket server unreachable or slow' }
+            ];
+            
+            appendToFrontendResults(`[INFO] Common connection error patterns:`);
+            commonErrors.forEach(error => {
+                appendToFrontendResults(`[INFO]   • ${error.pattern}: ${error.cause}`);
+            });
+            
+            // Check 6: Generate recommendations
+            appendToFrontendResults(`[RECOMMENDATIONS] Suggested fixes:`);
+            
+            if (isVPS && metaPort) {
+                appendToFrontendResults(`[REC] 1. For VPS, try removing socket port from URL`);
+            }
+            
+            if (pageHttps && !socketSecure) {
+                appendToFrontendResults(`[REC] 2. Enable SOCKET_SECURE=true for HTTPS pages`);
+            }
+            
+            if (metaHost && metaHost.startsWith('www.') && !currentHost.startsWith('www.')) {
+                appendToFrontendResults(`[REC] 3. Check www vs non-www host consistency`);
+            }
+            
+            appendToFrontendResults(`[REC] 4. Verify socket server is running on correct port`);
+            appendToFrontendResults(`[REC] 5. Check firewall/network configuration`);
+            appendToFrontendResults(`[REC] 6. Test health endpoint: http(s)://${metaHost}:${metaPort || '80'}/health`);
+        }
+
+        function updateFrontendConfig() {
+            const metaHost = document.querySelector('meta[name="socket-host"]')?.content || 'N/A';
+            const metaPort = document.querySelector('meta[name="socket-port"]')?.content || 'N/A';
+            const metaSecure = document.querySelector('meta[name="socket-secure"]')?.content || 'N/A';
+            const metaPath = document.querySelector('meta[name="socket-base-path"]')?.content || 'N/A';
+            
+            document.getElementById('meta-socket-host').textContent = metaHost;
+            document.getElementById('meta-socket-port').textContent = metaPort;
+            document.getElementById('meta-socket-secure').textContent = metaSecure;
+            document.getElementById('meta-socket-path').textContent = metaPath;
+        }
+
+        function appendToFrontendResults(message) {
+            const resultDiv = document.getElementById('frontend-diagnostics-result');
+            const timestamp = new Date().toLocaleTimeString();
+            resultDiv.innerHTML += `<div class="text-gray-300">[${timestamp}] ${message}</div>`;
+            resultDiv.scrollTop = resultDiv.scrollHeight;
+        }
+
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             // Update time every second
@@ -964,6 +1266,9 @@ require_once dirname(__DIR__) . '/layout/head.php';
             if (resultDiv && !resultDiv.innerHTML.trim()) {
                 resultDiv.innerHTML = '<div class="text-gray-500">Ready for socket testing. Click a test button above to begin.</div>';
             }
+            
+            // Initialize frontend diagnostics
+            updateFrontendConfig();
         });
     </script>
 
