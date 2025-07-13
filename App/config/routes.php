@@ -1793,17 +1793,9 @@ Route::get('/debug', function() {
     
     // Check if already authenticated
     if (!isset($_SESSION['debug_authenticated']) || $_SESSION['debug_authenticated'] !== true) {
-        // Show authentication form
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
-            $correctPassword = 'debug123'; // Change this to a secure password
-            if ($_POST['password'] === $correctPassword) {
-                $_SESSION['debug_authenticated'] = true;
-                header('Location: /debug');
-                exit;
-            } else {
-                $error = 'Invalid password';
-            }
-        }
+        // Get error message from session if any
+        $error = $_SESSION['debug_error'] ?? null;
+        unset($_SESSION['debug_error']); // Clear it after reading
         
         // Show login form
         ?>
@@ -1841,75 +1833,29 @@ Route::get('/debug', function() {
         exit;
     }
     
-    // User is authenticated, show debug page
     require_once __DIR__ . '/../views/pages/debug.php';
 });
 
-// Debug panel POST route for authentication
 Route::post('/debug', function() {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
     
-    // Handle logout
-    if (isset($_GET['logout'])) {
-        session_destroy();
-        header('Location: /debug');
-        exit;
-    }
-    
-    // Check if already authenticated
-    if (!isset($_SESSION['debug_authenticated']) || $_SESSION['debug_authenticated'] !== true) {
-        // Show authentication form
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
-            $correctPassword = 'debug123'; // Change this to a secure password
-            if ($_POST['password'] === $correctPassword) {
-                $_SESSION['debug_authenticated'] = true;
-                header('Location: /debug');
-                exit;
-            } else {
-                $error = 'Invalid password';
-            }
+    if (isset($_POST['password'])) {
+        $correctPassword = 'Miawmiaw123@'; 
+        if ($_POST['password'] === $correctPassword) {
+            $_SESSION['debug_authenticated'] = true;
+            header('Location: /debug');
+            exit;
+        } else {
+            $_SESSION['debug_error'] = 'Invalid password';
+            header('Location: /debug');
+            exit;
         }
-        
-        // Show login form
-        ?>
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Debug Panel Access - MisVord</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-        </head>
-        <body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
-            <div class="bg-gray-800 p-8 rounded-lg shadow-lg w-96">
-                <h1 class="text-2xl font-bold mb-6 text-center">🔧 Debug Panel Access</h1>
-                <form method="POST" class="space-y-4">
-                    <div>
-                        <label for="password" class="block text-sm font-medium mb-2">Password:</label>
-                        <input type="password" id="password" name="password" required 
-                               class="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <?php if (isset($error)): ?>
-                    <div class="text-red-400 text-sm"><?php echo htmlspecialchars($error); ?></div>
-                    <?php endif; ?>
-                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 py-2 rounded font-medium">
-                        Access Debug Panel
-                    </button>
-                </form>
-                <div class="mt-4 text-center">
-                    <a href="/home" class="text-blue-400 hover:text-blue-300 text-sm">← Back to App</a>
-                </div>
-            </div>
-        </body>
-        </html>
-        <?php
-        exit;
     }
     
-    // User is authenticated, show debug page
-    require_once __DIR__ . '/../views/pages/debug.php';
+    header('Location: /debug');
+    exit;
 });
 
 return array_merge(Route::getRoutes(), [

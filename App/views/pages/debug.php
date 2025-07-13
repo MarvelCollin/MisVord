@@ -1,6 +1,10 @@
 <?php
 require_once dirname(__DIR__, 2) . '/config/app.php';
 
+// Suppress any PHP warnings/errors from appearing in output
+error_reporting(E_ERROR | E_PARSE);
+ini_set('display_errors', '0');
+
 // Authentication is now handled in routes.php
 
 // Load environment configurations for comparison
@@ -8,17 +12,24 @@ function loadEnvironmentConfig($envFile) {
     $config = [];
     $envPath = dirname(__DIR__, 2) . '/' . $envFile;
     
-    if (file_exists($envPath)) {
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (strpos($line, '#') === 0 || empty($line)) {
-                continue;
+    try {
+        if (file_exists($envPath)) {
+            $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (strpos($line, '#') === 0 || empty($line)) {
+                    continue;
+                }
+                
+                if (strpos($line, '=') !== false) {
+                    list($key, $value) = explode('=', $line, 2);
+                    $config[trim($key)] = trim($value, '"\'');
+                }
             }
-            
-            list($key, $value) = explode('=', $line, 2);
-            $config[trim($key)] = trim($value, '"\'');
         }
+    } catch (Exception $e) {
+        // If there's any error loading the config, return empty array
+        error_log("Error loading environment config from $envFile: " . $e->getMessage());
     }
     
     return $config;
@@ -28,9 +39,34 @@ $prodConfig = loadEnvironmentConfig('.env.production');
 $devConfig = loadEnvironmentConfig('.env.development');
 
 $controller = new DebugController();
-$systemStats = $controller->getSystemStats();
-$healthCheck = $controller->getVpsHealthCheck();
-$databaseDebug = $controller->getDatabaseDebugInfo();
+
+try {
+    $systemStats = $controller->getSystemStats();
+} catch (Exception $e) {
+    $systemStats = [
+        'server_info' => [],
+        'environment' => ['app_env' => 'unknown', 'app_debug' => 'false', 'is_vps' => 'false'],
+        'socket_config' => ['socket_host' => 'localhost', 'socket_port' => '3001']
+    ];
+}
+
+try {
+    $healthCheck = $controller->getVpsHealthCheck();
+} catch (Exception $e) {
+    $healthCheck = [
+        'checks' => [
+            'database' => ['status' => 'unknown', 'stats' => ['total_users' => 0]],
+            'socket_server' => ['status' => 'unknown'],
+            'disk_space' => ['used_percent' => 0, 'used_gb' => 0, 'total_gb' => 0]
+        ]
+    ];
+}
+
+try {
+    $databaseDebug = $controller->getDatabaseDebugInfo();
+} catch (Exception $e) {
+    $databaseDebug = 'Database debug info unavailable';
+}
 ?>
 
 <!DOCTYPE html>
@@ -69,28 +105,28 @@ require_once dirname(__DIR__) . '/layout/head.php';
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                     <h3 class="text-lg font-semibold mb-2">Environment</h3>
-                    <div class="text-2xl font-bold <?php echo $systemStats['environment']['app_env'] === 'production' ? 'text-red-400' : 'text-green-400'; ?>">
-                        <?php echo strtoupper($systemStats['environment']['app_env']); ?>
+                    <div class="text-2xl font-bold <?php echo ($systemStats['environment']['app_env'] ?? 'unknown') === 'production' ? 'text-red-400' : 'text-green-400'; ?>">
+                        <?php echo strtoupper($systemStats['environment']['app_env'] ?? 'unknown'); ?>
                     </div>
                     <p class="text-gray-400 text-sm">
-                        <?php echo $systemStats['environment']['is_vps'] === 'true' ? 'VPS Mode' : 'Local Mode'; ?>
+                        <?php echo ($systemStats['environment']['is_vps'] ?? 'false') === 'true' ? 'VPS Mode' : 'Local Mode'; ?>
                     </p>
                 </div>
 
                 <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                     <h3 class="text-lg font-semibold mb-2">Socket Server</h3>
-                    <div class="text-2xl font-bold <?php echo $healthCheck['checks']['socket_server']['status'] === 'healthy' ? 'text-green-400' : 'text-red-400'; ?>">
-                        <?php echo strtoupper($healthCheck['checks']['socket_server']['status']); ?>
+                    <div class="text-2xl font-bold <?php echo ($healthCheck['checks']['socket_server']['status'] ?? 'unknown') === 'healthy' ? 'text-green-400' : 'text-red-400'; ?>">
+                        <?php echo strtoupper($healthCheck['checks']['socket_server']['status'] ?? 'unknown'); ?>
                     </div>
                     <p class="text-gray-400 text-sm">
-                        <?php echo $systemStats['socket_config']['socket_host']; ?>
+                        <?php echo $systemStats['socket_config']['socket_host'] ?? 'localhost'; ?>
                     </p>
                 </div>
 
                 <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                     <h3 class="text-lg font-semibold mb-2">Database</h3>
-                    <div class="text-2xl font-bold <?php echo $healthCheck['checks']['database']['status'] === 'healthy' ? 'text-green-400' : 'text-red-400'; ?>">
-                        <?php echo strtoupper($healthCheck['checks']['database']['status']); ?>
+                    <div class="text-2xl font-bold <?php echo ($healthCheck['checks']['database']['status'] ?? 'unknown') === 'healthy' ? 'text-green-400' : 'text-red-400'; ?>">
+                        <?php echo strtoupper($healthCheck['checks']['database']['status'] ?? 'unknown'); ?>
                     </div>
                     <p class="text-gray-400 text-sm">
                         <?php echo $healthCheck['checks']['database']['stats']['total_users'] ?? 0; ?> users
@@ -99,11 +135,11 @@ require_once dirname(__DIR__) . '/layout/head.php';
 
                 <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                     <h3 class="text-lg font-semibold mb-2">Disk Usage</h3>
-                    <div class="text-2xl font-bold <?php echo $healthCheck['checks']['disk_space']['used_percent'] > 90 ? 'text-red-400' : ($healthCheck['checks']['disk_space']['used_percent'] > 70 ? 'text-yellow-400' : 'text-green-400'); ?>">
-                        <?php echo $healthCheck['checks']['disk_space']['used_percent']; ?>%
+                    <div class="text-2xl font-bold <?php echo ($healthCheck['checks']['disk_space']['used_percent'] ?? 0) > 90 ? 'text-red-400' : (($healthCheck['checks']['disk_space']['used_percent'] ?? 0) > 70 ? 'text-yellow-400' : 'text-green-400'); ?>">
+                        <?php echo $healthCheck['checks']['disk_space']['used_percent'] ?? 0; ?>%
                     </div>
                     <p class="text-gray-400 text-sm">
-                        <?php echo $healthCheck['checks']['disk_space']['used_gb']; ?>GB / <?php echo $healthCheck['checks']['disk_space']['total_gb']; ?>GB
+                        <?php echo $healthCheck['checks']['disk_space']['used_gb'] ?? 0; ?>GB / <?php echo $healthCheck['checks']['disk_space']['total_gb'] ?? 0; ?>GB
                     </p>
                 </div>
             </div>
@@ -610,8 +646,8 @@ require_once dirname(__DIR__) . '/layout/head.php';
             const resultDiv = document.getElementById('socket-test-result');
             resultDiv.innerHTML = '<div class="text-yellow-400">🔄 Testing primary socket connection...</div>';
             
-            const socketHost = '<?php echo $systemStats['socket_config']['socket_host']; ?>';
-            const socketSecure = <?php echo $systemStats['environment']['use_https'] === 'true' ? 'true' : 'false'; ?>;
+            const socketHost = <?php echo json_encode($systemStats['socket_config']['socket_host'] ?? 'localhost'); ?>;
+            const socketSecure = <?php echo json_encode(strpos($systemStats['environment']['app_url'] ?? '', 'https://') === 0); ?>;
             const protocol = socketSecure ? 'wss://' : 'ws://';
             const socketUrl = protocol + socketHost + '/socket.io/';
             
@@ -779,10 +815,10 @@ require_once dirname(__DIR__) . '/layout/head.php';
             resultsDiv.classList.remove('hidden');
             contentDiv.innerHTML = '<div class="text-yellow-400">🔄 Testing socket connections for both environments...</div>';
             
-            const prodSocket = '<?php echo $prodConfig['SOCKET_HOST'] ?? 'N/A'; ?>';
-            const devSocket = '<?php echo $devConfig['SOCKET_HOST'] ?? 'N/A'; ?>';
-            const prodSecure = <?php echo ($prodConfig['SOCKET_SECURE'] ?? 'false') === 'true' ? 'true' : 'false'; ?>;
-            const devSecure = <?php echo ($devConfig['SOCKET_SECURE'] ?? 'false') === 'true' ? 'true' : 'false'; ?>;
+            const prodSocket = <?php echo json_encode($prodConfig['SOCKET_HOST'] ?? 'N/A'); ?>;
+            const devSocket = <?php echo json_encode($devConfig['SOCKET_HOST'] ?? 'N/A'); ?>;
+            const prodSecure = <?php echo json_encode(($prodConfig['SOCKET_SECURE'] ?? 'false') === 'true'); ?>;
+            const devSecure = <?php echo json_encode(($devConfig['SOCKET_SECURE'] ?? 'false') === 'true'); ?>;
             
             let results = [];
             
@@ -811,7 +847,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             // Test development socket
             if (devSocket !== 'N/A') {
                 const devProtocol = devSecure ? 'wss://' : 'ws://';
-                const devUrl = devProtocol + devSocket + ':<?php echo $devConfig['SOCKET_PORT'] ?? '3001'; ?>/socket.io/';
+                const devUrl = devProtocol + devSocket + ':' + <?php echo json_encode($devConfig['SOCKET_PORT'] ?? '3001'); ?> + '/socket.io/';
                 results.push(`🛠️ Development: Testing ${devUrl}`);
                 
                 try {
