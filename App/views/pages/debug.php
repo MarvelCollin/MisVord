@@ -840,8 +840,11 @@ require_once dirname(__DIR__) . '/layout/head.php';
             appendToResults('\n🌐 Testing socket HTTP endpoints...');
             
             const socketHost = '<?php echo $systemStats['socket_config']['socket_host']; ?>';
-            const socketSecure = <?php echo $systemStats['environment']['use_https'] === 'true' ? 'true' : 'false'; ?>;
-            const protocol = socketSecure ? 'https://' : 'http://';
+            const isVPS = <?php echo $systemStats['environment']['is_vps'] === 'true' ? 'true' : 'false'; ?>;
+            const useHttps = <?php echo $systemStats['environment']['use_https'] === 'true' ? 'true' : 'false'; ?>;
+            
+            // For VPS, always use HTTPS to avoid CSP violations
+            const protocol = (isVPS || useHttps || window.location.protocol === 'https:') ? 'https://' : 'http://';
             
             const endpoints = [
                 '/health',
@@ -859,7 +862,11 @@ require_once dirname(__DIR__) . '/layout/head.php';
                     cache: 'no-cache'
                 })
                 .then(response => {
-                    appendToResults(`✅ HTTP ${endpoint}: Status ${response.status} (${response.statusText})`);
+                    if (response.ok) {
+                        appendToResults(`✅ HTTP ${endpoint}: Status ${response.status} (${response.statusText})`);
+                    } else {
+                        appendToResults(`⚠️ HTTP ${endpoint}: Status ${response.status} (${response.statusText})`);
+                    }
                 })
                 .catch(error => {
                     appendToResults(`❌ HTTP ${endpoint}: ${error.message}`);

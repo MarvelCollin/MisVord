@@ -59,7 +59,8 @@ $pageIsHttps = $pageIsHttps || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_S
 $pageIsHttps = $pageIsHttps || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https');
 
 if ($isVPS && $vpsHost !== 'localhost') {
-    $frontendSocketHost = $vpsHost;
+    // Use SOCKET_HOST for VPS to ensure consistency with socket server configuration
+    $frontendSocketHost = $socketHost;
     $frontendSocketPort = '';
     $frontendSocketSecure = 'true';
 } elseif ($isDocker) {
