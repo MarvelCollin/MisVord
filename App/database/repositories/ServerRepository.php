@@ -347,12 +347,7 @@ class ServerRepository extends Repository {
             ->count();
     }
     
-    /**
-     * Get servers owned by a specific user
-     * 
-     * @param int $ownerId The user ID of the owner
-     * @return array Array of server objects
-     */
+    
     public function getServersByOwnerId($ownerId) {
         $query = new Query();
         $results = $query->table('servers s')

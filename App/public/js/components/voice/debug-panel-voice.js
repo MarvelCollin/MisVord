@@ -1,7 +1,4 @@
-/**
- * Voice Debug Panel
- * Displays real-time information about voice participants across channels
- */
+
 
 
 if (typeof window.VoiceDebugPanel === 'undefined') {
@@ -355,7 +352,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
 
             if (this.currentChannelId === channelId && this.participants.local.size > 0) {
                 this.participants.local.forEach((data, id) => {
-                    if (!id.startsWith('bot-')) { // 
+                    if (!id.startsWith('bot-')) { 
                         participants.push({
                             id: id,
                             name: data.name || data.username || 'Unknown',

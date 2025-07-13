@@ -455,7 +455,7 @@ ob_start();
                     </form>
                 </div>
                 
-                <!-- Nitro Stats Card -->
+                
                 <div class="bg-discord-darker rounded-lg p-6">
                     <h3 class="text-lg font-medium mb-4">Nitro Statistics</h3>
                     <div class="flex flex-col">
@@ -520,7 +520,7 @@ ob_start();
 
 
 
-<!-- Discord-style confirmation modal -->
+
 <div id="confirm-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
     <div class="bg-discord-darker rounded-md w-full max-w-md p-6 relative z-10">
                     <div class="flex justify-between items-center mb-4">

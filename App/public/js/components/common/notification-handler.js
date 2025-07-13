@@ -276,7 +276,6 @@ class GlobalNotificationHandler {
             const soundsEnabled = localStorage.getItem('message_sounds_enabled') !== 'false';
             
             if (!soundsEnabled) {
-                ');
                 return;
             }
             

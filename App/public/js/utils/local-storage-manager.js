@@ -1,6 +1,4 @@
-/**
- * Local Storage Manager for Server Groups
- */
+
 class LocalStorageManager {
     constructor() {
         this.keys = {
@@ -249,7 +247,7 @@ class LocalStorageManager {
 
         if (updated.isConnected === false && !updated.channelId && !updated.meetingId) {
             this.remove(this.keys.UNIFIED_VOICE_STATE);
-            this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); // 
+            this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); 
             return true;
         }
         

@@ -2,7 +2,7 @@ class ChannelVoiceParticipants {
     constructor() {
         this.externalParticipants = new Map(); 
         this.debugPanel = null; 
-        this.updateTimers = new Map(); // 
+        this.updateTimers = new Map(); 
         this.init();
     }
     
@@ -253,10 +253,8 @@ class ChannelVoiceParticipants {
                         username: data.username || 'Unknown',
                         avatar_url: data.avatar_url || '/public/assets/common/default-profile-picture.png'
                     });
-                    `);
                 } else if (data.action === 'leave') {
                     const removed = map.delete(data.user_id);
-                    `);
                     
 
                     this.updateSidebarForChannel(chan, 'full');
@@ -324,7 +322,6 @@ class ChannelVoiceParticipants {
                         avatar_url: p.avatar_url || '/public/assets/common/default-profile-picture.png'
                     });
                 });
-                `);
             }
 
             this.updateChannelCount(data.channel_id, data.participant_count || 0);
@@ -418,7 +415,7 @@ class ChannelVoiceParticipants {
         this.updateTimers.set(debounceKey, setTimeout(() => {
             this.updateSidebarForChannel(channelId, mode);
             this.updateTimers.delete(debounceKey);
-        }, mode === 'append' ? 50 : 100)); // 
+        }, mode === 'append' ? 50 : 100)); 
     }
     
     updateSidebarForChannel(channelId, mode = 'full') {
@@ -429,7 +426,7 @@ class ChannelVoiceParticipants {
         
 
         const renderList = [];
-        const participantIds = new Set(); // 
+        const participantIds = new Set(); 
 
         
 
@@ -550,7 +547,7 @@ class ChannelVoiceParticipants {
         const isBot = participant.isBot || false;
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
         const isSelf = !isBot && currentUserId && (String(participant.user_id) === currentUserId || String(participant.id) === currentUserId);
-        const botStatus = participant.status || 'Ready to play music'; // 
+        const botStatus = participant.status || 'Ready to play music'; 
 
         const avatarHTML = `
             <div class="relative">
@@ -750,10 +747,7 @@ class ChannelVoiceParticipants {
         return window._channelVoiceParticipants;
     }
 
-    /**
-     * Force refresh participant list from server for a specific channel
-     * This helps clean up any stale UI state that might not have been properly updated
-     */
+    
     forceRefreshChannel(channelId) {
         if (!channelId || !window.globalSocketManager?.io) return;
         
@@ -776,10 +770,7 @@ class ChannelVoiceParticipants {
         }, 100);
     }
 
-    /**
-     * Detect and clean up stale participants across all channels
-     * Call this periodically or when suspicious state is detected
-     */
+    
     cleanupStaleParticipants() {
         
         
@@ -834,7 +825,7 @@ class ChannelVoiceParticipants {
 
         const existingElements = Array.from(container.querySelectorAll('.voice-participant-card'));
         const str = (v) => v != null ? String(v) : '';
-        const existingMap = new Map(); // 
+        const existingMap = new Map(); 
         
         existingElements.forEach(el => {
             const userId = str(el.getAttribute('data-user-id'));

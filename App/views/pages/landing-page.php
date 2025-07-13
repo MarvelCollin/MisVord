@@ -129,7 +129,7 @@ $content = ob_get_clean();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title); ?></title>
 
-    <!-- Favicon -->
+    
     <link rel="icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
     <link rel="shortcut icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
 

@@ -80,9 +80,7 @@ class UserDataHelper {
         return window.userAPI || null;
     }
 
-    /**
-     * Fetch user profile data with caching
-     */
+    
     async getUserData(participantId, participantName = null) {
 
         
@@ -170,9 +168,7 @@ class UserDataHelper {
         }
     }
 
-    /**
-     * Fetch user profile from API
-     */
+    
     async fetchUserProfile(userId, fallbackName = null) {
         const userAPI = await this.waitForUserAPI();
         
@@ -200,9 +196,7 @@ class UserDataHelper {
         }
     }
 
-    /**
-     * Search for user by username (for VideoSDK participants)
-     */
+    
     async searchUserByUsername(username) {
         const userAPI = await this.waitForUserAPI();
         
@@ -236,9 +230,7 @@ class UserDataHelper {
         }
     }
 
-    /**
-     * Get current user data from meta tags
-     */
+    
     getCurrentUserData() {
         const userId = document.querySelector('meta[name="user-id"]')?.content;
         const username = document.querySelector('meta[name="username"]')?.content;
@@ -252,9 +244,7 @@ class UserDataHelper {
         };
     }
 
-    /**
-     * Update avatar image element with user data
-     */
+    
     updateAvatarElement(imgElement, initialsElement, userData) {
         if (!imgElement || !userData) {
             console.warn('[UserDataHelper] updateAvatarElement called with missing parameters:', { imgElement: !!imgElement, userData: !!userData });
@@ -315,9 +305,7 @@ class UserDataHelper {
         }
     }
 
-    /**
-     * Get initials from display name
-     */
+    
     getInitials(name) {
         if (!name) return '?';
         return name.split(' ')
@@ -326,17 +314,13 @@ class UserDataHelper {
             .join('');
     }
 
-    /**
-     * Clear cache (useful for testing or when user data changes)
-     */
+    
     clearCache() {
         this.cache.clear();
         this.pendingRequests.clear();
     }
 
-    /**
-     * Get singleton instance
-     */
+    
     static getInstance() {
         if (!window._userDataHelper) {
             window._userDataHelper = new UserDataHelper();
@@ -378,4 +362,4 @@ window.testVideoSDKParticipant = function(participantId, participantName) {
             console.error('❌ Failed to get user data:', error);
         });
 };
-} // 
+} 

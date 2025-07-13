@@ -322,9 +322,7 @@ function initCloseButton() {
     });
 }
 
-/**
- * Update server name in various UI elements
- */
+
 function updateServerNameInUI(newName) {
     const sidebarServerName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold');
     if (sidebarServerName) {
@@ -334,9 +332,7 @@ function updateServerNameInUI(newName) {
     document.title = `MisVord - ${newName} Settings`;
 }
 
-/**
- * Update server name in preview
- */
+
 function updateServerNamePreview(newName) {
     const serverNamePreview = document.querySelector('.server-name');
     if (serverNamePreview) {
@@ -344,9 +340,7 @@ function updateServerNamePreview(newName) {
     }
 }
 
-/**
- * Update server description in preview
- */
+
 function updateServerDescriptionPreview(newDescription) {
     const serverDescriptionPreview = document.querySelector('.server-description-preview');
     if (serverDescriptionPreview) {
@@ -354,9 +348,7 @@ function updateServerDescriptionPreview(newDescription) {
     }
 }
 
-/**
- * Convert data URL to Blob
- */
+
 function dataURLtoBlob(dataURL) {
     const arr = dataURL.split(',');
     const mime = arr[0].match(/:(.*?);/)[1];
@@ -371,9 +363,7 @@ function dataURLtoBlob(dataURL) {
     return new Blob([u8arr], { type: mime });
 }
 
-/**
- * Debounce function to limit how often a function is called
- */
+
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
@@ -384,9 +374,7 @@ function debounce(func, wait) {
 
 
 
-/**
- * Initialize the member management tab functionality
- */
+
 function initMemberManagementTab() {
     const membersList = document.getElementById('members-list');
     const memberSearch = document.getElementById('member-search');
@@ -741,7 +729,7 @@ function initMemberManagementTab() {
 
                     const checkIcon = confirmBtn.querySelector('i');
                     if (checkIcon) {
-                        confirmBtn.innerHTML = ''; // 
+                        confirmBtn.innerHTML = ''; 
                         const iconEl = document.createElement('i');
                         iconEl.className = 'fas fa-check mr-2';
                         confirmBtn.appendChild(iconEl);
@@ -945,7 +933,7 @@ function initMemberManagementTab() {
 
                 const newRole = response.new_role ? 
                     response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
-                    'Admin'; // 
+                    'Admin'; 
                 
                 showToast(`${member.display_name || member.username} has been promoted to ${newRole}`, 'success', 5000, 'Member Promoted');
                 loadMembers();
@@ -971,7 +959,7 @@ function initMemberManagementTab() {
 
                 const newRole = response.new_role ? 
                     response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
-                    'Member'; // 
+                    'Member'; 
                 
                 showToast(`${member.display_name || member.username} has been demoted to ${newRole}`, 'success', 5000, 'Member Demoted');
                 loadMembers();
@@ -1059,9 +1047,7 @@ function initMemberManagementTab() {
     loadMembers();
 }
 
-/**
- * Initialize the channel management tab functionality
- */
+
 function initChannelManagementTab() {
     const channelsList = document.getElementById('channels-list');
     const channelSearch = document.getElementById('channel-search');
@@ -1390,10 +1376,10 @@ function initChannelManagementTab() {
                                 handleRenameChannel(channel, newName);
                             } else {
                                 showToast('Please enter a different name for the channel', 'info');
-                                return false; // 
+                                return false; 
                             }
                         }
-                        return true; // 
+                        return true; 
                     };
                     break;
                     
@@ -1578,9 +1564,7 @@ function initChannelManagementTab() {
     loadChannels();
 }
 
-/**
- * Update the server banner in the preview panel
- */
+
 function updateServerPreviewBanner(imageUrl) {
     const previewBanner = document.querySelector('.server-banner');
     
@@ -1590,9 +1574,7 @@ function updateServerPreviewBanner(imageUrl) {
     }
 }
 
-/**
- * Reset the server banner in the preview panel
- */
+
 function resetServerPreviewBanner() {
     const previewBanner = document.querySelector('.server-banner');
     
@@ -1602,9 +1584,7 @@ function resetServerPreviewBanner() {
     }
 }
 
-/**
- * Initialize the delete server tab functionality
- */
+
 function initDeleteServerTab() {
     const openDeleteModalBtn = document.getElementById('open-delete-modal');
     const deleteServerModal = document.getElementById('delete-server-modal');
@@ -1945,7 +1925,7 @@ function initDeleteServerTab() {
                         item.style.transition = 'all 0.2s ease';
                         item.style.opacity = '1';
                         item.style.transform = 'translateY(0)';
-                    }, index * 50); // 
+                    }, index * 50); 
                 });
             }, 300);
         }, 300));
@@ -2035,9 +2015,7 @@ function initDeleteServerTab() {
     }
 }
 
-/**
- * Initialize approve buttons for server input fields
- */
+
 function initServerInputApproveButtons(serverId) {
 
     const serverNameInput = document.getElementById('server-name');
@@ -2125,9 +2103,7 @@ function initServerInputApproveButtons(serverId) {
     }
 }
 
-/**
- * Check for changes and show/hide approve button
- */
+
 function checkForChanges(input, approveBtn) {
     if (!input || !approveBtn) return;
     
@@ -2149,9 +2125,7 @@ function checkForChanges(input, approveBtn) {
     }
 }
 
-/**
- * Check for checkbox changes
- */
+
 function checkForChangesCheckbox(input, approveBtn) {
     if (!input || !approveBtn) return;
     
@@ -2173,9 +2147,7 @@ function checkForChangesCheckbox(input, approveBtn) {
     }
 }
 
-/**
- * Update server name
- */
+
 async function updateServerName(serverId, name) {
     const approveBtn = document.getElementById('approve-server-name');
     const nameInput = document.getElementById('server-name');
@@ -2229,9 +2201,7 @@ async function updateServerName(serverId, name) {
     }
 }
 
-/**
- * Update server description
- */
+
 async function updateServerDescription(serverId, description) {
     const approveBtn = document.getElementById('approve-server-description');
     const descriptionInput = document.getElementById('server-description');
@@ -2271,9 +2241,7 @@ async function updateServerDescription(serverId, description) {
     }
 }
 
-/**
- * Update server public status
- */
+
 async function updateServerPublic(serverId, isPublic) {
     const approveBtn = document.getElementById('approve-is-public');
     const publicInput = document.getElementById('is-public');
@@ -2350,9 +2318,7 @@ async function updateServerPublic(serverId, isPublic) {
     }
 }
 
-/**
- * Update server category
- */
+
 async function updateServerCategory(serverId, category) {
     const approveBtn = document.getElementById('approve-server-category');
     const categoryInput = document.getElementById('server-category');

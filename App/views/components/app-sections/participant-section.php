@@ -21,7 +21,7 @@ foreach ($members as $member) {
     $isBot = isset($member['status']) && $member['status'] === 'bot';
     
 
-    $isInVoice = false; // 
+    $isInVoice = false; 
     
 
     $isActuallyOffline = $member['status'] === 'offline' || $member['status'] === 'invisible';
@@ -61,7 +61,7 @@ foreach ($members as $member) {
             </div>
         </div>
         
-        <!-- Refresh Presence Button -->
+        
         <button onclick="window.forceRefreshAllPresenceData()" 
                 class="ml-2 p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-all" 
                 title="Refresh presence data">
@@ -100,14 +100,14 @@ foreach ($members as $member) {
         </div>
         
         <div class="px-2" id="participant-list-container">
-            <!-- Participant list will be populated here by JavaScript -->
+            
         </div>
     </div>
 </div>
 
 <script>
 <?php
-// Get socket URL from environment
+
 $socketHost = EnvLoader::get('SOCKET_HOST', 'socket');
 $socketPort = EnvLoader::get('SOCKET_PORT', '1002');
 $currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';

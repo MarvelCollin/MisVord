@@ -868,7 +868,7 @@ function handleCheckVoiceMeeting(io, client, data) {
                     channelId: channel_id
                 });
             });
-        }, 100); // 
+        }, 100); 
     }
 }
 
@@ -959,9 +959,9 @@ function handleUnregisterVoiceMeeting(io, client, data) {
         };
         
 
-        io.emit('voice-meeting-update', leaveEventData); // 
-        io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
-        io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
+        io.emit('voice-meeting-update', leaveEventData); 
+        io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); 
+        io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); 
         
         console.log(`📢 [VOICE-UNREGISTER] Broadcasted voice leave event to multiple rooms:`, {
             channelId: channel_id,
@@ -1097,9 +1097,9 @@ function handleDisconnect(io, client) {
             };
             
 
-            io.emit('voice-meeting-update', leaveEventData); // 
-            io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
-            io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); // 
+            io.emit('voice-meeting-update', leaveEventData); 
+            io.to(`voice_channel_${channel_id}`).emit('voice-meeting-update', leaveEventData); 
+            io.to(`channel-${channel_id}`).emit('voice-meeting-update', leaveEventData); 
             
             console.log(`📢 [DISCONNECT] Broadcasted voice leave event to multiple rooms:`, {
                 channelId: channel_id,

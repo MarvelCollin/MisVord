@@ -185,7 +185,7 @@ class VoiceManager {
                 isLocal: false,
                 streams: new Map(),
                 channelId: channelId,
-                status: participant.status || 'Ready to play music' // 
+                status: participant.status || 'Ready to play music' 
             });
             
             this.participants.set(botId, this.botParticipants.get(botId));
@@ -200,7 +200,7 @@ class VoiceManager {
                 const updateMode = isRecovery ? 'full' : 'append';
                 setTimeout(() => {
                     instance.updateSidebarForChannel(channelId, updateMode);
-                }, isRecovery ? 100 : 0); // 
+                }, isRecovery ? 100 : 0); 
             }
             
             console.log(`🤖 [VOICE-MANAGER] Bot participant ${isRecovery ? 'recovered' : 'joined'}:`, {
@@ -235,10 +235,7 @@ class VoiceManager {
         }
     }
     
-    /**
-     * @private
-     * Internal method used only by VoiceFacade
-     */
+    
     async _joinVoice(channelId, channelName, options = {}) {
         if (this.isConnected) {
             if (this.currentChannelId === channelId) return;
@@ -324,10 +321,7 @@ class VoiceManager {
         }
     }
 
-    /**
-     * @private
-     * Internal method used only by VoiceFacade
-     */
+    
     async _leaveVoice() {
         if (!this.isConnected) return;
         
@@ -730,7 +724,6 @@ class VoiceManager {
             }
             
             if (participant.videoStream) {
-                 for ${participant.id}`);
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
                     participantData.streams.set('video', participant.videoStream);

@@ -27,7 +27,7 @@ function asset($path) {
     $path = '/' . ltrim($path, '/');
     
     if (strpos($path, '/css/') === 0 || strpos($path, '/js/') === 0) {
-        // CSS and JS paths are used as-is
+        
     } else if (strpos($path, '/assets/') !== 0) {
         $path = '/assets' . $path;
     }

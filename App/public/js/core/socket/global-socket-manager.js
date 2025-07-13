@@ -1020,7 +1020,7 @@
 
         this.currentPresenceStatus = status;
         this.currentActivityDetails = activityDetails;
-        this.lastPresenceSource = source; // 
+        this.lastPresenceSource = source; 
 
         const presenceData = {
             status: this.currentPresenceStatus,
@@ -1040,7 +1040,7 @@
                 user_id: this.userId,
                 status: this.currentPresenceStatus,
                 activity_details: this.currentActivityDetails,
-                source: source // 
+                source: source 
             }
         }));
         
@@ -1312,7 +1312,7 @@
         const voiceCallPatterns = [
             'In Voice Call',
             'In Voice -',
-            'playing Tic Tac Toe'  // 
+            'playing Tic Tac Toe'  
         ];
         
         if (activityType) {

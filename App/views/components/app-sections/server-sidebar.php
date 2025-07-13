@@ -24,7 +24,7 @@ if (file_exists($tooltipPath)) {
 
 
 
-$maxServersToShow = 10; // 
+$maxServersToShow = 10; 
 if (count($servers) > $maxServersToShow) {
     $servers = array_slice($servers, 0, $maxServersToShow);
 }
@@ -32,7 +32,7 @@ if (count($servers) > $maxServersToShow) {
 
 <link rel="stylesheet" href="/public/css/server-sidebar.css">
 
-<!-- Add a container for tooltips at the root level -->
+
 <div id="tooltip-container" style="position: fixed; top: 0; left: 0; width: 100%; height: 0; z-index: 99999; pointer-events: none;"></div>
 
 <div class="flex h-full">

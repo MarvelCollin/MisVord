@@ -12,7 +12,7 @@
                 </button>
             </div>
             
-            <!-- Member View -->
+            
             <div id="leave-server-member-view">
                 <div class="text-center mb-5">
                     <div class="bg-discord-red bg-opacity-10 text-discord-red inline-block p-3 rounded-full mb-3">
@@ -32,9 +32,9 @@
                 </div>
             </div>
 
-            <!-- Owner View -->
+            
             <div id="leave-server-owner-view" class="hidden">
-                <!-- Transfer Ownership Section -->
+                
                 <div id="leave-server-transfer-view">
                     <div class="text-center mb-5">
                         <div class="bg-discord-blurple bg-opacity-10 text-discord-blurple inline-block p-3 rounded-full mb-3">
@@ -76,7 +76,7 @@
                     </div>
                 </div>
 
-                <!-- Delete Server View -->
+                
                 <div id="leave-server-delete-view" class="hidden">
                     <div class="text-center mb-5">
                         <div class="bg-discord-red bg-opacity-10 text-discord-red inline-block p-3 rounded-full mb-3">

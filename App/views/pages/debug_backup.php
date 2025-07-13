@@ -1,13 +1,13 @@
 <?php
 require_once dirname(__DIR__, 2) . '/config/app.php';
 
-// Suppress any PHP warnings/errors from appearing in output
+
 error_reporting(E_ERROR | E_PARSE);
 ini_set('display_errors', '0');
 
-// Authentication is now handled in routes.php
 
-// Load environment configurations for comparison
+
+
 function loadEnvironmentConfig($envFile) {
     $config = [];
     $envPath = dirname(__DIR__, 2) . '/' . $envFile;
@@ -28,7 +28,7 @@ function loadEnvironmentConfig($envFile) {
             }
         }
     } catch (Exception $e) {
-        // If there's any error loading the config, return empty array
+        
         error_log("Error loading environment config from $envFile: " . $e->getMessage());
     }
     
@@ -77,7 +77,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
 ?>
 <body class="bg-gray-900 text-white">
     <div class="min-h-screen">
-        <!-- Header -->
+        
         <div class="bg-gray-800 shadow-lg border-b border-gray-700">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between items-center py-6">
@@ -101,7 +101,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
         </div>
 
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Quick Status Overview -->
+            
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
                     <h3 class="text-lg font-semibold mb-2">Environment</h3>
@@ -144,7 +144,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                 </div>
             </div>
 
-            <!-- Main Content Tabs -->
+            
             <div class="bg-gray-800 rounded-lg border border-gray-700">
                 <div class="border-b border-gray-700">
                     <nav class="flex space-x-8 px-6" aria-label="Tabs">
@@ -173,12 +173,12 @@ require_once dirname(__DIR__) . '/layout/head.php';
                 </div>
 
                 <div class="p-6">
-                    <!-- System Overview Tab -->
+                    
                     <div id="content-overview" class="tab-content">
                         <h2 class="text-2xl font-bold mb-6">System Overview</h2>
                         
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Server Information -->
+                            
                             <div class="space-y-4">
                                 <h3 class="text-xl font-semibold border-b border-gray-700 pb-2">Server Information</h3>
                                 <div class="space-y-2">
@@ -191,7 +191,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                 </div>
                             </div>
 
-                            <!-- Environment Configuration -->
+                            
                             <div class="space-y-4">
                                 <h3 class="text-xl font-semibold border-b border-gray-700 pb-2">Environment</h3>
                                 <div class="space-y-2">
@@ -206,7 +206,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                         </div>
                     </div>
 
-                    <!-- Health Checks Tab -->
+                    
                     <div id="content-health" class="tab-content hidden">
                         <h2 class="text-2xl font-bold mb-6">System Health Checks</h2>
                         
@@ -234,7 +234,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                         </div>
                     </div>
 
-                    <!-- Database Tab -->
+                    
                     <div id="content-database" class="tab-content hidden">
                         <h2 class="text-2xl font-bold mb-6">Database Information</h2>
                         
@@ -260,7 +260,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                         </div>
                     </div>
 
-                    <!-- Socket Status Tab -->
+                    
                     <div id="content-socket" class="tab-content hidden">
                         <h2 class="text-2xl font-bold mb-6">Socket Server Status</h2>
                         
@@ -325,7 +325,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                     </button>
                                 </div>
                                 
-                                <!-- Live Status Indicators -->
+                                
                                 <div class="mb-4 p-3 bg-gray-800 rounded">
                                     <h4 class="font-semibold mb-2">Live Connection Status</h4>
                                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
@@ -349,7 +349,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                     <div class="text-gray-400">[INFO] Click any test button to begin monitoring</div>
                                 </div>
                                 
-                                <!-- Socket Fallback Configuration Display -->
+                                
                                 <div class="mt-6 pt-4 border-t border-gray-600">
                                     <h4 class="text-md font-semibold mb-3">Fallback Host Configuration</h4>
                                     <div class="space-y-2">
@@ -378,7 +378,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                 </div>
                             </div>
 
-                            <!-- Frontend Socket Diagnostics -->
+                            
                             <div class="bg-gray-700 rounded-lg p-4">
                                 <h3 class="text-lg font-semibold mb-3">Frontend Socket Diagnostics</h3>
                                 <p class="text-sm text-gray-400 mb-4">Real-time analysis of how the frontend connects to socket.io</p>
@@ -451,7 +451,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                         </div>
                     </div>
 
-                    <!-- Docker Tab -->
+                    
                     <div id="content-docker" class="tab-content hidden">
                         <h2 class="text-2xl font-bold mb-6">Docker Container Status</h2>
                         
@@ -479,7 +479,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                         </div>
                     </div>
 
-                    <!-- SSL/Security Tab -->
+                    
                     <div id="content-ssl" class="tab-content hidden">
                         <h2 class="text-2xl font-bold mb-6">SSL Certificate & Security</h2>
                         
@@ -496,11 +496,11 @@ require_once dirname(__DIR__) . '/layout/head.php';
                         </div>
                     </div>
 
-                    <!-- Environment Comparison Tab -->
+                    
                     <div id="content-environment" class="tab-content hidden">
                         <h2 class="text-2xl font-bold mb-6">Environment Configuration Comparison</h2>
                         
-                        <!-- Current Environment Status -->
+                        
                         <div class="bg-blue-800 rounded-lg p-4 mb-6">
                             <h3 class="text-lg font-semibold mb-2">Current Environment Status</h3>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -521,7 +521,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                             </div>
                         </div>
 
-                        <!-- Configuration Comparison Table -->
+                        
                         <div class="bg-gray-700 rounded-lg p-4 mb-6">
                             <h3 class="text-lg font-semibold mb-4">Configuration Comparison</h3>
                             <div class="overflow-x-auto">
@@ -536,7 +536,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                     </thead>
                                     <tbody>
                                         <?php
-                                        // Get all unique keys from both environments
+                                        
                                         $allKeys = array_unique(array_merge(array_keys($prodConfig), array_keys($devConfig)));
                                         sort($allKeys);
                                         
@@ -559,9 +559,9 @@ require_once dirname(__DIR__) . '/layout/head.php';
                             </div>
                         </div>
 
-                        <!-- Raw Configuration Files -->
+                        
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Production Configuration -->
+                            
                             <div class="bg-gray-700 rounded-lg p-4">
                                 <h3 class="text-lg font-semibold mb-3 text-red-400">🔥 Production (.env.production)</h3>
                                 <div class="space-y-2 max-h-96 overflow-y-auto">
@@ -578,7 +578,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                 </div>
                             </div>
 
-                            <!-- Development Configuration -->
+                            
                             <div class="bg-gray-700 rounded-lg p-4">
                                 <h3 class="text-lg font-semibold mb-3 text-green-400">🛠️ Development (.env.development)</h3>
                                 <div class="space-y-2 max-h-96 overflow-y-auto">
@@ -596,7 +596,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                             </div>
                         </div>
 
-                        <!-- Environment Recommendations -->
+                        
                         <div class="bg-yellow-800 rounded-lg p-4 mt-6">
                             <h3 class="text-lg font-semibold mb-3 text-yellow-200">💡 Environment Recommendations</h3>
                             <ul class="text-yellow-100 space-y-2">
@@ -608,11 +608,11 @@ require_once dirname(__DIR__) . '/layout/head.php';
                             </ul>
                         </div>
 
-                        <!-- Environment Validation -->
+                        
                         <div class="bg-purple-800 rounded-lg p-4 mt-6">
                             <h3 class="text-lg font-semibold mb-3 text-purple-200">🔍 Environment Validation</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <!-- Critical Settings Check -->
+                                
                                 <div class="space-y-2">
                                     <h4 class="font-semibold text-purple-100">Critical Settings</h4>
                                     <?php
@@ -640,7 +640,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                                     <?php endforeach; ?>
                                 </div>
                                 
-                                <!-- Domain Consistency Check -->
+                                
                                 <div class="space-y-2">
                                     <h4 class="font-semibold text-purple-100">Domain Consistency</h4>
                                     <?php
@@ -666,7 +666,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                             </div>
                         </div>
 
-                        <!-- Quick Actions -->
+                        
                         <div class="bg-indigo-800 rounded-lg p-4 mt-6">
                             <h3 class="text-lg font-semibold mb-3 text-indigo-200">⚡ Quick Actions</h3>
                             <div class="flex flex-wrap gap-3">
@@ -693,21 +693,21 @@ require_once dirname(__DIR__) . '/layout/head.php';
 
     <script>
         function switchTab(tabName) {
-            // Hide all tab contents
+            
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.add('hidden');
             });
             
-            // Remove active styling from all tab buttons
+            
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.classList.remove('border-blue-500', 'text-blue-400');
                 button.classList.add('border-transparent', 'text-gray-400');
             });
             
-            // Show selected tab content
+            
             document.getElementById('content-' + tabName).classList.remove('hidden');
             
-            // Style active tab button
+            
             const activeTab = document.getElementById('tab-' + tabName);
             activeTab.classList.remove('border-transparent', 'text-gray-400');
             activeTab.classList.add('border-blue-500', 'text-blue-400');
@@ -720,7 +720,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             const socketHost = <?php echo json_encode($systemStats['socket_config']['socket_host'] ?? 'localhost'); ?>;
             const isVPS = <?php echo $systemStats['environment']['is_vps'] === 'true' ? 'true' : 'false'; ?>;
             
-            // Always use WSS on HTTPS pages to avoid mixed content errors
+            
             const protocol = (window.location.protocol === 'https:' || isVPS) ? 'wss://' : 'ws://';
             const socketUrl = protocol + socketHost + '/socket.io/';
             
@@ -765,10 +765,10 @@ require_once dirname(__DIR__) . '/layout/head.php';
             const primaryHost = '<?php echo $systemStats['socket_config']['socket_host']; ?>';
             const isVPS = <?php echo $systemStats['environment']['is_vps'] === 'true' ? 'true' : 'false'; ?>;
             
-            // Always use WSS on HTTPS pages to avoid mixed content errors
+            
             const protocol = (window.location.protocol === 'https:' || isVPS) ? 'wss://' : 'ws://';
             
-            // Generate fallback hosts
+            
             const fallbackHosts = [];
             if (primaryHost.startsWith('www.')) {
                 fallbackHosts.push(primaryHost.replace('www.', ''));
@@ -777,7 +777,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             }
             fallbackHosts.push(primaryHost);
             
-            // Remove duplicates
+            
             const uniqueHosts = [...new Set(fallbackHosts)];
             
             appendToResults(`📋 Testing ${uniqueHosts.length} host(s): ${uniqueHosts.join(', ')}`);
@@ -826,15 +826,15 @@ require_once dirname(__DIR__) . '/layout/head.php';
         function testFullSocket() {
             appendToResults('🚀 Starting comprehensive socket test...');
             
-            // Test primary first
+            
             testSocket();
             
-            // Wait a bit then test fallbacks
+            
             setTimeout(() => {
                 testSocketFallback();
             }, 2000);
             
-            // Test HTTP endpoints
+            
             setTimeout(() => {
                 testSocketEndpoints();
             }, 4000);
@@ -847,7 +847,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             const isVPS = <?php echo $systemStats['environment']['is_vps'] === 'true' ? 'true' : 'false'; ?>;
             const useHttps = <?php echo $systemStats['environment']['use_https'] === 'true' ? 'true' : 'false'; ?>;
             
-            // For VPS, always use HTTPS to avoid CSP violations
+            
             const protocol = (isVPS || useHttps || window.location.protocol === 'https:') ? 'https://' : 'http://';
             
             const endpoints = [
@@ -904,7 +904,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             
             let results = [];
             
-            // Test production socket
+            
             if (prodSocket !== 'N/A') {
                 const prodProtocol = prodSecure ? 'wss://' : 'ws://';
                 const prodUrl = prodProtocol + prodSocket + '/socket.io/';
@@ -926,7 +926,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                 }
             }
             
-            // Test development socket
+            
             if (devSocket !== 'N/A') {
                 const devProtocol = devSecure ? 'wss://' : 'ws://';
                 const devUrl = devProtocol + devSocket + ':' + <?php echo json_encode($devConfig['SOCKET_PORT'] ?? '3001'); ?> + '/socket.io/';
@@ -952,10 +952,10 @@ require_once dirname(__DIR__) . '/layout/head.php';
                 contentDiv.innerHTML = results.map(result => `<div>${result}</div>`).join('');
             }
             
-            // Initial update
+            
             updateResults();
             
-            // Add timeout for final results
+            
             setTimeout(() => {
                 if (!results.some(r => r.includes('✅') || r.includes('❌'))) {
                     results.push('⏰ Timeout: No response from socket servers');
@@ -991,13 +991,13 @@ require_once dirname(__DIR__) . '/layout/head.php';
                 alert('Environment differences copied to clipboard!');
             }).catch(err => {
                 console.error('Failed to copy to clipboard:', err);
-                // Fallback: show in modal or new window
+                
                 const newWindow = window.open('', '_blank');
                 newWindow.document.write(`<pre>${differences}</pre>`);
             });
         }
 
-        // Auto-refresh and live monitoring
+        
         let autoRefreshEnabled = true;
         let autoRefreshInterval;
 
@@ -1031,7 +1031,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             }, 30000);
         }
 
-        // Frontend Socket Diagnostics Functions
+        
         function testFrontendSocketConfig() {
             updateFrontendConfig();
             const resultDiv = document.getElementById('frontend-diagnostics-result');
@@ -1053,7 +1053,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             appendToFrontendResults(`[CONFIG] Current page protocol: ${window.location.protocol}`);
             appendToFrontendResults(`[CONFIG] Current page host: ${window.location.host}`);
             
-            // Construct the socket URL that frontend would use
+            
             let finalHost = metaHost;
             let finalPort = metaPort;
             let finalSecure = metaSecure === 'true';
@@ -1134,7 +1134,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                         document.getElementById('frontend-status').innerHTML = '<i class="fas fa-circle text-red-400 mr-1"></i>Error';
                         
                         if (attemptNum < maxAttempts) {
-                            // Try fallback URL
+                            
                             let fallbackHost = metaHost;
                             if (metaHost.startsWith('www.')) {
                                 fallbackHost = metaHost.replace('www.', '');
@@ -1172,7 +1172,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
             const resultDiv = document.getElementById('frontend-diagnostics-result');
             resultDiv.innerHTML = '<div class="text-red-400">[FRONTEND] 🚨 Diagnosing connection issues...</div>';
             
-            // Get current configuration
+            
             const metaHost = document.querySelector('meta[name="socket-host"]')?.content;
             const metaPort = document.querySelector('meta[name="socket-port"]')?.content;
             const metaSecure = document.querySelector('meta[name="socket-secure"]')?.content;
@@ -1182,14 +1182,14 @@ require_once dirname(__DIR__) . '/layout/head.php';
             
             appendToFrontendResults(`[DIAGNOSIS] Starting comprehensive error analysis...`);
             
-            // Check 1: Meta tags presence
+            
             if (!metaHost) {
                 appendToFrontendResults(`[CRITICAL] ❌ Missing socket-host meta tag`);
             } else {
                 appendToFrontendResults(`[OK] ✅ Socket host meta tag found: ${metaHost}`);
             }
             
-            // Check 2: Protocol mismatch
+            
             const pageHttps = window.location.protocol === 'https:';
             const socketSecure = metaSecure === 'true';
             
@@ -1197,18 +1197,18 @@ require_once dirname(__DIR__) . '/layout/head.php';
                 appendToFrontendResults(`[WARNING] ⚠️ HTTPS page but socket not secure (potential mixed content)`);
             }
             
-            // Check 3: Host comparison with current page
+            
             const currentHost = window.location.hostname;
             if (metaHost && metaHost !== currentHost && !metaHost.includes(currentHost) && !currentHost.includes(metaHost.replace('www.', ''))) {
                 appendToFrontendResults(`[WARNING] ⚠️ Socket host (${metaHost}) differs from page host (${currentHost})`);
             }
             
-            // Check 4: Port accessibility 
+            
             if (metaPort && isVPS) {
                 appendToFrontendResults(`[WARNING] ⚠️ VPS mode with explicit port - may cause issues`);
             }
             
-            // Check 5: Common error patterns
+            
             const commonErrors = [
                 { pattern: 'ERR_CONNECTION_REFUSED', cause: 'Socket server not running or wrong port' },
                 { pattern: 'ERR_NAME_NOT_RESOLVED', cause: 'DNS/hostname resolution issue' },
@@ -1223,7 +1223,7 @@ require_once dirname(__DIR__) . '/layout/head.php';
                 appendToFrontendResults(`[INFO]   • ${error.pattern}: ${error.cause}`);
             });
             
-            // Check 6: Generate recommendations
+            
             appendToFrontendResults(`[RECOMMENDATIONS] Suggested fixes:`);
             
             if (isVPS && metaPort) {
@@ -1262,23 +1262,23 @@ require_once dirname(__DIR__) . '/layout/head.php';
             resultDiv.scrollTop = resultDiv.scrollHeight;
         }
 
-        // Initialize on page load
+        
         document.addEventListener('DOMContentLoaded', function() {
-            // Update time every second
+            
             setInterval(updateCurrentTime, 1000);
             
-            // Start auto-refresh
+            
             if (autoRefreshEnabled) {
                 startAutoRefresh();
             }
             
-            // Initialize socket test results
+            
             const resultDiv = document.getElementById('socket-test-result');
             if (resultDiv && !resultDiv.innerHTML.trim()) {
                 resultDiv.innerHTML = '<div class="text-gray-500">Ready for socket testing. Click a test button above to begin.</div>';
             }
             
-            // Initialize frontend diagnostics
+            
             updateFrontendConfig();
         });
     </script>

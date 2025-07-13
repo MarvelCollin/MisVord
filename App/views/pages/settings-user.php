@@ -458,7 +458,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </main>
 </div>
 
-<!-- Password Change Modal -->
+
 <div id="change-password-modal" class="fixed inset-0 z-50 items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md mx-4">
         <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-gray-700">
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </button>
                 </div>
                 
-                <!-- Step 1: Security Question -->
+                
                 <div id="security-question-step" class="space-y-4">
                     <div class="text-center mb-6">
                         <div class="w-16 h-16 mx-auto mb-4 bg-yellow-500 bg-opacity-20 rounded-full flex items-center justify-center">
@@ -595,7 +595,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- Delete Account Modal -->
+
 <div id="delete-account-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
     <div class="w-full max-w-md mx-4">
         <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-red-600">
@@ -615,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p class="text-gray-400 text-sm">This action cannot be undone.</p>
                 </div>
                 
-                <!-- Servers that require ownership transfer -->
+                
                 <div id="owned-servers-section" class="mb-8 bg-discord-bg-tertiary/50 rounded-md p-6">
                     <div class="text-center py-4">
                         <i class="fas fa-spinner fa-spin text-discord-blurple"></i> Checking for owned servers...

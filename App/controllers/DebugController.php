@@ -223,7 +223,7 @@ class DebugController extends BaseController
     {
         $checks = [];
         
-        // Database health check
+        
         try {
             require_once dirname(__DIR__) . '/database/query.php';
             $query = new Query();
@@ -242,18 +242,18 @@ class DebugController extends BaseController
             ];
         }
         
-        // Socket server health check
+        
         $socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
         $socketPort = EnvLoader::get('SOCKET_PORT', '3001');
         $isProduction = EnvLoader::get('APP_ENV', 'development') === 'production';
         $isVps = EnvLoader::get('IS_VPS', 'false') === 'true';
         $isDocker = getenv('IS_DOCKER') === 'true';
         
-        // For Docker environment, use internal service name and port
+        
         if ($isDocker) {
             $healthCheckUrl = "http://socket:1002/health";
         } else {
-            // For local development or direct VPS access
+            
             $protocol = 'http';
             $healthCheckUrl = "{$protocol}://{$socketHost}:{$socketPort}/health";
         }
@@ -280,7 +280,7 @@ class DebugController extends BaseController
             ];
         }
         
-        // Disk space check
+        
         $totalBytes = disk_total_space('.');
         $freeBytes = disk_free_space('.');
         $usedBytes = $totalBytes - $freeBytes;
@@ -294,7 +294,7 @@ class DebugController extends BaseController
             'free_gb' => round($freeBytes / (1024 * 1024 * 1024), 2)
         ];
         
-        // Add SSL and nginx checks to health check
+        
         $checks['ssl_certificate'] = $this->checkSslCertificate();
         $checks['nginx_status'] = $this->checkNginxStatus();
         
@@ -389,16 +389,16 @@ class DebugController extends BaseController
     
     private function checkNginxStatus()
     {
-        // Check if nginx is running (works on Linux/VPS)
+        
         $nginxRunning = false;
         $nginxConfig = 'Unknown';
         
         if (function_exists('shell_exec') && !in_array('shell_exec', explode(',', ini_get('disable_functions')))) {
-            // Check if nginx process is running
+            
             $processes = @shell_exec('pgrep nginx 2>/dev/null | wc -l');
             $nginxRunning = $processes !== null && (int)trim($processes) > 0;
             
-            // Try to get nginx config test
+            
             $configTest = @shell_exec('nginx -t 2>&1');
             if ($configTest !== null) {
                 $nginxConfig = trim($configTest);

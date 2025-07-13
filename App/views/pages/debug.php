@@ -5,7 +5,7 @@ if (!class_exists('EnvLoader')) {
     require_once __DIR__ . '/../../config/env.php';
 }
 
-// Simple authentication
+
 $debug_password = 'kolin123';
 $is_authenticated = isset($_SESSION['debug_authenticated']) && $_SESSION['debug_authenticated'] === true;
 
@@ -26,7 +26,7 @@ if (!$is_authenticated) {
         }
     }
     
-    // Show login form
+    
     ?>
     <!DOCTYPE html>
     <html lang="en">
@@ -58,7 +58,7 @@ if (!$is_authenticated) {
     exit;
 }
 
-// Get socket configuration
+
 $socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
 $socketPort = EnvLoader::get('SOCKET_PORT', '1002');
 $socketSecure = EnvLoader::get('SOCKET_SECURE', 'false');
@@ -68,7 +68,7 @@ $isDocker = EnvLoader::get('IS_DOCKER', 'false') === 'true';
 $domain = EnvLoader::get('DOMAIN', 'localhost');
 $useHttps = EnvLoader::get('USE_HTTPS', 'false') === 'true';
 
-// Test socket server health
+
 function testSocketHealth($host, $port) {
     $url = "http://{$host}:{$port}/health";
     $context = stream_context_create([
@@ -107,14 +107,14 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     
-    <!-- Socket Meta Tags for Testing -->
+    
     <?php
-    // Use same logic as head.php
+    
     $pageIsHttps = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
     $pageIsHttps = $pageIsHttps || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     
     if ($isVPS && $domain !== 'localhost') {
-        $frontendSocketHost = $socketHost; // Fixed: use SOCKET_HOST instead of DOMAIN
+        $frontendSocketHost = $socketHost; 
         $frontendSocketPort = '';
         $frontendSocketSecure = 'true';
     } elseif ($isDocker) {
@@ -135,7 +135,7 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
     <meta name="is-vps" content="<?php echo $isVPS ? 'true' : 'false'; ?>">
 </head>
 <body class="bg-gray-900 text-white min-h-screen">
-    <!-- Header -->
+    
     <div class="bg-gray-800 shadow-lg border-b border-gray-700">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-6">
@@ -152,9 +152,9 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
         </div>
     </div>
 
-    <!-- Main Content -->
+    
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <!-- Socket Configuration Overview -->
+        
         <div class="bg-gray-800 rounded-lg p-6 mb-6">
             <h2 class="text-2xl font-bold mb-4 text-white">Socket Configuration Overview</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -198,7 +198,7 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
             </div>
         </div>
 
-        <!-- Socket Testing Panel -->
+        
         <div class="bg-gray-800 rounded-lg p-6 mb-6">
             <h2 class="text-2xl font-bold mb-4 text-white">Socket Connection Testing</h2>
             
@@ -223,7 +223,7 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
             </div>
         </div>
 
-        <!-- Frontend Socket Diagnostics -->
+        
         <div class="bg-gray-800 rounded-lg p-6">
             <h2 class="text-2xl font-bold mb-4 text-white">Frontend Socket Diagnostics</h2>
             
@@ -296,7 +296,7 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
 
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script>
-        // Socket Testing Functions
+        
         function testPrimarySocket() {
             log('🔍 Testing primary socket connection...');
             
@@ -361,7 +361,7 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
             
             let hosts = [metaHost];
             
-            // Add fallback hosts
+            
             if (metaHost && metaHost.startsWith('www.')) {
                 hosts.push(metaHost.replace('www.', ''));
             } else if (metaHost && !metaHost.includes('localhost')) {
@@ -600,7 +600,7 @@ $socketHealth = testSocketHealth($isDocker ? 'socket' : 'localhost', $socketPort
             document.getElementById('current-time').textContent = now.toLocaleString();
         }
 
-        // Initialize on page load
+        
         document.addEventListener('DOMContentLoaded', function() {
             setInterval(updateCurrentTime, 1000);
             updateMetaDisplay();

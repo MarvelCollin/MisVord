@@ -136,12 +136,7 @@ class UserRepository extends Repository {
         return array_column($results, 'id');
     }
     
-    /**
-     * Count users by status
-     * 
-     * @param string $status The status to count (online, idle, etc.)
-     * @return int Number of users with the given status
-     */
+    
     public function countByStatus($status) {
         $query = new Query();
         $result = $query->table(User::getTable())
@@ -151,12 +146,7 @@ class UserRepository extends Repository {
         return $result;
     }
     
-    /**
-     * Count users created in the last N days
-     * 
-     * @param int $days Number of days to look back
-     * @return int Number of users created in that time period
-     */
+    
     public function countRecentUsers($days) {
         $query = new Query();
         $date = date('Y-m-d H:i:s', strtotime("-$days days"));
@@ -169,14 +159,7 @@ class UserRepository extends Repository {
         return $result;
     }
     
-    /**
-     * Get paginated list of users for admin panel
-     *
-     * @param int $page Page number
-     * @param int $limit Items per page
-     * @param string $status Filter status
-     * @return array List of users
-     */
+    
     public function paginate($page = 1, $limit = 10, $status = 'all') {
         $offset = ($page - 1) * $limit;
         
@@ -203,15 +186,7 @@ class UserRepository extends Repository {
         return $users;
     }
     
-    /**
-     * Search users by username or email for admin panel
-     *
-     * @param string $query Search query
-     * @param int $page Page number
-     * @param int $limit Items per page
-     * @param string $status Filter status
-     * @return array List of matching users
-     */
+    
     public function search($query, $page = 1, $limit = 10, $status = 'all') {
         $offset = ($page - 1) * $limit;
         
@@ -244,13 +219,7 @@ class UserRepository extends Repository {
         return $users;
     }
     
-    /**
-     * Count users matching a search query
-     *
-     * @param string $query Search query
-     * @param string $status Filter status
-     * @return int Number of matching users
-     */
+    
     public function countSearch($query, $status = 'all') {
         $queryBuilder = new Query();
         $builder = $queryBuilder->table(User::getTable())
@@ -269,12 +238,7 @@ class UserRepository extends Repository {
         return $builder->count();
     }
     
-    /**
-     * Get user registration statistics by day for the last n days
-     *
-     * @param int $days Number of days to look back
-     * @return array Daily user registration stats
-     */
+    
     public function getRegistrationStatsByDay($days = 7) {
         $stats = [];
         $query = new Query();
@@ -306,12 +270,7 @@ class UserRepository extends Repository {
         return $stats;
     }
     
-    /**
-     * Get user registration statistics by week for the last n weeks
-     *
-     * @param int $weeks Number of weeks to look back
-     * @return array Weekly user registration stats
-     */
+    
     public function getRegistrationStatsByWeek($weeks = 4) {
         $stats = [];
         $query = new Query();
@@ -351,12 +310,7 @@ class UserRepository extends Repository {
         return $stats;
     }
     
-    /**
-     * Count users who have been active in the last n hours
-     *
-     * @param int $hours Number of hours to look back
-     * @return int Number of active users
-     */
+    
     public function countActiveUsers($hours = 24) {
         $query = new Query();
         $date = date('Y-m-d H:i:s', strtotime("-$hours hours"));
@@ -369,12 +323,7 @@ class UserRepository extends Repository {
         return $result;
     }
     
-    /**
-     * Get all bots
-     *
-     * @param int $limit Maximum number of bots to return
-     * @return array List of bot users
-     */
+    
     public function getBots($limit = 50) {
         $query = new Query();
         $results = $query->table(User::getTable())
@@ -391,11 +340,7 @@ class UserRepository extends Repository {
         return $bots;
     }
     
-    /**
-     * Count total number of bots
-     *
-     * @return int Number of bots
-     */
+    
     public function countBots() {
         $query = new Query();
         return $query->table(User::getTable())
@@ -403,11 +348,7 @@ class UserRepository extends Repository {
             ->count();
     }
     
-    /**
-     * Count total regular users (excluding bots)
-     *
-     * @return int Number of regular users
-     */
+    
     public function countRegularUsers($status = 'all') {
         $query = new Query();
         $builder = $query->table(User::getTable())
@@ -421,23 +362,12 @@ class UserRepository extends Repository {
         return $builder->count();
     }
     
-    /**
-     * Create a new bot user
-     *
-     * @param array $data Bot user data (username, email, etc.)
-     * @return User|null Created bot user or null on failure
-     */
+    
     public function createBot($data) {
         return User::createBot($data);
     }
 
-    /**
-     * Update a user record
-     *
-     * @param int $id User ID
-     * @param array $data Data to update
-     * @return bool Success status
-     */
+    
     public function update($id, $data) {
         try {
             $query = new Query();

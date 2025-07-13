@@ -14,7 +14,7 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
     </div>
 
     <div class="space-y-1 online-friends-container" data-lazyload="friend-list">
-        <!-- Skeleton loader - displayed until content loads -->
+        
         <div class="skeleton-content">
             <?php for ($i = 0; $i < 5; $i++): ?>
                 <div class="skeleton-item flex justify-between items-center p-2">
@@ -33,7 +33,7 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
             <?php endfor; ?>
         </div>
         
-        <!-- Actual content loaded via LazyLoader -->
+        
         <div class="friend-content hidden">
             <?php if (empty($friends)): ?>
             <div class="p-4 bg-discord-dark rounded text-center">

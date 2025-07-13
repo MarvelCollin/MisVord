@@ -366,7 +366,7 @@ ob_start();
                 </template>
             </div>
 
-            <!-- Member Action Modals -->
+            
             <div id="member-action-modal" class="modal-overlay hidden">
                 <div class="modal-container">
                     <div class="modal-header">
@@ -379,7 +379,7 @@ ob_start();
                     <div class="modal-body">
                         <div class="member-preview">
                             <div class="member-avatar-small">
-                                <!-- This will be filled by JavaScript -->
+                                
                             </div>
                             <div class="member-details">
                                 <div class="member-name"></div>
@@ -512,7 +512,7 @@ ob_start();
                 </template>
             </div>
 
-            <!-- Channel Action Modals -->
+            
             <div id="channel-action-modal" class="channel-modal-overlay hidden">
                 <div class="channel-modal-container">
                     <div class="channel-modal-header">

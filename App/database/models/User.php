@@ -134,21 +134,12 @@ class User extends Model {
         return str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
     }
 
-    /**
-     * Check if this user is a bot
-     *
-     * @return bool
-     */
+    
     public function isBot() {
         return $this->status === 'bot';
     }
     
-    /**
-     * Create a new bot user
-     *
-     * @param array $data Bot user data
-     * @return User|null
-     */
+    
     public static function createBot($data) {
         $data['status'] = 'bot';
         

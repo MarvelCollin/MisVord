@@ -1,9 +1,4 @@
-/**
- * VoiceFacade - Centralized voice control system
- * 
- * IMPORTANT: Never call voiceManager.joinVoice or leaveVoice directly.
- * Always use this facade to ensure proper state synchronization.
- */
+
 class VoiceFacade {
     constructor() {
         if (window.voiceFacade) {

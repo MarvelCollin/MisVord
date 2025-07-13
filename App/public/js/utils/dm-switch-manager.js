@@ -19,11 +19,7 @@ class SimpleDMSwitcher {
         this.highlightInitialActiveDM();
     }
 
-    /**
-     * Ensure the correct main section is displayed for DM views.
-     * Mirrors the behaviour in SimpleChannelSwitcher.showSection()
-     * so that the chat pane is visible and any voice pane is hidden.
-     */
+    
     showChatSection() {
         const chatSection  = document.querySelector('.chat-section');
         const voiceSection = document.querySelector('.voice-section');

@@ -126,7 +126,7 @@ require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
     <script type="module" src="<?= asset('/js/components/index.js') ?>"></script>
     <script type="module" src="<?= asset('/js/pages/app.js') ?>"></script>
     
-    <!-- Debug create server modal -->
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(function() {

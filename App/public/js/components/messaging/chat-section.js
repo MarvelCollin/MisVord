@@ -431,8 +431,8 @@ class ChatSection {
             const isExcluded = isExcludedPage();
             
 
-            const maxAttempts = isExcluded ? 5 : (isDMPage ? 40 : 30); // 
-            const interval = isDMPage ? 150 : 200; // 
+            const maxAttempts = isExcluded ? 5 : (isDMPage ? 40 : 30); 
+            const interval = isDMPage ? 150 : 200; 
             
 
             
@@ -2446,7 +2446,7 @@ class ChatSection {
             
 
             const audio = new Audio('/public/assets/sound/message_sound.mp3');
-            audio.volume = 0.5; // 
+            audio.volume = 0.5; 
             audio.play().catch(error => {
 
 
@@ -2492,7 +2492,7 @@ class ChatSection {
             }
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Error accessing chat messages container:', error);
-            return this.chatMessages; // 
+            return this.chatMessages; 
         }
     }
     
@@ -3245,7 +3245,7 @@ class ChatSection {
         
 
         const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
-        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; // 
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; 
         
         if (isAtBottom) {
             this.scrollToBottom();

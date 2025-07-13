@@ -1216,9 +1216,7 @@ class UserController extends BaseController
         }
     }
     
-    /**
-     * Get servers owned by the current user
-     */
+    
     public function getUserOwnedServers()
     {
         $this->requireAuth();

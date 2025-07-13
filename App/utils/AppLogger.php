@@ -1,10 +1,6 @@
 <?php
 
-/**
- * Application Logger
- * Provides centralized logging for the MisVord application
- * Supports multiple log levels and outputs to both file and display
- */
+
 class AppLogger {
     const LEVEL_DEBUG = 1;
     const LEVEL_INFO = 2;

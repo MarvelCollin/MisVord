@@ -13,9 +13,9 @@ const USERS = {
 
 
 const SELECTORS = {
-  messageInput: '#message-input',  // 
-  sendButton: '#send-button',      // 
-  messageForm: '#message-form',    // 
+  messageInput: '#message-input',  
+  sendButton: '#send-button',      
+  messageForm: '#message-form',    
   messageGroup: '.message-group',
   messageContent: '.message-content',
   messageMainText: '.message-main-text',

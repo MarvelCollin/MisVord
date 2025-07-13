@@ -359,7 +359,7 @@ class SimpleChannelSwitcher {
                         channelName: channelName,
                         meetingId: window.voiceManager.currentMeetingId,
                         skipJoinSound: true,
-                        skipSidebarRefresh: true, // 
+                        skipSidebarRefresh: true, 
                         source: 'channelSwitch'
                     }
                 }));
@@ -390,7 +390,7 @@ class SimpleChannelSwitcher {
             }
         }
         let tries = 0;
-        while (!window.chatSection && tries < 40) { // 
+        while (!window.chatSection && tries < 40) { 
             await new Promise(r => setTimeout(r, 100));
             tries++;
         }

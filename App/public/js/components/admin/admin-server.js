@@ -379,7 +379,7 @@ export class ServerManager {
     const skeletonHTML = `
       <div id="server-details-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
         <div class="bg-discord-darker rounded-lg shadow-2xl max-w-6xl max-h-[90vh] w-full mx-4 animate-slide-up overflow-hidden">
-          <!-- Skeleton Header -->
+          
           <div class="bg-discord-dark p-6 border-b border-discord-light">
             <div class="flex items-center justify-between">
               <div class="flex items-center space-x-4">
@@ -395,9 +395,9 @@ export class ServerManager {
             </div>
           </div>
 
-          <!-- Skeleton Body -->
+          
           <div class="p-6 overflow-y-auto max-h-[70vh]">
-            <!-- Server Details Skeleton -->
+            
             <div class="mb-8">
               <div class="flex items-center mb-4">
                 <div class="w-6 h-6 bg-discord-light rounded animate-pulse mr-2"></div>
@@ -413,7 +413,7 @@ export class ServerManager {
               </div>
             </div>
 
-            <!-- Members List Skeleton -->
+            
             <div>
               <div class="flex items-center mb-4">
                 <div class="w-6 h-6 bg-discord-light rounded animate-pulse mr-2"></div>
@@ -497,7 +497,7 @@ export class ServerManager {
       const modalHTML = `
         <div id="server-details-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm animate-fade-in">
           <div class="bg-discord-darker rounded-lg shadow-2xl max-w-6xl max-h-[90vh] w-full mx-4 animate-slide-up overflow-hidden">
-            <!-- Modal Header -->
+            
             <div class="bg-discord-dark p-6 border-b border-discord-light">
               <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
@@ -516,9 +516,9 @@ export class ServerManager {
               </div>
             </div>
 
-            <!-- Modal Body -->
+            
             <div class="p-6 overflow-y-auto max-h-[70vh]">
-              <!-- Server Details -->
+              
               <div class="mb-8">
                 <h3 class="text-xl font-bold text-white mb-4">
                   <i class="fas fa-server mr-2 text-discord-primary"></i>
@@ -552,7 +552,7 @@ export class ServerManager {
                 </div>
               </div>
 
-              <!-- Members List -->
+              
               <div>
                 <h3 class="text-xl font-bold text-white mb-4">
                   <i class="fas fa-users mr-2 text-discord-primary"></i>

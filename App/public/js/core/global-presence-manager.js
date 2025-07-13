@@ -690,7 +690,7 @@ class GlobalPresenceManager {
         'online': 1,
         'afk': 2,
         'In Voice Call': 3,
-        'In Voice -': 3,  // 
+        'In Voice -': 3,  
         'playing Tic Tac Toe': 4
     };
 

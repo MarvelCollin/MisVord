@@ -29,7 +29,7 @@ class AuthHandler {
         client.data = client.data || {};
         client.data.user_id = user_id;
         client.data.username = username || `User-${user_id}`;
-        client.data.session_id = session_id; // 
+        client.data.session_id = session_id; 
         client.data.avatar_url = avatar_url || '/public/assets/common/default-profile-picture.png';
         client.data.authenticated = true;
         
@@ -53,9 +53,9 @@ class AuthHandler {
 
         const response = { 
             user_id, 
-            user_id: user_id, // 
+            user_id: user_id, 
             socket_id: client.id,
-            socket_id: client.id, // 
+            socket_id: client.id, 
             session_id: session_id,
             message: 'Authentication successful'
         };

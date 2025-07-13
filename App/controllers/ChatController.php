@@ -1248,10 +1248,7 @@ class ChatController extends BaseController
         }
     }
 
-    /**
-     * Send a message to a specific target (channel or DM)
-     * This method handles the direct endpoint /api/chat/{type}/{id}/messages
-     */
+    
     public function sendMessageToTarget($targetType, $targetId)
     {
         try {
@@ -1824,7 +1821,7 @@ class ChatController extends BaseController
 
             return $this->success([
                 'data' => $formattedParticipants,
-                'participants' => $participants, // 
+                'participants' => $participants, 
                 'room_id' => $roomId,
                 'total' => count($participants)
             ]);

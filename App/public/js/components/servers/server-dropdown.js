@@ -897,11 +897,11 @@ window.testDropdownClick = function() {
         
         setTimeout(() => {
         const items = document.querySelectorAll('.server-dropdown-item');
-        .map(item => ({
+        items.forEach(item => console.log({
             text: item.querySelector('span')?.textContent?.trim(),
             display: getComputedStyle(item).display,
             visible: item.offsetParent !== null
-        })));
+        }));
     }, 100);
 };
 
@@ -1014,7 +1014,7 @@ async function inviteBotToServer(botId) {
             body: JSON.stringify({
                 bot_id: botId,
                 server_id: serverId,
-                role: 'bot'  // 
+                role: 'bot'  
             })
         });
 

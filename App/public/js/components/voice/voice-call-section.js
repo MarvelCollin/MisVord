@@ -144,7 +144,7 @@ class VoiceCallSection {
 
         this.duplicateCleanupInterval = setInterval(() => {
             this.removeDuplicateCards();
-        }, 5000); // 
+        }, 5000); 
     }
     
     bindControls() {
@@ -931,7 +931,7 @@ class VoiceCallSection {
         if (!this.micBtn) return;
         
         const icon = this.micBtn.querySelector("i");
-        if (!icon) return; // 
+        if (!icon) return; 
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
@@ -948,7 +948,7 @@ class VoiceCallSection {
         if (!this.videoBtn) return;
         
         const icon = this.videoBtn.querySelector("i");
-        if (!icon) return; // 
+        if (!icon) return; 
         
         if (isOn) {
             icon.className = "fas fa-video text-sm";
@@ -965,7 +965,7 @@ class VoiceCallSection {
         if (!this.deafenBtn) return;
         
         const icon = this.deafenBtn.querySelector("i");
-        if (!icon) return; // 
+        if (!icon) return; 
         
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
@@ -982,7 +982,7 @@ class VoiceCallSection {
         if (!this.screenBtn) return;
         
         const icon = this.screenBtn.querySelector("i");
-        if (!icon) return; // 
+        if (!icon) return; 
         
         if (isOn) {
             icon.className = "fas fa-stop text-sm";

@@ -263,16 +263,7 @@ class Query {
         return $this->orWhere($column, 'LIKE', $pattern);
     }
 
-    /**
-     * Add a raw SQL condition to the WHERE clause. The provided expression is inserted directly into the query,
-     * so make sure it is properly sanitized/parameterised before calling this method.
-     *
-     * Example:
-     *     ->whereRaw('cp1.user_id != cp2.user_id')
-     *
-     * @param string $expression Raw SQL condition to append in the WHERE clause
-     * @return $this
-     */
+    
     public function whereRaw($expression) {
         $this->where[] = [
             'column' => $expression,
@@ -389,13 +380,7 @@ class Query {
         }
     }
 
-    /**
-     * Execute a raw parameterized query
-     *
-     * @param string $sql SQL query with placeholders
-     * @param array $params Parameters to bind to the query
-     * @return array Results from the query
-     */
+    
     public function query($sql, array $params = []) {
         try {
             $stmt = $this->pdo->prepare($sql);

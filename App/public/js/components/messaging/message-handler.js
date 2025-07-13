@@ -3,8 +3,8 @@ class MessageHandler {
         this.chatSection = chatSection;
         this.processedMessageIds = new Set();
         this.lastMessageGroup = null;
-        this.messageGroupTimeThreshold = 5 * 60 * 1000; // 
-        this.temporaryMessages = new Map(); // 
+        this.messageGroupTimeThreshold = 5 * 60 * 1000; 
+        this.temporaryMessages = new Map(); 
     }
     
     async addMessage(messageData) {
@@ -55,7 +55,7 @@ class MessageHandler {
             for (const selector of duplicateSelectors) {
                 const duplicateElements = document.querySelectorAll(selector);
                 for (const duplicate of duplicateElements) {
-                    if (duplicate.dataset.messageId !== messageData.id) { // 
+                    if (duplicate.dataset.messageId !== messageData.id) { 
                         const duplicateContent = duplicate.querySelector('.bubble-message-text')?.textContent?.trim();
                         if (duplicateContent === messageData.content.trim()) {
                             console.log('🧹 [MESSAGE-HANDLER] Removing duplicate temporary bot message:', {

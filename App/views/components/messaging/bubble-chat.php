@@ -26,7 +26,7 @@ if ($shouldGroup) {
 
 if (empty($messageId) || $messageId === '0' || (empty($content) && empty($attachments))) {
     error_log("❌ [BUBBLE-CHAT] Invalid message data - ID: '$messageId', Content: '$content', Attachments: " . count($attachments));
-    return; // 
+    return; 
 }
 
 $currentUserId = $currentUserId ?? 0;
@@ -71,7 +71,7 @@ if (!function_exists('formatBubbleTimestamp')) {
             }
         } catch (Exception $e) {
             error_log("Error formatting timestamp: " . $e->getMessage());
-            return $sentAt; // 
+            return $sentAt; 
         }
     }
 }
@@ -514,27 +514,27 @@ if (!function_exists('isBubbleVideoFile')) {
 </style>
 
 <div class="bubble-message-group <?php echo $shouldGroup ? 'grouped' : ''; ?>" data-user-id="<?= htmlspecialchars($userId) ?>" data-timestamp="<?= strtotime($sentAt) * 1000 ?>" data-should-group="<?= $shouldGroup ? '1' : '0' ?>">
-    <!-- Avatar -->
+    
     <div class="bubble-avatar">
         <img src="<?= htmlspecialchars($avatarUrl) ?>" 
              alt="<?= htmlspecialchars($username) ?>" 
              class="user-avatar">
     </div>
     
-    <!-- Content Wrapper -->
+    
     <div class="bubble-content-wrapper">
-        <!-- Header -->
+        
         <div class="bubble-header">
             <span class="bubble-username"><?= htmlspecialchars($username) ?></span>
             <span class="bubble-timestamp"><?= formatBubbleTimestamp($sentAt) ?></span>
         </div>
         
-        <!-- Contents -->
+        
         <div class="bubble-contents">
             <div class="bubble-message-content" data-message-id="<?= htmlspecialchars($messageId) ?>" data-user-id="<?= htmlspecialchars($userId) ?>">
                 
                 <?php if ($replyData): ?>
-                <!-- Reply -->
+                
                 <div class="bubble-reply-container" data-reply-message-id="<?= htmlspecialchars($replyMessageId) ?>" onclick="jumpToMessage('<?= htmlspecialchars($replyMessageId) ?>')" title="Jump to original message">
                     <div style="margin-right: 4px;"><i class="fas fa-reply"></i></div>
                     <span class="bubble-reply-username"><?= htmlspecialchars($replyData['username'] ?? 'Unknown') ?></span>
@@ -548,7 +548,7 @@ if (!function_exists('isBubbleVideoFile')) {
                 <?php endif; ?>
                 
                 <?php if ($content): ?>
-                <!-- Message Text -->
+                
                 <div class="bubble-message-text">
                     <?= formatBubbleContent($content, $messageData['mentions'] ?? []) ?>
                     <?php if ($editedAt): ?>
@@ -558,7 +558,7 @@ if (!function_exists('isBubbleVideoFile')) {
                 <?php endif; ?>
                 
                 <?php if (!empty($attachments)): ?>
-                <!-- Attachments -->
+                
                 <div class="bubble-attachments">
                     <?php foreach ($attachments as $attachment): 
                         $attachmentUrl = $attachment['url'] ?? $attachment;
@@ -594,7 +594,7 @@ if (!function_exists('isBubbleVideoFile')) {
                 </div>
                 <?php endif; ?>
                 
-                <!-- Message Actions -->
+                
                 <div class="bubble-message-actions">
                     <button class="bubble-action-button" data-action="reply" data-message-id="<?= htmlspecialchars($messageId) ?>" title="Reply">
                         <i class="fas fa-reply"></i>
@@ -616,7 +616,7 @@ if (!function_exists('isBubbleVideoFile')) {
                 </div>
                 
                 <?php if (!empty($reactions)): ?>
-                <!-- Reactions -->
+                
                 <div class="bubble-reactions">
                     <?php
                     $groupedReactions = [];

@@ -1,8 +1,5 @@
 <?php
-/**
- * Voice Disconnect API Endpoint
- * Handles cleanup when users reload/leave pages
- */
+
 
 require_once '../../../bootstrap/storage-setup.php';
 

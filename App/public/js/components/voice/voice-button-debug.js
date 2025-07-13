@@ -1,7 +1,4 @@
-/**
- * Voice Button Debug Tool
- * Call window.debugVoiceButtons() in the console to diagnose button issues
- */
+
 
 window.debugVoiceButtons = function() {
     

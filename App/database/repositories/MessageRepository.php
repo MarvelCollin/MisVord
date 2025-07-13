@@ -24,12 +24,7 @@ class MessageRepository extends Repository {
         return $this->create($data);
     }
     
-    /**
-     * Add an attachment to a message
-     * @param int $messageId The message ID
-     * @param string $attachmentUrl The attachment URL
-     * @return bool Success or failure
-     */
+    
     public function addAttachment($messageId, $attachmentUrl) {
         error_log("MessageRepository: Adding attachment $attachmentUrl to message $messageId");
         
@@ -65,13 +60,7 @@ class MessageRepository extends Repository {
         }
     }
     
-    /**
-     * Add a mention to a message
-     * @param int $messageId The message ID
-     * @param string $mentionType The mention type (e.g., 'user', 'channel')
-     * @param int $mentionId The ID of the mentioned entity
-     * @return bool Success or failure
-     */
+    
     public function addMention($messageId, $mentionType, $mentionId) {
         error_log("MessageRepository: Adding $mentionType mention $mentionId to message $messageId");
         
@@ -234,9 +223,7 @@ class MessageRepository extends Repository {
         return $stats;
     }
     
-    /**
-     * Get messages for a chat room
-     */
+    
     public function getForChatRoom($roomId, $limit = 50, $offset = 0) {
         $query = new Query();
         $results = $query->table('messages m')
@@ -252,9 +239,7 @@ class MessageRepository extends Repository {
         return array_reverse($results);
     }
     
-    /**
-     * Get messages for a channel
-     */
+    
     public function getForChannel($channelId, $limit = 50, $offset = 0) {
         $query = new Query();
         $results = $query->table('messages m')

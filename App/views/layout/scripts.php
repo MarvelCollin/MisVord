@@ -26,14 +26,14 @@ if ($is_auth_page) {
 }
 ?>
 
-<!-- jQuery CDN -->
+
 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 
-<!-- Load fallback logger first -->
+
 <script src="<?php echo js('utils/fallback-logger'); ?>?v=<?php echo time(); ?>"></script>
 
 <?php if (!$is_auth_page): ?>
-<!-- Participant coordination now handled in VoiceManager -->
+
 <?php endif; ?>
 
 <script>
@@ -47,7 +47,7 @@ if ($is_auth_page) {
         if (socketPort) window.SOCKET_PORT = parseInt(socketPort);
         if (socketSecure !== undefined) window.SOCKET_SECURE = socketSecure;
         
-        // Debug logging for production issues
+        
         console.log('🔧 Socket configuration from meta tags:', {
             host: socketHost,
             port: socketPort,
@@ -128,10 +128,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script type="module" src="<?php echo js('utils/channel-switch-manager'); ?>?v=<?php echo time(); ?>"></script>
 
-<!-- Global voice participant sidebar & debug panel -->
+
 <script src="/public/js/utils/channel-voice-participants.js?v=<?php echo time(); ?>"></script>
 
-<!-- Simplified voice components -->
+
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/music-loader-static.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
@@ -177,10 +177,29 @@ window.addEventListener('beforeunload', function() {
   </script>
 
   <script>
-
-  if (typeof window !== 'undefined' && !window.musicPlayer) {
-
-      window.musicPlayer = new MusicPlayerSystem();
-
+  // Initialize MusicPlayerSystem when available
+  function initializeMusicPlayer() {
+      if (typeof window !== 'undefined' && !window.musicPlayer && typeof MusicPlayerSystem !== 'undefined') {
+          try {
+              window.musicPlayer = new MusicPlayerSystem();
+              console.log('✅ MusicPlayerSystem initialized successfully');
+          } catch (error) {
+              console.error('❌ Failed to initialize MusicPlayerSystem:', error);
+          }
+      }
   }
+  
+  // Try to initialize immediately if available
+  if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initializeMusicPlayer);
+  } else {
+      initializeMusicPlayer();
+  }
+  
+  // Fallback: try again after a short delay if not already initialized
+  setTimeout(() => {
+      if (!window.musicPlayer && typeof MusicPlayerSystem !== 'undefined') {
+          initializeMusicPlayer();
+      }
+  }, 1000);
   </script>

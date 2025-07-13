@@ -56,7 +56,7 @@ function setupScrollBehavior() {
             serverList.classList.remove('no-scrollbar');
 
             serverList.style.paddingRight = '8px';
-            serverList.style.overflowY = 'scroll'; // 
+            serverList.style.overflowY = 'scroll'; 
         } else {
             serverList.classList.add('no-scrollbar');
         }
@@ -88,7 +88,7 @@ function setupScrollBehavior() {
 
     setTimeout(() => {
         checkServerVisibility();
-        updateMaxHeight(); // 
+        updateMaxHeight(); 
     }, 200);
 
 
@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     initServerSidebar();
     initializeHomeIconEasterEgg();
-    setupScrollBehavior(); // 
+    setupScrollBehavior(); 
     
 
     setTimeout(() => {
@@ -588,7 +588,7 @@ async function renderFolders() {
 
             serversToMove.forEach(server => {
                 if (serversContainer) {
-                    server.element.style.display = '';  // 
+                    server.element.style.display = '';  
                     server.element.classList.add('in-group');
                     
 
@@ -636,7 +636,7 @@ function resetServersToMainList() {
     const serversToReposition = [];
     serversInGroups.forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
-        serverIcon.style.display = '';  // 
+        serverIcon.style.display = '';  
         
 
         serversToReposition.push({
@@ -653,7 +653,7 @@ function resetServersToMainList() {
 
     document.querySelectorAll('.server-sidebar-icon[data-server-id].in-group').forEach(serverIcon => {
         serverIcon.classList.remove('in-group');
-        serverIcon.style.display = '';  // 
+        serverIcon.style.display = '';  
     });
     
 
@@ -1207,7 +1207,7 @@ async function handleServerAddToGroup(serverId, groupId, folderElement) {
                     
 
                     performCompleteRender(); 
-                }, 350); // 
+                }, 350); 
             });
         });
     } else {

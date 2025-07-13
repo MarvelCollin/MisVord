@@ -21,7 +21,7 @@
                 </button>
             </div>
             
-            <!-- Transfer Ownership Section -->
+            
             <div class="mb-6 pb-6 border-b border-discord-dark-hover">
                 <div class="text-center mb-5">
                     <div class="bg-discord-blurple bg-opacity-10 text-discord-blurple inline-block p-3 rounded-full mb-3">
@@ -41,11 +41,11 @@
                         </div>
                     </div>
                     <div id="users-container" class="bg-discord-dark-hover rounded mt-2 max-h-36 overflow-y-auto hidden">
-                        <!-- Users will be populated here -->
+                        
                     </div>
-                    <!-- Skeleton loading for search results -->
+                    
                     <div id="users-loading" class="bg-discord-dark-hover rounded mt-2 max-h-36 overflow-y-auto hidden">
-                        <!-- Skeleton loading items -->
+                        
                         <div class="p-2 flex items-center animate-pulse">
                             <div class="w-8 h-8 rounded-full bg-discord-dark-input mr-2 flex-shrink-0"></div>
                             <div class="flex-grow">
@@ -98,7 +98,7 @@
                 </div>
             </div>
             
-            <!-- Delete Server Section -->
+            
             <div>
                 <div class="text-center mb-5">
                     <div class="bg-discord-red bg-opacity-10 text-discord-red inline-block p-3 rounded-full mb-3">

@@ -59,7 +59,7 @@ $pageIsHttps = $pageIsHttps || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_S
 $pageIsHttps = $pageIsHttps || (isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] === 'https');
 
 if ($isVPS && $vpsHost !== 'localhost') {
-    // Use SOCKET_HOST for VPS to ensure consistency with socket server configuration
+    
     $frontendSocketHost = $socketHost;
     $frontendSocketPort = '';
     $frontendSocketSecure = 'true';
@@ -84,7 +84,7 @@ if ($isVPS && $vpsHost !== 'localhost') {
 
 <title><?php echo htmlspecialchars($page_title); ?></title>
 
-<!-- Favicon -->
+
 <link rel="icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
 <link rel="shortcut icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
 
@@ -98,10 +98,10 @@ if ($isVPS && $vpsHost !== 'localhost') {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Font Awesome CDN -->
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
-<!-- Fetch Polyfill for legacy browsers -->
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/whatwg-fetch/3.6.2/fetch.umd.min.js"></script>
 
 <script>
@@ -160,6 +160,7 @@ if ($isVPS && $vpsHost !== 'localhost') {
 <?php if (isset($include_socket_io) && $include_socket_io): ?>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
     <script src="/public/js/debug/socket-diagnostics.js?v=<?php echo $cache_version; ?>"></script>
+    <script src="/public/js/components/bot/music-player-system.js?v=<?php echo $cache_version; ?>"></script>
     
     <script>
     
@@ -825,7 +826,7 @@ function initializeBotDebugPanel() {
 
             setTimeout(() => {
                 refreshBotStatus();
-                setTimeout(refreshBotStatus, 2000); // 
+                setTimeout(refreshBotStatus, 2000); 
             }, 500);
         });
         
@@ -1059,7 +1060,7 @@ function analyzeVoiceContextForBot() {
         detectionMethod = 'unifiedVoiceStateManager';
     } else if (metaChannelType === 'voice' && currentChannelId) {
         voiceChannelId = currentChannelId;
-        userInVoice = false; // 
+        userInVoice = false; 
         detectionMethod = 'currentVoiceChannelPage';
     }
     
@@ -1150,7 +1151,7 @@ function sendBotCommand(command) {
     } else {
         if (metaChannelType === 'voice' && currentChannelId) {
             voiceChannelId = currentChannelId;
-            userInVoice = false; // 
+            userInVoice = false; 
             detectionMethod = 'currentVoiceChannelPage';
             addBotDebugLog(`   ⚠️ Voice context from current page view: channel ${voiceChannelId} (userInVoice: false)`, 'warning');
         } else {

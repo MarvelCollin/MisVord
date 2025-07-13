@@ -7,7 +7,7 @@ class MusicPlayerSystem {
         this.currentSong = null;
         this.queue = [];
         this.currentIndex = 0;
-        this.audio = null; // 
+        this.audio = null; 
         this.isPlaying = false;
         this.volume = 0.5;
         this.channelId = null;
@@ -37,7 +37,7 @@ class MusicPlayerSystem {
 
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
-            this.audio.preload = "auto"; // 
+            this.audio.preload = "auto"; 
             this.audio.volume = this.volume;
             
             
@@ -149,7 +149,7 @@ class MusicPlayerSystem {
 
         try {
             const testAudio = new Audio();
-            testAudio.volume = 0.1; // 
+            testAudio.volume = 0.1; 
 
             testAudio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
             
@@ -1253,7 +1253,7 @@ class MusicPlayerSystem {
             
             this.audio.volume = this.volume;
             this.audio.crossOrigin = "anonymous";
-            this.audio.preload = "auto"; // 
+            this.audio.preload = "auto"; 
             
 
             if (this._audioContext && this._audioContext.state === 'suspended') {
@@ -1306,14 +1306,14 @@ class MusicPlayerSystem {
                     console.error('🎵 [MUSIC-PLAYER] Audio loading timeout for:', track.title);
                     cleanup();
                     reject(new Error('Audio loading timeout'));
-                }, 20000); // 
+                }, 20000); 
                 
 
                 const backupTimerId = setTimeout(() => {
                     
                     this.audio.preload = "auto";
                     if (this.audio.readyState < 2) {
-                        this.audio.load(); // 
+                        this.audio.load(); 
                     }
                     
 
@@ -1432,7 +1432,7 @@ class MusicPlayerSystem {
                         const proxyUrl = `https://cors-anywhere.herokuapp.com/${track.previewUrl}`;
                         this.audio.src = proxyUrl;
                         this.audio.load();
-                        return; // 
+                        return; 
                     }
                     
 
@@ -1829,4 +1829,4 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = MusicPlayerSystem;
 }
 
-} // 
+} 

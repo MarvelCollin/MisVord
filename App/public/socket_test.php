@@ -8,7 +8,7 @@
         require_once '/var/www/html/config/env.php';
     }
     
-    // Simulate the same logic from head.php
+    
     $socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
     $socketPort = EnvLoader::get('SOCKET_PORT', '1002');
     $socketSecure = EnvLoader::get('SOCKET_SECURE', 'false');
@@ -130,7 +130,7 @@
                     log(`Error type: ${error.type}`);
                     log(`Error context: ${JSON.stringify(error.context || {})}`);
                     
-                    // Try fallback if main host fails
+                    
                     let fallbackHost = metaHost;
                     if (metaHost && metaHost.startsWith('www.')) {
                         fallbackHost = metaHost.replace('www.', '');
@@ -172,7 +172,7 @@
             }
         }
         
-        // Test immediately on load
+        
         window.addEventListener('load', () => {
             setTimeout(testSocketConnection, 1000);
         });

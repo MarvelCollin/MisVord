@@ -1778,26 +1778,26 @@ Route::get('/api/bot/user/{username}', function($username) {
     $controller->getBotByUsername($username);
 });
 
-// Debug panel route with authentication
+
 Route::get('/debug', function() {
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
     
-    // Handle logout
+    
     if (isset($_GET['logout'])) {
         session_destroy();
         header('Location: /debug');
         exit;
     }
     
-    // Check if already authenticated
+    
     if (!isset($_SESSION['debug_authenticated']) || $_SESSION['debug_authenticated'] !== true) {
-        // Get error message from session if any
-        $error = $_SESSION['debug_error'] ?? null;
-        unset($_SESSION['debug_error']); // Clear it after reading
         
-        // Show login form
+        $error = $_SESSION['debug_error'] ?? null;
+        unset($_SESSION['debug_error']); 
+        
+        
         ?>
         <!DOCTYPE html>
         <html lang="en">

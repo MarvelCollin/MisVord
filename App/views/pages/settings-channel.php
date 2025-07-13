@@ -77,7 +77,7 @@ ob_start();
             </nav>
         </div>
 
-        <!-- Settings Content -->
+        
         <div class="flex-1 bg-discord-background overflow-y-auto">
             <?php if ($section === 'overview'): ?>
                 <div class="p-8">
@@ -229,13 +229,13 @@ ob_start();
         </div>
     </div>
 
-    <!-- Close button to return to server page -->
+    
     <a href="/server/<?php echo $serverId; ?>?channel=<?php echo $channelId; ?>" class="settings-close-button">
         <i class="fas fa-times text-2xl"></i>
     </a>
 </div>
 
-<!-- Delete Channel Confirmation Modal -->
+
 <div id="delete-channel-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
     <div class="bg-discord-dark rounded-lg max-w-md w-full p-6">
         <h3 class="text-xl font-bold mb-2">Delete Channel</h3>

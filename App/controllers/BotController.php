@@ -526,12 +526,7 @@ class BotController extends BaseController
         }
     }
     
-    /**
-     * Ensures a bot is a member of a server
-     * @param int $botId The bot user ID
-     * @param int $serverId The server ID
-     * @return bool True if the bot is now a member
-     */
+    
     public function ensureBotInServer($botId, $serverId)
     {
         try {
@@ -543,19 +538,14 @@ class BotController extends BaseController
                 return true;
             }
             
-            return false; // 
+            return false; 
         } catch (Exception $e) {
             error_log("Failed to ensure bot in server: " . $e->getMessage());
             return false;
         }
     }
     
-    /**
-     * Ensures a bot is a participant in a chat room
-     * @param int $botId The bot user ID
-     * @param int $roomId The chat room ID
-     * @return bool True if the bot is now a participant
-     */
+    
     public function ensureBotInChatRoom($botId, $roomId)
     {
         try {
@@ -567,7 +557,7 @@ class BotController extends BaseController
                 return true;
             }
             
-            return false; // 
+            return false; 
         } catch (Exception $e) {
             error_log("Failed to ensure bot in chat room: " . $e->getMessage());
             return false;

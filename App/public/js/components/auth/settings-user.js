@@ -1,6 +1,4 @@
-/**
- * User Settings Page Javascript
- */
+
 import ImageCutter from '../common/image-cutter.js';
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -50,9 +48,7 @@ function initUserSettingsPage() {
     initDeleteAccount();
 }
 
-/**
- * Initialize sidebar navigation
- */
+
 function initSidebarNavigation(activeSection) {
     const sidebarItems = document.querySelectorAll('a.sidebar-item');
     
@@ -84,9 +80,7 @@ function initSidebarNavigation(activeSection) {
     });
 }
 
-/**
- * Initialize user avatar upload with image cropper
- */
+
 function initUserAvatarUpload() {
     const iconContainer = document.getElementById('user-avatar-container');
     const iconInput = document.getElementById('avatar-input');
@@ -185,9 +179,7 @@ function initUserAvatarUpload() {
     }
 }
 
-/**
- * Initialize banner upload with image cropper
- */
+
 function initUserBannerUpload() {
     const bannerContainer = document.getElementById('user-banner-container');
     const bannerInput = document.getElementById('user-banner-input');
@@ -286,9 +278,7 @@ function initUserBannerUpload() {
     }
 }
 
-/**
- * Upload avatar to server
- */
+
 function uploadAvatar(dataUrl) {
     const blob = dataURLtoBlob(dataUrl);
     
@@ -346,9 +336,7 @@ function uploadAvatar(dataUrl) {
     });
 }
 
-/**
- * Upload banner to server
- */
+
 function uploadBanner(dataUrl) {
     const blob = dataURLtoBlob(dataUrl);
     
@@ -407,9 +395,7 @@ function uploadBanner(dataUrl) {
     });
 }
 
-/**
- * Update all avatar instances in the UI
- */
+
 function updateAllAvatars(url) {
     const avatarElements = document.querySelectorAll('.user-avatar img, #user-avatar-preview');
     
@@ -423,9 +409,7 @@ function updateAllAvatars(url) {
     }
 }
 
-/**
- * Update all banner instances in the UI
- */
+
 function updateAllBanners(url) {
     const bannerElements = document.querySelectorAll('.user-banner img, #user-banner-preview');
     
@@ -453,9 +437,7 @@ function updateAllBanners(url) {
     });
 }
 
-/**
- * Convert data URL to Blob
- */
+
 function dataURLtoBlob(dataURL) {
     const arr = dataURL.split(',');
     const mime = arr[0].match(/:(.*?);/)[1];
@@ -470,9 +452,7 @@ function dataURLtoBlob(dataURL) {
     return new Blob([u8arr], { type: mime });
 }
 
-/**
- * Initialize close button
- */
+
 function initCloseButton() {
     const closeButton = document.querySelector('.close-button');
     if (!closeButton) return;
@@ -494,9 +474,7 @@ function initCloseButton() {
     });
 }
 
-/**
- * Initialize logout button
- */
+
 function initLogoutButton() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
@@ -564,9 +542,7 @@ function initLogoutButton() {
     }
 }
 
-/**
- * Initialize global click handlers as fallback
- */
+
 function initGlobalClickHandlers() {
     document.addEventListener('click', function(e) {
         if (e.target && (e.target.id === 'logout-btn' || e.target.closest('#logout-btn'))) {
@@ -606,9 +582,7 @@ function initGlobalClickHandlers() {
     });
 }
 
-/**
- * Initialize status selector for user status
- */
+
 function initStatusSelector() {
     const statusOptions = document.querySelectorAll('.status-option');
     const userMetaStatus = document.querySelector('meta[name="user-status"]');
@@ -632,9 +606,7 @@ function initStatusSelector() {
     });
 }
 
-/**
- * Update user status via API
- */
+
 function updateUserStatus(status) {
     fetch('/user/status', {
         method: 'POST',
@@ -677,9 +649,7 @@ function updateUserStatus(status) {
     });
 }
 
-/**
- * Update status indicators in UI
- */
+
 function updateStatusIndicators(status) {
     const statusMap = {
         'appear': 'bg-green-500',
@@ -705,9 +675,7 @@ function updateStatusIndicators(status) {
     }
 }
 
-/**
- * Initialize email reveal functionality
- */
+
 function initEmailReveal() {
     const revealButton = document.getElementById('reveal-email-btn');
     const emailDisplay = document.getElementById('user-email-display');
@@ -737,9 +705,7 @@ function initEmailReveal() {
     });
 }
 
-/**
- * Initialize password change forms
- */
+
 function initPasswordChangeForms() {
     const changePasswordBtn = document.getElementById('change-password-btn');
     const modal = document.getElementById('change-password-modal');
@@ -1165,14 +1131,10 @@ function initPasswordChangeForms() {
     });
 }
 
-/**
- * Initialize two-factor authentication
- */
 
 
-/**
- * Initialize password field masking for text fields with password-field class
- */
+
+
 function initPasswordFieldMasking() {
     document.addEventListener('click', function(e) {
         if (e.target && e.target.classList.contains('password-field')) {
@@ -1198,9 +1160,7 @@ function initPasswordFieldMasking() {
     document.querySelectorAll('.password-field').forEach(setupPasswordField);
 }
 
-/**
- * Setup individual password field masking
- */
+
 function setupPasswordField(field) {
     if (field.dataset.maskingInitialized) return;
     field.dataset.maskingInitialized = 'true';
@@ -1230,9 +1190,7 @@ function setupPasswordField(field) {
     }
 }
 
-/**
- * Show toast notification
- */
+
 function showToast(message, type = 'info') {
     if (window.showToast) {
         window.showToast(message, type);
@@ -1262,9 +1220,7 @@ function showToast(message, type = 'info') {
     }
 }
 
-/**
- * Get toast notification background class based on type
- */
+
 function getToastClass(type) {
     switch (type) {
         case 'success':
@@ -1278,9 +1234,7 @@ function getToastClass(type) {
     }
 }
 
-/**
- * Get toast notification icon based on type
- */
+
 function getToastIcon(type) {
     switch (type) {
         case 'success':
@@ -1542,9 +1496,7 @@ function updateBio(bio) {
         });
 }
 
-/**
- * Initialize profile form submission
- */
+
 function initProfileFormSubmit() {
     const profileForm = document.getElementById('user-profile-form');
     const approveUsernameBtn = document.getElementById('approve-username');
@@ -1625,9 +1577,7 @@ function initProfileFormSubmit() {
     }
 }
 
-/**
- * Check for changes and show/hide approve button
- */
+
 function checkForChanges(input, approveBtn) {
     if (!input || !approveBtn) return;
     
@@ -1649,9 +1599,7 @@ function checkForChanges(input, approveBtn) {
     }
 }
 
-/**
- * Update username
- */
+
 function updateUsername(username) {
     const approveBtn = document.getElementById('approve-username');
     const usernameInput = document.getElementById('username');
@@ -1744,9 +1692,7 @@ function updateUsername(username) {
     });
 }
 
-/**
- * Update display name
- */
+
 function updateDisplayName(displayName) {
     const approveBtn = document.getElementById('approve-display-name');
     const displayNameInput = document.getElementById('display_name');
@@ -1829,9 +1775,7 @@ function updateDisplayName(displayName) {
     });
 }
 
-/**
- * Update profile
- */
+
 
 function showImageRemovalConfirmation(type, onConfirm) {
     const typeText = type === 'avatar' ? 'profile picture' : 'profile banner';
