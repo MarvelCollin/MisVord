@@ -187,4 +187,218 @@ class DebugController extends BaseController
 
         exit;
     }
+    public function getSystemStats()
+    {
+        require_once dirname(__DIR__) . '/config/env.php';
+        
+        return [
+            'server_info' => [
+                'php_version' => PHP_VERSION,
+                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Unknown',
+                'server_name' => $_SERVER['SERVER_NAME'] ?? 'localhost',
+                'document_root' => $_SERVER['DOCUMENT_ROOT'] ?? '',
+                'request_time' => date('Y-m-d H:i:s', $_SERVER['REQUEST_TIME'] ?? time()),
+                'memory_limit' => ini_get('memory_limit'),
+                'max_execution_time' => ini_get('max_execution_time'),
+                'upload_max_filesize' => ini_get('upload_max_filesize'),
+                'post_max_size' => ini_get('post_max_size')
+            ],
+            'environment' => [
+                'app_env' => EnvLoader::get('APP_ENV', 'development'),
+                'app_debug' => EnvLoader::get('APP_DEBUG', 'true'),
+                'app_url' => EnvLoader::get('APP_URL', 'http://localhost'),
+                'is_docker' => getenv('IS_DOCKER') === 'true' ? 'true' : 'false',
+                'is_vps' => EnvLoader::get('IS_VPS', 'false'),
+                'timezone' => date_default_timezone_get()
+            ],
+            'socket_config' => [
+                'socket_host' => EnvLoader::get('SOCKET_HOST', 'localhost'),
+                'socket_port' => EnvLoader::get('SOCKET_PORT', '3001'),
+                'socket_protocol' => EnvLoader::get('SOCKET_PROTOCOL', 'http')
+            ]
+        ];
+    }
+
+    public function getVpsHealthCheck()
+    {
+        $checks = [];
+        
+        // Database health check
+        try {
+            require_once dirname(__DIR__) . '/database/query.php';
+            $query = new Query();
+            $userCount = $query->query("SELECT COUNT(*) as count FROM users");
+            $checks['database'] = [
+                'status' => 'healthy',
+                'message' => 'Database connection successful',
+                'stats' => [
+                    'total_users' => $userCount[0]['count'] ?? 0
+                ]
+            ];
+        } catch (Exception $e) {
+            $checks['database'] = [
+                'status' => 'unhealthy',
+                'message' => $e->getMessage()
+            ];
+        }
+        
+        // Socket server health check
+        $socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
+        $socketPort = EnvLoader::get('SOCKET_PORT', '3001');
+        $socketUrl = "http://{$socketHost}:{$socketPort}/health";
+        
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 5,
+                'method' => 'GET'
+            ]
+        ]);
+        
+        $response = @file_get_contents($socketUrl, false, $context);
+        if ($response !== false) {
+            $checks['socket_server'] = [
+                'status' => 'healthy',
+                'message' => 'Socket server responding',
+                'url' => $socketUrl
+            ];
+        } else {
+            $checks['socket_server'] = [
+                'status' => 'unhealthy',
+                'message' => 'Socket server not responding',
+                'url' => $socketUrl
+            ];
+        }
+        
+        // Disk space check
+        $totalBytes = disk_total_space('.');
+        $freeBytes = disk_free_space('.');
+        $usedBytes = $totalBytes - $freeBytes;
+        $usedPercent = round(($usedBytes / $totalBytes) * 100, 1);
+        
+        $checks['disk_space'] = [
+            'status' => $usedPercent > 90 ? 'critical' : ($usedPercent > 70 ? 'warning' : 'healthy'),
+            'used_percent' => $usedPercent,
+            'used_gb' => round($usedBytes / (1024 * 1024 * 1024), 2),
+            'total_gb' => round($totalBytes / (1024 * 1024 * 1024), 2),
+            'free_gb' => round($freeBytes / (1024 * 1024 * 1024), 2)
+        ];
+        
+        // Add SSL and nginx checks to health check
+        $checks['ssl_certificate'] = $this->checkSslCertificate();
+        $checks['nginx_status'] = $this->checkNginxStatus();
+        
+        return [
+            'checks' => $checks,
+            'overall_status' => $this->determineOverallHealth($checks),
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+    }
+    
+    private function determineOverallHealth($checks)
+    {
+        $statuses = array_column($checks, 'status');
+        
+        if (in_array('critical', $statuses) || in_array('unhealthy', $statuses)) {
+            return 'unhealthy';
+        } elseif (in_array('warning', $statuses)) {
+            return 'warning';
+        } else {
+            return 'healthy';
+        }
+    }
+    
+    private function checkSslCertificate()
+    {
+        require_once dirname(__DIR__) . '/config/env.php';
+        $appUrl = EnvLoader::get('APP_URL', 'http://localhost');
+        $domain = parse_url($appUrl, PHP_URL_HOST);
+        
+        if (!$domain || strpos($appUrl, 'https://') !== 0) {
+            return [
+                'status' => 'not_applicable',
+                'message' => 'HTTPS not configured or local development',
+                'domain' => $domain
+            ];
+        }
+        
+        try {
+            $context = stream_context_create([
+                'ssl' => [
+                    'capture_peer_cert' => true,
+                    'verify_peer' => false,
+                    'verify_peer_name' => false
+                ]
+            ]);
+            
+            $stream = @stream_socket_client(
+                "ssl://{$domain}:443",
+                $errno,
+                $errstr,
+                10,
+                STREAM_CLIENT_CONNECT,
+                $context
+            );
+            
+            if (!$stream) {
+                return [
+                    'status' => 'error',
+                    'message' => "Failed to connect: {$errstr} ({$errno})",
+                    'domain' => $domain
+                ];
+            }
+            
+            $cert = stream_context_get_params($stream)['options']['ssl']['peer_certificate'];
+            $certInfo = openssl_x509_parse($cert);
+            
+            $validFrom = date('Y-m-d H:i:s', $certInfo['validFrom_time_t']);
+            $validTo = date('Y-m-d H:i:s', $certInfo['validTo_time_t']);
+            $daysUntilExpiry = floor(($certInfo['validTo_time_t'] - time()) / 86400);
+            
+            fclose($stream);
+            
+            return [
+                'status' => $daysUntilExpiry > 30 ? 'healthy' : ($daysUntilExpiry > 7 ? 'warning' : 'critical'),
+                'domain' => $domain,
+                'issuer' => $certInfo['issuer']['CN'] ?? 'Unknown',
+                'subject' => $certInfo['subject']['CN'] ?? 'Unknown',
+                'valid_from' => $validFrom,
+                'valid_to' => $validTo,
+                'days_until_expiry' => $daysUntilExpiry,
+                'fingerprint' => openssl_x509_fingerprint($cert)
+            ];
+            
+        } catch (Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => $e->getMessage(),
+                'domain' => $domain
+            ];
+        }
+    }
+    
+    private function checkNginxStatus()
+    {
+        // Check if nginx is running (works on Linux/VPS)
+        $nginxRunning = false;
+        $nginxConfig = 'Unknown';
+        
+        if (function_exists('shell_exec') && !in_array('shell_exec', explode(',', ini_get('disable_functions')))) {
+            // Check if nginx process is running
+            $processes = @shell_exec('pgrep nginx 2>/dev/null | wc -l');
+            $nginxRunning = $processes !== null && (int)trim($processes) > 0;
+            
+            // Try to get nginx config test
+            $configTest = @shell_exec('nginx -t 2>&1');
+            if ($configTest !== null) {
+                $nginxConfig = trim($configTest);
+            }
+        }
+        
+        return [
+            'status' => $nginxRunning ? 'healthy' : 'unknown',
+            'running' => $nginxRunning,
+            'config_test' => $nginxConfig,
+            'note' => 'nginx status detection works only on Linux/VPS with shell access'
+        ];
+    }
 }
