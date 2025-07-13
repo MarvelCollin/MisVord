@@ -261,13 +261,13 @@ class ChatSection {
         if (this.chatType === 'channel') {
             const chatIdMeta = document.querySelector('meta[name="chat-id"]');
             if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
-                console.log('✅ [CHAT-SECTION] Found channel ID from chat-id meta:', chatIdMeta.content);
+                
                 return chatIdMeta.content;
             }
             
             const channelMeta = document.querySelector('meta[name="channel-id"]');
             if (channelMeta && channelMeta.content && channelMeta.content !== '') {
-                console.log('✅ [CHAT-SECTION] Found channel ID from channel-id meta:', channelMeta.content);
+                
                 return channelMeta.content;
             }
             
@@ -275,7 +275,7 @@ class ChatSection {
             if (activeChannelElement) {
                 const channelId = activeChannelElement.getAttribute('data-channel-id');
                 if (channelId) {
-                    console.log('✅ [CHAT-SECTION] Found channel ID from active element:', channelId);
+                    
                     return channelId;
                 }
             }
@@ -284,7 +284,7 @@ class ChatSection {
             if (firstTextChannel) {
                 const channelId = firstTextChannel.getAttribute('data-channel-id');
                 if (channelId) {
-                    console.log('✅ [CHAT-SECTION] Found channel ID from first text channel:', channelId);
+                    
                     return channelId;
                 }
             }
@@ -296,25 +296,25 @@ class ChatSection {
         if (this.chatType === 'direct') {
             const chatIdMeta = document.querySelector('meta[name="chat-id"]');
             if (chatIdMeta && chatIdMeta.content && chatIdMeta.content !== '') {
-                console.log('✅ [CHAT-SECTION] Found DM ID from chat-id meta:', chatIdMeta.content);
+                
                 return chatIdMeta.content;
             }
             
             const dmMatch = currentPath.match(/\/home\/channels\/dm\/(\d+)/);
             if (dmMatch) {
-                console.log('✅ [CHAT-SECTION] Found DM ID from URL:', dmMatch[1]);
+                
                 return dmMatch[1];
             }
             
             const roomIdFromUrl = urlParams.get('room');
             if (roomIdFromUrl) {
-                console.log('✅ [CHAT-SECTION] Found DM ID from room param:', roomIdFromUrl);
+                
                 return roomIdFromUrl;
             }
             
             const roomMeta = document.querySelector('meta[name="room-id"]');
             if (roomMeta && roomMeta.content && roomMeta.content !== '') {
-                console.log('✅ [CHAT-SECTION] Found DM ID from room-id meta:', roomMeta.content);
+                
                 return roomMeta.content;
             }
             
@@ -510,7 +510,7 @@ class ChatSection {
                 this.targetId = this.detectTargetId();
                 
                 if (!this.targetId && this.chatType === 'direct') {
-                    console.log('🔄 [CHAT-SECTION] Retrying DM target ID detection...');
+                    
                     await new Promise(resolve => setTimeout(resolve, 500));
                     this.targetId = this.detectTargetId();
                     
@@ -570,7 +570,7 @@ class ChatSection {
                     await this.loadMessages();
                     
                     const loadTime = Date.now() - loadStartTime;
-                    console.log(`✅ [CHAT-SECTION] Messages loaded in ${loadTime}ms`);
+                    
                     
                     clearTimeout(skeletonTimeout);
                     
@@ -3285,7 +3285,7 @@ class ChatSection {
         this.skeletonHidden = false;
         this.messagesLoaded = false;
         
-        console.log('🦴 [CHAT-SECTION] Skeleton initialized - waiting for messages');
+        
     }
     
     hideChatSkeleton() {
@@ -3325,14 +3325,14 @@ class ChatSection {
             
             this.skeletonHidden = true;
             this.messagesLoaded = true;
-            console.log('✅ [CHAT-SECTION] Skeleton hidden - messages are ready');
+            
         };
 
         if (this.skeletonStartTime) {
             const elapsedTime = Date.now() - this.skeletonStartTime;
             const remainingTime = Math.max(0, this.minSkeletonTime - elapsedTime);
             
-            console.log(`⏱️ [CHAT-SECTION] Skeleton timing - elapsed: ${elapsedTime}ms, remaining: ${remainingTime}ms`);
+            
             
             if (remainingTime > 0) {
                 setTimeout(hideSkeletonNow, remainingTime);
@@ -3361,7 +3361,7 @@ class ChatSection {
             skeletonContainer.style.right = '0';
             skeletonContainer.style.bottom = '0';
             skeletonContainer.style.zIndex = '10';
-            console.log('🦴 [CHAT-SECTION] Skeleton displayed - waiting for messages');
+            
         }
         
         if (realContent) {

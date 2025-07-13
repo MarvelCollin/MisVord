@@ -69,7 +69,7 @@ async function initializeServerComponents() {
             window.voiceCallSection = new window.VoiceCallSection();
         }
         
-        console.log('[Server Page] ✅ Server components initialized');
+        
     } catch (error) {
         console.error('[Server Page] ❌ Server initialization failed:', error);
     }

@@ -36,7 +36,7 @@ class VoiceManager {
         }
         
         window.voiceManager = this;
-        console.log('[VoiceManager] Initialized successfully');
+        
     }
     
     async ensureInitialized() {
@@ -59,7 +59,7 @@ class VoiceManager {
             if (response.ok) {
                 const data = await response.json();
                 this.authToken = data.token;
-                console.log('[VoiceManager] Auth token fetched successfully');
+                
             } else {
                 console.error('[VoiceManager] Failed to fetch auth token:', response.status);
             }
@@ -89,7 +89,7 @@ class VoiceManager {
     setupBeforeUnloadHandler() {
         window.addEventListener('beforeunload', (event) => {
             if (this.isConnected) {
-                console.log('🔄 [VOICE-MANAGER] Page unloading - cleaning up voice connection');
+                
                 
 
                 if (this.meeting) {
@@ -424,7 +424,7 @@ class VoiceManager {
 
         else if (!this.isConnected && voiceState.isConnected && 
                  voiceState.channelId && voiceState.meetingId) {
-            console.log(`🔄 [VOICE-MANAGER] Storage shows active voice connection, updating local state:`, voiceState);
+            
             this.currentChannelId = voiceState.channelId;
             this.currentChannelName = voiceState.channelName;
             this.currentMeetingId = voiceState.meetingId;
@@ -539,7 +539,7 @@ class VoiceManager {
         const storedState = window.localStorageManager.getUnifiedVoiceState();
         
         if (storedState.videoOn && !this._videoOn) {
-            console.log('🎥 [VOICE-MANAGER] Restoring video state from storage');
+            
             try {
                 await this.meeting.enableWebcam();
                 this._videoOn = true;
@@ -549,7 +549,7 @@ class VoiceManager {
         }
         
         if (storedState.screenShareOn && !this._screenShareOn) {
-            console.log('🖥️ [VOICE-MANAGER] Restoring screen share state from storage');
+            
             try {
                 await this.meeting.enableScreenShare();
                 this._screenShareOn = true;
@@ -675,7 +675,7 @@ class VoiceManager {
     checkAndRestoreExistingStreams(participant) {
         if (!participant) return;
         
-        console.log(`🔍 [VOICE-MANAGER] Checking existing streams for participant ${participant.id}`);
+        
         console.log(`🔍 [VOICE-MANAGER] Participant object:`, {
             id: participant.id,
             webcamOn: participant.webcamOn,
@@ -690,7 +690,7 @@ class VoiceManager {
         
         setTimeout(() => {
             if (participant.webcamOn && participant.webcamStream) {
-                console.log(`🎥 [VOICE-MANAGER] Found existing webcam stream for ${participant.id}`);
+                
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
                     participantData.streams.set('video', participant.webcamStream);
@@ -706,7 +706,7 @@ class VoiceManager {
             }
             
             if (participant.screenShareOn && participant.screenShareStream) {
-                console.log(`🖥️ [VOICE-MANAGER] Found existing screen share stream for ${participant.id}`);
+                
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
                     participantData.streams.set('share', participant.screenShareStream);
@@ -722,7 +722,7 @@ class VoiceManager {
             }
             
             if (participant.micOn && participant.micStream) {
-                console.log(`🎤 [VOICE-MANAGER] Found existing mic stream for ${participant.id}`);
+                
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
                     participantData.streams.set('audio', participant.micStream);
@@ -730,7 +730,7 @@ class VoiceManager {
             }
             
             if (participant.videoStream) {
-                console.log(`🎥 [VOICE-MANAGER] Found existing video stream (alt) for ${participant.id}`);
+                 for ${participant.id}`);
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
                     participantData.streams.set('video', participant.videoStream);
@@ -746,10 +746,10 @@ class VoiceManager {
             }
             
             if (participant.streams) {
-                console.log(`🔍 [VOICE-MANAGER] Checking participant.streams object for ${participant.id}:`, participant.streams);
+                
                 
                 if (participant.streams.video) {
-                    console.log(`🎥 [VOICE-MANAGER] Found video in streams object for ${participant.id}`);
+                    
                     const participantData = this.participants.get(participant.id);
                     if (participantData) {
                         participantData.streams.set('video', participant.streams.video);
@@ -765,7 +765,7 @@ class VoiceManager {
                 }
                 
                 if (participant.streams.share) {
-                    console.log(`🖥️ [VOICE-MANAGER] Found share in streams object for ${participant.id}`);
+                    
                     const participantData = this.participants.get(participant.id);
                     if (participantData) {
                         participantData.streams.set('share', participant.streams.share);
@@ -786,7 +786,7 @@ class VoiceManager {
     checkAllParticipantsForExistingStreams() {
         if (!this.meeting || !this.meeting.participants) return;
         
-        console.log(`🔍 [VOICE-MANAGER] Checking all participants for existing streams`);
+        
         
         this.meeting.participants.forEach((participant) => {
             if (participant && this.participants.has(participant.id)) {
@@ -894,7 +894,7 @@ class VoiceManager {
 
         const domMeetingId = document.querySelector(`[data-channel-id="${channelId}"]`)?.getAttribute('data-meeting-id');
         if (domMeetingId) {
-            console.log(`📌 [VOICE-MANAGER] Using meeting ID from DOM attribute:`, { channelId, meetingId: domMeetingId });
+            
             return domMeetingId;
         }
 

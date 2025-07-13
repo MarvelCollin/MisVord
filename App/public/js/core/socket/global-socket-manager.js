@@ -87,7 +87,7 @@
         window.addEventListener('beforeunload', (event) => {
 
             if (this.isConnected && this.isAuthenticated) {
-                console.log('🔄 [SOCKET] Page unloading - cleaning up socket connections');
+                
                 
 
                 const voiceState = window.localStorageManager?.getUnifiedVoiceState();
@@ -217,7 +217,7 @@
             }
             
             if (metaIsVPS && !this.socketPort) {
-                console.log('🌐 [SOCKET] VPS mode detected - using domain without port');
+                
             }
             
             this.debug('Environment-driven socket configuration:', {
@@ -851,7 +851,7 @@
         
 
         setTimeout(() => {
-            console.log(`📡 [SOCKET] Requesting fresh online users after joining room: ${roomName}`);
+            
             this.io.emit('get-online-users');
         }, 200);
         

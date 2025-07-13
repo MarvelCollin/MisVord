@@ -993,7 +993,7 @@ class MessageHandler {
             });
         });
         
-        console.log(`✅ [MESSAGE-HANDLER] Successfully displayed ${messageElements.length} messages`);
+        
     }
     
     async prependMessagesProgressively(messages) {

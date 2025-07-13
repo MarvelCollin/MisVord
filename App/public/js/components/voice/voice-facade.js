@@ -25,7 +25,7 @@ class VoiceFacade {
 
         const currentState = this.getCurrentState();
         if (currentState.isConnected && currentState.channelId === channelId) {
-            console.log('[VoiceFacade] Already in this channel');
+            
             return true;
         }
 

@@ -75,7 +75,7 @@ class SimpleDMSwitcher {
         
         if (dmMatch) {
             const dmId = dmMatch[1];
-            console.log('🎯 [DM-SWITCH] Found DM ID in URL:', dmId);
+            
             
             this.currentDMId = dmId;
             this.highlightActiveDM(dmId);
@@ -83,13 +83,13 @@ class SimpleDMSwitcher {
             this.updateMetaTags(dmId, 'dm');
             
             if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-                console.log('✅ [DM-SWITCH] Chat section available, switching to DM:', dmId);
+                
                 window.chatSection.switchToDM(dmId, 'direct');
             } else {
-                console.log('⚠️ [DM-SWITCH] Chat section not ready, waiting...');
+                
                 const waitForChatSection = () => {
                     if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-                        console.log('✅ [DM-SWITCH] Chat section ready, switching to DM:', dmId);
+                        
                         window.chatSection.switchToDM(dmId, 'direct');
                     } else {
                         requestAnimationFrame(waitForChatSection);
@@ -98,7 +98,7 @@ class SimpleDMSwitcher {
                 waitForChatSection();
             }
         } else {
-            console.log('ℹ️ [DM-SWITCH] No DM ID found in URL');
+            
         }
     }
     

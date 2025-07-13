@@ -356,7 +356,7 @@ class VoiceCallSection {
     }
     
     handleVoiceMeetingRegistered(data) {
-        console.log(`✅ [VOICE-CALL-SECTION] Voice meeting registered:`, data);
+        
         
         if (data.user_id === this.getCurrentUserId()) {
             this.currentMeetingId = data.meeting_id;
@@ -365,7 +365,7 @@ class VoiceCallSection {
     }
     
     handleVoiceMeetingUpdate(data) {
-        console.log(`🔄 [VOICE-CALL-SECTION] Voice meeting update:`, data);
+        
         
         if (data.action === 'join' && data.user_id === this.getCurrentUserId()) {
             this.currentMeetingId = data.meeting_id;
@@ -377,7 +377,7 @@ class VoiceCallSection {
     }
     
     handleVoiceMeetingStatus(data) {
-        console.log(`📊 [VOICE-CALL-SECTION] Voice meeting status:`, data);
+        
 
         if (data.has_meeting && data.meeting_id) {
             this.currentMeetingId = data.meeting_id;
@@ -471,7 +471,7 @@ class VoiceCallSection {
         if (!participant || this.participantElements.has(participant)) return;
         
         if (!window.voiceManager || !window.voiceManager.participants.has(participant)) {
-            console.log(`🚫 [VOICE-CALL-SECTION] Participant ${participant} not found in VideoSDK manager - ignoring`);
+            
             return;
         }
         
@@ -480,7 +480,7 @@ class VoiceCallSection {
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
-                    console.log(`🔄 [VOICE-CALL-SECTION] Skipping duplicate participant - user ${userId} already exists as ${existingParticipantId}`);
+                    
                     return;
                 }
             }
@@ -520,7 +520,7 @@ class VoiceCallSection {
         const { participant } = event.detail;
         if (!participant) return;
         
-        console.log('🎯 [VOICE-CALL-SECTION] Participant left - removing from grid');
+        
         
 
         if (this.currentModal) {
@@ -560,7 +560,7 @@ class VoiceCallSection {
         if (!element) return;
         
         if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
-            console.log(`🚫 [VOICE-CALL-SECTION] Stream from non-VideoSDK participant ${participantId} - ignoring`);
+            
             return;
         }
         
@@ -833,7 +833,7 @@ class VoiceCallSection {
             return;
         }
         
-        console.log(`🔄 [VOICE-CALL-SECTION] Rebuilding grid from VideoSDK participants only`);
+        
         this.clearGrid();
         
         const grid = document.getElementById("participantGrid");
@@ -856,14 +856,14 @@ class VoiceCallSection {
     restoreExistingStreamsForParticipant(participantId, participantData, element) {
         if (!participantData.streams || participantData.streams.size === 0) return;
         
-        console.log(`🔄 [VOICE-CALL-SECTION] Restoring ${participantData.streams.size} existing streams for participant ${participantId}`);
+        
         
         participantData.streams.forEach((stream, kind) => {
             if (kind === 'video' || kind === 'webcam') {
-                console.log(`🎥 [VOICE-CALL-SECTION] Restoring video stream for ${participantId}`);
+                
                 this.showParticipantVideo(element, stream);
             } else if (kind === 'share') {
-                console.log(`🖥️ [VOICE-CALL-SECTION] Restoring screen share for ${participantId}`);
+                
                 this.createScreenShareCard(participantId, stream);
             }
         });
@@ -883,14 +883,14 @@ class VoiceCallSection {
             
             if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
                 cardsToRemove.push({ card, participantId });
-                console.log(`🗑️ [VOICE-CALL-SECTION] Found non-VideoSDK card for participant ${participantId}, removing`);
+                
                 return;
             }
             
             if (userId) {
                 if (seenUserIds.has(userId)) {
                     cardsToRemove.push({ card, participantId });
-                    console.log(`🗑️ [VOICE-CALL-SECTION] Found duplicate card for user ${userId}, removing participant ${participantId}`);
+                    
                 } else {
                     seenUserIds.add(userId);
                 }
@@ -903,7 +903,7 @@ class VoiceCallSection {
         });
         
         if (cardsToRemove.length > 0) {
-            console.log(`✅ [VOICE-CALL-SECTION] Removed ${cardsToRemove.length} duplicate cards`);
+            
             this.updateGridLayout();
             this.updateParticipantCount();
         }

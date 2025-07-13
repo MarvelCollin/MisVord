@@ -973,7 +973,7 @@ class MessageHandler {
                             const result = await response.json();
                             const serverMembers = result.success ? result.data : [];
                             
-                            console.log('📧 [ALL-MENTION] Server members found:', serverMembers.length);
+                            
                             
                             let notifiedCount = 0;
                             for (const socket of io.sockets.sockets.values()) {
@@ -990,7 +990,7 @@ class MessageHandler {
                                     }
                                 }
                             }
-                            console.log('📧 [ALL-MENTION] Notified users count:', notifiedCount);
+                            
                         } else {
                             console.error('❌ [ALL-MENTION] Failed to fetch server members:', response.status);
                             if (targetRoom) {

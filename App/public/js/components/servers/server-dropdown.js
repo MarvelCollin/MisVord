@@ -897,7 +897,7 @@ window.testDropdownClick = function() {
         
         setTimeout(() => {
         const items = document.querySelectorAll('.server-dropdown-item');
-        console.log('Dropdown items:', Array.from(items).map(item => ({
+        .map(item => ({
             text: item.querySelector('span')?.textContent?.trim(),
             display: getComputedStyle(item).display,
             visible: item.offsetParent !== null

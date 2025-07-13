@@ -1,5 +1,5 @@
 window.debugDMInitialization = function() {
-    console.log('🔍 [DEBUG-DM] Starting DM initialization debug...');
+    
     
     const currentPath = window.location.pathname;
     const urlParams = new URLSearchParams(window.location.search);
@@ -23,7 +23,7 @@ window.debugDMInitialization = function() {
         username: document.querySelector('meta[name="username"]')?.content
     };
     
-    console.log('🏷️ [DEBUG-DM] Meta tags:', metaTags);
+    
     
     console.log('🔧 [DEBUG-DM] ChatSection state:', {
         chatSectionExists: !!window.chatSection,
@@ -68,7 +68,7 @@ window.debugDMInitialization = function() {
         mainSocketReady: window.__MAIN_SOCKET_READY__
     };
     
-    console.log('🔌 [DEBUG-DM] Socket status:', socketStatus);
+    
     
     return {
         path: currentPath,
@@ -80,17 +80,17 @@ window.debugDMInitialization = function() {
 };
 
 window.forceInitializeDM = async function() {
-    console.log('🚀 [DEBUG-DM] Force initializing ChatSection for DM...');
+    
     
     try {
         if (window.chatSection) {
-            console.log('♻️ [DEBUG-DM] ChatSection exists, resetting...');
+            
             window.chatSection = null;
         }
         
         window.__CHAT_SECTION_INITIALIZING__ = false;
         
-        console.log('🔄 [DEBUG-DM] Calling initializeChatSection...');
+        
         const result = await window.initializeChatSection();
         
         console.log('✅ [DEBUG-DM] Initialization result:', {
@@ -100,7 +100,7 @@ window.forceInitializeDM = async function() {
         });
         
         if (result) {
-            console.log('📡 [DEBUG-DM] Loading messages...');
+            
             await result.loadMessages({ forceFresh: true });
         }
         
@@ -111,6 +111,6 @@ window.forceInitializeDM = async function() {
     }
 };
 
-console.log('🧪 [DEBUG-DM] Debug functions loaded. Use:');
-console.log('- window.debugDMInitialization() to check current state');
-console.log('- window.forceInitializeDM() to force reinitialize');
+
+ to check current state');
+ to force reinitialize');

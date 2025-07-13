@@ -586,7 +586,7 @@ function setup(io) {
                     });
                 });
                 
-                console.log(`📊 [FORCE-REFRESH] Sent updated participant list for channel ${data.channel_id}: ${participants.length} participants`);
+                
             }
         });
         
@@ -834,7 +834,7 @@ function handleCheckVoiceMeeting(io, client, data) {
         .filter(bot => bot.channelId === channel_id || bot.channel_id === channel_id);
     
     if (existingBotParticipants.length > 0) {
-        console.log(`🤖 [VOICE-PARTICIPANT] Sending ${existingBotParticipants.length} existing bot participants for recovery`);
+        
         
         setTimeout(() => {
             existingBotParticipants.forEach(botParticipant => {
@@ -905,7 +905,7 @@ function handleUnregisterVoiceMeeting(io, client, data) {
     
     if (roomManagerMeeting) {
         if (!force_disconnect && !roomManagerMeeting.participants.has(client.id)) {
-            console.log(`⚠️ [VOICE-PARTICIPANT] Client ${client.id} not in meeting participants, but proceeding with cleanup`);
+            
         }
         
 
@@ -935,13 +935,13 @@ function handleUnregisterVoiceMeeting(io, client, data) {
                 const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channel_id);
                 const humanCount = humanParticipants.length;
                 
-                console.log(`🤖 [VOICE-UNREGISTER] Checking bot cleanup - Human participants remaining: ${humanCount}`);
+                
                 
                 if (humanCount === 0) {
                     BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
-                    console.log(`🤖 [VOICE-UNREGISTER] Removed TitiBot from channel ${channel_id} - no human participants left`);
+                    
                 } else {
-                    console.log(`🤖 [VOICE-UNREGISTER] TitiBot staying in channel ${channel_id} - ${humanCount} human participants remaining`);
+                    
                 }
             }
         }
@@ -1042,10 +1042,10 @@ function handleDisconnect(io, client) {
         const userOffline = roomManager.removeUserSocket(user_id, client.id);
         
         if (userOffline) {
-            console.log(`👋 [DISCONNECT] User ${user_id} going offline`);
+            
             userService.markUserDisconnecting(user_id, username);
         } else {
-            console.log(`🔄 [DISCONNECT] User ${user_id} still has other connections`);
+            
         }
         
 
@@ -1117,19 +1117,19 @@ function handleDisconnect(io, client) {
                 const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channel_id);
                 const humanCount = humanParticipants.length;
                 
-                console.log(`🤖 [DISCONNECT] Checking bot cleanup - Human participants remaining: ${humanCount}`);
+                
                 
                 if (humanCount === 0) {
                     BotHandler.removeBotFromVoiceChannel(io, titiBotId, channel_id);
-                    console.log(`🤖 [DISCONNECT] Removed TitiBot from channel ${channel_id} - no human participants left`);
+                    
                 } else {
-                    console.log(`🤖 [DISCONNECT] TitiBot staying in channel ${channel_id} - ${humanCount} human participants remaining`);
+                    
                 }
             }
         }
 
     } else {
-        console.log(`🔌 [DISCONNECT] Anonymous client disconnected: ${client.id}`);
+        
     }
 }
 
@@ -1289,7 +1289,7 @@ function setupStaleConnectionChecker(io) {
         }
         
         if (cleanedConnections > 0) {
-            console.log(`🧹 [STALE-CONNECTION] Cleaned up ${cleanedConnections} stale voice connections`);
+            
         }
     }, 30000);
 }

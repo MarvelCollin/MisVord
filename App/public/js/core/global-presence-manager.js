@@ -123,25 +123,25 @@ class GlobalPresenceManager {
             return;
         }
         
-        console.log('🚀 [GLOBAL-PRESENCE] Initializing FriendsManager integration');
+        
         
         this.friendsManager = window.FriendsManager.getInstance();
         
         if (window.globalSocketManager && window.globalSocketManager.isReady()) {
-            console.log('✅ [GLOBAL-PRESENCE] Socket ready, getting online users');
+            
             await this.friendsManager.getOnlineUsers(true);
         } else {
-            console.log('⏳ [GLOBAL-PRESENCE] Socket not ready, will get online users when ready');
+            
             
             window.addEventListener('globalSocketReady', async () => {
-                console.log('✅ [GLOBAL-PRESENCE] Socket now ready, getting online users');
+                
                 await this.friendsManager.getOnlineUsers(true);
             });
         }
         
 
         window.addEventListener('socketRoomJoined', (event) => {
-            console.log('🏠 [GLOBAL-PRESENCE] Socket room joined, refreshing presence data', event.detail);
+            
 
             setTimeout(async () => {
                 if (this.friendsManager) {

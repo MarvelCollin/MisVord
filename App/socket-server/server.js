@@ -6,10 +6,10 @@ const isVPS = process.env.IS_VPS === 'true';
 
 if (!isDocker) {
     const envPath = path.resolve(__dirname, '..', '.env');
-    console.log('🔍 [STARTUP] Loading .env from:', envPath);
+    
     require('dotenv').config({ path: envPath });
 } else {
-    console.log('🐳 [STARTUP] Running in Docker - using container environment variables');
+    
 }
 
 console.log('🌍 [STARTUP] Environment configuration:', {
@@ -42,7 +42,7 @@ const server = http.createServer((req, res) => {
                     .filter(socket => socket.data?.authenticated).length;
             }
         } catch (error) {
-            console.log('Health check: io not ready yet');
+            
         }
         
         res.end(JSON.stringify({ 
@@ -115,13 +115,13 @@ const io = new Server(server, socketConfig.options);
 
 async function initializeTitiBot() {
     try {
-        console.log('🤖 [STARTUP] Initializing TitiBot...');
+        
         const BotHandler = require('./handlers/botHandler');
         
 
         await BotHandler.registerBot('7', 'titibot');
         BotHandler.connectBot(io, '7', 'titibot');
-        console.log('✅ [STARTUP] TitiBot registered and connected successfully with ID: 7');
+        
         
         return true;
     } catch (error) {
@@ -159,16 +159,16 @@ if (!HOST) {
 }
 
 server.listen(PORT, HOST, async () => {
-    console.log(`🚀 [STARTUP] Socket server running on ${HOST}:${PORT}`);
-    console.log(`🌐 [STARTUP] CORS origins: ${process.env.CORS_ALLOWED_ORIGINS || '*'}`);
+    
+    
     
     setTimeout(async () => {
         const botInitialized = await initializeTitiBot();
         
         if (botInitialized) {
-            console.log('✅ [STARTUP] TitiBot initialization complete');
+            
         } else {
-            console.log('⚠️ [STARTUP] TitiBot initialization failed');
+            
         }
     }, 2000);
 }).on('error', (err) => {

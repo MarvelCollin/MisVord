@@ -55,7 +55,7 @@ class BotComponent {
                     channel_id: participant.channelId || participant.channel_id,
                     joinedAt: Date.now()
                 });
-                console.log(`🤖 [BOT-COMPONENT] Bot joined voice:`, participant.username, 'in channel', participant.channelId);
+                
             }
         });
 
@@ -64,7 +64,7 @@ class BotComponent {
             
             if (participant && participant.user_id) {
                 this.voiceBots.delete(participant.user_id);
-                console.log(`🤖 [BOT-COMPONENT] Bot left voice:`, participant.username);
+                
             }
         });
 
@@ -78,10 +78,10 @@ class BotComponent {
                         channel_id: data.channel_id,
                         joinedAt: data.timestamp || Date.now()
                     });
-                    console.log(`🤖 [BOT-COMPONENT] Bot joined via meeting update:`, data.username, 'in channel', data.channel_id);
+                    
                 } else if (data.action === 'leave') {
                     this.voiceBots.delete(data.user_id);
-                    console.log(`🤖 [BOT-COMPONENT] Bot left via meeting update:`, data.username);
+                    
                 }
             }
         });

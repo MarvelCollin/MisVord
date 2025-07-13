@@ -119,7 +119,7 @@ class ChannelVoiceParticipants {
         
 
         if (hasAnyParticipants && container.children.length === 0) {
-            console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Container empty but participants exist - doing light refresh`);
+            
             this.updateSidebarForChannel(channelId, 'append');
         }
         
@@ -171,7 +171,7 @@ class ChannelVoiceParticipants {
         
         const voiceState = window.localStorageManager.getUnifiedVoiceState();
         if (voiceState.isConnected && voiceState.channelId) {
-            console.log(`🔍 [CHANNEL-VOICE-PARTICIPANTS] Validating state for channel ${voiceState.channelId}`);
+            
             
 
             if (window.globalSocketManager.isReady()) {
@@ -198,7 +198,7 @@ class ChannelVoiceParticipants {
     clearCurrentUserParticipantCounts() {
 
         if (window.voiceManager?.isConnected) {
-            console.log(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] Skipping participant clear - VoiceManager still connected`);
+            
             return;
         }
         
@@ -253,10 +253,10 @@ class ChannelVoiceParticipants {
                         username: data.username || 'Unknown',
                         avatar_url: data.avatar_url || '/public/assets/common/default-profile-picture.png'
                     });
-                    console.log(`➕ [EXTERNAL-PARTICIPANTS] Added participant ${data.user_id} to channel ${chan} (source: ${data.source || 'unknown'})`);
+                    `);
                 } else if (data.action === 'leave') {
                     const removed = map.delete(data.user_id);
-                    console.log(`🗑️ [EXTERNAL-PARTICIPANTS] ${removed ? 'Removed' : 'Attempted to remove'} participant ${data.user_id} from channel ${chan} (source: ${data.source || 'unknown'})`);
+                    `);
                     
 
                     this.updateSidebarForChannel(chan, 'full');
@@ -324,7 +324,7 @@ class ChannelVoiceParticipants {
                         avatar_url: p.avatar_url || '/public/assets/common/default-profile-picture.png'
                     });
                 });
-                console.log(`🔄 [EXTERNAL-PARTICIPANTS] Refreshed ${data.participants.length} participants for channel ${data.channel_id} (source: ${data.source || 'unknown'})`);
+                `);
             }
 
             this.updateChannelCount(data.channel_id, data.participant_count || 0);
@@ -369,13 +369,13 @@ class ChannelVoiceParticipants {
         
 
         if (!skipSidebarRefresh) {
-            console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Voice connect - refreshing sidebar for channel ${channelId}`);
+            
 
             setTimeout(() => {
                 this.updateSidebarForChannel(channelId);
             }, 1500);
         } else {
-            console.log(`⏭️ [CHANNEL-VOICE-PARTICIPANTS] Voice connect - skipping sidebar refresh (channel switch)`);
+            `);
 
             this.ensureParticipantsVisible(channelId);
         }
@@ -431,7 +431,7 @@ class ChannelVoiceParticipants {
         const renderList = [];
         const participantIds = new Set(); // 
 
-        console.log(`🔍 [CHANNEL-VOICE-PARTICIPANTS] Building participant list for channel ${channelId}`);
+        
 
 
         const isConnectedToChannel = window.voiceManager &&
@@ -469,7 +469,7 @@ class ChannelVoiceParticipants {
             });
         }
 
-        console.log(`✅ [CHANNEL-VOICE-PARTICIPANTS] Rendering ${renderList.length} participants for channel ${channelId}`);
+        
 
 
         if (window.BotComponent && window.BotComponent.voiceBots) {
@@ -757,7 +757,7 @@ class ChannelVoiceParticipants {
     forceRefreshChannel(channelId) {
         if (!channelId || !window.globalSocketManager?.io) return;
         
-        console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Force refreshing participants for channel ${channelId}`);
+        
         
 
         window.globalSocketManager.io.emit('force-refresh-voice-participants', {
@@ -766,7 +766,7 @@ class ChannelVoiceParticipants {
         
 
         if (this.externalParticipants.has(channelId)) {
-            console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Clearing stale external participants for channel ${channelId}`);
+            
             this.externalParticipants.delete(channelId);
         }
         
@@ -781,7 +781,7 @@ class ChannelVoiceParticipants {
      * Call this periodically or when suspicious state is detected
      */
     cleanupStaleParticipants() {
-        console.log(`🧹 [CHANNEL-VOICE-PARTICIPANTS] Running stale participant cleanup`);
+        
         
 
         this.externalParticipants.forEach((participantMap, channelId) => {
@@ -851,7 +851,7 @@ class ChannelVoiceParticipants {
 
         existingMap.forEach((el, id) => {
             if (!desiredSet.has(id)) {
-                console.log(`🗑️ [CHANNEL-VOICE-PARTICIPANTS] Removing participant ${id} from sidebar`);
+                
                 el.style.transition = 'opacity 0.2s ease-out';
                 el.style.opacity = '0';
                 setTimeout(() => {
@@ -867,7 +867,7 @@ class ChannelVoiceParticipants {
         renderList.forEach((p, index) => {
             const pid = str(p.user_id || p.id);
             if (!existingMap.has(pid)) {
-                console.log(`➕ [CHANNEL-VOICE-PARTICIPANTS] Adding participant ${pid} to sidebar`);
+                
                 const el = this.createParticipantElement(p);
                 
 
@@ -894,7 +894,7 @@ class ChannelVoiceParticipants {
     appendNewParticipants(container, renderList, currentIds) {
         if (!container) return;
         
-        console.log(`🔄 [CHANNEL-VOICE-PARTICIPANTS] Using append-only mode - no UI refresh`);
+        
         
         const currentIdsSet = new Set(currentIds);
         let newParticipantsAdded = 0;
@@ -904,7 +904,7 @@ class ChannelVoiceParticipants {
             const participantId = String(participant.user_id || participant.id);
             
             if (!currentIdsSet.has(participantId)) {
-                console.log(`➕ [CHANNEL-VOICE-PARTICIPANTS] Appending new participant ${participantId}`);
+                
                 
                 const element = this.createParticipantElement(participant);
                 
@@ -927,7 +927,7 @@ class ChannelVoiceParticipants {
         });
         
         if (newParticipantsAdded > 0) {
-            console.log(`✅ [CHANNEL-VOICE-PARTICIPANTS] Appended ${newParticipantsAdded} new participants without refresh`);
+            
         }
     }
 }

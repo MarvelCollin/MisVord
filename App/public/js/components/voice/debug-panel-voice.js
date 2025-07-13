@@ -35,7 +35,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
             this.setupToggleButton();
             this.setupEventListeners();
             this.startUpdateCycle();
-            console.log('✅ [DEBUG-PANEL] Voice debug panel initialized');
+            
         }
         
         createPanel() {
@@ -726,7 +726,7 @@ if (typeof window.VoiceDebugPanel === 'undefined') {
                 }
             }
             
-            console.log("✅ [DEBUG-PANEL] Manually synced voice state:", updatedState);
+            
             
 
             this.collectData();

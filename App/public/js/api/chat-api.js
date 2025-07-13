@@ -57,14 +57,14 @@ class ChatAPI {
         }
         
         const startTime = Date.now();
-        console.log(`📊 [CHAT-API] Starting request to ${url}`);
+        
         
         const response = await this.makeRequest(url);
         
         const requestTime = Date.now() - startTime;
         const messageCount = response?.data?.messages?.length || 0;
         
-        console.log(`📊 [CHAT-API] Request completed in ${requestTime}ms - ${messageCount} messages received`);
+        
         
         if (response && response.data && response.data.messages) {
             const messages = response.data.messages;
@@ -79,7 +79,7 @@ class ChatAPI {
                 }
             });
             
-            console.log(`📊 [CHAT-API] Message breakdown: ${userCount} user messages, ${botCount} bot messages`);
+            
         }
         
         return response;

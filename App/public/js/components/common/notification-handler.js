@@ -61,7 +61,7 @@ class GlobalNotificationHandler {
         const notificationId = `${data.message_id || data.timestamp || Date.now()}-${data.user_id}-${data.type}`;
         
         if (this.processedNotifications.has(notificationId)) {
-            console.log('📧 [NOTIFICATION] Duplicate notification ignored:', notificationId);
+            
             return;
         }
         
@@ -92,11 +92,11 @@ class GlobalNotificationHandler {
         });
 
         if (isUserMention || isAllMention || isRoleMention) {
-            console.log('🔊 [NOTIFICATION] PLAYING SOUND for mention type:', data.type);
+            
             this.showNotification(data, isAllMention, isRoleMention);
             this.playNotificationSound();
         } else {
-            console.log('🔇 [NOTIFICATION] NOT PLAYING SOUND - conditions not met');
+            
         }
     }
 
@@ -271,12 +271,12 @@ class GlobalNotificationHandler {
     }
 
     playNotificationSound() {
-        console.log('🔊 [SOUND] Attempting to play notification sound: message_sound.mp3');
+        
         try {
             const soundsEnabled = localStorage.getItem('message_sounds_enabled') !== 'false';
             
             if (!soundsEnabled) {
-                console.log('🔇 [SOUND] Sounds disabled in localStorage (message_sounds_enabled = false)');
+                ');
                 return;
             }
             
@@ -287,11 +287,11 @@ class GlobalNotificationHandler {
             
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('✅ [SOUND] Audio played successfully');
+                    
                 }).catch(e => {
                     console.error('❌ [SOUND] Audio play failed - browser may require user interaction first:', e);
                     if (e.name === 'NotAllowedError') {
-                        console.log('🔇 [SOUND] Autoplay blocked - user needs to interact with page first');
+                        
                     }
                 });
             }
@@ -504,7 +504,7 @@ window.testRoleMentionNotifications = function() {
                 }
             };
             
-            console.log(`🧪 [ROLE-TEST] Testing ${role} mention notification`);
+            
             
             if (window.globalNotificationHandler) {
                 window.globalNotificationHandler.handleMentionNotification(testRoleMentionData);

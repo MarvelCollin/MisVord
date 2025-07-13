@@ -162,14 +162,14 @@ if ($isVPS && $vpsHost !== 'localhost') {
     <script src="/public/js/debug/socket-diagnostics.js?v=<?php echo $cache_version; ?>"></script>
     
     <script>
-    console.log('🔧 [SOCKET-ENV] Environment configuration check:');
-    console.log('   PHP IS_VPS: <?php echo $isVPS ? "true" : "false"; ?>');
-    console.log('   PHP IS_DOCKER: <?php echo $isDocker ? "true" : "false"; ?>');
-    console.log('   PHP Socket Host: <?php echo $frontendSocketHost; ?>');
-    console.log('   PHP Socket Port: <?php echo $frontendSocketPort; ?>');
-    console.log('   PHP Socket Secure: <?php echo $frontendSocketSecure; ?>');
-    console.log('   PHP Page HTTPS: <?php echo $pageIsHttps ? "true" : "false"; ?>');
-    console.log('   PHP VPS Host: <?php echo $vpsHost; ?>');
+    
+    
+    
+    
+    
+    
+    
+    
     </script>
     
     <script>
@@ -1744,7 +1744,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (window.voiceDebugPanel) {
                 window.voiceDebugPanel.togglePanel();
             } else {
-                console.log('Loading voice debug panel...');
+                
 
                 const existingScript = document.querySelector('script[src*="debug-panel-voice.js"]');
                 if (existingScript) {
@@ -1758,7 +1758,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const script = document.createElement('script');
                     script.src = '/public/js/components/voice/debug-panel-voice.js?v=' + Date.now();
                     script.onload = function() {
-                        console.log('Voice debug panel loaded');
+                        
                         if (window.voiceDebugPanel) {
                             window.voiceDebugPanel.togglePanel();
                         } else if (window.VoiceDebugPanel) {

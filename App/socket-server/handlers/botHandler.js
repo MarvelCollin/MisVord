@@ -319,14 +319,14 @@ class BotHandler extends EventEmitter {
         
 
         if (this.botVoiceParticipants.has(botParticipantKey)) {
-            console.log(`🤖 [BOT-JOIN] Bot ${botId} already in channel ${channelId}`);
+            
             return;
         }
 
 
         for (const [key, participant] of this.botVoiceParticipants.entries()) {
             if (key.startsWith(`${botId}-`) && participant.channelId !== channelId) {
-                console.log(`🤖 [BOT-JOIN] Bot ${botId} leaving channel ${participant.channelId} to join ${channelId}`);
+                
                 await this.leaveBotFromVoiceChannel(io, botId, participant.channelId);
                 break;
             }
@@ -352,13 +352,13 @@ class BotHandler extends EventEmitter {
                     avatar_url: avatarUrl
                 },
                 join: async (room) => {
-                    console.log(`🤖 [BOT-JOIN] Virtual bot client joined room: ${room}`);
+                    
                 },
                 leave: async (room) => {
-                    console.log(`🤖 [BOT-LEAVE] Virtual bot client left room: ${room}`);
+                    
                 },
                 emit: (event, data) => {
-                    console.log(`🤖 [BOT-EVENT] Virtual bot client emitted: ${event}`, data);
+                    
                 }
             };
 
@@ -443,7 +443,7 @@ class BotHandler extends EventEmitter {
             io.to(`voice_channel_${channelId}`).emit('bot-voice-participant-joined', botEventData);
             io.to(`channel-${channelId}`).emit('bot-voice-participant-joined', botEventData);
 
-            console.log(`🤖 [BOT-JOIN] Bot ${botId} successfully joined voice channel ${channelId} using user flow`);
+            
 
         } catch (error) {
             console.error(`❌ [BOT-JOIN] Failed to join bot ${botId} to channel ${channelId}:`, error);
@@ -455,7 +455,7 @@ class BotHandler extends EventEmitter {
         const botParticipantKey = `${botId}-${channelId}`;
         
         if (!this.botVoiceParticipants.has(botParticipantKey)) {
-            console.log(`🤖 [BOT-LEAVE] Bot ${botId} not found in channel ${channelId} - already removed`);
+            
             return;
         }
 
@@ -514,7 +514,7 @@ class BotHandler extends EventEmitter {
             io.to(`voice_channel_${channelId}`).emit('bot-voice-participant-left', botEventData);
             io.to(`channel-${channelId}`).emit('bot-voice-participant-left', botEventData);
 
-            console.log(`🤖 [BOT-LEAVE] Bot ${botId} successfully left voice channel ${channelId} using user flow`);
+            
 
         } catch (error) {
             console.error(`❌ [BOT-LEAVE] Failed to remove bot ${botId} from channel ${channelId}:`, error);
@@ -529,14 +529,14 @@ class BotHandler extends EventEmitter {
 
 
     static removeBotFromVoiceChannel(io, botId, channelId) {
-        console.log(`🤖 [BOT-HANDLER] removeBotFromVoiceChannel called - delegating to leaveBotFromVoiceChannel`);
+        
         
 
         const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
         const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channelId);
         
         if (humanParticipants.length > 0) {
-            console.log(`🤖 [BOT-HANDLER] Refusing auto-removal of bot ${botId} from channel ${channelId} - ${humanParticipants.length} human participants still present`);
+            
             return;
         }
 

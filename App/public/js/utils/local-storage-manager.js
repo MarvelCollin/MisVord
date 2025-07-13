@@ -73,7 +73,7 @@ class LocalStorageManager {
                                 force_disconnect: true,
                                 reason: 'stale_connection_cleanup'
                             });
-                            console.log('✅ [LOCAL-STORAGE] Notified server about stale voice connection');
+                            
                         } catch (error) {
                             console.error('Error notifying server about stale voice connection:', error);
                         }

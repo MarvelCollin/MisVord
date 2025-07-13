@@ -189,7 +189,7 @@ function setupVoiceEventListeners() {
     
 
     window.addEventListener('socketRoomJoined', (event) => {
-        console.log('🏠 [PARTICIPANT] Socket room joined, refreshing participant display', event.detail);
+        
         
 
         setTimeout(async () => {
@@ -278,31 +278,31 @@ function scheduleUpdate() {
 
 
 window.forceRefreshAllPresenceData = async function() {
-    console.log('🔄 [PARTICIPANT] Force refreshing all presence data...');
+    
     
     try {
 
         if (window.FriendsManager) {
             const friendsManager = window.FriendsManager.getInstance();
             await friendsManager.getOnlineUsers(true);
-            console.log('✅ [PARTICIPANT] Friends presence refreshed');
+            
         }
         
 
         if (window.globalPresenceManager) {
             window.globalPresenceManager.updateActiveNow();
-            console.log('✅ [PARTICIPANT] Active Now presence refreshed');
+            
         }
         
 
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('get-online-users');
-            console.log('📡 [PARTICIPANT] Requested fresh online users from server');
+            
         }
         
 
         updateParticipantDisplay();
-        console.log('✅ [PARTICIPANT] Participant display refreshed');
+        
         
         
     } catch (error) {
@@ -970,7 +970,7 @@ window.testParticipantGroups = function() {
 
 
 window.testPresenceRefresh = async function() {
-    console.log('🧪 [DEBUG] Testing presence refresh...');
+    
     
     if (window.showToast) {
         window.showToast('Testing presence refresh...', 'info', 2000);

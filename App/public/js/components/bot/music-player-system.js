@@ -32,7 +32,7 @@ class MusicPlayerSystem {
     }
 
     initializeAudio() {
-        console.log('🎵 [MUSIC-PLAYER] Initializing audio system...');
+        
         try {
 
             this.audio = new Audio();
@@ -40,18 +40,18 @@ class MusicPlayerSystem {
             this.audio.preload = "auto"; // 
             this.audio.volume = this.volume;
             
-            console.log('🎵 [MUSIC-PLAYER] Audio element created');
+            
             
 
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
-                console.log('🎵 [MUSIC-PLAYER] Creating AudioContext');
+                
                 this._audioContext = new AudioContext();
                 
                 try {
                     this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
                     this._audioSourceNode.connect(this._audioContext.destination);
-                    console.log('🎵 [MUSIC-PLAYER] Audio connected to context successfully');
+                    
                 } catch (e) {
                     console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context:', e);
 
@@ -68,7 +68,7 @@ class MusicPlayerSystem {
 
 
             this.audio.addEventListener('ended', () => {
-                console.log('🎵 [MUSIC-PLAYER] Track ended, playing next');
+                
                 this.playNext();
             });
             
@@ -77,18 +77,18 @@ class MusicPlayerSystem {
              'suspend', 'waiting', 'loadedmetadata', 'loadeddata', 'play',
              'playing', 'pause'].forEach(eventName => {
                 this.audio.addEventListener(eventName, () => {
-                    console.log(`🎵 [MUSIC-PLAYER] Audio event: ${eventName}`);
+                    
                     
 
                     if (eventName === 'playing') {
-                        console.log('🎵 [MUSIC-PLAYER] Playback confirmed - audio is playing');
+                        
                         this.isPlaying = true;
                     }
                 });
             });
             
             this._audioInitialized = true;
-            console.log('🎵 [MUSIC-PLAYER] Audio system initialized successfully');
+            
             
         } catch (e) {
             console.error('🎵 [MUSIC-PLAYER] Failed to initialize audio system:', e);
@@ -96,7 +96,7 @@ class MusicPlayerSystem {
 
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
-            console.log('🎵 [MUSIC-PLAYER] Created fallback audio element');
+            
         }
     }
 
@@ -246,20 +246,20 @@ class MusicPlayerSystem {
         
         if (window.globalSocketManager?.io) {
             window.globalSocketManager.io.on('bot-music-command', (data) => {
-                console.log('🎵 [MUSIC-PLAYER] Received bot-music-command via socket.io');
+                
                 this.processBotMusicCommand(data);
             });
         }
         
         window.addEventListener('bot-music-command', (e) => {
-            console.log('🎵 [MUSIC-PLAYER] Received bot-music-command via window event');
+            
             this.processBotMusicCommand(e.detail);
         });
         
 
         window.addEventListener('voiceConnect', (e) => {
             if (e.detail && e.detail.channelId) {
-                console.log('🎵 [MUSIC-PLAYER] Voice channel joined:', e.detail.channelId);
+                
                 this.channelId = e.detail.channelId;
             }
         });
@@ -267,7 +267,7 @@ class MusicPlayerSystem {
 
         window.addEventListener('bot-voice-participant-joined', (e) => {
             if (e.detail && e.detail.participant && e.detail.participant.channelId) {
-                console.log('🎵 [MUSIC-PLAYER] Bot joined voice channel:', e.detail.participant.channelId);
+                
             }
         });
         
@@ -292,7 +292,7 @@ class MusicPlayerSystem {
                 }
                 
 
-                console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Original detection failed, trying alternatives');
+                
                 
                 let voiceChannelId = null;
                 let userInVoice = false;
@@ -303,7 +303,7 @@ class MusicPlayerSystem {
                     if (state.isConnected && state.channelId) {
                         voiceChannelId = state.channelId;
                         userInVoice = true;
-                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Found via unifiedVoiceStateManager');
+                        
                     }
                 }
                 
@@ -312,7 +312,7 @@ class MusicPlayerSystem {
                     if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
                         voiceChannelId = window.voiceManager.currentChannelId;
                         userInVoice = true;
-                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Found via voiceManager');
+                        
                     }
                 }
                 
@@ -322,7 +322,7 @@ class MusicPlayerSystem {
                                      sessionStorage.getItem('currentVoiceChannelId');
                     if (voiceChannelId) {
                         userInVoice = true;
-                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Found via sessionStorage');
+                        
                     }
                 }
                 
@@ -336,7 +336,7 @@ class MusicPlayerSystem {
                         voiceChannelId = channelId;
 
                         userInVoice = true;
-                        console.log('🎵 [MUSIC-PLAYER] Voice detection patch: Assuming voice connection from URL');
+                        
                     }
                 }
                 
@@ -347,7 +347,7 @@ class MusicPlayerSystem {
                 };
             };
             
-            console.log('🎵 [MUSIC-PLAYER] Voice detection patched for better compatibility');
+            
         }
     }
 
@@ -373,7 +373,7 @@ class MusicPlayerSystem {
     }
 
     async processBotMusicCommand(data) {
-        console.log('🎵 [MUSIC-PLAYER] Received music command:', data);
+        
         
         if (!data || !data.music_data) {
             console.warn('⚠️ [MUSIC-PLAYER] Invalid bot music command data:', data);
@@ -399,32 +399,32 @@ class MusicPlayerSystem {
 
 
             if (!isInVoiceChannel) {
-                console.log('🎵 [MUSIC-PLAYER] User not in same voice channel, but processing command anyway');
+                
                 
 
                 if (data.channel_id && !this.channelId) {
                     this.channelId = data.channel_id;
-                    console.log('🎵 [MUSIC-PLAYER] Setting channel ID from command:', data.channel_id);
+                    
                 }
             }
         }
         
         if (!this.initialized) {
-            console.log('🎵 [MUSIC-PLAYER] Initializing music player before processing command');
+            
             this.forceInitialize();
         }
         
         const { music_data } = data;
         const { action, query, track } = music_data;
         
-        console.log('🎵 [MUSIC-PLAYER] Processing music command action:', action);
+        
         
         this.showStatus(`Processing ${action} command...`);
         
         try {
             switch (action) {
                 case 'play':
-                    console.log('🎵 [MUSIC-PLAYER] Processing play command:', query);
+                    
 
                     if (query && query.trim()) {
                         this.showStatus(`Searching for: ${query}`);
@@ -433,25 +433,25 @@ class MusicPlayerSystem {
                         if (this._audioContext && this._audioContext.state === 'suspended') {
                             try {
                                 await this._audioContext.resume();
-                                console.log('🎵 [MUSIC-PLAYER] Audio context resumed successfully');
+                                
                             } catch (e) {
                                 console.warn('🎵 [MUSIC-PLAYER] Failed to resume audio context:', e);
                             }
                         }
                         
-                        console.log('🎵 [MUSIC-PLAYER] Searching for music:', query);
+                        
                         const searchResult = await this.searchMusic(query.trim());
                         
                         if (searchResult && searchResult.previewUrl) {
-                            console.log('🎵 [MUSIC-PLAYER] Search found:', searchResult);
+                            
                             this.showStatus(`Found "${searchResult.title}" - preparing playback...`);
                             
                             try {
-                                console.log('🎵 [MUSIC-PLAYER] Stopping current playback');
+                                
                                 await this.stop();
                                 
 
-                                console.log('🎵 [MUSIC-PLAYER] Creating user gesture to unlock audio');
+                                
                                 const tempButton = document.createElement('button');
                                 tempButton.style.display = 'none';
                                 document.body.appendChild(tempButton);
@@ -460,7 +460,7 @@ class MusicPlayerSystem {
                                 
 
                                 if (this._audioContext && this._audioContext.state === 'suspended') {
-                                    console.log('🎵 [MUSIC-PLAYER] Resuming audio context again');
+                                    
                                     await this._audioContext.resume();
                                 }
                                 
@@ -468,7 +468,7 @@ class MusicPlayerSystem {
                                 this.unlockAudio();
                                 
 
-                                console.log('🎵 [MUSIC-PLAYER] Starting playback for:', searchResult.title);
+                                
                                 
 
                                 this.currentSong = searchResult;
@@ -477,20 +477,20 @@ class MusicPlayerSystem {
                                 await this.playTrack(searchResult);
                                 
 
-                                console.log('🎵 [MUSIC-PLAYER] Showing now playing UI');
+                                
                                 this.showNowPlaying(searchResult);
                                 this.showStatus(`Now playing: ${searchResult.title}`);
                                 
 
                                 this.isPlaying = true;
                                 
-                                console.log('🎵 [MUSIC-PLAYER] Playback started successfully');
+                                
                             } catch (playError) {
                                 console.error('🎵 [MUSIC-PLAYER] Error during playback start:', playError);
                                 this.showError(`Playback error: ${playError.message}`);
                                 
 
-                                console.log('🎵 [MUSIC-PLAYER] Attempting fallback playback');
+                                
                                 try {
                                     const audioElement = new Audio(searchResult.previewUrl);
                                     audioElement.volume = 0.5;
@@ -501,7 +501,7 @@ class MusicPlayerSystem {
                                     this.currentSong = searchResult;
                                     this.showNowPlaying(searchResult);
                                     
-                                    console.log('🎵 [MUSIC-PLAYER] Fallback playback started');
+                                    
                                 } catch (fallbackError) {
                                     console.error('🎵 [MUSIC-PLAYER] Fallback playback failed:', fallbackError);
                                 }
@@ -511,7 +511,7 @@ class MusicPlayerSystem {
                             this.showError('No playable track found for: ' + query);
                         }
                     } else if (track && track.previewUrl) {
-                        console.log('🎵 [MUSIC-PLAYER] Playing provided track:', track.title);
+                        
                         this.showStatus(`Preparing to play "${track.title}"...`);
                         
                         await this.stop();
@@ -524,7 +524,7 @@ class MusicPlayerSystem {
                         this.isPlaying = true;
                         this.currentSong = track;
                         
-                        console.log('🎵 [MUSIC-PLAYER] Playback started for provided track');
+                        
                     } else {
                         console.error('🎵 [MUSIC-PLAYER] No song specified or found');
                         this.showError('No song specified or found');
