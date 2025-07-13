@@ -210,6 +210,10 @@
             this.socketPort = metaSocketPort || '';
             this.socketSecure = metaSocketSecure === 'true';
             this.socketBasePath = metaSocketBasePath || '/socket.io';
+            this.isVPS = metaIsVPS;
+            this.isDocker = metaIsDocker;
+            this.connectionAttemptCount = 0;
+            this.fallbackHosts = this.generateFallbackHosts(metaSocketHost);
             
             if (window.location.protocol === 'https:' || metaIsVPS) {
                 console.warn('🔒 [SOCKET] HTTPS detected or VPS mode, forcing secure socket connection');
@@ -228,6 +232,7 @@
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
                 pageProtocol: window.location.protocol,
+                fallbackHosts: this.fallbackHosts,
                 source: 'meta-tags-from-env'
             });
             
@@ -238,6 +243,7 @@
                 path: this.socketBasePath,
                 isDocker: metaIsDocker,
                 isVPS: metaIsVPS,
+                fallbackHosts: this.fallbackHosts,
                 finalUrl: this.socketPort ? 
                     `${this.socketSecure ? 'wss' : 'ws'}://${this.socketHost}:${this.socketPort}${this.socketBasePath}` :
                     `${this.socketSecure ? 'wss' : 'ws'}://${this.socketHost}${this.socketBasePath}`
@@ -247,6 +253,26 @@
             this.error('Error loading connection details:', error);
             throw error;
         }
+    }
+
+    generateFallbackHosts(primaryHost) {
+        const fallbacks = [];
+        
+        if (primaryHost.startsWith('www.')) {
+            fallbacks.push(primaryHost.replace('www.', ''));
+        } else if (!primaryHost.includes('localhost')) {
+            fallbacks.push('www.' + primaryHost);
+        }
+        
+        fallbacks.push(primaryHost);
+        
+        return [...new Set(fallbacks)];
+    }
+
+    getCurrentSocketHost() {
+        const currentIndex = this.connectionAttemptCount % this.fallbackHosts.length;
+        return this.fallbackHosts[currentIndex];
+    }
         
         let metaUserId = document.querySelector('meta[name="user-id"]')?.content;
         let metaUsername = document.querySelector('meta[name="username"]')?.content;
@@ -294,13 +320,18 @@
             throw new Error('Socket configuration incomplete - missing host from environment');
         }
         
+        const currentHost = this.getCurrentSocketHost();
         const socketUrl = this.socketPort ? 
-            `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}:${this.socketPort}` :
-            `${this.socketSecure ? 'https' : 'http'}://${this.socketHost}`;
+            `${this.socketSecure ? 'https' : 'http'}://${currentHost}:${this.socketPort}` :
+            `${this.socketSecure ? 'https' : 'http'}://${currentHost}`;
         
-        this.log(`Connecting to socket: ${socketUrl} (secure: ${this.socketSecure})`);
+        this.log(`Connecting to socket: ${socketUrl} (secure: ${this.socketSecure}, attempt: ${this.connectionAttemptCount + 1})`);
         this.debug('Full connection details:', {
             url: socketUrl,
+            currentHost: currentHost,
+            primaryHost: this.socketHost,
+            fallbackHosts: this.fallbackHosts,
+            attemptCount: this.connectionAttemptCount,
             secure: this.socketSecure,
             path: this.socketBasePath,
             pageProtocol: window.location.protocol,
@@ -316,11 +347,8 @@
             const socketConfig = {
                 path: this.socketBasePath,
                 transports: ['polling', 'websocket'],
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                reconnectionAttempts: 15,
-                timeout: 30000,
+                reconnection: false,
+                timeout: 10000,
                 forceNew: true,
                 upgrade: true,
                 rememberUpgrade: true,
@@ -348,17 +376,21 @@
         
         this.io.on('connect', () => {
             this.isConnected = true;
-            this.reconnectAttempts = 0;
+            this.connectionAttemptCount = 0;
+            const currentHost = this.getCurrentSocketHost();
             this.debug(`Socket connected with ID: ${this.io.id}`, { 
                 userId: this.userId,
                 socketId: this.io.id,
-                reconnectAttempts: this.reconnectAttempts
+                connectedHost: currentHost,
+                wasUsingFallback: currentHost !== this.socketHost
             });
             
+            if (currentHost !== this.socketHost) {
+                this.log(`Successfully connected using fallback host: ${currentHost}`);
+            }
 
             this.setupActivityTracking();
             this.setupVoiceStateListeners();
-            
 
             this.sendAuthentication();
         });
@@ -500,28 +532,45 @@
         });
         
         this.io.on('connect_error', (error) => {
-            this.error('Socket connection error - check environment configuration', error);
+            this.error('Socket connection error - trying fallback hosts', error);
             this.lastError = error;
-            this.reconnectAttempts++;
+            this.isConnected = false;
             
+            const currentHost = this.getCurrentSocketHost();
             this.debug('Connection error details', {
                 error: error.message,
-                reconnectAttempt: this.reconnectAttempts,
-                maxAttempts: this.maxReconnectAttempts,
+                currentHost: currentHost,
+                attemptCount: this.connectionAttemptCount,
+                fallbackHosts: this.fallbackHosts,
+                maxFallbacks: this.fallbackHosts.length * 3,
                 socketConfig: {
-                    host: this.socketHost,
+                    host: currentHost,
                     port: this.socketPort,
                     secure: this.socketSecure
                 }
             });
             
-            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-                this.log('Max reconnection attempts reached');
+            this.connectionAttemptCount++;
+            
+            if (this.connectionAttemptCount < this.fallbackHosts.length * 3) {
+                const nextHost = this.getCurrentSocketHost();
+                this.log(`Trying fallback host: ${nextHost} (attempt ${this.connectionAttemptCount + 1})`);
+                
+                if (this.io) {
+                    this.io.disconnect();
+                    this.io = null;
+                }
                 
                 setTimeout(() => {
-                    this.reconnectAttempts = 0;
                     this.connect();
-                }, this.reconnectDelay);
+                }, 2000);
+            } else {
+                this.error('All fallback hosts exhausted. Resetting and retrying after longer delay');
+                this.connectionAttemptCount = 0;
+                
+                setTimeout(() => {
+                    this.connect();
+                }, 10000);
             }
         });
         
