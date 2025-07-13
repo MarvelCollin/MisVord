@@ -1196,6 +1196,36 @@ class UserController extends BaseController
                 return $this->error('Username confirmation does not match', 400);
             }
 
+            require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+            
+            $serverRepository = new ServerRepository();
+            $membershipRepository = new UserServerMembershipRepository();
+            
+            $ownedServers = $serverRepository->getServersByOwnerId($userId);
+            
+            foreach ($ownedServers as $server) {
+                $memberCount = $membershipRepository->getMemberCount($server['id']);
+                
+                if ($memberCount > 1) {
+                    return $this->error('You must transfer ownership of all servers with multiple members before deleting your account. Server "' . $server['name'] . '" still has ' . $memberCount . ' members.', 400);
+                }
+            }
+            
+            foreach ($ownedServers as $server) {
+                $memberCount = $membershipRepository->getMemberCount($server['id']);
+                
+                if ($memberCount <= 1) {
+                    $this->logActivity('server_deleted_with_user', [
+                        'server_id' => $server['id'],
+                        'server_name' => $server['name'],
+                        'user_id' => $userId
+                    ]);
+                    
+                    $serverRepository->deleteServerCompletely($server['id']);
+                }
+            }
+
             $result = $this->userRepository->deleteUser($userId);
 
             if (!$result) {
@@ -1206,7 +1236,8 @@ class UserController extends BaseController
 
             $this->logActivity('user_account_deleted', [
                 'user_id' => $userId,
-                'username' => $user->username
+                'username' => $user->username,
+                'servers_deleted' => count($ownedServers)
             ]);
 
             return $this->success(null, 'Account deleted successfully');
@@ -1223,19 +1254,19 @@ class UserController extends BaseController
         $userId = $this->getCurrentUserId();
         
         try {
-
             require_once __DIR__ . '/../database/repositories/ServerRepository.php';
-            $serverRepository = new ServerRepository();
-            
-
-            $servers = $serverRepository->getServersByOwnerId($userId);
-            
-
             require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+            
+            $serverRepository = new ServerRepository();
             $membershipRepository = new UserServerMembershipRepository();
             
+            $servers = $serverRepository->getServersByOwnerId($userId);
+            
             foreach ($servers as &$server) {
-                $server['member_count'] = $membershipRepository->getMemberCount($server['id']);
+                $memberCount = $membershipRepository->getMemberCount($server['id']);
+                $server['member_count'] = $memberCount;
+                $server['can_be_deleted'] = $memberCount <= 1;
+                $server['requires_transfer'] = $memberCount > 1;
             }
             
             $this->logActivity('user_owned_servers_retrieved', [

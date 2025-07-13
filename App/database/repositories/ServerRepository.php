@@ -361,4 +361,49 @@ class ServerRepository extends Repository {
             return is_array($row) ? $row : (array) $row;
         }, $results);
     }
+    
+    public function deleteServerCompletely($serverId) {
+        $query = new Query();
+        
+        try {
+            $query->beginTransaction();
+            
+            $query->table('channel_messages')->where('server_id', $serverId)->delete();
+            
+            $query->table('channels')->where('server_id', $serverId)->delete();
+            
+            $query->table('categories')->where('server_id', $serverId)->delete();
+            
+            $query->table('server_invites')->where('server_id', $serverId)->delete();
+            
+            $query->table('user_server_memberships')->where('server_id', $serverId)->delete();
+            
+            $server = $this->find($serverId);
+            if ($server) {
+                if (!empty($server->image_url) && strpos($server->image_url, '/public/storage/') === 0) {
+                    $imagePath = dirname(__DIR__, 2) . $server->image_url;
+                    if (file_exists($imagePath) && is_file($imagePath)) {
+                        unlink($imagePath);
+                    }
+                }
+                
+                if (!empty($server->banner_url) && strpos($server->banner_url, '/public/storage/') === 0) {
+                    $bannerPath = dirname(__DIR__, 2) . $server->banner_url;
+                    if (file_exists($bannerPath) && is_file($bannerPath)) {
+                        unlink($bannerPath);
+                    }
+                }
+            }
+            
+            $query->table('servers')->where('id', $serverId)->delete();
+            
+            $query->commit();
+            return true;
+            
+        } catch (Exception $e) {
+            $query->rollback();
+            error_log("Error deleting server completely: " . $e->getMessage());
+            return false;
+        }
+    }
 }

@@ -2016,8 +2016,8 @@ function initDeleteAccount() {
 
                         serverSection.innerHTML = `
                             <div class="mb-3">
-                                <h3 class="text-yellow-400 font-semibold text-lg mb-3">Server Ownership Transfer</h3>
-                                <p class="text-discord-lighter mb-5">Transfer ownership of your servers before deleting your account:</p>
+                                <h3 class="text-yellow-400 font-semibold text-lg mb-3">Server Ownership Management</h3>
+                                <p class="text-discord-lighter mb-5">Review your servers before deleting your account:</p>
                                 <div id="owned-servers-list"></div>
                             </div>
                         `;
@@ -2027,48 +2027,72 @@ function initDeleteAccount() {
                             const serverElement = document.createElement('div');
                             serverElement.className = 'p-4 bg-discord-bg-secondary rounded-md border border-gray-700 h-full';
                             serverElement.setAttribute('data-server-id', server.id);
-                            serverElement.innerHTML = `
-                                <div class="flex items-center mb-3">
-                                    <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
-                                        ${server.icon_url ? 
-                                            `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
-                                            `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
-                                        }
-                                    </div>
-                                    <div>
-                                        <div class="font-medium text-white text-lg">${server.name}</div>
-                                        <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} members</div>
-                                    </div>
-                                </div>
-                                <div class="server-transfer-section bg-discord-bg-tertiary p-4 rounded-md">
-                                    <div class="text-sm text-white font-medium mb-3">Transfer ownership to:</div>
-                                    <div class="relative">
-                                        <div class="flex items-center space-x-2 mb-2">
-                                            <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="Search members...">
-                                            <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded">
-                                                <i class="fas fa-search"></i>
-                                            </button>
-                                        </div>
-                                        <div class="members-dropdown hidden absolute w-full mt-1 z-10 rounded-md overflow-hidden"></div>
-                                    </div>
-                                    <div class="selected-member mt-3 hidden">
-                                        <div class="flex items-center justify-between p-2 rounded-md">
-                                            <div class="flex items-center">
-                                                <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-2 selected-member-avatar"></div>
-                                                <span class="text-sm text-white selected-member-name"></span>
-                                            </div>
-                                        </div>
-                                        <div class="transfer-error text-red-400 text-xs mt-2 hidden"></div>
-                                    </div>
-                                    <div class="transfer-success hidden mt-3 text-green-400 text-sm bg-green-900/20 p-2 rounded-md border border-green-500/30">
-                                        <i class="fas fa-check-circle mr-1"></i> Ownership transferred successfully
-                                    </div>
-                                </div>
-                            `;
-                            serversList.appendChild(serverElement);
                             
-
-                            initServerTransferControls(serverElement, server.id);
+                            if (server.can_be_deleted) {
+                                serverElement.innerHTML = `
+                                    <div class="flex items-center mb-3">
+                                        <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                            ${server.icon_url ? 
+                                                `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
+                                                `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
+                                            }
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-white text-lg">${server.name}</div>
+                                            <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="server-delete-section bg-green-900/20 p-4 rounded-md border border-green-500/30">
+                                        <div class="flex items-center text-green-400 text-sm">
+                                            <i class="fas fa-info-circle mr-2"></i>
+                                            <span>This server will be automatically deleted (only you are a member)</span>
+                                        </div>
+                                    </div>
+                                `;
+                                serverElement.classList.add('server-can-delete');
+                            } else {
+                                serverElement.innerHTML = `
+                                    <div class="flex items-center mb-3">
+                                        <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                            ${server.icon_url ? 
+                                                `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
+                                                `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
+                                            }
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-white text-lg">${server.name}</div>
+                                            <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="server-transfer-section bg-discord-bg-tertiary p-4 rounded-md">
+                                        <div class="text-sm text-white font-medium mb-3">Transfer ownership to:</div>
+                                        <div class="relative">
+                                            <div class="flex items-center space-x-2 mb-2">
+                                                <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="Search members...">
+                                                <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                            <div class="members-dropdown hidden absolute w-full mt-1 z-10 rounded-md overflow-hidden"></div>
+                                        </div>
+                                        <div class="selected-member mt-3 hidden">
+                                            <div class="flex items-center justify-between p-2 rounded-md">
+                                                <div class="flex items-center">
+                                                    <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-2 selected-member-avatar"></div>
+                                                    <span class="text-sm text-white selected-member-name"></span>
+                                                </div>
+                                            </div>
+                                            <div class="transfer-error text-red-400 text-xs mt-2 hidden"></div>
+                                        </div>
+                                        <div class="transfer-success hidden mt-3 text-green-400 text-sm bg-green-900/20 p-2 rounded-md border border-green-500/30">
+                                            <i class="fas fa-check-circle mr-1"></i> Ownership transferred successfully
+                                        </div>
+                                    </div>
+                                `;
+                                initServerTransferControls(serverElement, server.id);
+                            }
+                            
+                            serversList.appendChild(serverElement);
                         });
                     } else {
                         serverSection.innerHTML = '<div class="text-center py-4 text-red-400">Failed to load your servers.</div>';
@@ -2309,7 +2333,11 @@ function initDeleteAccount() {
 
     function checkAllServersTransferred() {
         const serverElements = document.querySelectorAll('#owned-servers-list > div');
-        const allTransferred = Array.from(serverElements).every(server => 
+        const serversRequiringTransfer = Array.from(serverElements).filter(server => 
+            !server.classList.contains('server-can-delete')
+        );
+        
+        const allTransferred = serversRequiringTransfer.every(server => 
             server.querySelector('.transfer-success') && 
             !server.querySelector('.transfer-success').classList.contains('hidden')
         );
@@ -2330,16 +2358,19 @@ function initDeleteAccount() {
             showError('Username does not match');
             return;
         }
-        
 
         const serverElements = document.querySelectorAll('#owned-servers-list > div');
-        const allTransferred = Array.from(serverElements).every(server => 
+        const serversRequiringTransfer = Array.from(serverElements).filter(server => 
+            !server.classList.contains('server-can-delete')
+        );
+        
+        const allTransferred = serversRequiringTransfer.every(server => 
             server.querySelector('.transfer-success') && 
             !server.querySelector('.transfer-success').classList.contains('hidden')
         );
         
-        if (serverElements.length > 0 && !allTransferred) {
-            showError('You must transfer ownership of all your servers before deleting your account');
+        if (serversRequiringTransfer.length > 0 && !allTransferred) {
+            showError('You must transfer ownership of all servers with multiple members before deleting your account');
             return;
         }
         
