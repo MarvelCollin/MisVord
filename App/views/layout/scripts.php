@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <script src="<?php echo js($script); ?>?v=<?php echo time(); ?>" type="module"></script>
 <?php endforeach; ?>
 
+<?php if (!$is_auth_page): ?>
 <script type="module" src="<?php echo js('utils/channel-switch-manager'); ?>?v=<?php echo time(); ?>"></script>
 
 
@@ -135,7 +136,9 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
 <script type="module" src="<?php echo asset('/js/utils/music-loader-static.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
+<?php endif; ?>
 
+<?php if (!$is_auth_page): ?>
 
 <script src="<?php echo js('components/home/friends-tabs'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script type="module" src="<?php echo js('utils/dm-switch-manager'); ?>?v=<?php echo time(); ?>"></script>
@@ -147,31 +150,39 @@ $isHomePage = strpos($currentPath, '/home') === 0;
 <script src="<?php echo js('components/app-layout'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
 <script type="module" src="<?php echo js('components/common/notification-handler'); ?>"></script>
+<?php endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-
+    const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
     
-    if (window.globalPresenceManager) {
-        window.globalPresenceManager.startActivityTracking();
-    }
-    
-    if (window.globalSocketManager) {
-        window.globalSocketManager.initialize();
-    }
-    
-    if (window.nitroIconManager) {
-        window.nitroIconManager.initializeIcons();
+    if (!isAuthPage) {
+        
+        if (window.globalPresenceManager) {
+            window.globalPresenceManager.startActivityTracking();
+        }
+        
+        if (window.globalSocketManager) {
+            window.globalSocketManager.initialize();
+        }
+        
+        if (window.nitroIconManager) {
+            window.nitroIconManager.initializeIcons();
+        }
     }
 });
 
 window.addEventListener('beforeunload', function() {
-    if (window.globalPresenceManager) {
-        window.globalPresenceManager.stopActivityTracking();
-    }
+    const isAuthPage = document.body && document.body.getAttribute('data-page') === 'auth';
     
-    if (window.globalSocketManager && window.globalSocketManager.disconnect) {
-        window.globalSocketManager.disconnect();
+    if (!isAuthPage) {
+        if (window.globalPresenceManager) {
+            window.globalPresenceManager.stopActivityTracking();
+        }
+        
+        if (window.globalSocketManager && window.globalSocketManager.disconnect) {
+            window.globalSocketManager.disconnect();
+        }
     }
   });
   </script>

@@ -366,14 +366,10 @@ class ChannelVoiceParticipants {
         
 
         if (!skipSidebarRefresh) {
-            
-
             setTimeout(() => {
                 this.updateSidebarForChannel(channelId);
             }, 1500);
         } else {
-            `);
-
             this.ensureParticipantsVisible(channelId);
         }
     }
@@ -405,7 +401,6 @@ class ChannelVoiceParticipants {
     }
     
     debouncedUpdateSidebar(channelId, mode = 'full') {
-
         const debounceKey = `sidebar-${channelId}-${mode}`;
         
         if (this.updateTimers.has(debounceKey)) {
