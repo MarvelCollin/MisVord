@@ -597,8 +597,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <div id="delete-account-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="w-full max-w-md mx-4">
-        <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-red-600">
+    <div class="w-full max-w-md mx-auto relative">
+        <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-red-600 w-full">
             <div class="p-8">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-semibold text-red-400">Delete Account</h2>
@@ -614,7 +614,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <h3 class="text-xl font-medium text-white mb-2">Are you sure you want to delete your account?</h3>
                     <p class="text-gray-400 text-sm">This action cannot be undone.</p>
                 </div>
-                
                 
                 <div id="owned-servers-section" class="mb-8 bg-discord-bg-tertiary/50 rounded-md p-6">
                     <div class="text-center py-4">
@@ -633,11 +632,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div id="delete-account-error" class="text-red-500 text-sm mt-2 hidden"></div>
                 </div>
                 
-                <div class="flex justify-end space-x-4">
-                    <button id="cancel-delete-account" class="px-6 py-3 rounded-md bg-discord-bg-tertiary hover:bg-discord-bg-hover text-white font-medium">
+                <div class="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
+                    <button id="cancel-delete-account" class="w-full sm:w-auto px-4 py-2 rounded-md bg-discord-bg-tertiary hover:bg-discord-bg-hover text-white font-medium">
                         Cancel
                     </button>
-                    <button id="confirm-delete-account" class="px-6 py-3 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium opacity-50 cursor-not-allowed" disabled>
+                    <button id="confirm-delete-account" class="w-full sm:w-auto px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white font-medium opacity-50 cursor-not-allowed" disabled>
                         <i class="fas fa-trash-alt mr-2"></i>Delete Account
                     </button>
                 </div>
