@@ -315,7 +315,7 @@
             
             const socketConfig = {
                 path: this.socketBasePath,
-                transports: ['polling', 'websocket'],
+                transports: ['websocket'],
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
