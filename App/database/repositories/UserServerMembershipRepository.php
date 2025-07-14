@@ -232,7 +232,7 @@ class UserServerMembershipRepository extends Repository {
 
             foreach ($results as &$user) {
                 if (!empty($user['avatar_url']) && !str_starts_with($user['avatar_url'], 'http')) {
-                    $user['avatar_url'] = '/storage/' . $user['avatar_url'];
+                    $user['avatar_url'] = '/public/storage/' . ltrim($user['avatar_url'], '/');
                 }
             }
             

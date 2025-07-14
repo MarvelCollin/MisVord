@@ -2037,9 +2037,12 @@ function initServerInputApproveButtons(serverId) {
             setTimeout(() => checkForChanges(this, approveServerNameBtn), 10);
         });
         
-        approveServerNameBtn.addEventListener('click', function() {
-            updateServerName(serverId, serverNameInput.value.trim());
-        });
+        if (!approveServerNameBtn.dataset.listenerAttached) {
+            approveServerNameBtn.dataset.listenerAttached = 'true';
+            approveServerNameBtn.addEventListener('click', () => {
+                updateServerName(serverId, serverNameInput.value.trim());
+            });
+        }
     }
     
 
@@ -2062,9 +2065,12 @@ function initServerInputApproveButtons(serverId) {
             setTimeout(() => checkForChanges(this, approveServerDescriptionBtn), 10);
         });
         
-        approveServerDescriptionBtn.addEventListener('click', function() {
-            updateServerDescription(serverId, serverDescriptionInput.value.trim());
-        });
+        if (!approveServerDescriptionBtn.dataset.listenerAttached) {
+            approveServerDescriptionBtn.dataset.listenerAttached = 'true';
+            approveServerDescriptionBtn.addEventListener('click', () => {
+                updateServerDescription(serverId, serverDescriptionInput.value.trim());
+            });
+        }
     }
     
 
@@ -2076,13 +2082,15 @@ function initServerInputApproveButtons(serverId) {
         checkForChangesCheckbox(isPublicInput, approveIsPublicBtn);
         
         isPublicInput.addEventListener('change', function() {
-
             updateServerPublic(serverId, this.checked);
         });
         
-        approveIsPublicBtn.addEventListener('click', function() {
-            updateServerPublic(serverId, isPublicInput.checked);
-        });
+        if (!approveIsPublicBtn.dataset.listenerAttached) {
+            approveIsPublicBtn.dataset.listenerAttached = 'true';
+            approveIsPublicBtn.addEventListener('click', () => {
+                updateServerPublic(serverId, isPublicInput.checked);
+            });
+        }
     }
     
 
@@ -2097,9 +2105,12 @@ function initServerInputApproveButtons(serverId) {
             checkForChanges(this, approveServerCategoryBtn);
         });
         
-        approveServerCategoryBtn.addEventListener('click', function() {
-            updateServerCategory(serverId, serverCategoryInput.value);
-        });
+        if (!approveServerCategoryBtn.dataset.listenerAttached) {
+            approveServerCategoryBtn.dataset.listenerAttached = 'true';
+            approveServerCategoryBtn.addEventListener('click', () => {
+                updateServerCategory(serverId, serverCategoryInput.value);
+            });
+        }
     }
 }
 
