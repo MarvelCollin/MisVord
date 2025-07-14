@@ -553,7 +553,6 @@ class VoiceManager {
             this.isMeetingJoined = true;
             this.localParticipant = this.meeting.localParticipant;
             this.handleParticipantJoined(this.meeting.localParticipant);
-            this.restoreVideoStatesFromStorage();
             
             setTimeout(() => {
                 this.checkAllParticipantsForExistingStreams();

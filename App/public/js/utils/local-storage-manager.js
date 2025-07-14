@@ -244,7 +244,6 @@ class LocalStorageManager {
         const current = this.getUnifiedVoiceState();
         const updated = { ...current, ...state };
 
-
         if (updated.isConnected === false && !updated.channelId && !updated.meetingId) {
             this.remove(this.keys.UNIFIED_VOICE_STATE);
             this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); 
@@ -291,14 +290,6 @@ class LocalStorageManager {
                     console.error('Error in unified voice state listener:', error);
                 }
             });
-            
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: { 
-                    type: 'stateUpdate',
-                    state: state,
-                    source: 'localStorage'
-                }
-            }));
             
 
             if (window.ChannelVoiceParticipants && state.channelId) {

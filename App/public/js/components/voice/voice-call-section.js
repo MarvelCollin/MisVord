@@ -125,7 +125,6 @@ class VoiceCallSection {
         this.bindEvents();
         this.initializeVoiceState();
         this.ensureChannelSync();
-        this.syncButtonStates();
         this.updateLocalParticipantIndicators();
         
         this.duplicateCleanupInterval = setInterval(() => {
@@ -169,21 +168,8 @@ class VoiceCallSection {
         
         if (this.videoBtn) {
             this.videoBtn.addEventListener("click", async () => {
-                console.log('🎥 Video button clicked');
                 if (window.voiceManager) {
-                    const currentState = window.voiceManager.getVideoState();
-                    console.log('🎥 Current state before toggle:', currentState);
-                    const state = await window.voiceManager.toggleVideo();
-                    console.log('🎥 State after toggle:', state);
-                    this.updateVideoButton(state);
-                    
-                    if (window.localStorageManager) {
-                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
-                        window.localStorageManager.setUnifiedVoiceState({
-                            ...voiceState,
-                            videoOn: state
-                        });
-                    }
+                    await window.voiceManager.toggleVideo();
                 }
             });
         }
@@ -247,7 +233,6 @@ class VoiceCallSection {
         window.addEventListener("localVoiceStateChanged", (e) => this.handleLocalVoiceStateChanged(e));
         window.addEventListener("voiceDisconnect", () => this.clearGrid());
         
-        window.addEventListener("voiceStateChanged", (e) => this.handleUnifiedVoiceStateChanged(e));
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
         
@@ -261,7 +246,17 @@ class VoiceCallSection {
 
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener((state) => {
-                this.syncWithVoiceState(state);
+                if (state.isConnected && state.channelId && state.meetingId) {
+                    this.currentChannelId = state.channelId;
+                    this.currentChannelName = state.channelName;
+                    this.currentMeetingId = state.meetingId;
+                    this.updateConnectionStatus(true);
+                } else if (!state.isConnected) {
+                    this.currentChannelId = null;
+                    this.currentChannelName = null;
+                    this.currentMeetingId = null;
+                    this.updateConnectionStatus(false);
+                }
             });
         }
     }
@@ -466,10 +461,6 @@ class VoiceCallSection {
             }
         }
         
-        this.updateMicButton(!state.isMuted);
-        this.updateVideoButton(state.videoOn || false);
-        this.updateDeafenButton(state.isDeafened || false);
-        this.updateScreenButton(state.screenShareOn || false);
         this.updateLocalParticipantIndicators();
     }
     
@@ -496,7 +487,6 @@ class VoiceCallSection {
         if (determinedChannelId) {
             this.currentChannelId = determinedChannelId;
             this.currentChannelName = determinedChannelName;
-            this.syncButtonStates();
             return true;
         }
         
@@ -1093,58 +1083,44 @@ class VoiceCallSection {
     syncButtonStates() {
         if (!window.voiceManager) return;
         
-        const storedState = window.localStorageManager?.getUnifiedVoiceState();
-        
-        const micState = !(storedState?.isMuted === true);
-        const deafenState = storedState?.isDeafened || false;
-        const videoState = storedState?.videoOn || false;
-        const screenState = storedState?.screenShareOn || false;
-        
-        this.updateMicButton(micState);
-        this.updateVideoButton(videoState);
-        this.updateDeafenButton(deafenState);
-        this.updateScreenButton(screenState);
-        
-        this.updateLocalParticipantIndicators();
-        
         if (window.voiceManager.isConnected && window.voiceManager.meeting) {
-            if (videoState !== window.voiceManager._videoOn) {
-                if (videoState && !window.voiceManager._videoOn) {
-                    window.voiceManager.meeting.enableWebcam();
-                    window.voiceManager._videoOn = true;
-                } else if (!videoState && window.voiceManager._videoOn) {
-                    window.voiceManager.meeting.disableWebcam();
-                    window.voiceManager._videoOn = false;
-                }
-            }
+            const micState = window.voiceManager.meeting.localParticipant?.micEnabled || false;
+            const videoState = window.voiceManager.meeting.localParticipant?.webcamEnabled || false;
+            const deafenState = window.voiceManager._deafened || false;
+            const screenState = window.voiceManager.meeting.localParticipant?.screenShareEnabled || false;
             
-            if (screenState !== window.voiceManager._screenShareOn) {
-                if (screenState && !window.voiceManager._screenShareOn) {
-                    window.voiceManager.meeting.enableScreenShare();
-                    window.voiceManager._screenShareOn = true;
-                } else if (!screenState && window.voiceManager._screenShareOn) {
-                    window.voiceManager.meeting.disableScreenShare();
-                    window.voiceManager._screenShareOn = false;
-                }
-            }
+            this.updateMicButton(micState);
+            this.updateVideoButton(videoState);
+            this.updateDeafenButton(deafenState);
+            this.updateScreenButton(screenState);
             
-            if (micState !== window.voiceManager._micOn) {
-                if (micState && !window.voiceManager._micOn) {
-                    window.voiceManager.meeting.unmuteMic();
-                    window.voiceManager._micOn = true;
-                } else if (!micState && window.voiceManager._micOn) {
-                    window.voiceManager.meeting.muteMic();
-                    window.voiceManager._micOn = false;
-                }
-            }
-            
-            window.voiceManager._deafened = deafenState;
-        } else {
             window.voiceManager._micOn = micState;
             window.voiceManager._videoOn = videoState;
-            window.voiceManager._deafened = deafenState;
             window.voiceManager._screenShareOn = screenState;
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.setUnifiedVoiceState({
+                    isMuted: !micState,
+                    videoOn: videoState,
+                    isDeafened: deafenState,
+                    screenShareOn: screenState,
+                    isConnected: true
+                });
+            }
+        } else {
+            const storedState = window.localStorageManager?.getUnifiedVoiceState();
+            const micState = !(storedState?.isMuted === true);
+            const deafenState = storedState?.isDeafened || false;
+            const videoState = storedState?.videoOn || false;
+            const screenState = storedState?.screenShareOn || false;
+            
+            this.updateMicButton(micState);
+            this.updateVideoButton(videoState);
+            this.updateDeafenButton(deafenState);
+            this.updateScreenButton(screenState);
         }
+        
+        this.updateLocalParticipantIndicators();
     }
     
     updateMicButton(isOn) {
@@ -1157,17 +1133,15 @@ class VoiceCallSection {
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
-            this.micBtn.style.backgroundColor = "#16a34a";
         } else {
             icon.className = "fas fa-microphone-slash text-sm";
             this.micBtn.classList.add("muted");
-            this.micBtn.style.backgroundColor = "#dc2626";
         }
         this.micBtn.style.color = "white";
     }
     
     updateVideoButton(isOn) {
-        console.log('🎥 updateVideoButton called with:', isOn, 'Button element:', this.videoBtn);
+        console.log('🎥 updateVideoButton called:', isOn);
         if (!this.videoBtn) return;
         
         const icon = this.videoBtn.querySelector("i");
@@ -1176,12 +1150,12 @@ class VoiceCallSection {
         this.videoBtn.classList.remove("bg-[#4f545c]", "bg-[#3ba55c]", "bg-green-600", "bg-red-600", "active");
         
         if (isOn) {
+            console.log('🎥 Adding active class (green)');
             icon.className = "fas fa-video text-sm";
             this.videoBtn.classList.add("active");
-            this.videoBtn.style.backgroundColor = "#16a34a";
         } else {
+            console.log('🎥 Removing active class (red)');
             icon.className = "fas fa-video-slash text-sm";
-            this.videoBtn.style.backgroundColor = "#dc2626";
         }
         this.videoBtn.style.color = "white";
     }
@@ -1197,10 +1171,8 @@ class VoiceCallSection {
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
             this.deafenBtn.classList.add("deafened");
-            this.deafenBtn.style.backgroundColor = "#dc2626";
         } else {
             icon.className = "fas fa-headphones text-sm";
-            this.deafenBtn.style.backgroundColor = "#16a34a";
         }
         this.deafenBtn.style.color = "white";
     }
@@ -1216,10 +1188,8 @@ class VoiceCallSection {
         if (isOn) {
             icon.className = "fas fa-stop text-sm";
             this.screenBtn.classList.add("screen-sharing");
-            this.screenBtn.style.backgroundColor = "#16a34a";
         } else {
             icon.className = "fas fa-desktop text-sm";
-            this.screenBtn.style.backgroundColor = "#dc2626";
         }
         this.screenBtn.style.color = "white";
     }
@@ -1475,7 +1445,6 @@ class VoiceCallSection {
             
             if (window.voiceManager.isConnected) {
                 this.updateConnectionStatus(true);
-                this.syncButtonStates();
             }
         }
     }

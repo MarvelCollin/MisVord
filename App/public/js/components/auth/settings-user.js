@@ -757,21 +757,20 @@ function initPasswordChangeForms() {
     
     if (!changePasswordBtn) return;
     
-    modal.classList.remove('show');
     modal.classList.add('hidden');
+    modal.style.display = 'none';
     
     function openModal() {
-
-        modal.classList.add('show');
         modal.classList.remove('hidden');
+        modal.style.display = 'flex';
         showStep('security-question');
         resetForm();
         loadSecurityQuestion();
     }
     
     function closeModal() {
-        modal.classList.remove('show');
         modal.classList.add('hidden');
+        modal.style.display = 'none';
         resetForm();
     }
     
@@ -1145,7 +1144,7 @@ function initPasswordChangeForms() {
     });
     
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal.classList.contains('show')) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
             closeModal();
         }
     });

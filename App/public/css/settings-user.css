@@ -1409,6 +1409,152 @@ button:hover::before {
   }
 }
 
+@keyframes modalFadeIn {
+  from { 
+    opacity: 0; 
+    backdrop-filter: blur(0px); 
+  }
+  to { 
+    opacity: 1; 
+    backdrop-filter: blur(4px); 
+  }
+}
+
+#change-password-modal {
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+  animation: modalFadeIn var(--discord-animation-default) ease-out;
+}
+
+#change-password-modal.hidden {
+  display: none !important;
+}
+
+#change-password-modal:not(.hidden) {
+  display: flex !important;
+}
+
+#change-password-modal .w-full.max-w-md {
+  width: 95%;
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+#change-password-modal .bg-discord-darker {
+  background-color: var(--discord-bg-secondary);
+  border: 1px solid rgba(4, 4, 5, 0.2);
+  box-shadow: var(--discord-elevation-high);
+  animation: slideIn var(--discord-animation-default) ease-out;
+  transform-origin: center center;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+#change-password-modal .p-6 {
+  padding: 1.5rem;
+}
+
+#change-password-modal h2 {
+  color: var(--discord-text-normal);
+  font-family: var(--discord-font-headline);
+  letter-spacing: 0.02em;
+}
+
+#change-password-modal input[type="text"] {
+  background-color: var(--discord-bg-tertiary);
+  border: 1px solid rgba(4, 4, 5, 0.3);
+  color: var(--discord-text-normal);
+  transition: all var(--discord-animation-default) ease;
+}
+
+#change-password-modal input[type="text"]:focus {
+  border-color: var(--discord-blurple);
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.3);
+  outline: none;
+}
+
+#change-password-modal input[type="text"]:hover {
+  border-color: rgba(79, 84, 92, 0.6);
+}
+
+#change-password-modal button {
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--discord-animation-default) ease;
+}
+
+#change-password-modal button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+#change-password-modal button:hover:not(:disabled)::before {
+  left: 100%;
+}
+
+#change-password-modal .bg-blue-600 {
+  background-color: var(--discord-blurple);
+  border: 1px solid transparent;
+}
+
+#change-password-modal .bg-blue-600:hover:not(:disabled) {
+  background-color: var(--discord-blurple-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
+}
+
+#change-password-modal .bg-gray-600 {
+  background-color: var(--discord-interactive-muted);
+}
+
+#change-password-modal .bg-gray-600:hover {
+  background-color: var(--discord-interactive-normal);
+}
+
+#change-password-modal button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  #change-password-modal {
+    padding: 1rem;
+  }
+  
+  #change-password-modal .p-6 {
+    padding: 1rem;
+  }
+
+  #change-password-modal .w-full.max-w-md {
+    width: 100%;
+    margin: 0;
+  }
+
+  #change-password-modal .text-xl {
+    font-size: 1.25rem;
+  }
+
+  #change-password-modal .w-16.h-16 {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
+@media (max-height: 700px) {
+  #change-password-modal .bg-discord-darker {
+    max-height: calc(100vh - 2rem);
+  }
+}
+
 #delete-account-modal {
   padding: 1rem;
 }
@@ -1639,8 +1785,17 @@ button:hover::before {
     font-size: 1.5rem;
   }
   
-  .members-dropdown {
-    max-height: 150px;
+  #delete-account-modal .w-20.h-20 {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+  
+  #delete-account-modal .text-4xl {
+    font-size: 1.5rem;
+  }
+  
+  #delete-account-modal #owned-servers-section {
+    padding: 0.75rem;
   }
 }
 

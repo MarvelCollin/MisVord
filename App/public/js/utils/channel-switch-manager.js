@@ -336,9 +336,6 @@ class SimpleChannelSwitcher {
                 window.voiceManager._videoOn = voiceState.videoOn || false;
                 window.voiceManager._screenShareOn = voiceState.screenShareOn || false;
             }
-            if (window.voiceCallSection && typeof window.voiceCallSection.syncButtonStates === 'function') {
-                window.voiceCallSection.syncButtonStates();
-            }
             
             setTimeout(() => {
                 if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
