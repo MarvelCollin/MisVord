@@ -1936,6 +1936,8 @@ function removeUserImage(type) {
 }
 
 function initDeleteAccount() {
+    let selectedOwners = {};
+
     const deleteBtn = document.getElementById('delete-account-btn');
     const modal = document.getElementById('delete-account-modal');
     const closeBtn = document.getElementById('close-delete-modal');

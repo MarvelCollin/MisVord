@@ -1204,9 +1204,18 @@ class ServerController extends BaseController
 
         try {
             $oldName = $server->name;
-            $server->name = $input['name'];
 
-            if ($server->save()) {
+            $query = $this->query();
+            $result = $query->table('servers')
+                ->where('id', $serverId)
+                ->update([
+                    'name' => $input['name'],
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            $updatedServer = $this->serverRepository->find($serverId);
+
+            if ($updatedServer->name === $input['name']) {
                 $this->logActivity('server_name_updated', [
                     'server_id' => $serverId,
                     'old_name' => $oldName,
@@ -1217,7 +1226,7 @@ class ServerController extends BaseController
                     'field' => 'name',
                     'old_value' => $oldName,
                     'new_value' => $input['name'],
-                    'server' => $this->formatServer($server)
+                    'server' => $this->formatServer($updatedServer)
                 ], 'Server name updated successfully');
             } else {
                 throw new Exception('Failed to save server name');
@@ -1250,20 +1259,29 @@ class ServerController extends BaseController
 
         try {
             $oldDescription = $server->description;
-            $server->description = $input['description'] ?? '';
 
-            if ($server->save()) {
+            $query = $this->query();
+            $result = $query->table('servers')
+                ->where('id', $serverId)
+                ->update([
+                    'description' => $input['description'] ?? '',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            $updatedServer = $this->serverRepository->find($serverId);
+
+            if ($updatedServer->description === ($input['description'] ?? '')) {
                 $this->logActivity('server_description_updated', [
                     'server_id' => $serverId,
                     'old_description' => $oldDescription,
-                    'new_description' => $server->description
+                    'new_description' => $updatedServer->description
                 ]);
 
                 return $this->success([
                     'field' => 'description',
                     'old_value' => $oldDescription,
-                    'new_value' => $server->description,
-                    'server' => $this->formatServer($server)
+                    'new_value' => $updatedServer->description,
+                    'server' => $this->formatServer($updatedServer)
                 ], 'Server description updated successfully');
             } else {
                 throw new Exception('Failed to save server description');
@@ -1295,20 +1313,30 @@ class ServerController extends BaseController
 
         try {
             $oldPublic = $server->is_public;
-            $server->is_public = isset($input['is_public']) ? (($input['is_public'] === '1' || $input['is_public'] === 'true' || $input['is_public'] === true) ? 1 : 0) : 0;
+            $newPublic = isset($input['is_public']) ? (($input['is_public'] === '1' || $input['is_public'] === 'true' || $input['is_public'] === true) ? 1 : 0) : 0;
 
-            if ($server->save()) {
+            $query = $this->query();
+            $result = $query->table('servers')
+                ->where('id', $serverId)
+                ->update([
+                    'is_public' => $newPublic,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            $updatedServer = $this->serverRepository->find($serverId);
+
+            if ($updatedServer->is_public == $newPublic) {
                 $this->logActivity('server_public_updated', [
                     'server_id' => $serverId,
                     'old_public' => $oldPublic,
-                    'new_public' => $server->is_public
+                    'new_public' => $newPublic
                 ]);
 
                 return $this->success([
                     'field' => 'is_public',
                     'old_value' => $oldPublic,
-                    'new_value' => $server->is_public,
-                    'server' => $this->formatServer($server)
+                    'new_value' => $newPublic,
+                    'server' => $this->formatServer($updatedServer)
                 ], 'Server visibility updated successfully');
             } else {
                 throw new Exception('Failed to save server visibility');
@@ -1340,20 +1368,30 @@ class ServerController extends BaseController
 
         try {
             $oldCategory = $server->category;
-            $server->category = $input['category'] ?? null;
+            $newCategory = $input['category'] ?? null;
 
-            if ($server->save()) {
+            $query = $this->query();
+            $result = $query->table('servers')
+                ->where('id', $serverId)
+                ->update([
+                    'category' => $newCategory,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+
+            $updatedServer = $this->serverRepository->find($serverId);
+
+            if ($updatedServer->category === $newCategory) {
                 $this->logActivity('server_category_updated', [
                     'server_id' => $serverId,
                     'old_category' => $oldCategory,
-                    'new_category' => $server->category
+                    'new_category' => $newCategory
                 ]);
 
                 return $this->success([
                     'field' => 'category',
                     'old_value' => $oldCategory,
-                    'new_value' => $server->category,
-                    'server' => $this->formatServer($server)
+                    'new_value' => $newCategory,
+                    'server' => $this->formatServer($updatedServer)
                 ], 'Server category updated successfully');
             } else {
                 throw new Exception('Failed to save server category');
