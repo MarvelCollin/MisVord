@@ -552,7 +552,7 @@ class VoiceManager {
     setupMeetingEvents() {
         if (!this.meeting) return;
         
-        this.meeting.on('meeting-joined', () => {
+        this.meeting.on('meeting-joined', async () => {
             this.isMeetingJoined = true;
             this.localParticipant = this.meeting.localParticipant;
             
@@ -562,6 +562,7 @@ class VoiceManager {
             this.handleParticipantJoined(this.meeting.localParticipant);
             
             this.checkAllParticipantsForExistingStreams();
+            await this.restoreVideoStatesFromStorage();
         });
         
         this.meeting.on('meeting-left', () => {
@@ -590,6 +591,9 @@ class VoiceManager {
             try {
                 await this.meeting.enableWebcam();
                 this._videoOn = true;
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'video', state: this._videoOn }
+                }));
             } catch (error) {
                 console.error('Failed to restore video:', error);
             }
@@ -597,6 +601,9 @@ class VoiceManager {
             try {
                 await this.meeting.disableWebcam();
                 this._videoOn = false;
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'video', state: this._videoOn }
+                }));
             } catch (error) {
                 console.error('Failed to disable video:', error);
             }
@@ -606,6 +613,9 @@ class VoiceManager {
             try {
                 await this.meeting.enableScreenShare();
                 this._screenShareOn = true;
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'screen', state: this._screenShareOn }
+                }));
             } catch (error) {
                 console.error('Failed to restore screen share:', error);
             }
@@ -613,6 +623,9 @@ class VoiceManager {
             try {
                 await this.meeting.disableScreenShare();
                 this._screenShareOn = false;
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'screen', state: this._screenShareOn }
+                }));
             } catch (error) {
                 console.error('Failed to disable screen share:', error);
             }
@@ -883,175 +896,137 @@ class VoiceManager {
     toggleMic() {
         if (!this.meeting || !this.localParticipant) return this._micOn;
         
-        if (this._micOn) {
-            this.localParticipant.disableMic();
-            this._micOn = false;
-        } else {
-            this.localParticipant.enableMic();
-            this._micOn = true;
-        }
-        
-        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-            detail: { type: 'mic', state: this._micOn }
-        }));
-        
-        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-        if (currentUserId && this.currentChannelId) {
-            window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
-                detail: {
-                    userId: currentUserId,
-                    channelId: this.currentChannelId,
-                    type: 'mic',
-                    state: this._micOn
-                }
-            }));
-        }
-        
-        if (window.localStorageManager) {
-            const currentState = window.localStorageManager.getUnifiedVoiceState();
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
+        try {
+            if (this._micOn) {
+                this.localParticipant.disableMic();
+                this._micOn = false;
+            } else {
+                this.localParticipant.enableMic();
+                this._micOn = true;
+            }
+            
+            this.updateUnifiedVoiceState({
                 isMuted: !this._micOn
             });
-            console.log('Saved mic state to localStorage:', !this._micOn);
-        } else {
-            console.warn('LocalStorageManager not available for mic state');
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'mic', state: this._micOn }
+            }));
+            
+            return this._micOn;
+        } catch (error) {
+            console.error('Failed to toggle mic:', error);
+            return this._micOn;
         }
-        
-        this.broadcastVoiceState('mic', this._micOn);
-        
-        return this._micOn;
     }
     
     async toggleVideo() {
         if (!this.meeting || !this.localParticipant) return this._videoOn;
         
-        if (this._videoOn) {
-            await this.localParticipant.disableWebcam();
-            this._videoOn = false;
-        } else {
-            await this.localParticipant.enableWebcam();
-            this._videoOn = true;
-        }
-        
-        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-            detail: { type: 'video', state: this._videoOn }
-        }));
-        
-        if (window.localStorageManager) {
-            const currentState = window.localStorageManager.getUnifiedVoiceState();
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
+        try {
+            if (this._videoOn) {
+                await this.meeting.disableWebcam();
+                this._videoOn = false;
+            } else {
+                await this.meeting.enableWebcam();
+                this._videoOn = true;
+            }
+            
+            this.updateUnifiedVoiceState({
                 videoOn: this._videoOn
             });
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'video', state: this._videoOn }
+            }));
+            
+            return this._videoOn;
+        } catch (error) {
+            console.error('Failed to toggle video:', error);
+            return this._videoOn;
         }
-        
-        return this._videoOn;
     }
     
     toggleDeafen() {
         if (!this.meeting || !this.localParticipant) return this._deafened;
         
-        this._deafened = !this._deafened;
-        
-        if (this._deafened) {
-            if (this._micOn) {
-                this.localParticipant.disableMic();
-                this._micOn = false;
-                
-                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: { type: 'mic', state: this._micOn }
-                }));
-                
-                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-                if (currentUserId && this.currentChannelId) {
-                    window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
-                        detail: {
-                            userId: currentUserId,
-                            channelId: this.currentChannelId,
-                            type: 'mic',
-                            state: this._micOn
-                        }
-                    }));
+        try {
+            this._deafened = !this._deafened;
+            
+            if (this._deafened) {
+                if (this._micOn) {
+                    this.localParticipant.disableMic();
+                    this._micOn = false;
                 }
                 
-                this.broadcastVoiceState('mic', this._micOn);
+                this.meeting.participants.forEach(participant => {
+                    if (participant.id !== this.localParticipant.id) {
+                        participant.streams.forEach(stream => {
+                            if (stream.kind === 'audio') {
+                                stream.pause();
+                            }
+                        });
+                    }
+                });
+            } else {
+                this.meeting.participants.forEach(participant => {
+                    if (participant.id !== this.localParticipant.id) {
+                        participant.streams.forEach(stream => {
+                            if (stream.kind === 'audio') {
+                                stream.resume();
+                            }
+                        });
+                    }
+                });
             }
-            this.meeting.participants.forEach(participant => {
-                if (participant.id !== this.localParticipant.id) {
-                    participant.streams.forEach(stream => {
-                        if (stream.kind === 'audio') {
-                            stream.pause();
-                        }
-                    });
-                }
-            });
-        } else {
-            this.meeting.participants.forEach(participant => {
-                if (participant.id !== this.localParticipant.id) {
-                    participant.streams.forEach(stream => {
-                        if (stream.kind === 'audio') {
-                            stream.resume();
-                        }
-                    });
-                }
-            });
-        }
-        
-        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-            detail: { type: 'deafen', state: this._deafened }
-        }));
-        
-        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-        if (currentUserId && this.currentChannelId) {
-            window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
-                detail: {
-                    userId: currentUserId,
-                    channelId: this.currentChannelId,
-                    type: 'deafen',
-                    state: this._deafened
-                }
-            }));
-        }
-        
-        if (window.localStorageManager) {
-            const currentState = window.localStorageManager.getUnifiedVoiceState();
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
+            
+            this.updateUnifiedVoiceState({
                 isDeafened: this._deafened,
                 isMuted: !this._micOn
             });
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'deafen', state: this._deafened }
+            }));
+            
+            if (this._deafened && !this._micOn) {
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'mic', state: this._micOn }
+                }));
+            }
+            
+            return this._deafened;
+        } catch (error) {
+            console.error('Failed to toggle deafen:', error);
+            return this._deafened;
         }
-        
-        this.broadcastVoiceState('deafen', this._deafened);
-        
-        return this._deafened;
     }
     
     async toggleScreenShare() {
         if (!this.meeting || !this.localParticipant) return this._screenShareOn;
         
-        if (this._screenShareOn) {
-            await this.localParticipant.disableScreenShare();
-            this._screenShareOn = false;
-        } else {
-            await this.localParticipant.enableScreenShare();
-            this._screenShareOn = true;
-        }
-        
-        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-            detail: { type: 'screen', state: this._screenShareOn }
-        }));
-        
-        if (window.localStorageManager) {
-            const currentState = window.localStorageManager.getUnifiedVoiceState();
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
+        try {
+            if (this._screenShareOn) {
+                await this.meeting.disableScreenShare();
+                this._screenShareOn = false;
+            } else {
+                await this.meeting.enableScreenShare();
+                this._screenShareOn = true;
+            }
+            
+            this.updateUnifiedVoiceState({
                 screenShareOn: this._screenShareOn
             });
+            
+            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                detail: { type: 'screen', state: this._screenShareOn }
+            }));
+            
+            return this._screenShareOn;
+        } catch (error) {
+            console.error('Failed to toggle screen share:', error);
+            return this._screenShareOn;
         }
-        
-        return this._screenShareOn;
     }
     
     getMicState() { return this._micOn; }

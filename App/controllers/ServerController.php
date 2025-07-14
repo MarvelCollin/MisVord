@@ -597,11 +597,15 @@ class ServerController extends BaseController
 
             $existingMembership = $this->userServerMembershipRepository->getUserServerMembership($userId, $serverId);
             if ($existingMembership) {
-                return $this->success([
+                http_response_code(200);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => true,
                     'message' => 'You are already a member of this server',
                     'server_id' => $serverId,
                     'redirect' => '/server/' . $serverId
                 ]);
+                exit;
             }
 
             $result = $this->userServerMembershipRepository->create([
@@ -620,11 +624,15 @@ class ServerController extends BaseController
                 'user_id' => $userId
             ]);
 
-            return $this->success([
+            http_response_code(200);
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
                 'message' => 'Successfully joined server',
                 'server_id' => $serverId,
                 'redirect' => '/server/' . $serverId
             ]);
+            exit;
 
         } catch (Exception $e) {
             logger()->error("Error joining server by ID", [

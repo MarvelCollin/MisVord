@@ -375,6 +375,11 @@ function initJoinServerHandlers() {
                 handleJoinServer(serverId, button);
             }
         }
+        
+        if (e.target.closest('button') && e.target.closest('button').textContent.includes('Copy Invite')) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     });
 }
 
@@ -397,7 +402,18 @@ function handleJoinServer(serverId, button) {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Join server response:', data);
+        
         if (data.success) {
+            const redirectUrl = data.redirect;
+            console.log('Redirect URL:', redirectUrl);
+            
+            if (redirectUrl) {
+                console.log('Redirecting to:', redirectUrl);
+                window.location.href = redirectUrl;
+                return;
+            }
+            
             button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined';
             button.classList.remove('bg-discord-primary', 'hover:bg-discord-primary-dark');
             button.classList.add('bg-discord-green');
@@ -406,16 +422,12 @@ function handleJoinServer(serverId, button) {
             if (window.showToast) {
                 window.showToast('Successfully joined the server!', 'success');
             }
-            
-            if (data.redirect) {
-                window.location.href = data.redirect;
-            }
         } else {
             throw new Error(data.message || 'Failed to join server');
         }
     })
     .catch(error => {
-
+        console.error('Join server error:', error);
         button.innerHTML = '<i class="fas fa-plus mr-2"></i>Join Server';
         button.disabled = false;
         
@@ -712,21 +724,19 @@ function createServerCardElement(server) {
 
                     <div class="mt-4 space-y-2">
                         ${isJoined ? `
-                        <button onclick="event.preventDefault(); event.stopPropagation();" 
-                               class="join-server-btn w-full bg-discord-green/20 text-discord-green text-center py-2.5 text-sm rounded-lg hover:bg-discord-green/30 transition-all font-semibold border border-discord-green/30" 
+                        <button class="join-server-btn w-full bg-discord-green/20 text-discord-green text-center py-2.5 text-sm rounded-lg hover:bg-discord-green/30 transition-all font-semibold border border-discord-green/30" 
                                data-server-id="${server.id}">
                             <i class="fas fa-check mr-2"></i>Joined
                         </button>
                         ` : `
-                        <button onclick="event.preventDefault(); event.stopPropagation();" 
-                               class="join-server-btn w-full bg-discord-primary text-white text-center py-2.5 text-sm rounded-lg hover:bg-discord-primary/90 transition-all font-semibold" 
+                        <button class="join-server-btn w-full bg-discord-primary text-white text-center py-2.5 text-sm rounded-lg hover:bg-discord-primary/90 transition-all font-semibold" 
                                data-server-id="${server.id}">
                             <i class="fas fa-plus mr-2"></i>Join Server
                         </button>
                         `}
                         
                         ${server.invite_link ? `
-                        <button onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText('${server.invite_link}'); if(window.showToast) window.showToast('Invite link copied!', 'success');" 
+                        <button onclick="navigator.clipboard.writeText('${server.invite_link}'); if(window.showToast) window.showToast('Invite link copied!', 'success');" 
                                class="w-full bg-discord-lighter/10 text-discord-lighter text-center py-2 text-xs rounded-lg hover:bg-discord-lighter/20 transition-all font-medium border border-discord-lighter/20">
                             <i class="fas fa-link mr-1"></i>Copy Invite
                         </button>

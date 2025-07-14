@@ -311,16 +311,8 @@ class LocalStorageManager {
     }
 
     toggleVoiceMute() {
-        if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-            const newState = window.videoSDKManager.toggleMic();
-            
-            const currentState = this.getUnifiedVoiceState();
-            this.setUnifiedVoiceState({
-                ...currentState,
-                isMuted: !newState
-            });
-            
-            return !newState;
+        if (window.voiceManager && window.voiceManager.isConnected) {
+            return window.voiceManager.toggleMic();
         } else {
             const currentState = this.getUnifiedVoiceState();
             const newMutedState = !currentState.isMuted;
@@ -335,17 +327,8 @@ class LocalStorageManager {
     }
 
     toggleVoiceDeafen() {
-        if (window.videoSDKManager && window.videoSDKManager.isReady()) {
-            const newState = window.videoSDKManager.toggleDeafen();
-            
-            const currentState = this.getUnifiedVoiceState();
-            this.setUnifiedVoiceState({
-                ...currentState,
-                isDeafened: newState,
-                isMuted: newState ? true : currentState.isMuted
-            });
-            
-            return newState;
+        if (window.voiceManager && window.voiceManager.isConnected) {
+            return window.voiceManager.toggleDeafen();
         } else {
             const currentState = this.getUnifiedVoiceState();
             const newDeafenedState = !currentState.isDeafened;

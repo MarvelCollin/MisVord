@@ -147,14 +147,6 @@ class VoiceCallSection {
                     const newState = window.voiceManager.toggleMic();
                     this.updateMicButton(newState);
                     
-                    if (window.localStorageManager) {
-                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
-                        window.localStorageManager.setUnifiedVoiceState({
-                            ...voiceState,
-                            isMuted: !newState
-                        });
-                    }
-                    
                     if (newState) {
                         MusicLoaderStatic.playDiscordUnmuteSound();
                     } else {
@@ -167,7 +159,8 @@ class VoiceCallSection {
         if (this.videoBtn) {
             this.videoBtn.addEventListener("click", async () => {
                 if (window.voiceManager) {
-                    await window.voiceManager.toggleVideo();
+                    const newState = await window.voiceManager.toggleVideo();
+                    this.updateVideoButton(newState);
                 }
             });
         }
@@ -186,15 +179,6 @@ class VoiceCallSection {
                             window.MusicLoaderStatic.playDiscordMuteSound();
                         }
                     }
-                    
-                    if (window.localStorageManager) {
-                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
-                        window.localStorageManager.setUnifiedVoiceState({
-                            ...voiceState,
-                            isDeafened: state,
-                            isMuted: !window.voiceManager._micOn
-                        });
-                    }
                 }
             });
         }
@@ -204,14 +188,6 @@ class VoiceCallSection {
                 if (window.voiceManager) {
                     const state = await window.voiceManager.toggleScreenShare();
                     this.updateScreenButton(state);
-                    
-                    if (window.localStorageManager) {
-                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
-                        window.localStorageManager.setUnifiedVoiceState({
-                            ...voiceState,
-                            screenShareOn: state
-                        });
-                    }
                 }
             });
         }
@@ -1143,15 +1119,16 @@ class VoiceCallSection {
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
+            this.micBtn.style.backgroundColor = "#16a34a";
         } else {
             icon.className = "fas fa-microphone-slash text-sm";
             this.micBtn.classList.add("muted");
+            this.micBtn.style.backgroundColor = "#dc2626";
         }
         this.micBtn.style.color = "white";
     }
     
     updateVideoButton(isOn) {
-        console.log('🎥 updateVideoButton called:', isOn);
         if (!this.videoBtn) return;
         
         const icon = this.videoBtn.querySelector("i");
@@ -1160,12 +1137,12 @@ class VoiceCallSection {
         this.videoBtn.classList.remove("bg-[#4f545c]", "bg-[#3ba55c]", "bg-green-600", "bg-red-600", "active");
         
         if (isOn) {
-            console.log('🎥 Adding active class (green)');
             icon.className = "fas fa-video text-sm";
             this.videoBtn.classList.add("active");
+            this.videoBtn.style.backgroundColor = "#16a34a";
         } else {
-            console.log('🎥 Removing active class (red)');
             icon.className = "fas fa-video-slash text-sm";
+            this.videoBtn.style.backgroundColor = "#dc2626";
         }
         this.videoBtn.style.color = "white";
     }
@@ -1181,8 +1158,10 @@ class VoiceCallSection {
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
             this.deafenBtn.classList.add("deafened");
+            this.deafenBtn.style.backgroundColor = "#dc2626";
         } else {
             icon.className = "fas fa-headphones text-sm";
+            this.deafenBtn.style.backgroundColor = "#16a34a";
         }
         this.deafenBtn.style.color = "white";
     }
@@ -1198,8 +1177,10 @@ class VoiceCallSection {
         if (isOn) {
             icon.className = "fas fa-stop text-sm";
             this.screenBtn.classList.add("screen-sharing");
+            this.screenBtn.style.backgroundColor = "#16a34a";
         } else {
             icon.className = "fas fa-desktop text-sm";
+            this.screenBtn.style.backgroundColor = "#dc2626";
         }
         this.screenBtn.style.color = "white";
     }

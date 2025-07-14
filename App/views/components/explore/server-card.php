@@ -56,21 +56,19 @@ function renderServerCard($server, $userServerId, $isFeatured = false) {
 
                 <div class="mt-4 space-y-2">
                     <?php if ($isMember): ?>
-                        <button onclick="event.preventDefault(); event.stopPropagation();" 
-                               class="join-server-btn w-full bg-discord-green/20 text-discord-green text-center py-2.5 text-sm rounded-lg hover:bg-discord-green/30 transition-all font-semibold border border-discord-green/30" 
+                        <button class="join-server-btn w-full bg-discord-green/20 text-discord-green text-center py-2.5 text-sm rounded-lg hover:bg-discord-green/30 transition-all font-semibold border border-discord-green/30" 
                                data-server-id="<?php echo $serverId; ?>">
                             <i class="fas fa-check mr-2"></i>Joined
                         </button>
                     <?php else: ?>
-                        <button onclick="event.preventDefault(); event.stopPropagation();" 
-                               class="join-server-btn w-full bg-discord-primary text-white text-center py-2.5 text-sm rounded-lg hover:bg-discord-primary/90 transition-all font-semibold" 
+                        <button class="join-server-btn w-full bg-discord-primary text-white text-center py-2.5 text-sm rounded-lg hover:bg-discord-primary/90 transition-all font-semibold" 
                                data-server-id="<?php echo $serverId; ?>">
                             <i class="fas fa-plus mr-2"></i>Join Server
                         </button>
                     <?php endif; ?>
                     
                     <?php if (!empty($server['invite_link'])): ?>
-                        <button onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText('<?php echo htmlspecialchars($server['invite_link']); ?>'); if(window.showToast) window.showToast('Invite link copied!', 'success');" 
+                        <button onclick="navigator.clipboard.writeText('<?php echo htmlspecialchars($server['invite_link']); ?>'); if(window.showToast) window.showToast('Invite link copied!', 'success');" 
                                class="w-full bg-discord-lighter/10 text-discord-lighter text-center py-2 text-xs rounded-lg hover:bg-discord-lighter/20 transition-all font-medium border border-discord-lighter/20">
                             <i class="fas fa-link mr-1"></i>Copy Invite
                         </button>

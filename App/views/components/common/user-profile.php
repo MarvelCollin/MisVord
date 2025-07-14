@@ -150,19 +150,16 @@ class UserProfileVoiceControls {
             const checkDependencies = () => {
                 const hasLocalStorage = !!window.localStorageManager;
                 const hasMusicLoader = !!window.MusicLoaderStatic;
-                const hasVoiceManager = !!window.voiceManager;
                 
-                if (hasLocalStorage && hasMusicLoader && hasVoiceManager) {
+                if (hasLocalStorage && hasMusicLoader) {
                     console.log('[UserProfileVoiceControls] Dependencies ready:', {
                         localStorageManager: hasLocalStorage,
-                        voiceManager: hasVoiceManager,
                         musicLoader: hasMusicLoader
                     });
                     resolve();
                 } else if (this.retryCount >= this.maxRetries) {
                     const missingDeps = [];
                     if (!hasLocalStorage) missingDeps.push('localStorageManager');
-                    if (!hasVoiceManager) missingDeps.push('voiceManager');
                     if (!hasMusicLoader) missingDeps.push('MusicLoaderStatic');
                     
                     console.error('[UserProfileVoiceControls] Missing dependencies after max retries:', missingDeps);
@@ -250,15 +247,7 @@ class UserProfileVoiceControls {
         try {
             let state = null;
             
-            if (window.voiceManager) {
-                state = {
-                    isMuted: !window.voiceManager._micOn,
-                    isDeafened: window.voiceManager._deafened,
-                    isConnected: window.voiceManager.isConnected,
-                    volume: 100
-                };
-                console.log('UserProfile: Retrieved VoiceManager state:', state);
-            } else if (window.localStorageManager) {
+            if (window.localStorageManager) {
                 state = window.localStorageManager.getUnifiedVoiceState();
                 console.log('UserProfile: Retrieved localStorage state:', state);
             }
@@ -324,26 +313,42 @@ class UserProfileVoiceControls {
     
     handleMicClick() {
         try {
-            if (!window.voiceManager) {
-                console.warn('VoiceManager not available');
+            if (!window.localStorageManager) {
+                console.warn('LocalStorageManager not available');
                 return;
             }
             
-            const wasPreviouslyMuted = !window.voiceManager._micOn;
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            const wasPreviouslyMuted = currentState.isMuted;
             
-            window.voiceManager.toggleMic().then(() => {
-                console.log('UserProfile: Mic toggled via VoiceManager');
-                
-                if (window.MusicLoaderStatic) {
-                    if (wasPreviouslyMuted) {
-                        window.MusicLoaderStatic.playDiscordUnmuteSound();
-                    } else {
-                        window.MusicLoaderStatic.playDiscordMuteSound();
-                    }
-                }
-                
-                this.updateControls();
+            const newMutedState = !wasPreviouslyMuted;
+            
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                isMuted: newMutedState
             });
+            
+            if (window.MusicLoaderStatic) {
+                if (wasPreviouslyMuted) {
+                    window.MusicLoaderStatic.playDiscordUnmuteSound();
+                } else {
+                    window.MusicLoaderStatic.playDiscordMuteSound();
+                }
+            }
+            
+            if (window.voiceManager && window.voiceManager.isConnected) {
+                if (newMutedState) {
+                    window.voiceManager.localParticipant?.disableMic();
+                    window.voiceManager._micOn = false;
+                } else {
+                    window.voiceManager.localParticipant?.enableMic();
+                    window.voiceManager._micOn = true;
+                }
+            }
+            
+            this.updateControls();
+            
+            console.log('UserProfile: Mic toggled via localStorage');
             
         } catch (error) {
             console.error('Error in user profile mic click handler:', error);
@@ -352,15 +357,22 @@ class UserProfileVoiceControls {
     
     handleDeafenClick() {
         try {
-            if (!window.voiceManager) {
-                console.warn('VoiceManager not available');
+            if (!window.localStorageManager) {
+                console.warn('LocalStorageManager not available');
                 return;
             }
             
-            const wasPreviouslyDeafened = window.voiceManager._deafened;
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            const wasPreviouslyDeafened = currentState.isDeafened;
             
-            window.voiceManager.toggleDeafen();
-            console.log('UserProfile: Deafen toggled via VoiceManager');
+            const newDeafenedState = !wasPreviouslyDeafened;
+            const newMutedState = newDeafenedState ? true : currentState.isMuted;
+            
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                isDeafened: newDeafenedState,
+                isMuted: newMutedState
+            });
             
             if (window.MusicLoaderStatic) {
                 if (wasPreviouslyDeafened) {
@@ -370,7 +382,32 @@ class UserProfileVoiceControls {
                 }
             }
             
+            if (window.voiceManager && window.voiceManager.isConnected) {
+                window.voiceManager._deafened = newDeafenedState;
+                
+                if (newDeafenedState && window.voiceManager._micOn) {
+                    window.voiceManager.localParticipant?.disableMic();
+                    window.voiceManager._micOn = false;
+                }
+                
+                window.voiceManager.meeting?.participants.forEach(participant => {
+                    if (participant.id !== window.voiceManager.localParticipant?.id) {
+                        participant.streams.forEach(stream => {
+                            if (stream.kind === 'audio') {
+                                if (newDeafenedState) {
+                                    stream.pause();
+                                } else {
+                                    stream.resume();
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+            
             this.updateControls();
+            
+            console.log('UserProfile: Deafen toggled via localStorage');
             
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);
@@ -378,30 +415,18 @@ class UserProfileVoiceControls {
     }
     
     setupPeriodicSync() {
-
         setInterval(() => {
-            if (this.isInVoiceCall()) {
-                this.updateControls();
-            }
+            this.updateControls();
         }, 2000);
     }
     
     isInVoiceCall() {
-
-        if (window.videoSDKManager?.isConnected) {
-            return true;
-        }
-        
         if (window.voiceManager?.isConnected) {
             return true;
         }
         
-        if (window.unifiedVoiceStateManager?.isConnected()) {
-            return true;
-        }
-        
         if (window.localStorageManager) {
-            const state = window.localStorageManager.getVoiceState();
+            const state = window.localStorageManager.getUnifiedVoiceState();
             return state?.isConnected || false;
         }
         
