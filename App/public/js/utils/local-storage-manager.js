@@ -244,28 +244,6 @@ class LocalStorageManager {
         const current = this.getUnifiedVoiceState();
         const updated = { ...current, ...state };
 
-        if (updated.isConnected === false && !updated.channelId && !updated.meetingId) {
-            this.remove(this.keys.UNIFIED_VOICE_STATE);
-            this.notifyVoiceStateListeners(this.getUnifiedVoiceState()); 
-            return true;
-        }
-        
-        if (updated.isConnected !== current.isConnected || 
-            updated.channelId !== current.channelId || 
-            updated.meetingId !== current.meetingId) {
-            
-            if (window.voiceFacade) {
-                const voiceFacadeState = window.voiceFacade.getCurrentState();
-                if (voiceFacadeState.channelId !== updated.channelId) {
-                    console.warn('⚠️ [LOCAL-STORAGE] Voice state mismatch detected:', {
-                        localStorage: updated.channelId,
-                        voiceFacade: voiceFacadeState.channelId
-                    });
-                    return false;
-                }
-            }
-        }
-        
         const success = this.set(this.keys.UNIFIED_VOICE_STATE, updated);
         
         if (success) {

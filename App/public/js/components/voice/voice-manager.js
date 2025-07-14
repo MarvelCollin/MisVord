@@ -963,16 +963,19 @@ class VoiceManager {
                     detail: { type: 'mic', state: this._micOn }
                 }));
                 
-                if (window.localStorageManager) {
-                    const currentState = window.localStorageManager.getUnifiedVoiceState();
-                    window.localStorageManager.setUnifiedVoiceState({
-                        ...currentState,
-                        isMuted: true
-                    });
-                    console.log('Saved mic state (deafen) to localStorage: true');
-                } else {
-                    console.warn('LocalStorageManager not available for deafen mic state');
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+                if (currentUserId && this.currentChannelId) {
+                    window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                        detail: {
+                            userId: currentUserId,
+                            channelId: this.currentChannelId,
+                            type: 'mic',
+                            state: this._micOn
+                        }
+                    }));
                 }
+                
+                this.broadcastVoiceState('mic', this._micOn);
             }
             this.meeting.participants.forEach(participant => {
                 if (participant.id !== this.localParticipant.id) {

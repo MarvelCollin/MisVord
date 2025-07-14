@@ -829,6 +829,7 @@ class ChatSection {
         }
         
 
+
         if (this.loadMoreButton) {
             this.loadMoreButton.addEventListener('click', () => {
                 this.loadMoreMessages();
@@ -1378,6 +1379,7 @@ class ChatSection {
         this.emptyStateContainer.classList.remove('hidden');
         this.emptyStateContainer.style.display = 'flex';
         
+
 
         console.log('🎨 [CHAT-SECTION] Empty state element:', {
             container: this.emptyStateContainer,
@@ -2270,7 +2272,7 @@ class ChatSection {
                     messageElement.classList.add('message-delete-success');
                     
                     setTimeout(() => {
-                        const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
+                        const messageGroup = messageElement.closest('.bubble-message-group');
                         
                         if (messageGroup && messageGroup.querySelectorAll('.bubble-message-content, .message-content').length === 1) {
                             messageGroup.remove();
@@ -2296,8 +2298,6 @@ class ChatSection {
             const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
             
             if (error.message && error.message.includes('404')) {
-                console.warn('🔄 [CHAT-SECTION] Message already deleted by someone else');
-                
                 if (messageElement) {
                     messageElement.classList.remove('message-deleting-pending');
                     messageElement.style.opacity = '0.3';
@@ -2378,9 +2378,13 @@ class ChatSection {
     scrollToBottomIfAppropriate(isChannelSwitch = false) {
         if (!this.chatMessages) return;
         
-
         if (!this.isInitialized || isChannelSwitch) {
-            this.scrollToBottom();
+            const messageCount = this.getTotalMessageCount();
+            if (messageCount === 0 || messageCount <= 6) {
+                this.scrollToBottom();
+            } else {
+                this.chatMessages.scrollTop = 0;
+            }
             return;
         }
         
@@ -3221,17 +3225,38 @@ class ChatSection {
 
     }
 
+    getTotalMessageCount() {
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) return 0;
+        
+        const messageGroups = messagesContainer.querySelectorAll('.bubble-message-group:not(.progressive-load-group), .message-group:not(.progressive-load-group)');
+        return messageGroups.length;
+    }
+
     handleNewMessageScroll(isOwnMessage = false) {
         if (!this.chatMessages) return;
         
         if (isOwnMessage) {
-            this.sentMessageCount++;
+            const totalMessageCount = this.getTotalMessageCount();
             
-            if (this.sentMessageCount <= 6) {
+            if (totalMessageCount <= 6) {
+                this.scrollToBottom();
                 return;
             }
             
-            this.scrollToBottom();
+            if (!this.userHasScrolled) {
+                this.scrollToBottom();
+                return;
+            }
+            
+            const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; 
+            
+            if (isAtBottom) {
+                this.scrollToBottom();
+            } else {
+                this.showNewMessageIndicator();
+            }
             return;
         }
         
@@ -3246,7 +3271,6 @@ class ChatSection {
         if (isAtBottom) {
             this.scrollToBottom();
         } else {
-
             this.showNewMessageIndicator();
         }
     }

@@ -997,6 +997,21 @@ class MessageHandler {
                 if (typeof window.processMentionCandidates === 'function') {
                     setTimeout(() => window.processMentionCandidates(), 100);
                 }
+                
+                if (this.isFirstTimeLoad && this.chatSection) {
+                    const messageCount = this.chatSection.getTotalMessageCount();
+                    if (messageCount === 0) {
+                        this.chatSection.scrollToBottom();
+                    } else if (messageCount > 6) {
+                        const messagesContainer = this.chatSection.getMessagesContainer();
+                        if (messagesContainer) {
+                            messagesContainer.scrollTop = 0;
+                        }
+                    } else {
+                        this.chatSection.scrollToBottom();
+                    }
+                }
+                
                 this.isFirstTimeLoad = false;
                 resolve();
             });

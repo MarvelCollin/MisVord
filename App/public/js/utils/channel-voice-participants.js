@@ -79,6 +79,13 @@ class ChannelVoiceParticipants {
     handleLocalVoiceStateChanged(event) {
         const { userId, channelId, type, state } = event.detail;
         this.updateParticipantVoiceState(userId, channelId, type, state);
+        
+        if (type === 'deafen' && state === true && window.voiceManager) {
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (userId === currentUserId) {
+                this.updateParticipantVoiceState(userId, channelId, 'mic', false);
+            }
+        }
     }
     
     handleParticipantJoined(event) {

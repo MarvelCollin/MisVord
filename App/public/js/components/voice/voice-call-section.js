@@ -175,8 +175,17 @@ class VoiceCallSection {
         if (this.deafenBtn) {
             this.deafenBtn.addEventListener("click", () => {
                 if (window.voiceManager) {
+                    const wasPreviouslyDeafened = window.voiceManager._deafened;
                     const state = window.voiceManager.toggleDeafen();
                     this.updateDeafenButton(state);
+                    
+                    if (window.MusicLoaderStatic) {
+                        if (wasPreviouslyDeafened) {
+                            window.MusicLoaderStatic.playDiscordUnmuteSound();
+                        } else {
+                            window.MusicLoaderStatic.playDiscordMuteSound();
+                        }
+                    }
                     
                     if (window.localStorageManager) {
                         const voiceState = window.localStorageManager.getUnifiedVoiceState();
@@ -650,6 +659,13 @@ class VoiceCallSection {
         const { userId, channelId, type, state } = event.detail;
         if (channelId === this.currentChannelId) {
             this.updateParticipantVoiceState(userId, type, state);
+            
+            if (type === 'deafen' && state === true && window.voiceManager) {
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+                if (userId === currentUserId) {
+                    this.updateParticipantVoiceState(userId, 'mic', false);
+                }
+            }
         }
     }
     
