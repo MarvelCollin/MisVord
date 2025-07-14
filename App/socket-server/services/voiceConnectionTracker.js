@@ -2,6 +2,7 @@ class VoiceConnectionTracker {
     static connections = new Map();
     static userVoiceStatus = new Map();
     static botConnections = new Map();
+    static participantStates = new Map();
 
     static addUserToVoice(userId, channelId, meetingId, username = null, avatarUrl = null) {
         const userKey = userId.toString();
@@ -18,6 +19,45 @@ class VoiceConnectionTracker {
         });
         
         this.userVoiceStatus.set(userKey, true);
+        
+        this.participantStates.set(userKey, {
+            isMuted: false,
+            isDeafened: false,
+            lastUpdated: Date.now()
+        });
+    }
+    
+    static updateParticipantState(userId, type, state) {
+        const userKey = userId.toString();
+        
+        if (!this.participantStates.has(userKey)) {
+            this.participantStates.set(userKey, {
+                isMuted: false,
+                isDeafened: false,
+                lastUpdated: Date.now()
+            });
+        }
+        
+        const currentState = this.participantStates.get(userKey);
+        
+        if (type === 'mic') {
+            currentState.isMuted = !state;
+        } else if (type === 'deafen') {
+            currentState.isDeafened = state;
+        }
+        
+        currentState.lastUpdated = Date.now();
+        
+        console.log(`🔊 [VOICE-TRACKER] Updated participant state for ${userKey}:`, currentState);
+    }
+    
+    static getParticipantState(userId) {
+        const userKey = userId.toString();
+        return this.participantStates.get(userKey) || {
+            isMuted: false,
+            isDeafened: false,
+            lastUpdated: null
+        };
     }
 
     static removeUserFromVoice(userId) {
@@ -25,6 +65,7 @@ class VoiceConnectionTracker {
 
         this.connections.delete(userKey);
         this.userVoiceStatus.set(userKey, false);
+        this.participantStates.delete(userKey);
     }
 
     static addBotToVoice(botId, channelId, meetingId, username = null) {
@@ -183,4 +224,4 @@ setInterval(() => {
     VoiceConnectionTracker.cleanup();
 }, 5 * 60 * 1000);
 
-module.exports = VoiceConnectionTracker; 
+module.exports = VoiceConnectionTracker;

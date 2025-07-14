@@ -604,6 +604,54 @@ function setup(io) {
             handleUnregisterVoiceMeeting(io, client, data);
         });
         
+        client.on('voice-state-change', (data) => {
+            console.log(`🔊 [VOICE-STATE] Voice state change from ${client.id}:`, {
+                userId: client.data?.user_id,
+                username: client.data?.username,
+                channelId: data.channel_id,
+                stateType: data.type,
+                state: data.state
+            });
+            
+            if (!client.data?.authenticated || !client.data?.user_id) {
+                console.warn('⚠️ [VOICE-STATE] Unauthenticated voice state change attempt');
+                return;
+            }
+            
+            const { channel_id, type, state } = data;
+            const userId = client.data.user_id;
+            const username = client.data.username;
+            
+            if (!channel_id || !type) {
+                console.warn('⚠️ [VOICE-STATE] Missing required data for voice state change');
+                return;
+            }
+            
+            VoiceConnectionTracker.updateParticipantState(userId, type, state);
+            
+            const stateData = {
+                user_id: userId,
+                username: username,
+                channel_id: channel_id,
+                type: type,
+                state: state,
+                timestamp: Date.now()
+            };
+            
+            const voiceChannelRoom = `voice_channel_${channel_id}`;
+            
+            console.log(`📢 [VOICE-STATE] Broadcasting voice state change:`, {
+                channelId: channel_id,
+                userId,
+                stateType: type,
+                newState: state,
+                toRoom: voiceChannelRoom
+            });
+            
+            io.to(voiceChannelRoom).emit('voice-state-update', stateData);
+            io.to(`channel-${channel_id}`).emit('voice-state-update', stateData);
+        });
+        
         client.on('get-online-users', () => {
 
             handleGetOnlineUsers(io, client);

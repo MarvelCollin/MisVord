@@ -1,6 +1,4 @@
-﻿
-
-import MusicLoaderStatic from '/public/js/utils/music-loader-static.js';
+﻿import MusicLoaderStatic from '/public/js/utils/music-loader-static.js';
 import '/public/js/components/voice/voice-facade.js';
 
 class VoiceCallSection {
@@ -257,6 +255,19 @@ class VoiceCallSection {
         
         socket.on('voice-meeting-status', (data) => {
             this.handleVoiceMeetingStatus(data);
+        });
+        
+        socket.on('voice-state-update', (data) => {
+            console.log(`🔊 [VOICE-CALL-SECTION] Voice state update received:`, data);
+            
+            if (!data.user_id || !data.channel_id || !data.type) return;
+            
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (data.user_id === currentUserId) {
+                return;
+            }
+            
+            this.updateParticipantVoiceState(data.user_id, data.type, data.state);
         });
     }
     
@@ -608,6 +619,53 @@ class VoiceCallSection {
         }
     }
     
+    updateLocalParticipantIndicators() {
+        if (!window.voiceManager) return;
+        
+        const localCard = document.querySelector('[data-is-local="true"]');
+        if (!localCard) return;
+        
+        const muteIndicator = localCard.querySelector('.mute-indicator');
+        const deafenIndicator = localCard.querySelector('.deafen-indicator');
+        
+        if (muteIndicator) {
+            const isMuted = !window.voiceManager.getMicState();
+            muteIndicator.classList.toggle('hidden', !isMuted);
+        }
+        
+        if (deafenIndicator) {
+            const isDeafened = window.voiceManager.getDeafenState();
+            deafenIndicator.classList.toggle('hidden', !isDeafened);
+        }
+    }
+    
+    updateParticipantVoiceState(userId, type, state) {
+        console.log(`🔊 [VOICE-CALL-SECTION] Updating participant voice state:`, {
+            userId, type, state
+        });
+        
+        const participantElement = this.participantElements?.get(userId);
+        if (!participantElement) {
+            console.log(`🔊 [VOICE-CALL-SECTION] Participant element not found for user ${userId}`);
+            return;
+        }
+        
+        if (type === 'mic') {
+            const muteIndicator = participantElement.querySelector('.mute-indicator');
+            if (muteIndicator) {
+                const isMuted = !state;
+                muteIndicator.classList.toggle('hidden', !isMuted);
+                console.log(`🔇 [VOICE-CALL-SECTION] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
+            }
+        } else if (type === 'deafen') {
+            const deafenIndicator = participantElement.querySelector('.deafen-indicator');
+            if (deafenIndicator) {
+                deafenIndicator.classList.toggle('hidden', !state);
+                console.log(`🔇 [VOICE-CALL-SECTION] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
+            }
+        }
+    }
+
     createParticipantElement(participantId, data) {
         const div = document.createElement("div");
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
@@ -670,26 +728,6 @@ class VoiceCallSection {
         }
         
         return div;
-    }
-    
-    updateLocalParticipantIndicators() {
-        if (!window.voiceManager) return;
-        
-        const localCard = document.querySelector('[data-is-local="true"]');
-        if (!localCard) return;
-        
-        const muteIndicator = localCard.querySelector('.mute-indicator');
-        const deafenIndicator = localCard.querySelector('.deafen-indicator');
-        
-        if (muteIndicator) {
-            const isMuted = !window.voiceManager.getMicState();
-            muteIndicator.classList.toggle('hidden', !isMuted);
-        }
-        
-        if (deafenIndicator) {
-            const isDeafened = window.voiceManager.getDeafenState();
-            deafenIndicator.classList.toggle('hidden', !isDeafened);
-        }
     }
     
     showParticipantVideo(element, stream) {

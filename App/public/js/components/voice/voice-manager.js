@@ -858,6 +858,8 @@ class VoiceManager {
             });
         }
         
+        this.broadcastVoiceState('mic', this._micOn);
+        
         return this._micOn;
     }
     
@@ -938,6 +940,8 @@ class VoiceManager {
                 isMuted: this._deafened ? true : !this._micOn
             });
         }
+        
+        this.broadcastVoiceState('deafen', this._deafened);
         
         return this._deafened;
     }
@@ -1133,6 +1137,20 @@ class VoiceManager {
                window.currentUsername || 
                'Anonymous';
     }
+    
+    broadcastVoiceState(type, state) {
+        if (!window.globalSocketManager?.io || !this.currentChannelId) return;
+        
+        const stateData = {
+            channel_id: this.currentChannelId,
+            type: type,
+            state: state
+        };
+        
+        console.log(`📡 [VOICE-MANAGER] Broadcasting voice state:`, stateData);
+        
+        window.globalSocketManager.io.emit('voice-state-change', stateData);
+    }
 
     updateUnifiedVoiceState(state) {
         if (window.localStorageManager) {
@@ -1173,5 +1191,4 @@ if (!window.voiceManager) {
 if (!window.videoSDKManager) {
     window.videoSDKManager = window.voiceManager;
 }
-    
-    
+

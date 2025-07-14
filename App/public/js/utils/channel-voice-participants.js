@@ -305,6 +305,19 @@ class ChannelVoiceParticipants {
             }
         });
         
+        socket.on('voice-state-update', (data) => {
+            console.log(`🔊 [CHANNEL-VOICE-PARTICIPANTS] Voice state update received:`, data);
+            
+            if (!data.user_id || !data.channel_id || !data.type) return;
+            
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (data.user_id === currentUserId) {
+                return;
+            }
+            
+            this.updateParticipantVoiceState(data.user_id, data.channel_id, data.type, data.state);
+        });
+        
         socket.on('voice-meeting-status', (data) => {
             if (!data || !data.channel_id) return;
 
@@ -554,12 +567,22 @@ class ChannelVoiceParticipants {
             </div>`;
 
         const nameHTML = `
-            <div class="flex flex-col min-w-0">
+            <div class="flex flex-col min-w-0 flex-1">
                 <span class="participant-name text-white text-sm font-medium truncate max-w-[140px]">${displayName}${isSelf ? ' (You)' : ''}${isBot ? ' (Bot)' : ''}</span>
                 ${isBot ? `<span class="text-xs text-[#5865f2] flex items-center"><i class="fas fa-music mr-1"></i>${botStatus}</span>` : ''}
             </div>`;
+        
+        const indicatorsHTML = !isBot ? `
+            <div class="flex space-x-1">
+                <div class="mute-indicator w-4 h-4 bg-red-600 rounded-full flex items-center justify-center hidden">
+                    <i class="fas fa-microphone-slash text-white text-xs"></i>
+                </div>
+                <div class="deafen-indicator w-4 h-4 bg-red-600 rounded-full flex items-center justify-center hidden">
+                    <i class="fas fa-deaf text-white text-xs"></i>
+                </div>
+            </div>` : '';
 
-        div.innerHTML = avatarHTML + nameHTML;
+        div.innerHTML = avatarHTML + nameHTML + indicatorsHTML;
 
         return div;
     }
@@ -740,6 +763,53 @@ class ChannelVoiceParticipants {
             window._channelVoiceParticipants = new ChannelVoiceParticipants();
         }
         return window._channelVoiceParticipants;
+    }
+    
+    updateParticipantVoiceState(userId, channelId, type, state) {
+        console.log(`🔊 [CHANNEL-VOICE-PARTICIPANTS] Updating participant voice state:`, {
+            userId, channelId, type, state
+        });
+        
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) return;
+        
+        const participantCard = container.querySelector(`[data-user-id="${userId}"]`);
+        if (!participantCard) return;
+        
+        if (type === 'mic') {
+            const muteIndicator = participantCard.querySelector('.mute-indicator');
+            if (muteIndicator) {
+                const isMuted = !state;
+                muteIndicator.classList.toggle('hidden', !isMuted);
+                console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
+            }
+        } else if (type === 'deafen') {
+            const deafenIndicator = participantCard.querySelector('.deafen-indicator');
+            if (deafenIndicator) {
+                deafenIndicator.classList.toggle('hidden', !state);
+                console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
+            }
+        }
+        
+        if (window.voiceCallSection && window.voiceManager?.currentChannelId === channelId) {
+            const participantElement = window.voiceCallSection.participantElements?.get(userId);
+            if (participantElement) {
+                if (type === 'mic') {
+                    const muteIndicator = participantElement.querySelector('.mute-indicator');
+                    if (muteIndicator) {
+                        const isMuted = !state;
+                        muteIndicator.classList.toggle('hidden', !isMuted);
+                        console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
+                    }
+                } else if (type === 'deafen') {
+                    const deafenIndicator = participantElement.querySelector('.deafen-indicator');
+                    if (deafenIndicator) {
+                        deafenIndicator.classList.toggle('hidden', !state);
+                        console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
+                    }
+                }
+            }
+        }
     }
 
     
