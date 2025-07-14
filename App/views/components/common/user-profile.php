@@ -322,11 +322,12 @@ class UserProfileVoiceControls {
         
         if (state.isMuted || state.isDeafened) {
             micIcon.className = 'fas fa-microphone-slash text-lg';
-            this.micBtn.classList.add('bg-red-600', 'text-white');
+            this.micBtn.style.backgroundColor = '#dc2626';
         } else {
             micIcon.className = 'fas fa-microphone text-lg';
-            this.micBtn.classList.add('bg-green-600', 'text-white');
+            this.micBtn.style.backgroundColor = '#16a34a';
         }
+        this.micBtn.style.color = 'white';
     }
     
     updateDeafenButton(state) {
@@ -343,11 +344,12 @@ class UserProfileVoiceControls {
         
         if (state.isDeafened) {
             deafenIcon.className = 'fas fa-volume-xmark text-lg';
-            this.deafenBtn.classList.add('bg-red-600', 'text-white');
+            this.deafenBtn.style.backgroundColor = '#dc2626';
         } else {
             deafenIcon.className = 'fas fa-headphones text-lg';
-            this.deafenBtn.classList.add('bg-green-600', 'text-white');
+            this.deafenBtn.style.backgroundColor = '#16a34a';
         }
+        this.deafenBtn.style.color = 'white';
     }
     
     handleMicClick() {

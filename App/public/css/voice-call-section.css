@@ -28,11 +28,15 @@
 }
 
 #micBtn:hover {
-    background-color: #dc2626 !important;
+    opacity: 0.8 !important;
 }
 
 #micBtn.muted {
     background-color: #dc2626 !important;
+}
+
+#micBtn.bg-green-600 {
+    background-color: #16a34a !important;
 }
 
 #videoBtn {
@@ -40,10 +44,10 @@
 }
 
 #videoBtn:hover {
-    background-color: #dc2626 !important;
+    opacity: 0.8 !important;
 }
 
-#videoBtn.active {
+#videoBtn.active, #videoBtn.bg-green-600 {
     background-color: #16a34a !important;
 }
 
@@ -52,11 +56,15 @@
 }
 
 #deafenBtn:hover {
+    opacity: 0.8 !important;
+}
+
+#deafenBtn.deafened, #deafenBtn.bg-red-600 {
     background-color: #dc2626 !important;
 }
 
-#deafenBtn.deafened {
-    background-color: #dc2626 !important;
+#deafenBtn.bg-green-600 {
+    background-color: #16a34a !important;
 }
 
 #screenBtn {
@@ -64,10 +72,10 @@
 }
 
 #screenBtn:hover {
-    background-color: #dc2626 !important;
+    opacity: 0.8 !important;
 }
 
-#screenBtn.screen-sharing {
+#screenBtn.screen-sharing, #screenBtn.bg-green-600 {
     background-color: #16a34a !important;
 }
 
@@ -663,40 +671,19 @@
 }
 
 .voice-control-btn:hover {
-    transform: scale(1.05) !important;
+    opacity: 0.8 !important;
 }
 
-.voice-control-btn.active {
+.voice-control-btn.active, .voice-control-btn.bg-green-600 {
     background-color: #16a34a !important;
 }
 
-.voice-control-btn.muted {
-    background-color: #ed4245 !important;
+.voice-control-btn.muted, .voice-control-btn.deafened, .voice-control-btn.bg-red-600 {
+    background-color: #dc2626 !important;
 }
 
-.voice-control-btn.deafened {
-    background-color: #ed4245 !important;
-}
-
-.voice-control-btn.screen-sharing {
+.voice-control-btn.screen-sharing, .voice-control-btn.bg-green-600 {
     background-color: #16a34a !important;
-}
-
-
-.voice-control-btn.mic-btn:hover:not(.muted) {
-    background-color: #dc2626 !important;
-}
-
-.voice-control-btn.video-btn:hover:not(.active) {
-    background-color: #dc2626 !important;
-}
-
-.voice-control-btn.deafen-btn:hover:not(.deafened) {
-    background-color: #dc2626 !important;
-}
-
-.voice-control-btn.screen-btn:hover:not(.screen-sharing) {
-    background-color: #dc2626 !important;
 }
 
 .voice-control-btn.tic-tac-toe-btn:hover {

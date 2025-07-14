@@ -135,7 +135,8 @@ class BotController extends BaseController
             'email' => $email,
             'discriminator' => '0000',
             'display_name' => $username,
-            'bio' => 'The one and only Titibot, created by a special shortcut.'
+            'bio' => 'The one and only Titibot, created by a special shortcut.',
+            'avatar_url' => '/public/assets/landing-page/robot.webp'
         ];
 
         $bot = $this->userRepository->createBot($botData);

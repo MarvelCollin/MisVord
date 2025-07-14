@@ -1215,49 +1215,41 @@ class UserController extends BaseController
             
             $ownedServers = $serverRepository->getServersByOwnerId($userId);
             
+            error_log("Delete account: User $userId owns " . count($ownedServers) . " servers");
+            
             foreach ($ownedServers as $server) {
                 $memberCount = $membershipRepository->getMemberCount($server['id']);
+                $memberCountExcludingUser = $memberCount - 1;
                 
-                if ($memberCount > 1) {
+                error_log("Server {$server['id']} ({$server['name']}) has $memberCount total members, $memberCountExcludingUser excluding user");
+                
+                if ($memberCountExcludingUser > 0) {
+                    error_log("Blocking account deletion: Server {$server['name']} still has $memberCountExcludingUser other members");
                     http_response_code(400);
                     echo json_encode([
                         'success' => false,
-                        'error' => 'You must transfer ownership of all servers with multiple members before deleting your account. Server "' . $server['name'] . '" still has ' . $memberCount . ' members.',
-                        'debug_info' => [
-                            'total_owned_servers' => count($ownedServers),
-                            'problematic_server' => [
-                                'id' => $server['id'],
-                                'name' => $server['name'],
-                                'member_count' => $memberCount
-                            ],
-                            'all_owned_servers' => array_map(function($s) use ($membershipRepository) {
-                                return [
-                                    'id' => $s['id'],
-                                    'name' => $s['name'],
-                                    'member_count' => $membershipRepository->getMemberCount($s['id'])
-                                ];
-                            }, $ownedServers)
-                        ]
+                        'error' => 'You must transfer ownership of all servers with multiple members before deleting your account. Server "' . $server['name'] . '" still has ' . $memberCountExcludingUser . ' other members.'
                     ]);
                     exit;
                 }
             }
             
             foreach ($ownedServers as $server) {
-                $memberCount = $membershipRepository->getMemberCount($server['id']);
+                error_log("Deleting server {$server['id']} ({$server['name']}) as part of user deletion");
                 
-                if ($memberCount <= 1) {
-                    $this->logActivity('server_deleted_with_user', [
-                        'server_id' => $server['id'],
-                        'server_name' => $server['name'],
-                        'user_id' => $userId
-                    ]);
-                    
-                    $serverRepository->deleteServerCompletely($server['id']);
-                }
+                $this->logActivity('server_deleted_with_user', [
+                    'server_id' => $server['id'],
+                    'server_name' => $server['name'],
+                    'user_id' => $userId
+                ]);
+                
+                $deleteResult = $serverRepository->deleteServerCompletely($server['id']);
+                error_log("Server deletion result for {$server['id']}: " . ($deleteResult ? 'success' : 'failed'));
             }
 
+            error_log("Proceeding to delete user $userId");
             $result = $this->userRepository->deleteUser($userId);
+            error_log("User deletion result: " . ($result ? 'success' : 'failed'));
 
             if (!$result) {
                 http_response_code(500);

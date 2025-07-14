@@ -186,6 +186,7 @@ class UserServerMembershipRepository extends Repository {
             error_log("Transferring ownership of server $serverId from user $currentOwnerId to user $newOwnerId");
             
             $query = new Query();
+            $query->beginTransaction();
             
             $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
@@ -202,12 +203,17 @@ class UserServerMembershipRepository extends Repository {
 
             if ($updateNewOwner === false || $removeCurrentOwner === false) {
                 error_log("Rolling back ownership transfer transaction");
+                $query->rollback();
                 return false;
             }
 
+            $query->commit();
             error_log("Ownership transfer completed successfully");
             return true;
         } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
             error_log("Error transferring ownership: " . $e->getMessage());
             return false;
         }

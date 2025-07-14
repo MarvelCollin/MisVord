@@ -64,7 +64,7 @@ class VoiceCallSection {
 
     setButtonBackgroundColor(btn, btnId) {
         const colorMap = {
-            'micBtn': '#dc2626',
+            'micBtn': '#16a34a',
             'videoBtn': '#dc2626', 
             'deafenBtn': '#16a34a',
             'screenBtn': '#dc2626',
@@ -87,15 +87,13 @@ class VoiceCallSection {
             };
 
             if (hoverColors[btnId] && !btn.classList.contains('active') && !btn.classList.contains('muted') && !btn.classList.contains('deafened')) {
-                btn.style.backgroundColor = hoverColors[btnId];
+                btn.style.opacity = '0.8';
                 btn.style.transform = 'scale(1.05)';
             }
         });
 
         btn.addEventListener('mouseleave', () => {
-            if (!btn.classList.contains('active') && !btn.classList.contains('muted') && !btn.classList.contains('deafened')) {
-                btn.style.backgroundColor = colorMap[btnId];
-            }
+            btn.style.opacity = '1';
             btn.style.transform = 'scale(1)';
         });
     }
@@ -130,17 +128,6 @@ class VoiceCallSection {
         this.syncButtonStates();
         this.updateLocalParticipantIndicators();
         
-
-        setTimeout(() => {
-            this.removeDuplicateCards();
-        }, 100);
-        
-
-        setTimeout(() => {
-            this.ensureChannelSync();
-        }, 500);
-        
-
         this.duplicateCleanupInterval = setInterval(() => {
             this.removeDuplicateCards();
         }, 5000); 
@@ -161,6 +148,14 @@ class VoiceCallSection {
                     const newState = window.voiceManager.toggleMic();
                     this.updateMicButton(newState);
                     
+                    if (window.localStorageManager) {
+                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...voiceState,
+                            isMuted: !newState
+                        });
+                    }
+                    
                     if (newState !== currentState) {
                         if (newState) {
                             MusicLoaderStatic.playDiscordUnmuteSound();
@@ -177,6 +172,14 @@ class VoiceCallSection {
                 if (window.voiceManager) {
                     const state = await window.voiceManager.toggleVideo();
                     this.updateVideoButton(state);
+                    
+                    if (window.localStorageManager) {
+                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...voiceState,
+                            videoOn: state
+                        });
+                    }
                 }
             });
         }
@@ -186,6 +189,15 @@ class VoiceCallSection {
                 if (window.voiceManager) {
                     const state = window.voiceManager.toggleDeafen();
                     this.updateDeafenButton(state);
+                    
+                    if (window.localStorageManager) {
+                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...voiceState,
+                            isDeafened: state,
+                            isMuted: state ? true : voiceState.isMuted
+                        });
+                    }
                 }
             });
         }
@@ -195,6 +207,14 @@ class VoiceCallSection {
                 if (window.voiceManager) {
                     const state = await window.voiceManager.toggleScreenShare();
                     this.updateScreenButton(state);
+                    
+                    if (window.localStorageManager) {
+                        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...voiceState,
+                            screenShareOn: state
+                        });
+                    }
                 }
             });
         }
@@ -441,6 +461,12 @@ class VoiceCallSection {
                 window.localStorageManager.clearVoiceState();
             }
         }
+        
+        this.updateMicButton(!state.isMuted);
+        this.updateVideoButton(state.videoOn || false);
+        this.updateDeafenButton(state.isDeafened || false);
+        this.updateScreenButton(state.screenShareOn || false);
+        this.updateLocalParticipantIndicators();
     }
     
     ensureChannelSync() {
@@ -612,12 +638,21 @@ class VoiceCallSection {
                 break;
             case 'deafen':
                 this.updateDeafenButton(state);
+                if (state && window.voiceManager) {
+                    this.updateMicButton(false);
+                }
                 this.updateLocalParticipantIndicators();
                 break;
             case 'screen':
                 this.updateScreenButton(state);
                 break;
+            case 'stateUpdate':
+                if (event.detail.state) {
+                    this.syncWithVoiceState(event.detail.state);
+                }
+                break;
         }
+    }
     }
     
     handleLocalVoiceStateChanged(event) {
@@ -1057,18 +1092,23 @@ class VoiceCallSection {
         
         const storedState = window.localStorageManager?.getUnifiedVoiceState();
         
-        this.updateMicButton(window.voiceManager.getMicState());
-        this.updateVideoButton(storedState?.videoOn || window.voiceManager.getVideoState());
-        this.updateDeafenButton(window.voiceManager.getDeafenState());
-        this.updateScreenButton(storedState?.screenShareOn || window.voiceManager.getScreenShareState());
+        const micState = storedState?.isMuted === false;
+        const deafenState = storedState?.isDeafened || false;
+        const videoState = storedState?.videoOn || false;
+        const screenState = storedState?.screenShareOn || false;
+        
+        this.updateMicButton(micState);
+        this.updateVideoButton(videoState);
+        this.updateDeafenButton(deafenState);
+        this.updateScreenButton(screenState);
         
         this.updateLocalParticipantIndicators();
         
-        if (storedState?.videoOn && window.voiceManager._videoOn !== storedState.videoOn) {
-            window.voiceManager._videoOn = storedState.videoOn;
-        }
-        if (storedState?.screenShareOn && window.voiceManager._screenShareOn !== storedState.screenShareOn) {
-            window.voiceManager._screenShareOn = storedState.screenShareOn;
+        if (window.voiceManager) {
+            window.voiceManager._micOn = micState;
+            window.voiceManager._videoOn = videoState;
+            window.voiceManager._deafened = deafenState;
+            window.voiceManager._screenShareOn = screenState;
         }
     }
     
@@ -1082,11 +1122,13 @@ class VoiceCallSection {
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
-            this.micBtn.classList.add("bg-green-600");
+            this.micBtn.style.backgroundColor = "#16a34a";
         } else {
             icon.className = "fas fa-microphone-slash text-sm";
-            this.micBtn.classList.add("bg-red-600", "muted");
+            this.micBtn.classList.add("muted");
+            this.micBtn.style.backgroundColor = "#dc2626";
         }
+        this.micBtn.style.color = "white";
     }
     
     updateVideoButton(isOn) {
@@ -1095,15 +1137,17 @@ class VoiceCallSection {
         const icon = this.videoBtn.querySelector("i");
         if (!icon) return; 
         
-        this.videoBtn.classList.remove("bg-[#4f545c]", "bg-[#3ba55c]", "bg-green-600", "bg-red-600");
+        this.videoBtn.classList.remove("bg-[#4f545c]", "bg-[#3ba55c]", "bg-green-600", "bg-red-600", "active");
         
         if (isOn) {
             icon.className = "fas fa-video text-sm";
-            this.videoBtn.classList.add("bg-green-600");
+            this.videoBtn.classList.add("active");
+            this.videoBtn.style.backgroundColor = "#16a34a";
         } else {
             icon.className = "fas fa-video-slash text-sm";
-            this.videoBtn.classList.add("bg-red-600");
+            this.videoBtn.style.backgroundColor = "#dc2626";
         }
+        this.videoBtn.style.color = "white";
     }
     
     updateDeafenButton(isOn) {
@@ -1116,11 +1160,13 @@ class VoiceCallSection {
         
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
-            this.deafenBtn.classList.add("bg-red-600", "deafened");
+            this.deafenBtn.classList.add("deafened");
+            this.deafenBtn.style.backgroundColor = "#dc2626";
         } else {
             icon.className = "fas fa-headphones text-sm";
-            this.deafenBtn.classList.add("bg-green-600");
+            this.deafenBtn.style.backgroundColor = "#16a34a";
         }
+        this.deafenBtn.style.color = "white";
     }
     
     updateScreenButton(isOn) {
@@ -1129,16 +1175,17 @@ class VoiceCallSection {
         const icon = this.screenBtn.querySelector("i");
         if (!icon) return; 
         
-        this.screenBtn.classList.remove("bg-[#4f545c]", "bg-[#5865f2]", "bg-green-600", "bg-red-600");
+        this.screenBtn.classList.remove("bg-[#4f545c]", "bg-[#5865f2]", "bg-green-600", "bg-red-600", "screen-sharing");
         
         if (isOn) {
             icon.className = "fas fa-stop text-sm";
-            this.screenBtn.classList.add("bg-green-600");
+            this.screenBtn.classList.add("screen-sharing");
+            this.screenBtn.style.backgroundColor = "#16a34a";
         } else {
             icon.className = "fas fa-desktop text-sm";
-            this.screenBtn.classList.add("bg-red-600");
+            this.screenBtn.style.backgroundColor = "#dc2626";
         }
-    }
+        this.screenBtn.style.color = "white";
     }
     
     openTicTacToe() {
@@ -1368,13 +1415,21 @@ class VoiceCallSection {
             this.currentChannelName = window.voiceManager?.currentChannelName || 'Voice Channel';
         }
         
-
         if (window.localStorageManager) {
             const voiceState = window.localStorageManager.getUnifiedVoiceState();
             this.syncWithVoiceState(voiceState);
+            
+            if (!voiceState.isConnected) {
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...voiceState,
+                    isMuted: false,
+                    isDeafened: false,
+                    videoOn: false,
+                    screenShareOn: false
+                });
+            }
         }
         
-
         if (window.voiceManager) {
             if (!this.currentChannelId) {
                 this.currentChannelId = window.voiceManager.currentChannelId;

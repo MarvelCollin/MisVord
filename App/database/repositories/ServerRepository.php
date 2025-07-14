@@ -366,17 +366,23 @@ class ServerRepository extends Repository {
         $query = new Query();
         
         try {
+            error_log("Starting complete deletion of server $serverId");
             $query->beginTransaction();
             
-            $query->table('channel_messages')->where('server_id', $serverId)->delete();
+            $messagesDeleted = $query->table('channel_messages')->where('server_id', $serverId)->delete();
+            error_log("Deleted $messagesDeleted channel messages for server $serverId");
             
-            $query->table('channels')->where('server_id', $serverId)->delete();
+            $channelsDeleted = $query->table('channels')->where('server_id', $serverId)->delete();
+            error_log("Deleted $channelsDeleted channels for server $serverId");
             
-            $query->table('categories')->where('server_id', $serverId)->delete();
+            $categoriesDeleted = $query->table('categories')->where('server_id', $serverId)->delete();
+            error_log("Deleted $categoriesDeleted categories for server $serverId");
             
-            $query->table('server_invites')->where('server_id', $serverId)->delete();
+            $invitesDeleted = $query->table('server_invites')->where('server_id', $serverId)->delete();
+            error_log("Deleted $invitesDeleted invites for server $serverId");
             
-            $query->table('user_server_memberships')->where('server_id', $serverId)->delete();
+            $membershipsDeleted = $query->table('user_server_memberships')->where('server_id', $serverId)->delete();
+            error_log("Deleted $membershipsDeleted memberships for server $serverId");
             
             $server = $this->find($serverId);
             if ($server) {
@@ -384,6 +390,7 @@ class ServerRepository extends Repository {
                     $imagePath = dirname(__DIR__, 2) . $server->image_url;
                     if (file_exists($imagePath) && is_file($imagePath)) {
                         unlink($imagePath);
+                        error_log("Deleted server image: $imagePath");
                     }
                 }
                 
@@ -391,13 +398,16 @@ class ServerRepository extends Repository {
                     $bannerPath = dirname(__DIR__, 2) . $server->banner_url;
                     if (file_exists($bannerPath) && is_file($bannerPath)) {
                         unlink($bannerPath);
+                        error_log("Deleted server banner: $bannerPath");
                     }
                 }
             }
             
-            $query->table('servers')->where('id', $serverId)->delete();
+            $serverDeleted = $query->table('servers')->where('id', $serverId)->delete();
+            error_log("Deleted $serverDeleted server record for server $serverId");
             
             $query->commit();
+            error_log("Successfully completed deletion of server $serverId");
             return true;
             
         } catch (Exception $e) {

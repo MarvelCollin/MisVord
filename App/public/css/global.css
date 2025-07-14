@@ -781,7 +781,7 @@ button[type="submit"]:hover,
 }
 
 .mic-btn:hover, .deafen-btn:hover {
-  background-color: rgba(79, 84, 92, 0.16) !important;
+  opacity: 0.8 !important;
 }
 
 .user-profile-section {

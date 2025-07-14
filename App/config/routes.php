@@ -1212,7 +1212,7 @@ Route::post('/api/debug/create-titibot', function() {
             'display_name' => 'TitiBot',
             'bio' => 'Official music and fun bot',
             'status' => 'bot',
-            'avatar_url' => '/public/assets/common/default-profile-picture.png'
+            'avatar_url' => '/public/assets/landing-page/robot.webp'
         ];
         
         $bot = $userRepository->createBot($botData);

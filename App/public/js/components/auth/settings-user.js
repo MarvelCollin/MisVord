@@ -2075,7 +2075,7 @@ function initDeleteAccount() {
                             <div class="server-delete-section bg-green-900/20 p-4 rounded-md border border-green-500/30">
                                 <div class="flex items-center text-green-400 text-sm">
                                     <i class="fas fa-info-circle mr-2"></i>
-                                    <span>This server will be automatically deleted (only you are a member)</span>
+                                    <span>This server will be automatically deleted</span>
                                 </div>
                             </div>
                         `;
@@ -2318,6 +2318,7 @@ function initDeleteAccount() {
         transferError.classList.add('hidden');
         
         serverElement.classList.add('server-owner-selected');
+        serverElement.querySelector('.server-transfer-section').classList.add('completed');
         checkAllServersReady();
     }
     
@@ -2363,7 +2364,9 @@ function initDeleteAccount() {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         const serverElements = document.querySelectorAll('#owned-servers-list > div');
-        const serversRequiringTransfer = Array.from(serverElements).filter(server => !server.classList.contains('server-can-delete'));
+        const serversRequiringTransfer = Array.from(serverElements).filter(server => {
+            return !server.classList.contains('server-can-delete') && !server.classList.contains('server-owner-selected');
+        });
         
         console.log('Total servers found:', serverElements.length);
         console.log('Server elements:', serverElements);
@@ -2414,7 +2417,30 @@ function initDeleteAccount() {
             }
             if (!allTransferred) return;
             
-            console.log('All servers transferred successfully, proceeding with account deletion...');
+            console.log('All servers transferred successfully, verifying account state...');
+            
+            try {
+                const verificationResponse = await fetch('/api/users/owned-servers');
+                const verificationData = await verificationResponse.json();
+                
+                if (verificationData.success && verificationData.data && verificationData.data.servers) {
+                    const remainingServers = verificationData.data.servers;
+                    const serversNeedingTransfer = remainingServers.filter(s => s.requires_transfer);
+                    
+                    if (serversNeedingTransfer.length > 0) {
+                        console.error('Verification failed: Still have servers requiring transfer:', serversNeedingTransfer);
+                        showError('Server ownership transfers may not have completed properly. Please refresh the page and try again.');
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
+                        return;
+                    }
+                    console.log('Verification passed: No servers requiring transfer found');
+                } else {
+                    console.warn('Could not verify server state, proceeding anyway');
+                }
+            } catch (error) {
+                console.warn('Server verification failed, proceeding anyway:', error);
+            }
         } else {
             console.log('No servers require transfer, proceeding with delete...');
         }
