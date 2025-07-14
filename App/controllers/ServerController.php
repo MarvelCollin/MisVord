@@ -2019,14 +2019,7 @@ class ServerController extends BaseController
             }
             
             $eligibleMembers = $this->userServerMembershipRepository->getEligibleNewOwners($serverId, $this->getCurrentUserId());
-            
-            // Fix avatar URLs to ensure they have the correct path
-            foreach ($eligibleMembers as &$member) {
-                if (!empty($member['avatar_url']) && !preg_match('/^https?:\/\//i', $member['avatar_url'])) {
-                    $member['avatar_url'] = '/public/storage/' . ltrim(str_replace('/storage/', '', $member['avatar_url']), '/');
-                }
-            }
-            
+
             $shouldDeleteServer = empty($eligibleMembers);
             
             return $this->success([

@@ -231,7 +231,7 @@ class UserServerMembershipRepository extends Repository {
             
 
             foreach ($results as &$user) {
-                if (!empty($user['avatar_url']) && !str_starts_with($user['avatar_url'], 'http')) {
+                if (!empty($user['avatar_url']) && !preg_match('/^https?:\/\//i', $user['avatar_url']) && $user['avatar_url'][0] !== '/') {
                     $user['avatar_url'] = '/public/storage/' . ltrim($user['avatar_url'], '/');
                 }
             }

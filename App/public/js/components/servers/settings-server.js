@@ -144,6 +144,7 @@ function createImageUploadHandler(containerId, previewId, placeholderId, type, o
                         }
 
                         showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated successfully`, 'success');
+                        window.location.reload();
                     } else {
                         throw new Error(response.message || `Failed to update server ${type}`);
                     }
