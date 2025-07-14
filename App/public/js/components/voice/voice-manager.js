@@ -33,6 +33,9 @@ class VoiceManager {
             window.localStorageManager.addVoiceStateListener(() => {
                 this.syncChannelWithUnifiedState();
             });
+            console.log('VoiceManager: LocalStorageManager detected and connected');
+        } else {
+            console.warn('VoiceManager: LocalStorageManager not available during initialization');
         }
         
         window.voiceManager = this;
@@ -552,11 +555,13 @@ class VoiceManager {
         this.meeting.on('meeting-joined', () => {
             this.isMeetingJoined = true;
             this.localParticipant = this.meeting.localParticipant;
+            
+            this.localParticipant.enableMic();
+            this._micOn = true;
+            
             this.handleParticipantJoined(this.meeting.localParticipant);
             
-            setTimeout(() => {
-                this.checkAllParticipantsForExistingStreams();
-            }, 1000);
+            this.checkAllParticipantsForExistingStreams();
         });
         
         this.meeting.on('meeting-left', () => {
@@ -879,10 +884,10 @@ class VoiceManager {
         if (!this.meeting || !this.localParticipant) return this._micOn;
         
         if (this._micOn) {
-            this.meeting.muteMic();
+            this.localParticipant.disableMic();
             this._micOn = false;
         } else {
-            this.meeting.unmuteMic();
+            this.localParticipant.enableMic();
             this._micOn = true;
         }
         
@@ -908,6 +913,9 @@ class VoiceManager {
                 ...currentState,
                 isMuted: !this._micOn
             });
+            console.log('Saved mic state to localStorage:', !this._micOn);
+        } else {
+            console.warn('LocalStorageManager not available for mic state');
         }
         
         this.broadcastVoiceState('mic', this._micOn);
@@ -918,32 +926,27 @@ class VoiceManager {
     async toggleVideo() {
         if (!this.meeting || !this.localParticipant) return this._videoOn;
         
-        try {
-            if (this._videoOn) {
-                await this.meeting.disableWebcam();
-                this._videoOn = false;
-            } else {
-                await this.meeting.enableWebcam();
-                this._videoOn = true;
-            }
-            
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: { type: 'video', state: this._videoOn }
-            }));
-            
-            if (window.localStorageManager) {
-                const currentState = window.localStorageManager.getUnifiedVoiceState();
-                window.localStorageManager.setUnifiedVoiceState({
-                    ...currentState,
-                    videoOn: this._videoOn
-                });
-            }
-            
-            return this._videoOn;
-        } catch (error) {
-            console.error('Failed to toggle video:', error);
-            return this._videoOn;
+        if (this._videoOn) {
+            await this.localParticipant.disableWebcam();
+            this._videoOn = false;
+        } else {
+            await this.localParticipant.enableWebcam();
+            this._videoOn = true;
         }
+        
+        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: { type: 'video', state: this._videoOn }
+        }));
+        
+        if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                videoOn: this._videoOn
+            });
+        }
+        
+        return this._videoOn;
     }
     
     toggleDeafen() {
@@ -953,7 +956,7 @@ class VoiceManager {
         
         if (this._deafened) {
             if (this._micOn) {
-                this.meeting.muteMic();
+                this.localParticipant.disableMic();
                 this._micOn = false;
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
@@ -966,33 +969,28 @@ class VoiceManager {
                         ...currentState,
                         isMuted: true
                     });
+                    console.log('Saved mic state (deafen) to localStorage: true');
+                } else {
+                    console.warn('LocalStorageManager not available for deafen mic state');
                 }
             }
             this.meeting.participants.forEach(participant => {
                 if (participant.id !== this.localParticipant.id) {
-                    try {
-                        participant.streams.forEach(stream => {
-                            if (stream.kind === 'audio') {
-                                stream.pause();
-                            }
-                        });
-                    } catch (error) {
-                        console.warn('Could not pause audio stream for participant:', participant.id);
-                    }
+                    participant.streams.forEach(stream => {
+                        if (stream.kind === 'audio') {
+                            stream.pause();
+                        }
+                    });
                 }
             });
         } else {
             this.meeting.participants.forEach(participant => {
                 if (participant.id !== this.localParticipant.id) {
-                    try {
-                        participant.streams.forEach(stream => {
-                            if (stream.kind === 'audio') {
-                                stream.resume();
-                            }
-                        });
-                    } catch (error) {
-                        console.warn('Could not resume audio stream for participant:', participant.id);
-                    }
+                    participant.streams.forEach(stream => {
+                        if (stream.kind === 'audio') {
+                            stream.resume();
+                        }
+                    });
                 }
             });
         }
@@ -1030,32 +1028,27 @@ class VoiceManager {
     async toggleScreenShare() {
         if (!this.meeting || !this.localParticipant) return this._screenShareOn;
         
-        try {
-            if (this._screenShareOn) {
-                await this.meeting.disableScreenShare();
-                this._screenShareOn = false;
-            } else {
-                await this.meeting.enableScreenShare();
-                this._screenShareOn = true;
-            }
-            
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: { type: 'screen', state: this._screenShareOn }
-            }));
-            
-            if (window.localStorageManager) {
-                const currentState = window.localStorageManager.getUnifiedVoiceState();
-                window.localStorageManager.setUnifiedVoiceState({
-                    ...currentState,
-                    screenShareOn: this._screenShareOn
-                });
-            }
-            
-            return this._screenShareOn;
-        } catch (error) {
-            console.error('Failed to toggle screen share:', error);
-            return this._screenShareOn;
+        if (this._screenShareOn) {
+            await this.localParticipant.disableScreenShare();
+            this._screenShareOn = false;
+        } else {
+            await this.localParticipant.enableScreenShare();
+            this._screenShareOn = true;
         }
+        
+        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: { type: 'screen', state: this._screenShareOn }
+        }));
+        
+        if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                screenShareOn: this._screenShareOn
+            });
+        }
+        
+        return this._screenShareOn;
     }
     
     getMicState() { return this._micOn; }

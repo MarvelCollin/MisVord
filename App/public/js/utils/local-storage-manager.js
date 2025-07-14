@@ -539,9 +539,7 @@ class LocalStorageManager {
 
 const localStorageManager = new LocalStorageManager();
 
-if (!window.localStorageManager) {
-    window.localStorageManager = localStorageManager;
-}
+window.localStorageManager = localStorageManager;
 
 export { LocalStorageManager };
 export default localStorageManager;

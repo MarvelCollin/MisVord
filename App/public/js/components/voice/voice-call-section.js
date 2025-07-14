@@ -126,6 +126,7 @@ class VoiceCallSection {
         this.initializeVoiceState();
         this.ensureChannelSync();
         this.updateLocalParticipantIndicators();
+        this.syncButtonStates();
         
         this.duplicateCleanupInterval = setInterval(() => {
             this.removeDuplicateCards();
@@ -143,7 +144,6 @@ class VoiceCallSection {
         if (this.micBtn) {
             this.micBtn.addEventListener("click", () => {
                 if (window.voiceManager) {
-                    const currentState = window.voiceManager.getMicState();
                     const newState = window.voiceManager.toggleMic();
                     this.updateMicButton(newState);
                     
@@ -155,12 +155,10 @@ class VoiceCallSection {
                         });
                     }
                     
-                    if (newState !== currentState) {
-                        if (newState) {
-                            MusicLoaderStatic.playDiscordUnmuteSound();
-                        } else {
-                            MusicLoaderStatic.playDiscordMuteSound();
-                        }
+                    if (newState) {
+                        MusicLoaderStatic.playDiscordUnmuteSound();
+                    } else {
+                        MusicLoaderStatic.playDiscordMuteSound();
                     }
                 }
             });
@@ -633,7 +631,7 @@ class VoiceCallSection {
             case 'deafen':
                 this.updateDeafenButton(state);
                 if (state && window.voiceManager) {
-                    this.updateMicButton(false);
+                    this.updateMicButton(window.voiceManager._micOn);
                 }
                 this.updateLocalParticipantIndicators();
                 break;
@@ -1083,20 +1081,16 @@ class VoiceCallSection {
     syncButtonStates() {
         if (!window.voiceManager) return;
         
-        if (window.voiceManager.isConnected && window.voiceManager.meeting) {
-            const micState = window.voiceManager.meeting.localParticipant?.micEnabled || false;
-            const videoState = window.voiceManager.meeting.localParticipant?.webcamEnabled || false;
-            const deafenState = window.voiceManager._deafened || false;
-            const screenState = window.voiceManager.meeting.localParticipant?.screenShareEnabled || false;
+        if (window.voiceManager.isConnected) {
+            const micState = window.voiceManager._micOn;
+            const videoState = window.voiceManager._videoOn;
+            const deafenState = window.voiceManager._deafened;
+            const screenState = window.voiceManager._screenShareOn;
             
             this.updateMicButton(micState);
             this.updateVideoButton(videoState);
             this.updateDeafenButton(deafenState);
             this.updateScreenButton(screenState);
-            
-            window.voiceManager._micOn = micState;
-            window.voiceManager._videoOn = videoState;
-            window.voiceManager._screenShareOn = screenState;
             
             if (window.localStorageManager) {
                 window.localStorageManager.setUnifiedVoiceState({
