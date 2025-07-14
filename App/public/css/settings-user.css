@@ -1626,131 +1626,108 @@ button:hover::before {
 
 @media (max-width: 768px) {
   #delete-account-modal .w-full.max-w-md {
-    margin: 1rem;
+    width: 95%;
     max-width: calc(100vw - 2rem);
+    margin: 0 auto;
   }
   
-  #delete-account-modal .p-6 {
-    padding: 1.5rem;
+  #delete-account-modal .p-8 {
+    padding: 1.25rem;
+  }
+  
+  #delete-account-modal .text-2xl {
+    font-size: 1.5rem;
+  }
+  
+  .members-dropdown {
+    max-height: 150px;
+  }
+}
+
+@media (max-width: 640px) {
+  #delete-account-modal .p-8 {
+    padding: 1rem;
+  }
+  
+  #delete-account-modal .w-20.h-20 {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+  
+  #delete-account-modal .text-4xl {
+    font-size: 1.5rem;
+  }
+  
+  #delete-account-modal #owned-servers-section {
+    padding: 0.75rem;
+  }
+  
+  .server-transfer-section {
+    padding: 0.75rem !important;
+  }
+  
+  .member-search-input {
+    font-size: 14px;
+    padding: 0.5rem;
+  }
+  
+  .members-dropdown > div {
+    padding: 6px 10px;
+    font-size: 14px;
   }
 }
 
 @media (max-width: 480px) {
   #delete-account-modal {
-    max-height: 100vh;
-    overflow-y: hidden;
+    padding: 0.5rem;
   }
   
-  #delete-account-modal .w-full.max-w-md {
-    width: 95%;
-    max-width: 28rem;
-    margin: 0 auto;
+  #delete-account-modal .p-8 {
+    padding: 0.75rem;
   }
   
-  #delete-account-modal .bg-discord-darker {
-    max-height: calc(100vh - 48px);
-    overflow-y: auto;
-    margin: 24px 0;
+  #delete-account-modal .space-y-4 > * + * {
+    margin-top: 0.75rem;
   }
   
-  #delete-account-modal .bg-discord-darker::-webkit-scrollbar {
-    width: 8px;
+  #delete-account-modal .space-x-4 > * + * {
+    margin-left: 0.5rem;
   }
   
-  #delete-account-modal .bg-discord-darker::-webkit-scrollbar-track {
-    background: transparent;
+  #delete-account-modal .flex-col-reverse.sm\:flex-row {
+    gap: 0.5rem;
   }
   
-  #delete-account-modal .bg-discord-darker::-webkit-scrollbar-thumb {
-    background-color: var(--discord-interactive-muted);
-    border-radius: 4px;
+  #delete-account-modal input[type="text"] {
+    padding: 0.5rem;
+    font-size: 14px;
   }
   
-  #delete-account-modal .bg-discord-darker::-webkit-scrollbar-thumb:hover {
-    background-color: var(--discord-interactive-normal);
+  .server-transfer-section .flex.items-center.space-x-2 {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
   }
   
-  #owned-servers-section {
-    max-height: calc(100vh - 400px);
-    overflow-y: auto;
+  .server-transfer-section .flex.items-center.space-x-2 .fetch-members-btn {
+    align-self: flex-end;
   }
   
-  #owned-servers-section::-webkit-scrollbar {
-    width: 8px;
+  .server-transfer-section .flex.items-center.space-x-2 > * {
+    margin-left: 0 !important;
   }
-  
-  #owned-servers-section::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  #owned-servers-section::-webkit-scrollbar-thumb {
-    background-color: var(--discord-interactive-muted);
-    border-radius: 4px;
-  }
-  
-  #owned-servers-section::-webkit-scrollbar-thumb:hover {
-    background-color: var(--discord-interactive-normal);
-  }
-}
-
-@media (max-height: 800px) {
-    #delete-account-modal .bg-discord-darker {
-        margin: 16px 0;
-        max-height: calc(100vh - 32px);
-    }
-    
-    #owned-servers-section {
-        max-height: calc(100vh - 350px);
-    }
 }
 
 @media (max-height: 700px) {
-    #delete-account-modal .bg-discord-darker {
-        margin: 12px 0;
-        max-height: calc(100vh - 24px);
-    }
-    
-    #owned-servers-section {
-        max-height: calc(100vh - 300px);
-    }
-}
-
-@media (max-width: 640px) {
-    #delete-account-modal .bg-discord-darker {
-        margin: 8px;
-        max-height: calc(100vh - 16px);
-    }
-    
-    #delete-account-modal .p-8 {
-        padding: 1rem;
-    }
-    
-    #delete-account-modal .text-2xl {
-        font-size: 1.5rem;
-    }
-    
-    #owned-servers-section {
-        max-height: calc(100vh - 250px);
-    }
-}
-
-@media (max-width: 380px) {
-    #delete-account-modal .bg-discord-darker {
-        margin: 4px;
-    }
-    
-    #delete-account-modal .p-8 {
-        padding: 0.75rem;
-    }
-    
-    #delete-account-modal .space-x-4 > * + * {
-        margin-left: 0.75rem;
-    }
-    
-    #delete-account-modal .px-6 {
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
+  #delete-account-modal .bg-discord-darker {
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+  }
+  
+  #owned-servers-section {
+    max-height: 30vh;
+    overflow-y: auto;
+  }
 }
 
 .server-can-delete {
@@ -1774,6 +1751,62 @@ button:hover::before {
     background-color: rgba(34, 197, 94, 0.1) !important;
     border: 1px solid rgba(34, 197, 94, 0.3) !important;
     opacity: 0.8;
+}
+
+.members-dropdown {
+    background-color: #2f3136;
+    border: 1px solid #202225;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.members-dropdown > div {
+    padding: 8px 12px;
+    color: #dcddde;
+}
+
+.members-dropdown > div:hover {
+    background-color: #36393f;
+}
+
+.members-dropdown::-webkit-scrollbar {
+    width: 8px;
+}
+
+.members-dropdown::-webkit-scrollbar-track {
+    background: #2f3136;
+    border-radius: 4px;
+}
+
+.members-dropdown::-webkit-scrollbar-thumb {
+    background: #202225;
+    border-radius: 4px;
+}
+
+.members-dropdown::-webkit-scrollbar-thumb:hover {
+    background: #18191c;
+}
+
+.member-search-input {
+    background-color: #202225;
+    border-color: #40444b;
+    color: #dcddde;
+}
+
+.member-search-input:focus {
+    border-color: #5865f2;
+    outline: none;
+}
+
+.member-search-input::placeholder {
+    color: #72767d;
+}
+
+.selected-member {
+    background-color: #2f3136;
+    border: 1px solid #40444b;
+    border-radius: 4px;
 }
 
 

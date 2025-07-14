@@ -184,47 +184,33 @@ class UserServerMembershipRepository extends Repository {
     public function transferOwnership($serverId, $currentOwnerId, $newOwnerId) {
         try {
             $query = new Query();
+            $pdo = $query->getPdo();
             
-            $query->getPdo()->beginTransaction();
-            
+            $pdo->beginTransaction();
 
-
-
-
-
-            try {
-                $query->table('servers')
-                      ->where('id', $serverId)
-                      ->update(['owner_id' => $newOwnerId]);
-            } catch (Exception $e) {
-
-                error_log("Warning: Unable to update owner_id on servers table: " . $e->getMessage());
-            }
-            
-
-            $updateCurrentOwner = $query->table('user_server_memberships')
+            $updateCurrentOwner = (new Query($pdo))
+                ->table('user_server_memberships')
                 ->where('user_id', $currentOwnerId)
                 ->where('server_id', $serverId)
                 ->update(['role' => 'admin']);
-            
 
-            $updateNewOwner = $query->table('user_server_memberships')
+            $updateNewOwner = (new Query($pdo))
+                ->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
                 ->where('server_id', $serverId)
                 ->update(['role' => 'owner']);
-            
-            if (!$updateCurrentOwner || !$updateNewOwner) {
-                $query->getPdo()->rollBack();
+
+            if ($updateCurrentOwner === false || $updateNewOwner === false) {
+                $pdo->rollBack();
                 return false;
             }
-            
-            $query->getPdo()->commit();
+
+            $pdo->commit();
             return true;
-            
         } catch (Exception $e) {
             error_log("Error transferring ownership: " . $e->getMessage());
-            if (isset($query)) {
-                $query->getPdo()->rollBack();
+            if (isset($pdo) && $pdo->inTransaction()) {
+                $pdo->rollBack();
             }
             return false;
         }

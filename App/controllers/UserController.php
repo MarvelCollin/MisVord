@@ -1267,6 +1267,16 @@ class UserController extends BaseController
                 $server['member_count'] = $memberCount;
                 $server['can_be_deleted'] = $memberCount <= 1;
                 $server['requires_transfer'] = $memberCount > 1;
+                
+                if (!empty($server['image_url'])) {
+                    if (!str_starts_with($server['image_url'], 'http') && !str_starts_with($server['image_url'], '/public/')) {
+                        $server['icon_url'] = '/public/storage/' . $server['image_url'];
+                    } else {
+                        $server['icon_url'] = $server['image_url'];
+                    }
+                } else {
+                    $server['icon_url'] = null;
+                }
             }
             
             $this->logActivity('user_owned_servers_retrieved', [

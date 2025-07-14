@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <div id="delete-account-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="w-full max-w-md mx-auto relative">
+    <div class="w-full max-w-md mx-auto relative px-2 sm:px-0">
         <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-red-600 w-full">
             <div class="p-8">
                 <div class="flex justify-between items-center mb-6">
@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <div class="mb-6">
                     <label for="username-confirmation-input" class="block text-gray-300 text-sm font-medium mb-2">
-                        To confirm, enter your username
+                        To confirm, enter your username (<span class="text-white font-semibold"><?php echo htmlspecialchars($user->username ?? ''); ?></span>)
                     </label>
                     <input type="text" id="username-confirmation-input" 
                         class="w-full bg-discord-bg-tertiary border border-gray-700 rounded-md px-4 py-3 text-white 
