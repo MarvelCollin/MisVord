@@ -88,14 +88,14 @@ class VoiceCallSection {
                 'disconnectBtn': '#da373c'
             };
 
-            if (hoverColors[btnId] && !btn.classList.contains('active') && !btn.classList.contains('muted')) {
+            if (hoverColors[btnId] && !btn.classList.contains('active') && !btn.classList.contains('muted') && !btn.classList.contains('deafened')) {
                 btn.style.backgroundColor = hoverColors[btnId];
                 btn.style.transform = 'scale(1.05)';
             }
         });
 
         btn.addEventListener('mouseleave', () => {
-            if (!btn.classList.contains('active') && !btn.classList.contains('muted')) {
+            if (!btn.classList.contains('active') && !btn.classList.contains('muted') && !btn.classList.contains('deafened')) {
                 btn.style.backgroundColor = colorMap[btnId];
             }
             btn.style.transform = 'scale(1)';
@@ -933,14 +933,14 @@ class VoiceCallSection {
         const icon = this.micBtn.querySelector("i");
         if (!icon) return; 
         
+        this.micBtn.classList.remove("muted", "bg-[#ed4245]", "bg-[#4f545c]");
+        
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
-            this.micBtn.classList.remove("bg-[#ed4245]");
             this.micBtn.classList.add("bg-[#4f545c]");
         } else {
             icon.className = "fas fa-microphone-slash text-sm";
-            this.micBtn.classList.remove("bg-[#4f545c]");
-            this.micBtn.classList.add("bg-[#ed4245]");
+            this.micBtn.classList.add("bg-[#ed4245]", "muted");
         }
     }
     
@@ -967,13 +967,13 @@ class VoiceCallSection {
         const icon = this.deafenBtn.querySelector("i");
         if (!icon) return; 
         
+        this.deafenBtn.classList.remove("deafened", "bg-[#ed4245]", "bg-[#4f545c]");
+        
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
-            this.deafenBtn.classList.remove("bg-[#4f545c]");
-            this.deafenBtn.classList.add("bg-[#ed4245]");
+            this.deafenBtn.classList.add("bg-[#ed4245]", "deafened");
         } else {
             icon.className = "fas fa-headphones text-sm";
-            this.deafenBtn.classList.remove("bg-[#ed4245]");
             this.deafenBtn.classList.add("bg-[#4f545c]");
         }
     }

@@ -2380,7 +2380,6 @@ function initDeleteAccount() {
         
         if (serversRequiringTransfer.length > 0) {
             console.log('Starting server ownership transfers...');
-            alert(`DEBUG: Found ${serversRequiringTransfer.length} servers requiring transfer. Selected owners: ${JSON.stringify(selectedOwners)}`);
             let allTransferred = true;
             for (const server of serversRequiringTransfer) {
                 const serverId = server.getAttribute('data-server-id');
@@ -2415,17 +2414,7 @@ function initDeleteAccount() {
             }
             if (!allTransferred) return;
             
-            console.log('All servers transferred successfully, waiting 1 second before deleting account...');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            console.log('Checking ownership status before delete...');
-            try {
-                const ownershipCheck = await fetch('/api/users/check-ownership');
-                const ownershipData = await ownershipCheck.json();
-                console.log('Current ownership status:', ownershipData);
-            } catch (error) {
-                console.error('Failed to check ownership:', error);
-            }
+            console.log('All servers transferred successfully, proceeding with account deletion...');
         } else {
             console.log('No servers require transfer, proceeding with delete...');
         }

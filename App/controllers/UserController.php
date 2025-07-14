@@ -1329,7 +1329,7 @@ class UserController extends BaseController
                 'server_count' => count($servers)
             ]);
             
-            $this->success([
+            return $this->success([
                 'servers' => $servers
             ]);
             

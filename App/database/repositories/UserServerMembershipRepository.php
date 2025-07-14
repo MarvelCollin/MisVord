@@ -186,39 +186,29 @@ class UserServerMembershipRepository extends Repository {
             error_log("Transferring ownership of server $serverId from user $currentOwnerId to user $newOwnerId");
             
             $query = new Query();
-            $pdo = $query->getPdo();
             
-            $pdo->beginTransaction();
-
-            $updateCurrentOwner = (new Query($pdo))
-                ->table('user_server_memberships')
-                ->where('user_id', $currentOwnerId)
-                ->where('server_id', $serverId)
-                ->update(['role' => 'admin']);
-
-            $updateNewOwner = (new Query($pdo))
-                ->table('user_server_memberships')
+            $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
                 ->where('server_id', $serverId)
                 ->update(['role' => 'owner']);
 
-            error_log("Update current owner result: " . ($updateCurrentOwner !== false ? 'success' : 'failed'));
-            error_log("Update new owner result: " . ($updateNewOwner !== false ? 'success' : 'failed'));
+            $removeCurrentOwner = $query->table('user_server_memberships')
+                ->where('user_id', $currentOwnerId)
+                ->where('server_id', $serverId)
+                ->delete();
 
-            if ($updateCurrentOwner === false || $updateNewOwner === false) {
+            error_log("Update new owner result: " . ($updateNewOwner !== false ? 'success' : 'failed'));
+            error_log("Remove current owner result: " . ($removeCurrentOwner !== false ? 'success' : 'failed'));
+
+            if ($updateNewOwner === false || $removeCurrentOwner === false) {
                 error_log("Rolling back ownership transfer transaction");
-                $pdo->rollBack();
                 return false;
             }
 
-            $pdo->commit();
             error_log("Ownership transfer completed successfully");
             return true;
         } catch (Exception $e) {
             error_log("Error transferring ownership: " . $e->getMessage());
-            if (isset($pdo) && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
             return false;
         }
     }

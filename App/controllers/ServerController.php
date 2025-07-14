@@ -2077,11 +2077,6 @@ class ServerController extends BaseController
                 return $this->serverError('Failed to transfer ownership');
             }
             
-            $leaveSuccess = $this->userServerMembershipRepository->removeMembership($this->getCurrentUserId(), $serverId);
-            if (!$leaveSuccess) {
-                return $this->serverError('Ownership transferred but failed to leave server');
-            }
-            
             $this->logActivity('ownership_transferred_and_left', [
                 'server_id' => $serverId,
                 'server_name' => $server->name,

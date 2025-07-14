@@ -414,6 +414,27 @@ class VoiceManager {
             
             this._videoOn = voiceState.videoOn || false;
             this._screenShareOn = voiceState.screenShareOn || false;
+            this._deafened = voiceState.isDeafened || false;
+            
+            if (voiceState.isMuted !== undefined) {
+                this._micOn = !voiceState.isMuted;
+            }
+            
+            if (this._deafened && this.meeting) {
+                this.meeting.participants.forEach(participant => {
+                    if (participant.id !== this.localParticipant?.id) {
+                        try {
+                            participant.streams.forEach(stream => {
+                                if (stream.kind === 'audio') {
+                                    stream.pause();
+                                }
+                            });
+                        } catch (error) {
+                            console.warn('Could not pause audio stream during sync:', participant.id);
+                        }
+                    }
+                });
+            }
         }
 
         else if (!this.isConnected && voiceState.isConnected && 
@@ -601,6 +622,20 @@ class VoiceManager {
         
         this.setupStreamHandlers(participant);
         
+        if (this._deafened && participant.id !== this.localParticipant?.id) {
+            setTimeout(() => {
+                try {
+                    participant.streams.forEach(stream => {
+                        if (stream.kind === 'audio') {
+                            stream.pause();
+                        }
+                    });
+                } catch (error) {
+                    console.warn('Could not pause audio stream for new participant:', participant.id);
+                }
+            }, 100);
+        }
+        
         this.checkAndRestoreExistingStreams(participant);
         
         window.dispatchEvent(new CustomEvent('participantJoined', {
@@ -640,6 +675,14 @@ class VoiceManager {
             const participantData = this.participants.get(participant.id);
             if (participantData) {
                 participantData.streams.set(stream.kind, stream);
+            }
+            
+            if (this._deafened && participant.id !== this.localParticipant?.id && stream.kind === 'audio') {
+                try {
+                    stream.pause();
+                } catch (error) {
+                    console.warn('Could not pause audio stream for participant:', participant.id);
+                }
             }
             
             window.dispatchEvent(new CustomEvent('streamEnabled', {
@@ -807,6 +850,14 @@ class VoiceManager {
             detail: { type: 'mic', state: this._micOn }
         }));
         
+        if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                isMuted: !this._micOn
+            });
+        }
+        
         return this._micOn;
     }
     
@@ -838,15 +889,55 @@ class VoiceManager {
     }
     
     toggleDeafen() {
+        if (!this.meeting || !this.localParticipant) return this._deafened;
+        
         this._deafened = !this._deafened;
         
-        if (this._deafened && this._micOn) {
-            this.toggleMic();
+        if (this._deafened) {
+            if (this._micOn) {
+                this.toggleMic();
+            }
+            this.meeting.participants.forEach(participant => {
+                if (participant.id !== this.localParticipant.id) {
+                    try {
+                        participant.streams.forEach(stream => {
+                            if (stream.kind === 'audio') {
+                                stream.pause();
+                            }
+                        });
+                    } catch (error) {
+                        console.warn('Could not pause audio stream for participant:', participant.id);
+                    }
+                }
+            });
+        } else {
+            this.meeting.participants.forEach(participant => {
+                if (participant.id !== this.localParticipant.id) {
+                    try {
+                        participant.streams.forEach(stream => {
+                            if (stream.kind === 'audio') {
+                                stream.resume();
+                            }
+                        });
+                    } catch (error) {
+                        console.warn('Could not resume audio stream for participant:', participant.id);
+                    }
+                }
+            });
         }
         
         window.dispatchEvent(new CustomEvent('voiceStateChanged', {
             detail: { type: 'deafen', state: this._deafened }
         }));
+        
+        if (window.localStorageManager) {
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                isDeafened: this._deafened,
+                isMuted: this._deafened ? true : !this._micOn
+            });
+        }
         
         return this._deafened;
     }
