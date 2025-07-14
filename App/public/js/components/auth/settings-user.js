@@ -6,11 +6,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.removeAttribute('onclick');
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            logoutUser();
-        });
+        if (!logoutBtn.dataset.listenerAttached) {
+            logoutBtn.dataset.listenerAttached = 'true';
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                logoutUser();
+            });
+        }
     }
 });
 
@@ -124,57 +127,66 @@ function initUserAvatarUpload() {
     }
     
     if (iconContainer) {
-        iconContainer.addEventListener('click', function() {
-            iconInput.click();
-        });
+        if (!iconContainer.dataset.listenerAttached) {
+            iconContainer.dataset.listenerAttached = 'true';
+            iconContainer.addEventListener('click', function() {
+                iconInput.click();
+            });
+        }
     }
     
     if (iconInput) {
-        iconInput.addEventListener('change', function() {
-            if (!this.files || !this.files[0]) return;
-            
-            const file = this.files[0];
-            
-            if (!file.type.match('image.*')) {
-                showToast('Please select a valid image file', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    if (window.userAvatarCutter) {
-                        window.userAvatarCutter.loadImage(e.target.result);
-                    } else {
-                        if (iconPreview) {
-                            iconPreview.src = e.target.result;
-                            iconPreview.classList.remove('hidden');
-                            
-                            const placeholder = document.getElementById('user-avatar-placeholder');
-                            if (placeholder) placeholder.classList.add('hidden');
-                        }
-                        
-                        iconContainer.dataset.croppedImage = e.target.result;
-                        
-                        uploadAvatar(e.target.result);
-                    }
-                } catch (error) {
-                    showToast('Error processing avatar', 'error');
+        if (!iconInput.dataset.listenerAttached) {
+            iconInput.dataset.listenerAttached = 'true';
+            iconInput.addEventListener('change', function() {
+                if (!this.files || !this.files[0]) return;
+                
+                const file = this.files[0];
+                
+                if (!file.type.match('image.*')) {
+                    showToast('Please select a valid image file', 'error');
+                    return;
                 }
-            };
-            
-            reader.readAsDataURL(file);
-        });
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        if (window.userAvatarCutter) {
+                            window.userAvatarCutter.loadImage(e.target.result);
+                        } else {
+                            if (iconPreview) {
+                                iconPreview.src = e.target.result;
+                                iconPreview.classList.remove('hidden');
+                                
+                                const placeholder = document.getElementById('user-avatar-placeholder');
+                                if (placeholder) placeholder.classList.add('hidden');
+                            }
+                            
+                            iconContainer.dataset.croppedImage = e.target.result;
+                            
+                            uploadAvatar(e.target.result);
+                        }
+                    } catch (error) {
+                        showToast('Error processing avatar', 'error');
+                    }
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        }
     }
     
     if (removeIconBtn) {
-        removeIconBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            
-            showImageRemovalConfirmation('avatar', () => {
-                removeUserImage('avatar');
+        if (!removeIconBtn.dataset.listenerAttached) {
+            removeIconBtn.dataset.listenerAttached = 'true';
+            removeIconBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                showImageRemovalConfirmation('avatar', () => {
+                    removeUserImage('avatar');
+                });
             });
-        });
+        }
     }
 }
 
@@ -223,57 +235,66 @@ function initUserBannerUpload() {
     }
     
     if (bannerContainer) {
-        bannerContainer.addEventListener('click', function() {
-            bannerInput.click();
-        });
+        if (!bannerContainer.dataset.listenerAttached) {
+            bannerContainer.dataset.listenerAttached = 'true';
+            bannerContainer.addEventListener('click', function() {
+                bannerInput.click();
+            });
+        }
     }
     
     if (bannerInput) {
-        bannerInput.addEventListener('change', function() {
-            if (!this.files || !this.files[0]) return;
-            
-            const file = this.files[0];
-            
-            if (!file.type.match('image.*')) {
-                showToast('Please select a valid image file', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    if (window.userBannerCutter) {
-                        window.userBannerCutter.loadImage(e.target.result);
-                    } else {
-                        if (bannerPreview) {
-                            bannerPreview.src = e.target.result;
-                            bannerPreview.classList.remove('hidden');
-                            
-                            const placeholder = document.getElementById('user-banner-placeholder');
-                            if (placeholder) placeholder.classList.add('hidden');
-                        }
-                        
-                        bannerContainer.dataset.croppedImage = e.target.result;
-                        
-                        uploadBanner(e.target.result);
-                    }
-                } catch (error) {
-                    showToast('Error processing banner', 'error');
+        if (!bannerInput.dataset.listenerAttached) {
+            bannerInput.dataset.listenerAttached = 'true';
+            bannerInput.addEventListener('change', function() {
+                if (!this.files || !this.files[0]) return;
+                
+                const file = this.files[0];
+                
+                if (!file.type.match('image.*')) {
+                    showToast('Please select a valid image file', 'error');
+                    return;
                 }
-            };
-            
-            reader.readAsDataURL(file);
-        });
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        if (window.userBannerCutter) {
+                            window.userBannerCutter.loadImage(e.target.result);
+                        } else {
+                            if (bannerPreview) {
+                                bannerPreview.src = e.target.result;
+                                bannerPreview.classList.remove('hidden');
+                                
+                                const placeholder = document.getElementById('user-banner-placeholder');
+                                if (placeholder) placeholder.classList.add('hidden');
+                            }
+                            
+                            bannerContainer.dataset.croppedImage = e.target.result;
+                            
+                            uploadBanner(e.target.result);
+                        }
+                    } catch (error) {
+                        showToast('Error processing banner', 'error');
+                    }
+                };
+                
+                reader.readAsDataURL(file);
+            });
+        }
     }
     
     if (removeBannerBtn) {
-        removeBannerBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            
-            showImageRemovalConfirmation('banner', () => {
-                removeUserImage('banner');
+        if (!removeBannerBtn.dataset.listenerAttached) {
+            removeBannerBtn.dataset.listenerAttached = 'true';
+            removeBannerBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                showImageRemovalConfirmation('banner', () => {
+                    removeUserImage('banner');
+                });
             });
-        });
+        }
     }
 }
 
@@ -1551,7 +1572,8 @@ function initProfileFormSubmit() {
         }
     }, 100);
     
-    if (approveUsernameBtn) {
+    if (approveUsernameBtn && !approveUsernameBtn.dataset.listenerAttached) {
+        approveUsernameBtn.dataset.listenerAttached = 'true';
         approveUsernameBtn.addEventListener('click', function() {
             if (!usernameInput) return;
             
@@ -1560,7 +1582,8 @@ function initProfileFormSubmit() {
         });
     }
     
-    if (approveDisplayNameBtn) {
+    if (approveDisplayNameBtn && !approveDisplayNameBtn.dataset.listenerAttached) {
+        approveDisplayNameBtn.dataset.listenerAttached = 'true';
         approveDisplayNameBtn.addEventListener('click', function() {
             if (!displayNameInput) return;
             
@@ -2002,109 +2025,115 @@ function initDeleteAccount() {
             
             serverSection.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-discord-blurple"></i> Loading your servers...</div>';
             
+            console.log('Fetching owned servers...');
+            
+            const response = await fetch('/api/users/owned-servers');
+            const data = await response.json();
+            
+            console.log('Owned servers API response:', data);
+            
+            if (data.success && data.data && data.data.servers) {
+                const servers = data.data.servers;
+                console.log('Processing servers:', servers);
+                
+                if (servers.length === 0) {
+                    serverSection.innerHTML = '<div class="text-center py-4 text-discord-lighter">You do not own any servers.</div>';
+                    return;
+                }
 
-            fetch('/api/users/owned-servers')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.data && data.data.servers) {
-                        const servers = data.data.servers;
-                        
-                        if (servers.length === 0) {
-                            serverSection.innerHTML = '<div class="text-center py-4 text-discord-lighter">You do not own any servers.</div>';
-                            return;
-                        }
-                        
-
-                        serverSection.innerHTML = `
-                            <div class="mb-3">
-                                <h3 class="text-yellow-400 font-semibold text-lg mb-3">Server Ownership Management</h3>
-                                <p class="text-discord-lighter mb-5">Review your servers before deleting your account:</p>
-                                <div id="owned-servers-list"></div>
+                serverSection.innerHTML = `
+                    <div class="mb-3">
+                        <h3 class="text-yellow-400 font-semibold text-lg mb-3">Server Ownership Management</h3>
+                        <p class="text-discord-lighter mb-5">Review your servers before deleting your account:</p>
+                        <div id="owned-servers-list"></div>
+                    </div>
+                `;
+                
+                const serversList = document.getElementById('owned-servers-list');
+                servers.forEach(server => {
+                    console.log(`Processing server: ${server.name} (ID: ${server.id}), can_be_deleted: ${server.can_be_deleted}, member_count: ${server.member_count}`);
+                    
+                    const serverElement = document.createElement('div');
+                    serverElement.className = 'p-4 bg-discord-bg-secondary rounded-md border border-gray-700 h-full';
+                    serverElement.setAttribute('data-server-id', server.id);
+                    
+                    if (server.can_be_deleted) {
+                        console.log(`Server ${server.name} marked as can_be_deleted=true`);
+                        serverElement.innerHTML = `
+                            <div class="flex items-center mb-3">
+                                <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                    ${server.icon_url ? 
+                                        `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
+                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
+                                    }
+                                </div>
+                                <div>
+                                    <div class="font-medium text-white text-lg">${server.name}</div>
+                                    <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
+                                </div>
+                            </div>
+                            <div class="server-delete-section bg-green-900/20 p-4 rounded-md border border-green-500/30">
+                                <div class="flex items-center text-green-400 text-sm">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <span>This server will be automatically deleted (only you are a member)</span>
+                                </div>
                             </div>
                         `;
-                        
-                        const serversList = document.getElementById('owned-servers-list');
-                        servers.forEach(server => {
-                            const serverElement = document.createElement('div');
-                            serverElement.className = 'p-4 bg-discord-bg-secondary rounded-md border border-gray-700 h-full';
-                            serverElement.setAttribute('data-server-id', server.id);
-                            
-                            if (server.can_be_deleted) {
-                                serverElement.innerHTML = `
-                                    <div class="flex items-center mb-3">
-                                        <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
-                                            ${server.icon_url ? 
-                                                `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
-                                                `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
-                                            }
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-white text-lg">${server.name}</div>
-                                            <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
-                                        </div>
-                                    </div>
-                                    <div class="server-delete-section bg-green-900/20 p-4 rounded-md border border-green-500/30">
-                                        <div class="flex items-center text-green-400 text-sm">
-                                            <i class="fas fa-info-circle mr-2"></i>
-                                            <span>This server will be automatically deleted (only you are a member)</span>
-                                        </div>
-                                    </div>
-                                `;
-                                serverElement.classList.add('server-can-delete');
-                            } else {
-                                serverElement.innerHTML = `
-                                    <div class="flex items-center mb-3">
-                                        <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
-                                            ${server.icon_url ? 
-                                                `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
-                                                `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
-                                            }
-                                        </div>
-                                        <div>
-                                            <div class="font-medium text-white text-lg">${server.name}</div>
-                                            <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
-                                        </div>
-                                    </div>
-                                    <div class="server-transfer-section bg-discord-bg-tertiary p-4 rounded-md">
-                                        <div class="text-sm text-white font-medium mb-3">Transfer ownership to:</div>
-                                        <div class="relative">
-                                            <div class="flex items-center space-x-2 mb-2">
-                                                <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="Search members...">
-                                                <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded">
-                                                    <i class="fas fa-search"></i>
-                                                </button>
-                                            </div>
-                                            <div class="members-dropdown hidden absolute w-full mt-1 z-10 rounded-md overflow-hidden"></div>
-                                        </div>
-                                        <div class="selected-member mt-3 hidden">
-                                            <div class="flex items-center justify-between p-2 rounded-md">
-                                                <div class="flex items-center">
-                                                    <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-2 selected-member-avatar"></div>
-                                                    <span class="text-sm text-white selected-member-name"></span>
-                                                </div>
-                                            </div>
-                                            <div class="transfer-error text-red-400 text-xs mt-2 hidden"></div>
-                                        </div>
-                                        <div class="transfer-success hidden mt-3 text-green-400 text-sm bg-green-900/20 p-2 rounded-md border border-green-500/30">
-                                            <i class="fas fa-check-circle mr-1"></i> Ownership transferred successfully
-                                        </div>
-                                    </div>
-                                `;
-                                initServerTransferControls(serverElement, server.id);
-                            }
-                            
-                            serversList.appendChild(serverElement);
-                        });
+                        serverElement.classList.add('server-can-delete');
                     } else {
-                        serverSection.innerHTML = '<div class="text-center py-4 text-red-400">Failed to load your servers.</div>';
+                        console.log(`Server ${server.name} marked as can_be_deleted=false, requires transfer`);
+                        serverElement.innerHTML = `
+                            <div class="flex items-center mb-3">
+                                <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                    ${server.icon_url ? 
+                                        `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
+                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
+                                    }
+                                </div>
+                                <div>
+                                    <div class="font-medium text-white text-lg">${server.name}</div>
+                                    <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
+                                </div>
+                            </div>
+                            <div class="server-transfer-section bg-discord-bg-tertiary p-4 rounded-md">
+                                <div class="text-sm text-white font-medium mb-3">Transfer ownership to:</div>
+                                <div class="relative">
+                                    <div class="flex items-center space-x-2 mb-2">
+                                        <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="Search members...">
+                                        <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                    <div class="members-dropdown hidden absolute w-full mt-1 z-10 rounded-md overflow-hidden"></div>
+                                </div>
+                                <div class="selected-member mt-3 hidden">
+                                    <div class="flex items-center justify-between p-2 rounded-md">
+                                        <div class="flex items-center">
+                                            <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-2 selected-member-avatar"></div>
+                                            <span class="text-sm text-white selected-member-name"></span>
+                                        </div>
+                                    </div>
+                                    <div class="transfer-error text-red-400 text-xs mt-2 hidden"></div>
+                                </div>
+                                <div class="transfer-success hidden mt-3 text-green-400 text-sm bg-green-900/20 p-2 rounded-md border border-green-500/30">
+                                    <i class="fas fa-check-circle mr-1"></i> Ownership transferred successfully
+                                </div>
+                            </div>
+                        `;
+                        initServerTransferControls(serverElement, server.id);
                     }
-                })
-                .catch(error => {
-                    console.error('Error fetching owned servers:', error);
-                    serverSection.innerHTML = '<div class="text-center py-4 text-red-400">Error loading servers. Please try again.</div>';
+                    
+                    serversList.appendChild(serverElement);
                 });
+            } else {
+                serverSection.innerHTML = '<div class="text-center py-4 text-red-400">Failed to load your servers.</div>';
+            }
         } catch (error) {
-            console.error('Error in fetchOwnedServers:', error);
+            console.error('Error fetching owned servers:', error);
+            const serverSection = document.getElementById('owned-servers-section');
+            if (serverSection) {
+                serverSection.innerHTML = '<div class="text-center py-4 text-red-400">Error loading servers. Please try again.</div>';
+            }
         }
     }
     
@@ -2288,7 +2317,7 @@ function initDeleteAccount() {
         transferSuccess.classList.remove('hidden');
         transferError.classList.add('hidden');
         
-        serverElement.classList.add('server-can-delete');
+        serverElement.classList.add('server-owner-selected');
         checkAllServersReady();
     }
     
@@ -2316,6 +2345,115 @@ function initDeleteAccount() {
     deleteBtn.addEventListener('click', openModal);
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
+    async function deleteAccount() {
+        const inputValue = usernameInput.value.trim();
+        if (!validateUsername()) {
+            showError('Username does not match');
+            return;
+        }
+        
+        const ownedServersSection = document.getElementById('owned-servers-section');
+        if (!ownedServersSection || ownedServersSection.innerHTML.includes('Loading your servers...')) {
+            console.log('Servers still loading, waiting...');
+            showError('Server data is still loading. Please wait and try again.');
+            return;
+        }
+        
+        // Wait a bit more to ensure DOM is fully updated
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const serverElements = document.querySelectorAll('#owned-servers-list > div');
+        const serversRequiringTransfer = Array.from(serverElements).filter(server => !server.classList.contains('server-can-delete'));
+        
+        console.log('Total servers found:', serverElements.length);
+        console.log('Server elements:', serverElements);
+        console.log('Servers requiring transfer:', serversRequiringTransfer.length);
+        console.log('Servers requiring transfer elements:', serversRequiringTransfer);
+        console.log('Selected owners:', selectedOwners);
+        
+        // Debug each server element
+        serverElements.forEach((element, index) => {
+            const serverId = element.getAttribute('data-server-id');
+            const hasCanDeleteClass = element.classList.contains('server-can-delete');
+            console.log(`Server element ${index}: ID=${serverId}, has server-can-delete class=${hasCanDeleteClass}, classes=${element.className}`);
+        });
+        
+        if (serversRequiringTransfer.length > 0) {
+            console.log('Starting server ownership transfers...');
+            alert(`DEBUG: Found ${serversRequiringTransfer.length} servers requiring transfer. Selected owners: ${JSON.stringify(selectedOwners)}`);
+            let allTransferred = true;
+            for (const server of serversRequiringTransfer) {
+                const serverId = server.getAttribute('data-server-id');
+                const newOwnerId = selectedOwners[serverId];
+                console.log(`Server ${serverId}: selected owner = ${newOwnerId}`);
+                
+                if (!newOwnerId) {
+                    console.error(`No new owner selected for server ${serverId}`);
+                    showError('Please select new owners for all servers that require transfer');
+                    return;
+                }
+                
+                console.log(`Attempting to transfer server ${serverId} to user ${newOwnerId}`);
+                try {
+                    console.log('Transferring server:', serverId, 'to user:', newOwnerId);
+                    const result = await window.serverAPI.transferOwnership(serverId, newOwnerId);
+                    console.log('Transfer result:', result);
+                    
+                    if (!result.success) {
+                        console.error('Transfer failed:', result);
+                        showError(`Failed to transfer ${server.querySelector('.font-medium.text-white.text-lg').textContent}: ${result.error || result.message || 'Unknown error'}`);
+                        allTransferred = false;
+                        break;
+                    }
+                    console.log('Successfully transferred server', serverId);
+                } catch (error) {
+                    console.error('Transfer error:', error);
+                    showError(`Error transferring server: ${error.message}`);
+                    allTransferred = false;
+                    break;
+                }
+            }
+            if (!allTransferred) return;
+            
+            console.log('All servers transferred successfully, waiting 1 second before deleting account...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            console.log('Checking ownership status before delete...');
+            try {
+                const ownershipCheck = await fetch('/api/users/check-ownership');
+                const ownershipData = await ownershipCheck.json();
+                console.log('Current ownership status:', ownershipData);
+            } catch (error) {
+                console.error('Failed to check ownership:', error);
+            }
+        } else {
+            console.log('No servers require transfer, proceeding with delete...');
+        }
+        confirmBtn.disabled = true;
+        confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
+        
+        console.log('About to call delete account API...');
+        console.log('Username confirmation:', inputValue);
+        
+        try {
+            const result = await window.userAPI.deleteAccount(inputValue);
+            console.log('Delete account result:', result);
+            if (result.success) {
+                showToast('Account deleted successfully. Redirecting...', 'success');
+                window.location.href = '/';
+            } else {
+                console.error('Delete account failed:', result);
+                console.log('Debug info:', result.debug_info);
+                showError(result.error || 'Failed to delete account');
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
+            }
+        } catch (error) {
+            showError('An error occurred while deleting account');
+            confirmBtn.disabled = false;
+            confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
+        }
+    }
     confirmBtn.addEventListener('click', deleteAccount);
     
     usernameInput.addEventListener('input', () => {
@@ -2340,67 +2478,6 @@ function initDeleteAccount() {
             closeModal();
         }
     });
-}
-
-async function deleteAccount() {
-    const inputValue = usernameInput.value.trim();
-    
-    if (!validateUsername()) {
-        showError('Username does not match');
-        return;
-    }
-
-    const serverElements = document.querySelectorAll('#owned-servers-list > div');
-    const serversRequiringTransfer = Array.from(serverElements).filter(server => 
-        !server.classList.contains('server-can-delete')
-    );
-    
-    if (serversRequiringTransfer.length > 0) {
-        let allTransferred = true;
-        for (const server of serversRequiringTransfer) {
-            const serverId = server.getAttribute('data-server-id');
-            const newOwnerId = selectedOwners[serverId];
-            if (!newOwnerId) {
-                showError('Please select new owners for all servers');
-                return;
-            }
-            try {
-                const result = await window.serverAPI.transferOwnership(serverId, newOwnerId);
-                if (!result.success) {
-                    showError(`Failed to transfer ${server.querySelector('.font-medium.text-white.text-lg').textContent}: ${result.error}`);
-                    allTransferred = false;
-                    break;
-                }
-            } catch (error) {
-                showError(`Error transferring server: ${error.message}`);
-                allTransferred = false;
-                break;
-            }
-        }
-        if (!allTransferred) return;
-    }
-    
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
-    
-    try {
-        const result = await userAPI.deleteAccount(inputValue);
-        
-        if (result.success) {
-            showToast('Account deleted successfully. Redirecting...', 'success');
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 2000);
-        } else {
-            showError(result.error || 'Failed to delete account');
-            confirmBtn.disabled = false;
-            confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
-        }
-    } catch (error) {
-        showError('An error occurred while deleting account');
-        confirmBtn.disabled = false;
-        confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
-    }
 }
 
 

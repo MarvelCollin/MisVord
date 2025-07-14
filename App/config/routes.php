@@ -580,6 +580,11 @@ Route::get('/api/users/owned-servers', function() {
     $controller->getUserOwnedServers();
 });
 
+Route::get('/api/users/check-ownership', function() {
+    $controller = new UserController();
+    $controller->checkServerOwnership();
+});
+
 Route::get('/api/chat/(channel|dm)/([0-9]+)/messages', function($type, $id) {
     $controller = new ChatController();
     $controller->getMessages($type, $id);

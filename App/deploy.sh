@@ -100,20 +100,20 @@ check_env_file() {
 validate_docker_config() {
     print_section "VALIDATING DOCKER CONFIGURATION"
     
-    if [ ! -f "docker-compose.yml" ]; then
-        print_error "docker-compose.yml not found!"
+    if [ ! -f "docker compose.yml" ]; then
+        print_error "docker compose.yml not found!"
         return 1
     fi
     
-    print_success "docker-compose.yml found"
+    print_success "docker compose.yml found"
     
-    if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker-compose.yml; then
-        print_success "SOCKET_BIND_HOST correctly configured in docker-compose.yml"
+    if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker compose.yml; then
+        print_success "SOCKET_BIND_HOST correctly configured in docker compose.yml"
     else
-        print_error "SOCKET_BIND_HOST missing from docker-compose.yml socket service"
-        print_info "Adding SOCKET_BIND_HOST to docker-compose.yml..."
+        print_error "SOCKET_BIND_HOST missing from docker compose.yml socket service"
+        print_info "Adding SOCKET_BIND_HOST to docker compose.yml..."
         
-        print_warning "Please manually add 'SOCKET_BIND_HOST=0.0.0.0' to socket service environment in docker-compose.yml"
+        print_warning "Please manually add 'SOCKET_BIND_HOST=0.0.0.0' to socket service environment in docker compose.yml"
         return 1
     fi
     
@@ -150,8 +150,8 @@ fix_socket_issues() {
     fi
     
     print_info "Rebuilding socket container with latest configuration..."
-    docker-compose down socket 2>/dev/null || true
-    docker-compose build socket
+    docker compose down socket 2>/dev/null || true
+    docker compose build socket
     
     print_success "Socket server issues fixed"
 }
@@ -160,7 +160,7 @@ init_bot() {
     print_section "BOT INITIALIZATION"
 
     print_info "Starting services for bot initialization..."
-    docker-compose up -d
+    docker compose up -d
 
     print_info "Waiting for PHP application to be ready..."
     wait_for_service "app" "1001"
@@ -212,7 +212,7 @@ check_services() {
         exit 1
     fi
 
-    if ! command_exists docker-compose; then
+    if ! command_exists docker compose; then
         print_error "Docker Compose is not installed!"
         exit 1
     fi
@@ -220,7 +220,7 @@ check_services() {
     print_success "Docker and Docker Compose are available"
 
     print_info "Starting all services..."
-    docker-compose up -d
+    docker compose up -d
 
     services=("app:1001" "socket:1002")
 
@@ -230,21 +230,21 @@ check_services() {
 
         print_info "Checking $service_name service..."
 
-        if docker-compose ps | grep -q "misvord_${service_name}.*Up"; then
+        if docker compose ps | grep -q "misvord_${service_name}.*Up"; then
             print_success "$service_name container is running"
             wait_for_service "$service_name" "$port"
         else
             print_error "$service_name container failed to start"
-            docker-compose logs $service_name | tail -10
+            docker compose logs $service_name | tail -10
         fi
     done
 
     print_info "Checking database service..."
-    if docker-compose ps | grep -q "misvord_db.*Up"; then
+    if docker compose ps | grep -q "misvord_db.*Up"; then
         print_success "Database container is running"
     else
         print_error "Database container failed to start"
-        docker-compose logs db | tail -10
+        docker compose logs db | tail -10
     fi
 
     print_info "Running final service verification..."
@@ -311,10 +311,10 @@ check_services() {
         print_warning "Socket server health check failed"
         
         print_info "Checking socket container logs for issues..."
-        SOCKET_LOGS=$(docker-compose logs socket --tail=10 2>/dev/null || echo "")
+        SOCKET_LOGS=$(docker compose logs socket --tail=10 2>/dev/null || echo "")
         if echo "$SOCKET_LOGS" | grep -q "SOCKET_BIND_HOST.*UNDEFINED"; then
             print_error "Socket server still has SOCKET_BIND_HOST undefined issue!"
-            print_warning "Please check docker-compose.yml socket service environment variables"
+            print_warning "Please check docker compose.yml socket service environment variables"
         elif echo "$SOCKET_LOGS" | grep -q "EADDRINUSE"; then
             print_warning "Socket server port conflict detected"
         elif echo "$SOCKET_LOGS" | grep -q "Socket server running"; then
@@ -359,9 +359,9 @@ configure_production() {
     echo "Socket Host: $(get_env_value 'SOCKET_HOST')"
 
     print_info "Restarting services with production configuration..."
-    docker-compose down
-    docker-compose build --no-cache
-    docker-compose up -d
+    docker compose down
+    docker compose build --no-cache
+    docker compose up -d
 
     print_info "Waiting for services to restart..."
     sleep 20
@@ -604,8 +604,8 @@ check_vps_health() {
     print_info "Testing VPS deployment for $domain..."
     
     print_info "1. Checking Docker containers..."
-    if docker-compose ps | grep -q "Up"; then
-        local running_containers=$(docker-compose ps | grep "Up" | wc -l)
+    if docker compose ps | grep -q "Up"; then
+        local running_containers=$(docker compose ps | grep "Up" | wc -l)
         print_success "Docker containers running: $running_containers"
         
         local expected_containers=("misvord_php" "misvord_socket" "misvord_db")
@@ -659,7 +659,7 @@ check_vps_health() {
     else
         print_error "Socket server not responding on port 1002"
         print_info "Attempting to restart socket server..."
-        docker-compose restart socket
+        docker compose restart socket
         sleep 5
         if curl -s --max-time 10 "http://localhost:1002/health" >/dev/null 2>&1; then
             print_success "Socket server recovered after restart"
@@ -750,7 +750,7 @@ check_vps_health() {
         
         # Try restarting database connection
         print_info "Attempting to restart database container..."
-        docker-compose restart db
+        docker compose restart db
         sleep 10
         
         # Test again after restart
@@ -959,10 +959,10 @@ configure_local_development() {
     echo "Database: localhost:1003"
     
     echo -e "\n${BLUE}═══ DOCKER DEVELOPMENT COMMANDS ═══${NC}"
-    echo "Start: docker-compose up -d"
-    echo "Stop: docker-compose down"
-    echo "Logs: docker-compose logs -f"
-    echo "Rebuild: docker-compose build --no-cache"
+    echo "Start: docker compose up -d"
+    echo "Stop: docker compose down"
+    echo "Logs: docker compose logs -f"
+    echo "Rebuild: docker compose build --no-cache"
 }
 
 update_website() {
@@ -981,7 +981,7 @@ update_website() {
     git clean -fd
     
     print_info "Restarting Docker containers..."
-    docker-compose restart
+    docker compose restart
     
     print_success "Website update completed successfully!"
     
@@ -989,11 +989,11 @@ update_website() {
     sleep 10
     
     print_info "Checking service status after update..."
-    if docker-compose ps | grep -q "Up"; then
+    if docker compose ps | grep -q "Up"; then
         print_success "All services are running after update"
     else
         print_warning "Some services may not be running properly"
-        docker-compose ps
+        docker compose ps
     fi
 }
 
@@ -1001,9 +1001,9 @@ migrate_database() {
     print_section "MIGRATING DATABASE"
 
     print_info "Checking if app container is running..."
-    if ! docker-compose ps | grep -q "misvord_php.*Up"; then
+    if ! docker compose ps | grep -q "misvord_php.*Up"; then
         print_warning "App container is not running. Starting services..."
-        docker-compose up -d
+        docker compose up -d
         
         print_info "Waiting for app container to be ready..."
         sleep 10
@@ -1015,7 +1015,7 @@ migrate_database() {
     else
         print_error "Database migration failed!"
         print_info "Checking container logs for more details..."
-        docker-compose logs app --tail=20
+        docker compose logs app --tail=20
         return 1
     fi
 
@@ -1128,8 +1128,8 @@ main() {
     done
 }
 
-if [ ! -f "docker-compose.yml" ]; then
-    print_error "Please run this script from the project root directory (where docker-compose.yml is located)"
+if [ ! -f "docker compose.yml" ]; then
+    print_error "Please run this script from the project root directory (where docker compose.yml is located)"
     exit 1
 fi
 

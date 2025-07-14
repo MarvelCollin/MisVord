@@ -140,7 +140,7 @@ class UserController extends BaseController
             }
 
             if (!empty($errors)) {
-                return $this->error('Validation failed', 400, $errors);
+                $this->validationError($errors, 'Validation failed');
             }
 
             if (empty($updateData)) {
@@ -487,7 +487,7 @@ class UserController extends BaseController
             }
 
             if (!empty($errors)) {
-                return $this->error('Missing required fields', 400, $errors);
+                $this->validationError($errors, 'Missing required fields');
             }
 
             $currentPassword = $input['current_password'];
@@ -511,7 +511,7 @@ class UserController extends BaseController
             }
 
             if (!empty($errors)) {
-                return $this->error('Password validation failed', 400, $errors);
+                $this->validationError($errors, 'Password validation failed');
             }
 
             $user = $this->userRepository->find($userId);
@@ -613,7 +613,7 @@ class UserController extends BaseController
             }
 
             if (!empty($errors)) {
-                return $this->error('Missing required fields', 400, $errors);
+                $this->validationError($errors, 'Missing required fields');
             }
 
             $question = $input['security_question'];
@@ -655,7 +655,7 @@ class UserController extends BaseController
             }
 
             if (!empty($errors)) {
-                return $this->error('Missing required fields', 400, $errors);
+                $this->validationError($errors, 'Missing required fields');
             }
 
             $user = $this->userRepository->findByEmail($input['email']);
@@ -752,7 +752,7 @@ class UserController extends BaseController
             }
 
             if (!empty($errors)) {
-                return $this->error('Missing required fields', 400, $errors);
+                $this->validationError($errors, 'Missing required fields');
             }
 
             $user = $this->userRepository->findByEmail($input['email']);
@@ -833,7 +833,7 @@ class UserController extends BaseController
             $mutualFriends = $this->friendListRepository->getMutualFriends($currentUserId, $userId);
             $mutualServers = $this->userRepository->getMutualServers($currentUserId, $userId);
 
-            $response = $this->success([
+            $this->success([
                 'mutual_friend_count' => count($mutualFriends),
                 'mutual_server_count' => count($mutualServers),
                 'mutual_friends' => array_map(function($friend) {
@@ -856,8 +856,6 @@ class UserController extends BaseController
                     ];
                 }, $mutualServers)
             ]);
-
-            return $response;
 
         } catch (Exception $e) {
             return $this->serverError('Failed to retrieve mutual relations: ' . $e->getMessage());
@@ -911,11 +909,9 @@ class UserController extends BaseController
                 'user_id' => $userId
             ]);
 
-                        $response = $this->success([
+                        $this->success([
                 'security_question' => $user->security_question
             ]);
-
-                        return $response;
 
         } catch (Exception $e) {
                                     return $this->serverError('An error occurred while retrieving security question: ' . $e->getMessage());
@@ -987,7 +983,7 @@ class UserController extends BaseController
             }
 
             if (!empty($errors)) {
-                return $this->error('Missing required fields', 400, $errors);
+                $this->validationError($errors, 'Missing required fields');
             }
 
             $user = $this->userRepository->find($userId);
@@ -1183,17 +1179,32 @@ class UserController extends BaseController
 
         try {
             if (!isset($input['username_confirmation']) || empty($input['username_confirmation'])) {
-                return $this->error('Username confirmation is required', 400);
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Username confirmation is required'
+                ]);
+                exit;
             }
 
             $user = $this->userRepository->find($userId);
 
             if (!$user) {
-                return $this->error('User not found', 404);
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'User not found'
+                ]);
+                exit;
             }
 
             if ($input['username_confirmation'] !== $user->username) {
-                return $this->error('Username confirmation does not match', 400);
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Username confirmation does not match'
+                ]);
+                exit;
             }
 
             require_once __DIR__ . '/../database/repositories/ServerRepository.php';
@@ -1208,7 +1219,27 @@ class UserController extends BaseController
                 $memberCount = $membershipRepository->getMemberCount($server['id']);
                 
                 if ($memberCount > 1) {
-                    return $this->error('You must transfer ownership of all servers with multiple members before deleting your account. Server "' . $server['name'] . '" still has ' . $memberCount . ' members.', 400);
+                    http_response_code(400);
+                    echo json_encode([
+                        'success' => false,
+                        'error' => 'You must transfer ownership of all servers with multiple members before deleting your account. Server "' . $server['name'] . '" still has ' . $memberCount . ' members.',
+                        'debug_info' => [
+                            'total_owned_servers' => count($ownedServers),
+                            'problematic_server' => [
+                                'id' => $server['id'],
+                                'name' => $server['name'],
+                                'member_count' => $memberCount
+                            ],
+                            'all_owned_servers' => array_map(function($s) use ($membershipRepository) {
+                                return [
+                                    'id' => $s['id'],
+                                    'name' => $s['name'],
+                                    'member_count' => $membershipRepository->getMemberCount($s['id'])
+                                ];
+                            }, $ownedServers)
+                        ]
+                    ]);
+                    exit;
                 }
             }
             
@@ -1229,7 +1260,12 @@ class UserController extends BaseController
             $result = $this->userRepository->deleteUser($userId);
 
             if (!$result) {
-                return $this->serverError('Failed to delete account');
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Failed to delete account'
+                ]);
+                exit;
             }
 
             session_destroy();
@@ -1240,10 +1276,19 @@ class UserController extends BaseController
                 'servers_deleted' => count($ownedServers)
             ]);
 
-            return $this->success(null, 'Account deleted successfully');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Account deleted successfully'
+            ]);
+            exit;
 
         } catch (Exception $e) {
-            return $this->serverError('An error occurred while deleting account: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'An error occurred while deleting account: ' . $e->getMessage()
+            ]);
+            exit;
         }
     }
     
@@ -1284,7 +1329,7 @@ class UserController extends BaseController
                 'server_count' => count($servers)
             ]);
             
-            return $this->success([
+            $this->success([
                 'servers' => $servers
             ]);
             
@@ -1294,7 +1339,56 @@ class UserController extends BaseController
                 'error' => $e->getMessage()
             ]);
             
-            return $this->serverError('Failed to retrieve owned servers: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to retrieve owned servers: ' . $e->getMessage()
+            ]);
+            exit;
         }
     }
-} 
+
+    public function checkServerOwnership()
+    {
+        $this->requireAuth();
+        $userId = $this->getCurrentUserId();
+
+        try {
+            require_once __DIR__ . '/../database/repositories/ServerRepository.php';
+            require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
+            
+            $serverRepository = new ServerRepository();
+            $membershipRepository = new UserServerMembershipRepository();
+            
+            $ownedServers = $serverRepository->getServersByOwnerId($userId);
+            
+            $serverData = [];
+            foreach ($ownedServers as $server) {
+                $memberCount = $membershipRepository->getMemberCount($server['id']);
+                $serverData[] = [
+                    'id' => $server['id'],
+                    'name' => $server['name'],
+                    'member_count' => $memberCount,
+                    'can_delete' => $memberCount <= 1
+                ];
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'data' => [
+                    'owned_servers' => $serverData,
+                    'total_count' => count($ownedServers)
+                ]
+            ]);
+            exit;
+
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to check server ownership: ' . $e->getMessage()
+            ]);
+            exit;
+        }
+    }
+}

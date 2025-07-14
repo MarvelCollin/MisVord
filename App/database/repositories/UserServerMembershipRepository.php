@@ -183,6 +183,8 @@ class UserServerMembershipRepository extends Repository {
     
     public function transferOwnership($serverId, $currentOwnerId, $newOwnerId) {
         try {
+            error_log("Transferring ownership of server $serverId from user $currentOwnerId to user $newOwnerId");
+            
             $query = new Query();
             $pdo = $query->getPdo();
             
@@ -200,12 +202,17 @@ class UserServerMembershipRepository extends Repository {
                 ->where('server_id', $serverId)
                 ->update(['role' => 'owner']);
 
+            error_log("Update current owner result: " . ($updateCurrentOwner !== false ? 'success' : 'failed'));
+            error_log("Update new owner result: " . ($updateNewOwner !== false ? 'success' : 'failed'));
+
             if ($updateCurrentOwner === false || $updateNewOwner === false) {
+                error_log("Rolling back ownership transfer transaction");
                 $pdo->rollBack();
                 return false;
             }
 
             $pdo->commit();
+            error_log("Ownership transfer completed successfully");
             return true;
         } catch (Exception $e) {
             error_log("Error transferring ownership: " . $e->getMessage());

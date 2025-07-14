@@ -2143,35 +2143,70 @@ class ServerController extends BaseController
         $newOwnerId = $input['new_owner_id'] ?? null;
         
         if (!$serverId) {
-            return $this->validationError(['server_id' => 'Server ID is required']);
+            http_response_code(400);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Server ID is required'
+            ]);
+            exit;
         }
         
         try {
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
-                return $this->notFound('Server not found');
+                http_response_code(404);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Server not found'
+                ]);
+                exit;
             }
             
             if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
-                return $this->forbidden('Only server owner can transfer ownership');
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Only server owner can transfer ownership'
+                ]);
+                exit;
             }
             
             if (!$newOwnerId) {
-                return $this->validationError(['new_owner_id' => 'New owner ID is required']);
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'New owner ID is required'
+                ]);
+                exit;
             }
             
             if ($newOwnerId == $currentUserId) {
-                return $this->validationError(['new_owner_id' => 'Cannot transfer ownership to yourself']);
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Cannot transfer ownership to yourself'
+                ]);
+                exit;
             }
             
             $newOwnerMembership = $this->userServerMembershipRepository->findByUserAndServer($newOwnerId, $serverId);
             if (!$newOwnerMembership) {
-                return $this->validationError(['new_owner_id' => 'Selected user is not a member of this server']);
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Selected user is not a member of this server'
+                ]);
+                exit;
             }
             
             $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $newOwnerId);
             if (!$transferSuccess) {
-                return $this->serverError('Failed to transfer ownership');
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Failed to transfer ownership'
+                ]);
+                exit;
             }
             
             $this->logActivity('ownership_transferred', [
@@ -2181,11 +2216,14 @@ class ServerController extends BaseController
                 'new_owner_id' => $newOwnerId
             ]);
             
-            return $this->success([
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
                 'message' => 'Ownership transferred successfully',
                 'old_owner_id' => $currentUserId,
                 'new_owner_id' => $newOwnerId
             ]);
+            exit;
             
         } catch (Exception $e) {
             $this->logActivity('transfer_ownership_error', [
@@ -2193,7 +2231,13 @@ class ServerController extends BaseController
                 'new_owner_id' => $newOwnerId,
                 'error' => $e->getMessage()
             ]);
-            return $this->serverError('Failed to transfer ownership: ' . $e->getMessage());
+            
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error' => 'Failed to transfer ownership: ' . $e->getMessage()
+            ]);
+            exit;
         }
     }
 
