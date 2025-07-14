@@ -1016,7 +1016,7 @@ class VoiceManager {
             window.localStorageManager.setUnifiedVoiceState({
                 ...currentState,
                 isDeafened: this._deafened,
-                isMuted: this._deafened ? true : !this._micOn
+                isMuted: !this._micOn
             });
         }
         

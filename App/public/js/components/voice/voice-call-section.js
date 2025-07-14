@@ -183,7 +183,7 @@ class VoiceCallSection {
                         window.localStorageManager.setUnifiedVoiceState({
                             ...voiceState,
                             isDeafened: state,
-                            isMuted: state ? true : voiceState.isMuted
+                            isMuted: !window.voiceManager._micOn
                         });
                     }
                 }

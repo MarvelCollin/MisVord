@@ -150,21 +150,19 @@ class UserProfileVoiceControls {
             const checkDependencies = () => {
                 const hasLocalStorage = !!window.localStorageManager;
                 const hasMusicLoader = !!window.MusicLoaderStatic;
-                const hasUnifiedState = !!window.unifiedVoiceStateManager;
+                const hasVoiceManager = !!window.voiceManager;
                 
-
-                const hasVoiceManager = hasLocalStorage || hasUnifiedState;
-                
-                if (hasVoiceManager && hasMusicLoader) {
+                if (hasLocalStorage && hasMusicLoader && hasVoiceManager) {
                     console.log('[UserProfileVoiceControls] Dependencies ready:', {
                         localStorageManager: hasLocalStorage,
-                        unifiedVoiceStateManager: hasUnifiedState,
+                        voiceManager: hasVoiceManager,
                         musicLoader: hasMusicLoader
                     });
                     resolve();
                 } else if (this.retryCount >= this.maxRetries) {
                     const missingDeps = [];
-                    if (!hasVoiceManager) missingDeps.push('voice state manager (local or unified)');
+                    if (!hasLocalStorage) missingDeps.push('localStorageManager');
+                    if (!hasVoiceManager) missingDeps.push('voiceManager');
                     if (!hasMusicLoader) missingDeps.push('MusicLoaderStatic');
                     
                     console.error('[UserProfileVoiceControls] Missing dependencies after max retries:', missingDeps);
@@ -222,43 +220,18 @@ class UserProfileVoiceControls {
         
 
         window.addEventListener('voiceStateChanged', () => {
-            this.updateControls();
+            setTimeout(() => this.updateControls(), 50);
         });
         
-
-        window.addEventListener('voiceConnect', () => {
-            setTimeout(() => this.updateControls(), 100);
-        });
-        
-        window.addEventListener('voiceDisconnect', () => {
-            setTimeout(() => this.updateControls(), 100);
-        });
-        
-
-        window.addEventListener('videosdkMeetingJoined', () => {
-            setTimeout(() => this.updateControls(), 100);
-        });
-        
-        window.addEventListener('videosdkMeetingLeft', () => {
-            setTimeout(() => this.updateControls(), 100);
-        });
-        
-
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener(() => {
-                this.updateControls();
+                setTimeout(() => this.updateControls(), 50);
             });
+            console.log('UserProfile: Connected to localStorageManager voice state listener');
         }
         
-        if (window.unifiedVoiceStateManager) {
-            window.unifiedVoiceStateManager.storageManager.addVoiceStateListener(() => {
-                this.updateControls();
-            });
-        }
-        
-
         window.addEventListener('storage', (e) => {
-            if (e.key && (e.key.includes('voice') || e.key.includes('Voice'))) {
+            if (e.key && e.key.includes('misvord_unified_voice_state')) {
                 setTimeout(() => this.updateControls(), 50);
             }
         });
@@ -271,26 +244,24 @@ class UserProfileVoiceControls {
     
     updateControls() {
         try {
-
             let state = null;
             
-            if (window.unifiedVoiceStateManager) {
+            if (window.localStorageManager) {
+                state = window.localStorageManager.getUnifiedVoiceState();
+                console.log('UserProfile: Retrieved localStorage state:', state);
+            } else if (window.unifiedVoiceStateManager) {
                 state = window.unifiedVoiceStateManager.getState();
-            } else if (window.localStorageManager) {
-                state = window.localStorageManager.getVoiceState();
             }
             
-
-            if (!state && window.videoSDKManager?.isReady()) {
+            if (!state && window.voiceManager) {
                 state = {
-                    isMuted: window.videoSDKManager.meeting?.localParticipant?.micEnabled === false,
-                    isDeafened: false,
-                    isConnected: window.videoSDKManager.isConnected,
+                    isMuted: !window.voiceManager._micOn,
+                    isDeafened: window.voiceManager._deafened,
+                    isConnected: window.voiceManager.isConnected,
                     volume: 100
                 };
             }
             
-
             if (!state) {
                 state = {
                     isMuted: false,
@@ -309,87 +280,69 @@ class UserProfileVoiceControls {
     }
     
     updateMicButton(state) {
-        if (!this.micBtn) {
-            return;
-        }
+        if (!this.micBtn) return;
         
         const micIcon = this.micBtn.querySelector('i');
-        if (!micIcon) {
-            return;
-        }
+        if (!micIcon) return;
         
-        this.micBtn.classList.remove('text-[#ed4245]', 'text-discord-lighter', 'bg-green-600', 'bg-red-600');
+        this.micBtn.classList.remove('text-[#ed4245]', 'text-discord-lighter');
         
         if (state.isMuted || state.isDeafened) {
             micIcon.className = 'fas fa-microphone-slash text-lg';
-            this.micBtn.style.backgroundColor = '#dc2626';
+            this.micBtn.classList.add('text-[#ed4245]');
+            this.micBtn.style.backgroundColor = '#ed4245';
         } else {
             micIcon.className = 'fas fa-microphone text-lg';
-            this.micBtn.style.backgroundColor = '#16a34a';
+            this.micBtn.classList.add('text-discord-lighter');
+            this.micBtn.style.backgroundColor = '#3ba55c';
         }
         this.micBtn.style.color = 'white';
+        this.micBtn.style.borderRadius = '4px';
+        this.micBtn.style.padding = '4px 6px';
     }
     
     updateDeafenButton(state) {
-        if (!this.deafenBtn) {
-            return;
-        }
+        if (!this.deafenBtn) return;
         
         const deafenIcon = this.deafenBtn.querySelector('i');
-        if (!deafenIcon) {
-            return;
-        }
+        if (!deafenIcon) return;
         
-        this.deafenBtn.classList.remove('text-[#ed4245]', 'text-discord-lighter', 'bg-green-600', 'bg-red-600');
+        this.deafenBtn.classList.remove('text-[#ed4245]', 'text-discord-lighter');
         
         if (state.isDeafened) {
             deafenIcon.className = 'fas fa-volume-xmark text-lg';
-            this.deafenBtn.style.backgroundColor = '#dc2626';
+            this.deafenBtn.classList.add('text-[#ed4245]');
+            this.deafenBtn.style.backgroundColor = '#ed4245';
         } else {
             deafenIcon.className = 'fas fa-headphones text-lg';
-            this.deafenBtn.style.backgroundColor = '#16a34a';
+            this.deafenBtn.classList.add('text-discord-lighter');
+            this.deafenBtn.style.backgroundColor = '#3ba55c';
         }
         this.deafenBtn.style.color = 'white';
+        this.deafenBtn.style.borderRadius = '4px';
+        this.deafenBtn.style.padding = '4px 6px';
     }
     
     handleMicClick() {
         try {
-            let wasToggled = false;
-            
-
-            if (window.unifiedVoiceStateManager) {
-                wasToggled = window.unifiedVoiceStateManager.toggleMute();
-            } else if (window.localStorageManager) {
-                wasToggled = window.localStorageManager.toggleVoiceMute();
+            if (!window.voiceManager) {
+                console.warn('VoiceManager not available');
+                return;
             }
             
-
-            if (window.videoSDKManager?.isReady()) {
-                window.videoSDKManager.toggleMic();
-            }
+            window.voiceManager.toggleMic().then(() => {
+                console.log('UserProfile: Mic toggled via VoiceManager');
+                setTimeout(() => this.updateControls(), 50);
+            });
             
-
             if (window.MusicLoaderStatic) {
-                if (wasToggled) {
-                    window.MusicLoaderStatic.playDiscordMuteSound();
-                } else {
+                const currentState = window.localStorageManager?.getUnifiedVoiceState();
+                if (currentState?.isMuted) {
                     window.MusicLoaderStatic.playDiscordUnmuteSound();
+                } else {
+                    window.MusicLoaderStatic.playDiscordMuteSound();
                 }
             }
-            
-
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: {
-                        type: 'mic',
-                        state: !wasToggled,
-                        source: 'user-profile'
-                    }
-                }));
-            }, 10);
-            
-
-            this.updateControls();
             
         } catch (error) {
             console.error('Error in user profile mic click handler:', error);
@@ -398,65 +351,15 @@ class UserProfileVoiceControls {
     
     handleDeafenClick() {
         try {
-            let wasToggled = false;
-            let currentState = null;
-            
-
-            if (window.unifiedVoiceStateManager) {
-                currentState = window.unifiedVoiceStateManager.getState();
-                wasToggled = window.unifiedVoiceStateManager.toggleDeafen();
-                
-
-
-            } else if (window.localStorageManager) {
-                currentState = window.localStorageManager.getVoiceState();
-                wasToggled = window.localStorageManager.toggleVoiceDeafen();
-                
-
-                if (wasToggled) {
-                    window.localStorageManager.setVoiceMute(true);
-                }
+            if (!window.voiceManager) {
+                console.warn('VoiceManager not available');
+                return;
             }
             
-
-            if (window.videoSDKManager?.isReady()) {
-                window.videoSDKManager.toggleDeafen();
-                
-
-                if (wasToggled) {
-                    window.videoSDKManager.toggleMic(false); 
-                }
-            }
+            window.voiceManager.toggleDeafen();
+            console.log('UserProfile: Deafen toggled via VoiceManager');
             
-
-            setTimeout(() => {
-                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: {
-                        type: 'deafen',
-                        state: wasToggled,
-                        source: 'user-profile'
-                    }
-                }));
-                
-
-                if (wasToggled && currentState && !currentState.isMuted) {
-                    window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                        detail: {
-                            type: 'mic',
-                            state: false,
-                            source: 'user-profile'
-                        }
-                    }));
-                    
-
-                    if (window.MusicLoaderStatic) {
-                        window.MusicLoaderStatic.playDiscordMuteSound();
-                    }
-                }
-            }, 10);
-            
-
-            this.updateControls();
+            setTimeout(() => this.updateControls(), 50);
             
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);
