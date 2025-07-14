@@ -130,6 +130,7 @@ class VoiceCallSection {
         this.initializeVoiceState();
         this.ensureChannelSync();
         this.syncButtonStates();
+        this.updateLocalParticipantIndicators();
         
 
         setTimeout(() => {
@@ -498,6 +499,10 @@ class VoiceCallSection {
         grid.appendChild(element);
         this.participantElements.set(participant, element);
         
+        if (element.hasAttribute('data-is-local')) {
+            this.updateLocalParticipantIndicators();
+        }
+        
         setTimeout(() => {
             element.style.opacity = '1';
             element.style.transform = 'translateY(0) scale(1)';
@@ -588,12 +593,14 @@ class VoiceCallSection {
         switch (type) {
             case 'mic':
                 this.updateMicButton(state);
+                this.updateLocalParticipantIndicators();
                 break;
             case 'video':
                 this.updateVideoButton(state);
                 break;
             case 'deafen':
                 this.updateDeafenButton(state);
+                this.updateLocalParticipantIndicators();
                 break;
             case 'screen':
                 this.updateScreenButton(state);
@@ -606,14 +613,17 @@ class VoiceCallSection {
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
         div.setAttribute("data-participant-id", participantId);
         
-
         const userId = data?.user_id || data?.id;
         if (userId) {
             div.setAttribute("data-user-id", String(userId));
         }
         
         const name = data?.displayName || data?.name || data?.username || "Unknown";
-        const isLocal = data?.isLocal || (participantId === window.voiceManager?.localParticipant?.id);
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        const isLocal = (data?.isLocal) || 
+                       (data?.isSelf) || 
+                       (participantId === window.voiceManager?.localParticipant?.id) ||
+                       (currentUserId && userId && String(userId) === currentUserId);
         const isBot = data?.isBot || participantId.startsWith('bot-');
         const avatarUrl = data?.avatar_url || '/public/assets/common/default-profile-picture.png';
         const hasCustomAvatar = avatarUrl && !avatarUrl.includes('default-profile-picture');
@@ -633,6 +643,18 @@ class VoiceCallSection {
                     <span class="text-white text-sm font-medium truncate">${name}${isLocal ? ' (You)' : ''}</span>
                 </div>
             </div>
+            
+            ${isLocal ? `
+            <div class="voice-indicators absolute top-2 right-2 flex flex-col gap-1 z-30">
+                <div class="mute-indicator w-6 h-6 bg-red-500 rounded-full flex items-center justify-center ${!window.voiceManager?.getMicState() ? '' : 'hidden'}">
+                    <i class="fas fa-microphone-slash text-white text-xs"></i>
+                </div>
+                <div class="deafen-indicator w-6 h-6 bg-red-600 rounded-full flex items-center justify-center ${window.voiceManager?.getDeafenState() ? '' : 'hidden'}">
+                    <i class="fas fa-deaf text-white text-xs"></i>
+                </div>
+            </div>
+            ` : ''}
+            
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
                 <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative overflow-hidden">
                     ${showImage ? `<img src="${avatarUrl}" alt="${name}" class="w-full h-full object-cover rounded-full" onerror="this.src='/public/assets/common/default-profile-picture.png'">` : `<span>${this.getInitials(name)}</span>`}
@@ -643,7 +665,31 @@ class VoiceCallSection {
             </div>
         `;
         
+        if (isLocal) {
+            div.setAttribute("data-is-local", "true");
+        }
+        
         return div;
+    }
+    
+    updateLocalParticipantIndicators() {
+        if (!window.voiceManager) return;
+        
+        const localCard = document.querySelector('[data-is-local="true"]');
+        if (!localCard) return;
+        
+        const muteIndicator = localCard.querySelector('.mute-indicator');
+        const deafenIndicator = localCard.querySelector('.deafen-indicator');
+        
+        if (muteIndicator) {
+            const isMuted = !window.voiceManager.getMicState();
+            muteIndicator.classList.toggle('hidden', !isMuted);
+        }
+        
+        if (deafenIndicator) {
+            const isDeafened = window.voiceManager.getDeafenState();
+            deafenIndicator.classList.toggle('hidden', !isDeafened);
+        }
     }
     
     showParticipantVideo(element, stream) {
@@ -851,6 +897,7 @@ class VoiceCallSection {
         
         this.updateGridLayout();
         this.updateParticipantCount();
+        this.updateLocalParticipantIndicators();
     }
     
     restoreExistingStreamsForParticipant(participantId, participantData, element) {
@@ -918,6 +965,8 @@ class VoiceCallSection {
         this.updateVideoButton(storedState?.videoOn || window.voiceManager.getVideoState());
         this.updateDeafenButton(window.voiceManager.getDeafenState());
         this.updateScreenButton(storedState?.screenShareOn || window.voiceManager.getScreenShareState());
+        
+        this.updateLocalParticipantIndicators();
         
         if (storedState?.videoOn && window.voiceManager._videoOn !== storedState.videoOn) {
             window.voiceManager._videoOn = storedState.videoOn;

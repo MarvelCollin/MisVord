@@ -140,6 +140,37 @@
     }
 }
 
+.voice-indicators {
+    z-index: 30 !important;
+}
+
+.mute-indicator, .deafen-indicator {
+    background: rgba(237, 66, 69, 0.9) !important;
+    backdrop-filter: blur(8px) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    transition: all 0.2s ease !important;
+}
+
+.deafen-indicator {
+    background: rgba(220, 38, 127, 0.9) !important;
+}
+
+.mute-indicator:hover, .deafen-indicator:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.voice-indicators .hidden {
+    opacity: 0 !important;
+    transform: scale(0.8) !important;
+    pointer-events: none !important;
+}
+
+.voice-indicators > div:not(.hidden) {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+}
+
 
 #participant-fullscreen-modal {
     backdrop-filter: blur(8px) !important;
