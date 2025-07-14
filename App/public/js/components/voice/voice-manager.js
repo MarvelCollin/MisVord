@@ -913,6 +913,18 @@ class VoiceManager {
                 detail: { type: 'mic', state: this._micOn }
             }));
             
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (currentUserId && this.currentChannelId) {
+                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                    detail: {
+                        userId: currentUserId,
+                        channelId: this.currentChannelId,
+                        type: 'mic',
+                        state: this._micOn
+                    }
+                }));
+            }
+            
             return this._micOn;
         } catch (error) {
             console.error('Failed to toggle mic:', error);
@@ -989,10 +1001,27 @@ class VoiceManager {
                 detail: { type: 'deafen', state: this._deafened }
             }));
             
-            if (this._deafened && !this._micOn) {
-                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: { type: 'mic', state: this._micOn }
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (currentUserId && this.currentChannelId) {
+                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                    detail: {
+                        userId: currentUserId,
+                        channelId: this.currentChannelId,
+                        type: 'deafen',
+                        state: this._deafened
+                    }
                 }));
+                
+                if (this._deafened && !this._micOn) {
+                    window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                        detail: {
+                            userId: currentUserId,
+                            channelId: this.currentChannelId,
+                            type: 'mic',
+                            state: this._micOn
+                        }
+                    }));
+                }
             }
             
             return this._deafened;

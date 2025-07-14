@@ -387,22 +387,30 @@ class ChannelVoiceParticipants {
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) return;
 
-
         container.classList.remove('hidden');
         
-
         if (!skipSidebarRefresh) {
             setTimeout(() => {
                 this.updateSidebarForChannel(channelId);
                 
                 const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
                 if (currentUserId && window.voiceManager) {
-                    this.updateParticipantVoiceState(currentUserId, channelId, 'mic', window.voiceManager.getMicState());
-                    this.updateParticipantVoiceState(currentUserId, channelId, 'deafen', window.voiceManager.getDeafenState());
+                    setTimeout(() => {
+                        this.updateParticipantVoiceState(currentUserId, channelId, 'mic', window.voiceManager.getMicState());
+                        this.updateParticipantVoiceState(currentUserId, channelId, 'deafen', window.voiceManager.getDeafenState());
+                    }, 200);
                 }
             }, 1500);
         } else {
             this.ensureParticipantsVisible(channelId);
+            
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (currentUserId && window.voiceManager) {
+                setTimeout(() => {
+                    this.updateParticipantVoiceState(currentUserId, channelId, 'mic', window.voiceManager.getMicState());
+                    this.updateParticipantVoiceState(currentUserId, channelId, 'deafen', window.voiceManager.getDeafenState());
+                }, 500);
+            }
         }
     }
     
@@ -555,6 +563,9 @@ class ChannelVoiceParticipants {
             }
         }
 
+        setTimeout(() => {
+            this.restoreVoiceStateIndicators(channelId);
+        }, 150);
 
         this.updateDebugPanel();
     }
@@ -602,6 +613,27 @@ class ChannelVoiceParticipants {
             </div>` : '';
 
         div.innerHTML = avatarHTML + nameHTML + indicatorsHTML;
+
+        if (!isBot && currentUserId && (String(participant.user_id) === currentUserId || String(participant.id) === currentUserId)) {
+            setTimeout(() => {
+                if (window.voiceManager) {
+                    const micState = window.voiceManager.getMicState();
+                    const deafenState = window.voiceManager.getDeafenState();
+                    
+                    const muteIndicator = div.querySelector('.mute-indicator');
+                    const deafenIndicator = div.querySelector('.deafen-indicator');
+                    
+                    if (muteIndicator) {
+                        const isMuted = !micState;
+                        muteIndicator.classList.toggle('hidden', !isMuted);
+                    }
+                    
+                    if (deafenIndicator) {
+                        deafenIndicator.classList.toggle('hidden', !deafenState);
+                    }
+                }
+            }, 100);
+        }
 
         return div;
     }
@@ -777,6 +809,38 @@ class ChannelVoiceParticipants {
 
     }
     
+    restoreVoiceStateIndicators(channelId) {
+        if (!channelId || !window.voiceManager) return;
+        
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        if (!currentUserId) return;
+        
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) return;
+        
+        const userCard = container.querySelector(`[data-user-id="${currentUserId}"]`);
+        if (!userCard) return;
+        
+        const micState = window.voiceManager.getMicState();
+        const deafenState = window.voiceManager.getDeafenState();
+        
+        const muteIndicator = userCard.querySelector('.mute-indicator');
+        const deafenIndicator = userCard.querySelector('.deafen-indicator');
+        
+        if (muteIndicator) {
+            const isMuted = !micState;
+            muteIndicator.classList.toggle('hidden', !isMuted);
+            muteIndicator.classList.remove('bg-red-600', 'bg-green-600');
+            muteIndicator.classList.add(isMuted ? 'bg-red-600' : 'bg-green-600');
+        }
+        
+        if (deafenIndicator) {
+            deafenIndicator.classList.toggle('hidden', !deafenState);
+            deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
+            deafenIndicator.classList.add(deafenState ? 'bg-red-600' : 'bg-green-600');
+        }
+    }
+    
     static getInstance() {
         if (!window._channelVoiceParticipants) {
             window._channelVoiceParticipants = new ChannelVoiceParticipants();
@@ -790,10 +854,16 @@ class ChannelVoiceParticipants {
         });
         
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
-        if (!container) return;
+        if (!container) {
+            console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No container found for channel ${channelId}`);
+            return;
+        }
         
         const participantCard = container.querySelector(`[data-user-id="${userId}"]`);
-        if (!participantCard) return;
+        if (!participantCard) {
+            console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No participant card found for user ${userId} in channel ${channelId}`);
+            return;
+        }
         
         if (type === 'mic') {
             const muteIndicator = participantCard.querySelector('.mute-indicator');
@@ -809,6 +879,8 @@ class ChannelVoiceParticipants {
                 }
                 
                 console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
+            } else {
+                console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No mute indicator found for user ${userId}`);
             }
         } else if (type === 'deafen') {
             const deafenIndicator = participantCard.querySelector('.deafen-indicator');
@@ -823,6 +895,8 @@ class ChannelVoiceParticipants {
                 }
                 
                 console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
+            } else {
+                console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No deafen indicator found for user ${userId}`);
             }
         }
         
