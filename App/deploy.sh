@@ -100,7 +100,7 @@ check_env_file() {
 validate_docker_config() {
     print_section "VALIDATING DOCKER CONFIGURATION"
     
-    if [ ! -f "docker compose.yml" ]; then
+    if [ ! -f "docker-compose.yml" ]; then
         print_error "docker compose.yml not found!"
         return 1
     fi
@@ -1128,7 +1128,7 @@ main() {
     done
 }
 
-if [ ! -f "docker compose.yml" ]; then
+if [ ! -f "docker-compose.yml" ]; then
     print_error "Please run this script from the project root directory (where docker compose.yml is located)"
     exit 1
 fi
