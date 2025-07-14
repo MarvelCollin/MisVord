@@ -289,6 +289,9 @@ class VoiceManager {
             });
             
             this._micOn = true;
+            this._videoOn = false;
+            this._screenShareOn = false;
+            this._deafened = false;
             
             this.setupMeetingEvents();
             await this.meeting.join();
@@ -580,22 +583,34 @@ class VoiceManager {
         const storedState = window.localStorageManager.getUnifiedVoiceState();
         
         if (storedState.videoOn && !this._videoOn) {
-            
             try {
                 await this.meeting.enableWebcam();
                 this._videoOn = true;
             } catch (error) {
                 console.error('Failed to restore video:', error);
             }
+        } else if (!storedState.videoOn && this._videoOn) {
+            try {
+                await this.meeting.disableWebcam();
+                this._videoOn = false;
+            } catch (error) {
+                console.error('Failed to disable video:', error);
+            }
         }
         
         if (storedState.screenShareOn && !this._screenShareOn) {
-            
             try {
                 await this.meeting.enableScreenShare();
                 this._screenShareOn = true;
             } catch (error) {
                 console.error('Failed to restore screen share:', error);
+            }
+        } else if (!storedState.screenShareOn && this._screenShareOn) {
+            try {
+                await this.meeting.disableScreenShare();
+                this._screenShareOn = false;
+            } catch (error) {
+                console.error('Failed to disable screen share:', error);
             }
         }
     }
@@ -918,7 +933,11 @@ class VoiceManager {
             }));
             
             if (window.localStorageManager) {
-                window.localStorageManager.setVideoState(this._videoOn);
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    videoOn: this._videoOn
+                });
             }
             
             return this._videoOn;
@@ -935,7 +954,20 @@ class VoiceManager {
         
         if (this._deafened) {
             if (this._micOn) {
-                this.toggleMic();
+                this.meeting.muteMic();
+                this._micOn = false;
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'mic', state: this._micOn }
+                }));
+                
+                if (window.localStorageManager) {
+                    const currentState = window.localStorageManager.getUnifiedVoiceState();
+                    window.localStorageManager.setUnifiedVoiceState({
+                        ...currentState,
+                        isMuted: true
+                    });
+                }
             }
             this.meeting.participants.forEach(participant => {
                 if (participant.id !== this.localParticipant.id) {
@@ -1013,7 +1045,11 @@ class VoiceManager {
             }));
             
             if (window.localStorageManager) {
-                window.localStorageManager.setScreenShareState(this._screenShareOn);
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    screenShareOn: this._screenShareOn
+                });
             }
             
             return this._screenShareOn;

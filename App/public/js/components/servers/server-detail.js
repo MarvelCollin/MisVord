@@ -253,10 +253,6 @@ class ServerDetailModal {
                 if (window.showToast) {
                     window.showToast('Successfully joined server!', 'success');
                 }
-                
-                setTimeout(() => {
-                    window.location.href = `/server/${this.currentServerId}`;
-                }, 1500);
             } else {
                 this.joinButton.innerHTML = originalContent;
                 this.joinButton.classList.remove('joining');

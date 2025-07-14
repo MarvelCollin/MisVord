@@ -406,6 +406,10 @@ function handleJoinServer(serverId, button) {
             if (window.showToast) {
                 window.showToast('Successfully joined the server!', 'success');
             }
+            
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            }
         } else {
             throw new Error(data.message || 'Failed to join server');
         }

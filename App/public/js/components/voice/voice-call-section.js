@@ -169,8 +169,12 @@ class VoiceCallSection {
         
         if (this.videoBtn) {
             this.videoBtn.addEventListener("click", async () => {
+                console.log('🎥 Video button clicked');
                 if (window.voiceManager) {
+                    const currentState = window.voiceManager.getVideoState();
+                    console.log('🎥 Current state before toggle:', currentState);
                     const state = await window.voiceManager.toggleVideo();
+                    console.log('🎥 State after toggle:', state);
                     this.updateVideoButton(state);
                     
                     if (window.localStorageManager) {
@@ -653,7 +657,6 @@ class VoiceCallSection {
                 break;
         }
     }
-    }
     
     handleLocalVoiceStateChanged(event) {
         const { userId, channelId, type, state } = event.detail;
@@ -1092,7 +1095,7 @@ class VoiceCallSection {
         
         const storedState = window.localStorageManager?.getUnifiedVoiceState();
         
-        const micState = storedState?.isMuted === false;
+        const micState = !(storedState?.isMuted === true);
         const deafenState = storedState?.isDeafened || false;
         const videoState = storedState?.videoOn || false;
         const screenState = storedState?.screenShareOn || false;
@@ -1104,7 +1107,39 @@ class VoiceCallSection {
         
         this.updateLocalParticipantIndicators();
         
-        if (window.voiceManager) {
+        if (window.voiceManager.isConnected && window.voiceManager.meeting) {
+            if (videoState !== window.voiceManager._videoOn) {
+                if (videoState && !window.voiceManager._videoOn) {
+                    window.voiceManager.meeting.enableWebcam();
+                    window.voiceManager._videoOn = true;
+                } else if (!videoState && window.voiceManager._videoOn) {
+                    window.voiceManager.meeting.disableWebcam();
+                    window.voiceManager._videoOn = false;
+                }
+            }
+            
+            if (screenState !== window.voiceManager._screenShareOn) {
+                if (screenState && !window.voiceManager._screenShareOn) {
+                    window.voiceManager.meeting.enableScreenShare();
+                    window.voiceManager._screenShareOn = true;
+                } else if (!screenState && window.voiceManager._screenShareOn) {
+                    window.voiceManager.meeting.disableScreenShare();
+                    window.voiceManager._screenShareOn = false;
+                }
+            }
+            
+            if (micState !== window.voiceManager._micOn) {
+                if (micState && !window.voiceManager._micOn) {
+                    window.voiceManager.meeting.unmuteMic();
+                    window.voiceManager._micOn = true;
+                } else if (!micState && window.voiceManager._micOn) {
+                    window.voiceManager.meeting.muteMic();
+                    window.voiceManager._micOn = false;
+                }
+            }
+            
+            window.voiceManager._deafened = deafenState;
+        } else {
             window.voiceManager._micOn = micState;
             window.voiceManager._videoOn = videoState;
             window.voiceManager._deafened = deafenState;
@@ -1132,6 +1167,7 @@ class VoiceCallSection {
     }
     
     updateVideoButton(isOn) {
+        console.log('🎥 updateVideoButton called with:', isOn, 'Button element:', this.videoBtn);
         if (!this.videoBtn) return;
         
         const icon = this.videoBtn.querySelector("i");
