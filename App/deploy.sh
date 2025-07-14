@@ -101,19 +101,19 @@ validate_docker_config() {
     print_section "VALIDATING DOCKER CONFIGURATION"
     
     if [ ! -f "docker-compose.yml" ]; then
-        print_error "docker compose.yml not found!"
+        print_error "docker-compose.yml not found!"
         return 1
     fi
     
-    print_success "docker compose.yml found"
+    print_success "docker-compose.yml found"
     
-    if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker compose.yml; then
-        print_success "SOCKET_BIND_HOST correctly configured in docker compose.yml"
+    if grep -q "SOCKET_BIND_HOST=0.0.0.0" docker-compose.yml; then
+        print_success "SOCKET_BIND_HOST correctly configured in docker-compose.yml"
     else
-        print_error "SOCKET_BIND_HOST missing from docker compose.yml socket service"
-        print_info "Adding SOCKET_BIND_HOST to docker compose.yml..."
+        print_error "SOCKET_BIND_HOST missing from docker-compose.yml socket service"
+        print_info "Adding SOCKET_BIND_HOST to docker-compose.yml..."
         
-        print_warning "Please manually add 'SOCKET_BIND_HOST=0.0.0.0' to socket service environment in docker compose.yml"
+        print_warning "Please manually add 'SOCKET_BIND_HOST=0.0.0.0' to socket service environment in docker-compose.yml"
         return 1
     fi
     
@@ -212,7 +212,7 @@ check_services() {
         exit 1
     fi
 
-    if ! command_exists docker compose; then
+    if ! docker compose version >/dev/null 2>&1; then
         print_error "Docker Compose is not installed!"
         exit 1
     fi
@@ -314,7 +314,7 @@ check_services() {
         SOCKET_LOGS=$(docker compose logs socket --tail=10 2>/dev/null || echo "")
         if echo "$SOCKET_LOGS" | grep -q "SOCKET_BIND_HOST.*UNDEFINED"; then
             print_error "Socket server still has SOCKET_BIND_HOST undefined issue!"
-            print_warning "Please check docker compose.yml socket service environment variables"
+            print_warning "Please check docker-compose.yml socket service environment variables"
         elif echo "$SOCKET_LOGS" | grep -q "EADDRINUSE"; then
             print_warning "Socket server port conflict detected"
         elif echo "$SOCKET_LOGS" | grep -q "Socket server running"; then
@@ -1129,7 +1129,7 @@ main() {
 }
 
 if [ ! -f "docker-compose.yml" ]; then
-    print_error "Please run this script from the project root directory (where docker compose.yml is located)"
+    print_error "Please run this script from the project root directory (where docker-compose.yml is located)"
     exit 1
 fi
 
