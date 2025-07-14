@@ -220,6 +220,7 @@ class VoiceCallSection {
         window.addEventListener("streamEnabled", (e) => this.handleStreamEnabled(e));
         window.addEventListener("streamDisabled", (e) => this.handleStreamDisabled(e));
         window.addEventListener("voiceStateChanged", (e) => this.handleVoiceStateChanged(e));
+        window.addEventListener("localVoiceStateChanged", (e) => this.handleLocalVoiceStateChanged(e));
         window.addEventListener("voiceDisconnect", () => this.clearGrid());
         
         window.addEventListener("voiceStateChanged", (e) => this.handleUnifiedVoiceStateChanged(e));
@@ -619,6 +620,13 @@ class VoiceCallSection {
         }
     }
     
+    handleLocalVoiceStateChanged(event) {
+        const { userId, channelId, type, state } = event.detail;
+        if (channelId === this.currentChannelId) {
+            this.updateParticipantVoiceState(userId, type, state);
+        }
+    }
+    
     updateLocalParticipantIndicators() {
         if (!window.voiceManager) return;
         
@@ -644,7 +652,18 @@ class VoiceCallSection {
             userId, type, state
         });
         
-        const participantElement = this.participantElements?.get(userId);
+        let participantElement = this.participantElements?.get(userId);
+        
+        if (!participantElement) {
+            for (const [participantId, element] of this.participantElements.entries()) {
+                const elementUserId = element.getAttribute('data-user-id');
+                if (elementUserId === String(userId)) {
+                    participantElement = element;
+                    break;
+                }
+            }
+        }
+        
         if (!participantElement) {
             console.log(`🔊 [VOICE-CALL-SECTION] Participant element not found for user ${userId}`);
             return;
@@ -711,7 +730,16 @@ class VoiceCallSection {
                     <i class="fas fa-deaf text-white text-xs"></i>
                 </div>
             </div>
-            ` : ''}
+            ` : `
+            <div class="voice-indicators absolute top-2 right-2 flex flex-col gap-1 z-30">
+                <div class="mute-indicator w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hidden">
+                    <i class="fas fa-microphone-slash text-white text-xs"></i>
+                </div>
+                <div class="deafen-indicator w-6 h-6 bg-red-600 rounded-full flex items-center justify-center hidden">
+                    <i class="fas fa-deaf text-white text-xs"></i>
+                </div>
+            </div>
+            `}
             
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
                 <div class="participant-avatar w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative overflow-hidden">

@@ -850,6 +850,18 @@ class VoiceManager {
             detail: { type: 'mic', state: this._micOn }
         }));
         
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        if (currentUserId && this.currentChannelId) {
+            window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                detail: {
+                    userId: currentUserId,
+                    channelId: this.currentChannelId,
+                    type: 'mic',
+                    state: this._micOn
+                }
+            }));
+        }
+        
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();
             window.localStorageManager.setUnifiedVoiceState({
@@ -931,6 +943,18 @@ class VoiceManager {
         window.dispatchEvent(new CustomEvent('voiceStateChanged', {
             detail: { type: 'deafen', state: this._deafened }
         }));
+        
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        if (currentUserId && this.currentChannelId) {
+            window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                detail: {
+                    userId: currentUserId,
+                    channelId: this.currentChannelId,
+                    type: 'deafen',
+                    state: this._deafened
+                }
+            }));
+        }
         
         if (window.localStorageManager) {
             const currentState = window.localStorageManager.getUnifiedVoiceState();

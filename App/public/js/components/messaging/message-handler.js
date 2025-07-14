@@ -83,6 +83,7 @@ class MessageHandler {
         }
         
         this.chatSection.hideEmptyState();
+        this.chatSection.hideChatSkeleton();
         
         const formattedMessage = this.formatMessageForBubble(messageData);
         

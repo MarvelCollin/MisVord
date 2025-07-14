@@ -43,6 +43,7 @@ class ChannelVoiceParticipants {
         window.addEventListener('bot-voice-participant-left', (e) => this.handleBotLeft(e));
         
         window.addEventListener('voiceStateChanged', (e) => this.handleVoiceStateChanged(e));
+        window.addEventListener('localVoiceStateChanged', (e) => this.handleLocalVoiceStateChanged(e));
         
         if (window.globalSocketManager?.io) {
             this.attachSocketEvents();
@@ -73,6 +74,11 @@ class ChannelVoiceParticipants {
     handleVoiceStateChanged(event) {
         const { state, source } = event.detail;
         this.syncWithVoiceState(state);
+    }
+    
+    handleLocalVoiceStateChanged(event) {
+        const { userId, channelId, type, state } = event.detail;
+        this.updateParticipantVoiceState(userId, channelId, type, state);
     }
     
     handleParticipantJoined(event) {
@@ -792,7 +798,18 @@ class ChannelVoiceParticipants {
         }
         
         if (window.voiceCallSection && window.voiceManager?.currentChannelId === channelId) {
-            const participantElement = window.voiceCallSection.participantElements?.get(userId);
+            let participantElement = window.voiceCallSection.participantElements?.get(userId);
+            
+            if (!participantElement) {
+                for (const [participantId, element] of window.voiceCallSection.participantElements.entries()) {
+                    const elementUserId = element.getAttribute('data-user-id');
+                    if (elementUserId === String(userId)) {
+                        participantElement = element;
+                        break;
+                    }
+                }
+            }
+            
             if (participantElement) {
                 if (type === 'mic') {
                     const muteIndicator = participantElement.querySelector('.mute-indicator');

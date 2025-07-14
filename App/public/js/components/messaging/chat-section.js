@@ -2457,43 +2457,40 @@ class ChatSection {
     }
     
     getMessagesContainer() {
+        const realMessagesContainer = document.getElementById('chat-real-content');
+        if (realMessagesContainer) {
+            if (realMessagesContainer.style.display === 'none') {
+                realMessagesContainer.style.display = 'flex';
+            }
+            const skeletonContainer = document.getElementById('chat-skeleton-loading');
+            if (skeletonContainer) {
+                skeletonContainer.style.display = 'none';
+            }
+            return realMessagesContainer;
+        }
+        
         if (!this.chatMessages) {
-            console.warn('⚠️ [CHAT-SECTION] Chat messages element not found, attempting to find it...');
             this.findDOMElements();
-            
             if (!this.chatMessages) {
-                console.error('❌ [CHAT-SECTION] Cannot get messages container: chat messages element still not found after search');
-
-                const fallbackContainer = document.querySelector('.messages-container') ||
-                                        document.querySelector('[data-messages-container]') ||
-                                        document.querySelector('.chat-messages') ||
-                                        document.querySelector('#chat-messages .flex-1');
-                
-                if (fallbackContainer) {
-
-                    return fallbackContainer;
-                }
-                return null;
+                return document.querySelector('.messages-container');
             }
         }
         
-        try {
-
-            const messagesContainer = this.chatMessages.querySelector('.messages-container') ||
-                                    this.chatMessages.querySelector('[data-messages-container]') ||
-                                    this.chatMessages.querySelector('.flex-1') ||
-                                    this.chatMessages.querySelector(':first-child');
-            
-            if (messagesContainer) {
-                return messagesContainer;
-            } else {
-                console.warn('⚠️ [CHAT-SECTION] .messages-container not found inside #chat-messages, returning #chat-messages as fallback');
-                return this.chatMessages;
+        const messagesContainer = this.chatMessages.querySelector('#chat-real-content') ||
+                                this.chatMessages.querySelector('.messages-container');
+        
+        if (messagesContainer) {
+            if (messagesContainer.style.display === 'none') {
+                messagesContainer.style.display = 'flex';
             }
-        } catch (error) {
-            console.error('❌ [CHAT-SECTION] Error accessing chat messages container:', error);
-            return this.chatMessages; 
+            const skeletonContainer = document.getElementById('chat-skeleton-loading');
+            if (skeletonContainer) {
+                skeletonContainer.style.display = 'none';
+            }
+            return messagesContainer;
         }
+        
+        return this.chatMessages;
     }
     
     formatMessageContent(content) {
@@ -2552,25 +2549,15 @@ class ChatSection {
     clearChatMessages() {
 
         
-        const messageContainers = [
-            this.chatMessages,
-            document.querySelector('#chat-messages'),
-            document.querySelector('.chat-messages'),
-            document.querySelector('.message-container'),
-            document.querySelector('[data-message-container]'),
-            document.querySelector('.messages-container')
-        ];
+        const realContentContainer = document.getElementById('chat-real-content');
+        if (realContentContainer) {
+            realContentContainer.innerHTML = '';
+        }
         
-        messageContainers.forEach(container => {
-            if (container) {
-                const messagesContainer = container.querySelector('.messages-container');
-                if (messagesContainer) {
-                    messagesContainer.innerHTML = '';
-                } else {
-                    container.innerHTML = '';
-                }
-            }
-        });
+        const messagesContainer = this.getMessagesContainer();
+        if (messagesContainer && messagesContainer !== realContentContainer) {
+            messagesContainer.innerHTML = '';
+        }
         
         this.userHasScrolled = false;
         this.lastScrollPosition = 0;
@@ -3305,7 +3292,7 @@ class ChatSection {
             }
             
             if (realContent) {
-                realContent.style.display = 'block';
+                realContent.style.display = 'flex';
                 realContent.style.visibility = 'visible';
                 realContent.style.opacity = '1';
                 
