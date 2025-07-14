@@ -24,55 +24,55 @@
 }
 
 #micBtn {
-    background-color: #4f545c !important;
+    background-color: #dc2626 !important;
 }
 
 #micBtn:hover {
-    background-color: #ed4245 !important;
+    background-color: #dc2626 !important;
 }
 
 #micBtn.muted {
-    background-color: #ed4245 !important;
+    background-color: #dc2626 !important;
 }
 
 #videoBtn {
-    background-color: #4f545c !important;
+    background-color: #dc2626 !important;
 }
 
 #videoBtn:hover {
-    background-color: #3ba55c !important;
+    background-color: #dc2626 !important;
 }
 
 #videoBtn.active {
-    background-color: #3ba55c !important;
+    background-color: #16a34a !important;
 }
 
 #deafenBtn {
-    background-color: #4f545c !important;
+    background-color: #16a34a !important;
 }
 
 #deafenBtn:hover {
-    background-color: #ed4245 !important;
+    background-color: #dc2626 !important;
 }
 
 #deafenBtn.deafened {
-    background-color: #ed4245 !important;
+    background-color: #dc2626 !important;
 }
 
 #screenBtn {
-    background-color: #4f545c !important;
+    background-color: #dc2626 !important;
 }
 
 #screenBtn:hover {
-    background-color: #5865f2 !important;
+    background-color: #dc2626 !important;
 }
 
 #screenBtn.screen-sharing {
-    background-color: #5865f2 !important;
+    background-color: #16a34a !important;
 }
 
 #ticTacToeBtn {
-    background-color: #4f545c !important;
+    background-color: #dc2626 !important;
 }
 
 #ticTacToeBtn:hover {
@@ -589,7 +589,7 @@
         min-width: 48px !important;
         min-height: 48px !important;
         border-radius: 50% !important;
-        background-color: #4f545c !important;
+        background-color: #dc2626 !important;
         color: white !important;
         border: none !important;
         display: flex !important;
@@ -658,7 +658,7 @@
     align-items: center !important;
     justify-content: center !important;
     transition: all 0.15s ease !important;
-    background-color: #4f545c !important;
+    background-color: #dc2626 !important;
     color: white !important;
 }
 
@@ -667,7 +667,7 @@
 }
 
 .voice-control-btn.active {
-    background-color: #3ba55c !important;
+    background-color: #16a34a !important;
 }
 
 .voice-control-btn.muted {
@@ -679,24 +679,24 @@
 }
 
 .voice-control-btn.screen-sharing {
-    background-color: #5865f2 !important;
+    background-color: #16a34a !important;
 }
 
 
 .voice-control-btn.mic-btn:hover:not(.muted) {
-    background-color: #ed4245 !important;
+    background-color: #dc2626 !important;
 }
 
 .voice-control-btn.video-btn:hover:not(.active) {
-    background-color: #3ba55c !important;
+    background-color: #dc2626 !important;
 }
 
 .voice-control-btn.deafen-btn:hover:not(.deafened) {
-    background-color: #ed4245 !important;
+    background-color: #dc2626 !important;
 }
 
 .voice-control-btn.screen-btn:hover:not(.screen-sharing) {
-    background-color: #5865f2 !important;
+    background-color: #dc2626 !important;
 }
 
 .voice-control-btn.tic-tac-toe-btn:hover {

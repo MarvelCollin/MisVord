@@ -1,6 +1,32 @@
+import { showToast } from '../../core/ui/toast.js';
+
 class SendReceiveHandler {
     constructor(chatSection) {
         this.chatSection = chatSection;
+    }
+
+    detectSQLInjection(content) {
+        const sqlPatterns = [
+            /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|EXEC|EXECUTE)\b)/i,
+            /(UNION\s+(ALL\s+)?SELECT)/i,
+            /(\'\s*(OR|AND)\s*\'\s*=\s*\')/i,
+            /(\'\s*(OR|AND)\s*1\s*=\s*1)/i,
+            /(--|\#|\/\*|\*\/)/,
+            /(\bOR\s+1\s*=\s*1\b)/i,
+            /(\bAND\s+1\s*=\s*1\b)/i,
+            /(\'\s*;\s*(DROP|DELETE|INSERT|UPDATE))/i,
+            /(INFORMATION_SCHEMA)/i,
+            /(SYSOBJECTS|SYSCOLUMNS)/i,
+            /(\bxp_cmdshell\b)/i,
+            /(\bsp_executesql\b)/i
+        ];
+
+        for (let pattern of sqlPatterns) {
+            if (pattern.test(content)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     async sendMessage() {
@@ -36,6 +62,16 @@ class SendReceiveHandler {
         }
         
         content = content.trim();
+
+        if (this.detectSQLInjection(content)) {
+            showToast('Bang ngapain bang jangan di sql injection', 'warning', 5000);
+            this.chatSection.messageInput.value = '';
+            if (this.chatSection.messageInput.getAttribute('contenteditable') === 'true') {
+                this.chatSection.messageInput.textContent = '';
+                this.chatSection.messageInput.innerHTML = '';
+            }
+            return;
+        }
 
         
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
@@ -82,6 +118,10 @@ class SendReceiveHandler {
                     options.mentions = mentions;
 
                 }
+            }
+            
+            if (this.detectSQLInjection(content)) {
+                throw new Error('Potential SQL injection detected in the message content');
             }
             
             await this.sendDirectOrChannelMessage(content, options);

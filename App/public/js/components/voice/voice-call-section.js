@@ -64,11 +64,11 @@ class VoiceCallSection {
 
     setButtonBackgroundColor(btn, btnId) {
         const colorMap = {
-            'micBtn': '#4f545c',
-            'videoBtn': '#4f545c', 
-            'deafenBtn': '#4f545c',
-            'screenBtn': '#4f545c',
-            'ticTacToeBtn': '#4f545c',
+            'micBtn': '#dc2626',
+            'videoBtn': '#dc2626', 
+            'deafenBtn': '#16a34a',
+            'screenBtn': '#dc2626',
+            'ticTacToeBtn': '#dc2626',
             'disconnectBtn': '#ed4245'
         };
 
@@ -78,10 +78,10 @@ class VoiceCallSection {
 
         btn.addEventListener('mouseenter', () => {
             const hoverColors = {
-                'micBtn': '#ed4245',
-                'videoBtn': '#3ba55c',
-                'deafenBtn': '#ed4245', 
-                'screenBtn': '#5865f2',
+                'micBtn': '#dc2626',
+                'videoBtn': '#dc2626',
+                'deafenBtn': '#dc2626', 
+                'screenBtn': '#dc2626',
                 'ticTacToeBtn': '#8b5cf6',
                 'disconnectBtn': '#da373c'
             };
@@ -1078,14 +1078,14 @@ class VoiceCallSection {
         const icon = this.micBtn.querySelector("i");
         if (!icon) return; 
         
-        this.micBtn.classList.remove("muted", "bg-[#ed4245]", "bg-[#4f545c]");
+        this.micBtn.classList.remove("muted", "bg-[#ed4245]", "bg-[#4f545c]", "bg-green-600", "bg-red-600");
         
         if (isOn) {
             icon.className = "fas fa-microphone text-sm";
-            this.micBtn.classList.add("bg-[#4f545c]");
+            this.micBtn.classList.add("bg-green-600");
         } else {
             icon.className = "fas fa-microphone-slash text-sm";
-            this.micBtn.classList.add("bg-[#ed4245]", "muted");
+            this.micBtn.classList.add("bg-red-600", "muted");
         }
     }
     
@@ -1095,14 +1095,14 @@ class VoiceCallSection {
         const icon = this.videoBtn.querySelector("i");
         if (!icon) return; 
         
+        this.videoBtn.classList.remove("bg-[#4f545c]", "bg-[#3ba55c]", "bg-green-600", "bg-red-600");
+        
         if (isOn) {
             icon.className = "fas fa-video text-sm";
-            this.videoBtn.classList.remove("bg-[#4f545c]");
-            this.videoBtn.classList.add("bg-[#3ba55c]");
+            this.videoBtn.classList.add("bg-green-600");
         } else {
             icon.className = "fas fa-video-slash text-sm";
-            this.videoBtn.classList.remove("bg-[#3ba55c]");
-            this.videoBtn.classList.add("bg-[#4f545c]");
+            this.videoBtn.classList.add("bg-red-600");
         }
     }
     
@@ -1112,14 +1112,14 @@ class VoiceCallSection {
         const icon = this.deafenBtn.querySelector("i");
         if (!icon) return; 
         
-        this.deafenBtn.classList.remove("deafened", "bg-[#ed4245]", "bg-[#4f545c]");
+        this.deafenBtn.classList.remove("deafened", "bg-[#ed4245]", "bg-[#4f545c]", "bg-green-600", "bg-red-600");
         
         if (isOn) {
             icon.className = "fas fa-deaf text-sm";
-            this.deafenBtn.classList.add("bg-[#ed4245]", "deafened");
+            this.deafenBtn.classList.add("bg-red-600", "deafened");
         } else {
             icon.className = "fas fa-headphones text-sm";
-            this.deafenBtn.classList.add("bg-[#4f545c]");
+            this.deafenBtn.classList.add("bg-green-600");
         }
     }
     
@@ -1129,15 +1129,16 @@ class VoiceCallSection {
         const icon = this.screenBtn.querySelector("i");
         if (!icon) return; 
         
+        this.screenBtn.classList.remove("bg-[#4f545c]", "bg-[#5865f2]", "bg-green-600", "bg-red-600");
+        
         if (isOn) {
             icon.className = "fas fa-stop text-sm";
-            this.screenBtn.classList.remove("bg-[#4f545c]");
-            this.screenBtn.classList.add("bg-[#5865f2]");
+            this.screenBtn.classList.add("bg-green-600");
         } else {
             icon.className = "fas fa-desktop text-sm";
-            this.screenBtn.classList.remove("bg-[#5865f2]");
-            this.screenBtn.classList.add("bg-[#4f545c]");
+            this.screenBtn.classList.add("bg-red-600");
         }
+    }
     }
     
     openTicTacToe() {

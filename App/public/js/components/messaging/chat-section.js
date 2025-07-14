@@ -3227,7 +3227,7 @@ class ChatSection {
         if (isOwnMessage) {
             this.sentMessageCount++;
             
-            if (this.sentMessageCount <= 3) {
+            if (this.sentMessageCount <= 6) {
                 return;
             }
             

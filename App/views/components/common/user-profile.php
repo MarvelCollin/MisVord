@@ -318,14 +318,14 @@ class UserProfileVoiceControls {
             return;
         }
         
+        this.micBtn.classList.remove('text-[#ed4245]', 'text-discord-lighter', 'bg-green-600', 'bg-red-600');
+        
         if (state.isMuted || state.isDeafened) {
             micIcon.className = 'fas fa-microphone-slash text-lg';
-            this.micBtn.classList.add('text-[#ed4245]');
-            this.micBtn.classList.remove('text-discord-lighter');
+            this.micBtn.classList.add('bg-red-600', 'text-white');
         } else {
             micIcon.className = 'fas fa-microphone text-lg';
-            this.micBtn.classList.remove('text-[#ed4245]');
-            this.micBtn.classList.add('text-discord-lighter');
+            this.micBtn.classList.add('bg-green-600', 'text-white');
         }
     }
     
@@ -339,14 +339,14 @@ class UserProfileVoiceControls {
             return;
         }
         
+        this.deafenBtn.classList.remove('text-[#ed4245]', 'text-discord-lighter', 'bg-green-600', 'bg-red-600');
+        
         if (state.isDeafened) {
             deafenIcon.className = 'fas fa-volume-xmark text-lg';
-            this.deafenBtn.classList.add('text-[#ed4245]');
-            this.deafenBtn.classList.remove('text-discord-lighter');
+            this.deafenBtn.classList.add('bg-red-600', 'text-white');
         } else {
             deafenIcon.className = 'fas fa-headphones text-lg';
-            this.deafenBtn.classList.remove('text-[#ed4245]');
-            this.deafenBtn.classList.add('text-discord-lighter');
+            this.deafenBtn.classList.add('bg-green-600', 'text-white');
         }
     }
     
