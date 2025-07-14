@@ -214,12 +214,14 @@ if (!function_exists('renderMessage')) {
 }
 
 #chat-messages .messages-container {
+    padding: 0;
+}
+
+#chat-messages .messages-container:not(:empty) {
     padding: 16px 0;
 }
 
 .chat-skeleton-container {
-    height: 100vh !important;
-    min-height: 100vh !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
@@ -856,7 +858,7 @@ if (!function_exists('renderMessage')) {
             </div>
         </div>
         
-        <div class="messages-container flex flex-col min-h-full" id="chat-real-content" style="display: none;">
+        <div class="messages-container flex flex-col" id="chat-real-content" style="display: none;">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;

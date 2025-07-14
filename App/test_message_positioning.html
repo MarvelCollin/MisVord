@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Message Positioning Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chat-messages { 
+            height: 300px; 
+            border: 1px solid #ccc; 
+            overflow-y: auto; 
+            background: #313338;
+        }
+        #chat-skeleton-loading { 
+            display: block; 
+            padding: 20px; 
+            text-align: center; 
+            color: #666; 
+        }
+        .messages-container { 
+            display: none; 
+            flex-direction: column; 
+            min-height: 100%; 
+            padding: 10px;
+        }
+        .bubble-message-group { 
+            margin: 5px 0; 
+            padding: 5px; 
+            background: #404249; 
+            border-radius: 5px; 
+            color: white;
+        }
+        button { 
+            margin: 10px 5px; 
+            padding: 10px 15px; 
+            background: #5865f2; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+    </style>
+</head>
+<body>
+    <h2>Message Positioning Test</h2>
+    <p>This test verifies that messages are added to the correct container at the bottom.</p>
+    
+    <div id="chat-messages" class="flex-1 overflow-y-auto overflow-x-hidden">
+        <div id="chat-skeleton-loading" class="chat-skeleton-container">
+            Loading skeleton...
+        </div>
+        
+        <div class="messages-container flex flex-col min-h-full" id="chat-real-content" style="display: none;">
+            <!-- Messages will be added here -->
+        </div>
+    </div>
+    
+    <button onclick="addMessage()">Add Message</button>
+    <button onclick="testGetContainer()">Test Get Container</button>
+    <button onclick="clearMessages()">Clear Messages</button>
+    
+    <div id="log" style="margin-top: 20px; padding: 10px; background: #f0f0f0; height: 200px; overflow-y: auto;"></div>
+
+    <script>
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function getMessagesContainer() {
+            const realMessagesContainer = document.getElementById('chat-real-content');
+            if (realMessagesContainer) {
+                if (realMessagesContainer.style.display === 'none') {
+                    realMessagesContainer.style.display = 'flex';
+                    log('✅ Set real container display to flex');
+                }
+                const skeletonContainer = document.getElementById('chat-skeleton-loading');
+                if (skeletonContainer) {
+                    skeletonContainer.style.display = 'none';
+                    log('✅ Hidden skeleton container');
+                }
+                return realMessagesContainer;
+            }
+            
+            log('❌ Real messages container not found');
+            return document.querySelector('.messages-container');
+        }
+
+        function addMessage() {
+            const container = getMessagesContainer();
+            if (!container) {
+                log('❌ No container found');
+                return;
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'bubble-message-group';
+            messageDiv.innerHTML = `Message ${container.children.length + 1} - ${new Date().toLocaleTimeString()}`;
+            
+            container.appendChild(messageDiv);
+            log('✅ Added message to container. Total messages: ' + container.children.length);
+            
+            // Scroll to bottom
+            document.getElementById('chat-messages').scrollTop = document.getElementById('chat-messages').scrollHeight;
+        }
+
+        function testGetContainer() {
+            const container = getMessagesContainer();
+            log('Container ID: ' + (container ? container.id : 'null'));
+            log('Container classes: ' + (container ? container.className : 'null'));
+            log('Container display: ' + (container ? container.style.display : 'null'));
+            log('Container children count: ' + (container ? container.children.length : 0));
+        }
+
+        function clearMessages() {
+            const container = getMessagesContainer();
+            if (container) {
+                container.innerHTML = '';
+                log('✅ Cleared messages');
+            }
+        }
+
+        // Initial test
+        log('🚀 Test page loaded');
+        testGetContainer();
+    </script>
+</body>
+</html>

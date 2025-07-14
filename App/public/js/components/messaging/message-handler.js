@@ -4,7 +4,8 @@ class MessageHandler {
         this.processedMessageIds = new Set();
         this.lastMessageGroup = null;
         this.messageGroupTimeThreshold = 5 * 60 * 1000; 
-        this.temporaryMessages = new Map(); 
+        this.temporaryMessages = new Map();
+        this.isFirstTimeLoad = true;
     }
     
     async addMessage(messageData) {
@@ -120,7 +121,10 @@ class MessageHandler {
         }
         
         const isOwnMessage = (messageData.user_id || messageData.userId) == this.chatSection.userId;
-        this.chatSection.handleNewMessageScroll(isOwnMessage);
+        
+        if (!this.isFirstTimeLoad || isTemporary || isOwnMessage) {
+            this.chatSection.handleNewMessageScroll(isOwnMessage);
+        }
         
 
     }
@@ -227,7 +231,10 @@ class MessageHandler {
         
         this.processedMessageIds.add(formattedMessage.id);
         const isOwnMessage = (formattedMessage.user_id || formattedMessage.userId) == this.chatSection.userId;
-        this.chatSection.handleNewMessageScroll(isOwnMessage);
+        
+        if (!this.isFirstTimeLoad || isTemporary || isOwnMessage) {
+            this.chatSection.handleNewMessageScroll(isOwnMessage);
+        }
         
 
     }
@@ -872,7 +879,7 @@ class MessageHandler {
         this.processedMessageIds.clear();
         this.temporaryMessages.clear();
         this.lastMessageGroup = null;
-
+        this.isFirstTimeLoad = true;
     }
     
     removeMessage(messageId) {
@@ -990,6 +997,7 @@ class MessageHandler {
                 if (typeof window.processMentionCandidates === 'function') {
                     setTimeout(() => window.processMentionCandidates(), 100);
                 }
+                this.isFirstTimeLoad = false;
                 resolve();
             });
         });

@@ -288,18 +288,24 @@ class VoiceManager {
                 }
             });
             
+            this._micOn = true;
+            
             this.setupMeetingEvents();
             await this.meeting.join();
             
             this.isConnected = true;
             this.currentMeetingId = meetingId;
             
+            this.syncChannelWithUnifiedState();
+            
             this.updateUnifiedVoiceState({
                 isConnected: true,
                 channelId: channelId,
                 channelName: channelName,
                 meetingId: meetingId,
-                connectionTime: Date.now()
+                connectionTime: Date.now(),
+                isMuted: !this._micOn,
+                isDeafened: this._deafened
             });
             
             this.updatePresence();
@@ -309,6 +315,26 @@ class VoiceManager {
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { channelId, channelName, meetingId, skipJoinSound }
             }));
+            
+            if (currentUserId) {
+                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                    detail: {
+                        userId: currentUserId,
+                        channelId: channelId,
+                        type: 'mic',
+                        state: this._micOn
+                    }
+                }));
+                
+                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                    detail: {
+                        userId: currentUserId,
+                        channelId: channelId,
+                        type: 'deafen',
+                        state: this._deafened
+                    }
+                }));
+            }
             
             if (!skipJoinSound && window.MusicLoaderStatic) {
                 window.MusicLoaderStatic.playJoinVoiceSound();

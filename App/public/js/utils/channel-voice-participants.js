@@ -387,6 +387,12 @@ class ChannelVoiceParticipants {
         if (!skipSidebarRefresh) {
             setTimeout(() => {
                 this.updateSidebarForChannel(channelId);
+                
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+                if (currentUserId && window.voiceManager) {
+                    this.updateParticipantVoiceState(currentUserId, channelId, 'mic', window.voiceManager.getMicState());
+                    this.updateParticipantVoiceState(currentUserId, channelId, 'deafen', window.voiceManager.getDeafenState());
+                }
             }, 1500);
         } else {
             this.ensureParticipantsVisible(channelId);
@@ -787,12 +793,28 @@ class ChannelVoiceParticipants {
             if (muteIndicator) {
                 const isMuted = !state;
                 muteIndicator.classList.toggle('hidden', !isMuted);
+                
+                muteIndicator.classList.remove('bg-red-600', 'bg-green-600');
+                if (isMuted) {
+                    muteIndicator.classList.add('bg-red-600');
+                } else {
+                    muteIndicator.classList.add('bg-green-600');
+                }
+                
                 console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
             }
         } else if (type === 'deafen') {
             const deafenIndicator = participantCard.querySelector('.deafen-indicator');
             if (deafenIndicator) {
                 deafenIndicator.classList.toggle('hidden', !state);
+                
+                deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
+                if (state) {
+                    deafenIndicator.classList.add('bg-red-600');
+                } else {
+                    deafenIndicator.classList.add('bg-green-600');
+                }
+                
                 console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
             }
         }
@@ -816,12 +838,28 @@ class ChannelVoiceParticipants {
                     if (muteIndicator) {
                         const isMuted = !state;
                         muteIndicator.classList.toggle('hidden', !isMuted);
+                        
+                        muteIndicator.classList.remove('bg-red-500', 'bg-green-500');
+                        if (isMuted) {
+                            muteIndicator.classList.add('bg-red-500');
+                        } else {
+                            muteIndicator.classList.add('bg-green-500');
+                        }
+                        
                         console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
                     }
                 } else if (type === 'deafen') {
                     const deafenIndicator = participantElement.querySelector('.deafen-indicator');
                     if (deafenIndicator) {
                         deafenIndicator.classList.toggle('hidden', !state);
+                        
+                        deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
+                        if (state) {
+                            deafenIndicator.classList.add('bg-red-600');
+                        } else {
+                            deafenIndicator.classList.add('bg-green-600');
+                        }
+                        
                         console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
                     }
                 }

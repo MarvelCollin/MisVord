@@ -187,6 +187,7 @@ class ChatSection {
             this.socketListenersSetup = false;
             this.channelSwitchManager = null;
             this.lastJoinedRoom = null;
+            this.sentMessageCount = 0;
             
             this.currentServerName = options.serverName || null;
             this.currentServerIcon = options.serverIcon || null;
@@ -1354,7 +1355,7 @@ class ChatSection {
         if (!this.emptyStateContainer) {
             this.emptyStateContainer = document.createElement('div');
             this.emptyStateContainer.id = 'empty-state-container';
-            this.emptyStateContainer.className = 'flex flex-col items-center justify-center min-h-[400px] text-[#dcddde] p-8';
+            this.emptyStateContainer.className = 'flex flex-col items-center justify-center text-[#dcddde] p-8';
             this.emptyStateContainer.style.cssText = 'display: flex !important; visibility: visible !important;';
             
             try {
@@ -2559,8 +2560,13 @@ class ChatSection {
             messagesContainer.innerHTML = '';
         }
         
+        if (this.chatMessages) {
+            this.chatMessages.scrollTop = 0;
+        }
+        
         this.userHasScrolled = false;
         this.lastScrollPosition = 0;
+        this.sentMessageCount = 0;
         
         if (this.emptyStateContainer) {
             this.emptyStateContainer.remove();
@@ -3218,19 +3224,22 @@ class ChatSection {
     handleNewMessageScroll(isOwnMessage = false) {
         if (!this.chatMessages) return;
         
-
         if (isOwnMessage) {
+            this.sentMessageCount++;
+            
+            if (this.sentMessageCount <= 3) {
+                return;
+            }
+            
             this.scrollToBottom();
             return;
         }
         
-
         if (!this.userHasScrolled) {
             this.scrollToBottom();
             return;
         }
         
-
         const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
         const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; 
         
@@ -3296,7 +3305,7 @@ class ChatSection {
                 realContent.style.visibility = 'visible';
                 realContent.style.opacity = '1';
                 
-                if (chatMessages) {
+                if (chatMessages && realContent.children.length > 0) {
                     const originalScrollBehavior = chatMessages.style.scrollBehavior;
                     chatMessages.style.scrollBehavior = 'auto';
                     
