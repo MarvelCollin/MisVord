@@ -430,16 +430,35 @@
   transform: translateY(0);
 }
 
+.explore-server-icon-small > div {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 .explore-server-icon-small img,
-.explore-server-icon-small div {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.explore-server-icon-small div {  
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
   border-radius: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.explore-server-icon-small .server-icon {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: inherit !important;
+}
+
+.explore-server-icon-small img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
 }
 
 .explore-server-card:hover .explore-server-icon-small {

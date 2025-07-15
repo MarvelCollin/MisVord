@@ -18,7 +18,7 @@ function renderServerCard($server, $userServerId, $isFeatured = false) {
         </div>
 
         <div class="relative px-5 pt-5 pb-5">
-            <div class="explore-server-icon-small server-icon-small absolute -top-8 left-5 w-16 h-16">
+            <div class="explore-server-icon-small server-icon-small absolute -top-8 left-5">
                 <div class="w-full h-full rounded-xl bg-discord-dark p-1 shadow-xl relative overflow-hidden">
                     <?php if (!empty($server['image_url'])): ?>
                         <img src="<?php echo htmlspecialchars($server['image_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover rounded-lg server-icon">

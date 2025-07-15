@@ -696,7 +696,7 @@ function createServerCardElement(server) {
             </div>
 
             <div class="relative px-5 pt-5 pb-5">
-                <div class="explore-server-icon-small server-icon-small absolute -top-8 left-5 w-16 h-16">
+                <div class="explore-server-icon-small server-icon-small absolute -top-8 left-5">
                     <div class="w-full h-full rounded-xl bg-discord-dark p-1 shadow-xl relative overflow-hidden">
                         <img src="${iconUrl}" alt="${server.name}" class="w-full h-full object-cover rounded-lg server-icon">
                         <div class="absolute inset-0 ring-2 ring-white/20 rounded-lg"></div>
