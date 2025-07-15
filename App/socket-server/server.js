@@ -119,8 +119,8 @@ async function initializeTitiBot() {
         const BotHandler = require('./handlers/botHandler');
         
 
-        await BotHandler.registerBot('7', 'titibot');
-        BotHandler.connectBot(io, '7', 'titibot');
+        await BotHandler.registerBot('4', 'titibot');
+        BotHandler.connectBot(io, '4', 'titibot');
         
         
         return true;

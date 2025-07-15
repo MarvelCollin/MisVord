@@ -1655,27 +1655,66 @@ class ChatController extends BaseController
     {
         header('Content-Type: application/json');
 
+        error_log("Bot message save - all headers: " . json_encode([
+            'HTTP_X_SOCKET_USER_ID' => $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? 'NOT_SET',
+            'HTTP_X_SOCKET_USERNAME' => $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? 'NOT_SET',
+            'request_method' => $_SERVER['REQUEST_METHOD'] ?? 'UNKNOWN',
+            'content_type' => $_SERVER['CONTENT_TYPE'] ?? 'UNKNOWN',
+            'raw_input' => substr(file_get_contents('php://input'), 0, 200)
+        ]));
+
+        $socketUserId = $_SERVER['HTTP_X_SOCKET_USER_ID'] ?? null;
+        $socketUsername = $_SERVER['HTTP_X_SOCKET_USERNAME'] ?? null;
+
+        if ($socketUserId && $socketUsername) {
+            $userId = $socketUserId;
+            $username = $socketUsername;
+
+            error_log("Bot authentication via headers: User $userId ($username)");
+
+            $query = new Query();
+            $allUsers = $query->table('users')->get();
+            error_log("All users in database: " . json_encode(array_map(function($user) {
+                return ['id' => $user->id, 'username' => $user->username, 'status' => $user->status];
+            }, $allUsers)));
+
+            $botUser = $query->table('users')
+                ->where('id', $userId)
+                ->first();
+
+            if (!$botUser) {
+                error_log("Bot user not found in database: User ID $userId");
+                return $this->unauthorized("Bot user not found: User ID $userId");
+            }
+
+            error_log("Found user: ID $userId, username: {$botUser->username}, status: {$botUser->status}");
+
+            if ($botUser->status !== 'bot') {
+                error_log("User is not a bot: User ID $userId, status: " . $botUser->status);
+                
+                if ($botUser->username === 'titibot' || $username === 'titibot') {
+                    error_log("Updating titibot status to 'bot' for user ID $userId");
+                    $query->table('users')
+                        ->where('id', $userId)
+                        ->update(['status' => 'bot']);
+                    error_log("Successfully updated titibot status to 'bot'");
+                } else {
+                    return $this->unauthorized("User is not a bot: User ID $userId, status: " . $botUser->status);
+                }
+            }
+
+            error_log("Bot authentication successful: User $userId ($username), status: " . $botUser->status);
+        } else {
+            error_log("Bot authentication headers missing: socketUserId=$socketUserId, socketUsername=$socketUsername");
+            return $this->unauthorized('Bot authentication headers missing');
+        }
+
         $input = $this->getInput();
         if (!$input) {
             return $this->error('No input provided or failed to decode JSON', 400);
         }
 
         $input = $this->sanitize($input);
-
-        $userId = $input['user_id'] ?? null;
-        if (!$userId) {
-            return $this->error('User ID is required', 400);
-        }
-
-        $query = new Query();
-        $botUser = $query->table('users')
-            ->where('id', $userId)
-            ->where('status', 'bot')
-            ->first();
-
-        if (!$botUser) {
-            return $this->unauthorized('Invalid bot user');
-        }
 
         $validationErrors = [];
         if (empty($input['target_type'])) {
