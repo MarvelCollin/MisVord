@@ -1864,6 +1864,7 @@ Route::post('/debug', function() {
 });
 
 return array_merge(Route::getRoutes(), [
-    '404' => 'pages/404.php'
+    '404' => 'pages/404.php',
+    '/404' => ['controller' => 'HomeController', 'method' => 'notFound'],
 ]);
 

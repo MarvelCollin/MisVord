@@ -248,4 +248,16 @@ class HomeController extends BaseController
             ];
         }
     }
+
+    public function notFound($message = 'Resource not found') {
+        $error_code = $_GET['code'] ?? 404;
+        
+        if ($error_code == 403) {
+            http_response_code(403);
+        } else {
+            http_response_code(404);
+        }
+        
+        include __DIR__ . '/../views/pages/404.php';
+    }
 }

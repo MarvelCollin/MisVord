@@ -6,9 +6,6 @@ class ScrambleText {
     this.sparkleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     this.elements = [];
     this.isInitialized = false;
-    this.activeIntervals = new Set();
-    this.activeTimeouts = new Set();
-    this.isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     this.init();
   }
@@ -52,7 +49,6 @@ class ScrambleText {
 
   createCharacterSpans(text, container) {
     const spans = [];
-    const fragment = document.createDocumentFragment();
 
     for (let i = 0; i < text.length; i++) {
       const char = text[i];
@@ -65,9 +61,11 @@ class ScrambleText {
       span.style.cssText = `
             display: inline-block;
             position: relative;
-            opacity: 0;
-            transform: translateY(20px) scale(0.8);
-            will-change: transform, opacity;
+            opacity: 0;                transform: translateY(20px) scale(0.8);
+            transition: all 1.2s cubic-bezier(0.23, 1, 0.32, 1);
+            will-change: transform, opacity, color, text-shadow;
+            text-shadow: 0 0 10px transparent;
+            color: transparent;
         `;
 
       if (char === " ") {
@@ -79,11 +77,10 @@ class ScrambleText {
         span.textContent = char;
       }
 
-      fragment.appendChild(span);
+      container.appendChild(span);
       spans.push(span);
     }
-    
-    container.appendChild(fragment);
+
     return spans;
   }
 
@@ -121,17 +118,13 @@ class ScrambleText {
 
   animateCharacter(span, index, scrambleDuration, scrambleInterval) {
     let scrambleCount = 0;
-    const maxScrambles = Math.min(scrambleDuration / scrambleInterval, 15);
-    let animationFrame;
+    const maxScrambles = scrambleDuration / scrambleInterval;
 
     const scrambleLoop = () => {
       if (scrambleCount < maxScrambles) {
         this.scrambleCharacter(span, scrambleCount);
         scrambleCount++;
-        animationFrame = requestAnimationFrame(() => {
-          const timeout = setTimeout(scrambleLoop, scrambleInterval);
-          this.activeTimeouts.add(timeout);
-        });
+        setTimeout(scrambleLoop, scrambleInterval);
       } else {
         this.revealCharacter(span, index);
       }
@@ -144,92 +137,116 @@ class ScrambleText {
 
     span.textContent = char;
     span.classList.add("revealed");
-    span.style.cssText += `
-      opacity: 1;
-      color: #FFFFFF;
-      transform: translateY(0) scale(1);
-      transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-    `;
+    span.style.opacity = "1";
+    span.style.color = "#FFFFFF";
+    span.style.transform = "translateY(0) scale(1)";
+    span.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.3)";
 
-    if (!this.isReducedMotion && Math.random() < 0.7) {
-      this.createOptimizedSparkle(span);
-    }
+    this.createSparkleEffect(span);
   }
   scrambleCharacter(span, scrambleCount) {
-    const intensity = Math.min(scrambleCount / 8, 1);
-    const isGlitch = Math.random() < 0.1;
+    const intensity = Math.min(scrambleCount / 10, 1);
+    const isGlitch = Math.random() < 0.15 + intensity * 0.1;
+    const isPulse = Math.random() < 0.3;
     const charSet = isGlitch ? this.glitchChars : this.chars;
     const randomChar = charSet[Math.floor(Math.random() * charSet.length)];
-    
     span.textContent = randomChar;
 
-    const baseOpacity = 0.7 + intensity * 0.3;
-    span.style.opacity = baseOpacity;
+    const baseOpacity = 0.8 + intensity * 0.2;
+    span.style.opacity = isPulse ? baseOpacity * 0.7 : baseOpacity;
 
+    let color;
     if (isGlitch) {
-      span.style.color = `hsl(${330 + Math.random() * 30}, 70%, 60%)`;
+      color = `hsl(${330 + Math.random() * 30}, 80%, ${
+        50 + Math.random() * 20
+      }%)`;
     } else {
-      span.style.color = `hsl(${235 + Math.random() * 25}, 70%, 65%)`;
+      color = `hsl(${235 + Math.random() * 25}, 80%, ${
+        60 + Math.random() * 20
+      }%)`;
     }
+    span.style.color = color;
 
-    const moveRange = 1 + intensity;
+    const moveRange = 2 + intensity * 2;
+    const scaleRange = 0.05 + intensity * 0.05;
+    const rotateRange = 2 + intensity * 3;
+
     span.style.transform = `
         translateY(${Math.random() * moveRange - moveRange / 2}px) 
         translateX(${(Math.random() * moveRange) / 2 - moveRange / 4}px) 
-        scale(${0.95 + Math.random() * 0.1})
+        scale(${0.95 + Math.random() * scaleRange})
+        rotate(${Math.random() * rotateRange - rotateRange / 2}deg)
     `;
 
-    if (!this.isReducedMotion && Math.random() < 0.05) {
-      this.createOptimizedSpark(span);
-    }
-  }
+    const glowIntensity = 0.3 + intensity * 0.4;
+    const pulseGlow = isPulse ? glowIntensity * 1.5 : glowIntensity;
 
+    span.style.textShadow = `
+        0 0 ${8 + intensity * 10}px ${color
+      .replace("hsl", "hsla")
+      .replace(")", `, ${pulseGlow})`)},
+        0 0 ${15 + intensity * 15}px ${color
+      .replace("hsl", "hsla")
+      .replace(")", `, ${pulseGlow * 0.6})`)},
+        0 0 ${25 + intensity * 20}px ${color
+      .replace("hsl", "hsla")
+      .replace(")", `, ${pulseGlow * 0.3})`)}
+    `;
+
+    if (Math.random() < 0.1 + intensity * 0.1) {
+      this.createScrambleSpark(span);
+    }
+    const easingTypes = [
+      "ease-out",
+      "ease-in-out",
+      "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+    ];
+    const randomEasing =
+      easingTypes[Math.floor(Math.random() * easingTypes.length)];
+    span.style.transition = `all 0.1s ${randomEasing}`;
+  }
   completeAnimation(elementData) {
     const { spans, element } = elementData;
     elementData.isAnimating = false;
     elementData.completed = true;
 
-    if (!this.isReducedMotion) {
-      this.addFinalGlowPulse(element);
-    }
+    this.addFinalGlowPulse(element);
 
     spans.forEach((span, index) => {
-      if (!span.classList.contains("space") && span.classList.contains("revealed")) {
-        const timeout = setTimeout(() => {
-          span.classList.add("floating");
-          if (!this.isReducedMotion) {
-            this.addOptimizedCelebration(span, index);
-          }
-        }, index * 50);
-        this.activeTimeouts.add(timeout);
+      if (
+        !span.classList.contains("space") &&
+        span.classList.contains("revealed")
+      ) {
+        setTimeout(() => {
+          span.classList.add("floating", "breathing", "shimmer");
+
+          this.addCharacterCelebration(span, index);
+
+          this.startContinuousEffects(span, index);
+        }, index * 100);
       }
     });
 
-    const timeout = setTimeout(() => {
+    setTimeout(() => {
       this.setupInteractiveEffects(elementData);
-      if (!this.isReducedMotion) {
-        this.startOptimizedAmbientEffects(elementData);
-        this.startWaveAnimation(element);
-      }
-    }, 300);
-    this.activeTimeouts.add(timeout);
+      this.startAmbientEffects(elementData);
+      this.startFloatingParticles(element);
+      this.startWaveAnimation(element);
+    }, 500);
   }
 
   startWaveAnimation(element) {
     if (element.classList.contains('hero-title')) {
-      const timeout = setTimeout(() => {
+      setTimeout(() => {
         element.classList.add('wave-active');
         element.classList.add('animate-float-title');
-        if (!this.isReducedMotion) {
-          element.classList.add('glow-active');
-          this.addOptimizedTitleEffects(element);
-        }
+        element.classList.add('glow-active');
+        this.addEnhancedTitleEffects(element);
       }, 200);
-      this.activeTimeouts.add(timeout);
     }
   }
 
-  addOptimizedTitleEffects(element) {
+  addEnhancedTitleEffects(element) {
     const spans = element.querySelectorAll('.scramble-char');
     
     spans.forEach((span, index) => {
@@ -239,17 +256,20 @@ class ScrambleText {
       }
     });
 
-    if (!this.isReducedMotion) {
-      const sparkleInterval = setInterval(() => {
-        if (Math.random() < 0.2) {
-          this.addOptimizedTitleSparkle(element);
-        }
-      }, 3000);
-      this.activeIntervals.add(sparkleInterval);
-    }
+    setInterval(() => {
+      if (Math.random() < 0.3) {
+        this.addTitleSparkle(element);
+      }
+    }, 2000);
+
+    setInterval(() => {
+      if (Math.random() < 0.2) {
+        this.addTitlePulse(element);
+      }
+    }, 4000);
   }
 
-  addOptimizedTitleSparkle(element) {
+  addTitleSparkle(element) {
     const sparkle = document.createElement('div');
     sparkle.className = 'title-sparkle';
     
@@ -261,46 +281,57 @@ class ScrambleText {
       position: absolute;
       left: ${x}px;
       top: ${y}px;
-      width: 3px;
-      height: 3px;
+      width: 4px;
+      height: 4px;
       background: linear-gradient(45deg, #ffffff, #5865F2);
       border-radius: 50%;
       pointer-events: none;
-      animation: titleSparkle 1s ease-out forwards;
+      animation: titleSparkle 1.5s ease-out forwards;
       z-index: 1000;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.8);
     `;
     
     element.appendChild(sparkle);
-    const timeout = setTimeout(() => sparkle.remove(), 1000);
-    this.activeTimeouts.add(timeout);
+    setTimeout(() => sparkle.remove(), 1500);
   }
-  addOptimizedCelebration(span, index) {
-    span.style.animation = `celebrationBounce 0.6s ease-out ${index * 0.02}s`;
 
-    const timeout = setTimeout(() => {
+  addTitlePulse(element) {
+    element.style.animation = 'titleMegaPulse 1s ease-out';
+    setTimeout(() => {
+      element.style.animation = 'titleWave 3s ease-in-out infinite';
+    }, 1000);
+  }
+
+  addCharacterCelebration(span, index) {
+    span.style.animation = `celebrationBounce 0.8s ease-out ${index * 0.05}s`;
+
+    setTimeout(() => {
+      this.createCelebrationBurst(span);
+    }, index * 50);
+
+    setTimeout(() => {
       span.style.animation = "";
-    }, 600 + index * 20);
-    this.activeTimeouts.add(timeout);
+    }, 1000 + index * 50);
   }
 
-  startOptimizedAmbientEffects(elementData) {
-    const { spans } = elementData;
-    const nonSpaceSpans = spans.filter(span => !span.classList.contains("space"));
-    
-    const ambientScramble = () => {
-      if (Math.random() < 0.03) {
-        const randomSpan = nonSpaceSpans[Math.floor(Math.random() * nonSpaceSpans.length)];
-        if (!randomSpan._isHovering && !randomSpan._isAnimating) {
-          this.quickScramble(randomSpan);
-        }
+  startContinuousEffects(span, index) {
+    setInterval(() => {
+      if (!span._isHovering && Math.random() < 0.3) {
+        this.addGentleMovement(span);
       }
+    }, 3000 + Math.random() * 2000);
 
-      const timeout = setTimeout(ambientScramble, 6000 + Math.random() * 4000);
-      this.activeTimeouts.add(timeout);
-    };
+    setInterval(() => {
+      if (!span._isHovering && Math.random() < 0.2) {
+        this.addGlowPulse(span);
+      }
+    }, 5000 + Math.random() * 3000);
 
-    const timeout = setTimeout(ambientScramble, 10000);
-    this.activeTimeouts.add(timeout);
+    setInterval(() => {
+      if (!span._isHovering && Math.random() < 0.1) {
+        this.addCharacterTwirl(span);
+      }
+    }, 8000 + Math.random() * 4000);
   }
 
   setupInteractiveEffects(elementData) {
@@ -316,29 +347,40 @@ class ScrambleText {
   }
 
   onCharacterHover(span) {
-    if (span._isHovering || this.isReducedMotion) return;
+    if (span._isHovering) return;
     span._isHovering = true;
 
     const originalChar = span.dataset.char;
     let scrambleCount = 0;
-    const maxScrambles = 2;
-    
+    const maxScrambles = 3;
     const hoverEffect = () => {
       if (scrambleCount < maxScrambles && span._isHovering) {
-        const sparkleChar = this.sparkleChars[Math.floor(Math.random() * this.sparkleChars.length)];
+        const sparkleChar =
+          this.sparkleChars[
+            Math.floor(Math.random() * this.sparkleChars.length)
+          ];
         span.textContent = sparkleChar;
 
         const hue = 180 + Math.random() * 60;
-        span.style.color = `hsl(${hue}, 70%, 65%)`;
-        span.style.transform = `scale(1.15)`;
+        span.style.color = `hsl(${hue}, 80%, 70%)`;
+        span.style.transform = `scale(1.2) rotate(${
+          Math.random() * 10 - 5
+        }deg)`;
+        span.style.textShadow = `
+                0 0 20px hsl(${hue}, 80%, 70%),
+                0 0 30px hsl(${hue}, 80%, 70%),
+                0 0 40px hsl(${hue}, 80%, 70%)
+            `;
 
+        this.createMagicParticles(span);
         scrambleCount++;
-        const timeout = setTimeout(hoverEffect, 150);
-        this.activeTimeouts.add(timeout);
+
+        setTimeout(hoverEffect, 200);
       } else if (span._isHovering) {
         span.textContent = originalChar;
         span.style.color = "#FFFFFF";
         span.style.transform = "scale(1.05)";
+        span.style.textShadow = "0 0 15px rgba(255, 255, 255, 0.8)";
       }
     };
 
@@ -348,30 +390,28 @@ class ScrambleText {
   onCharacterLeave(span) {
     span._isHovering = false;
 
-    const timeout = setTimeout(() => {
+    setTimeout(() => {
       if (!span._isHovering) {
         span.textContent = span.dataset.char;
         span.style.color = "#FFFFFF";
         span.style.transform = "scale(1)";
-        span.style.textShadow = "";
+        span.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.3)";
       }
-    }, 50);
-    this.activeTimeouts.add(timeout);
+    }, 100);
   }
 
   onCharacterClick(span) {
-    if (this.isReducedMotion) return;
-    
-    this.createOptimizedExplosion(span);
+    this.createExplosionEffect(span);
 
-    span.style.transform = "scale(1.3)";
+    span.style.transform = "scale(1.5) rotate(360deg)";
     span.style.color = "#ff6b6b";
+    span.style.textShadow = "0 0 30px #ff6b6b";
 
-    const timeout = setTimeout(() => {
+    setTimeout(() => {
       span.style.transform = "scale(1)";
       span.style.color = "#FFFFFF";
-    }, 300);
-    this.activeTimeouts.add(timeout);
+      span.style.textShadow = "0 0 10px rgba(255, 255, 255, 0.3)";
+    }, 500);
   }
 
   startAmbientEffects(elementData) {
@@ -400,13 +440,13 @@ class ScrambleText {
 
     const scramble = () => {
       if (count < 2) {
-        const randomChar = this.chars[Math.floor(Math.random() * this.chars.length)];
+        const randomChar =
+          this.chars[Math.floor(Math.random() * this.chars.length)];
         span.textContent = randomChar;
         span.style.color = "#57f287";
-        span.style.transform = "scale(1.02)";
+        span.style.transform = "scale(1.05)";
         count++;
-        const timeout = setTimeout(scramble, 100);
-        this.activeTimeouts.add(timeout);
+        setTimeout(scramble, 150);
       } else {
         span.textContent = originalChar;
         span.style.color = "#FFFFFF";
@@ -417,119 +457,325 @@ class ScrambleText {
     scramble();
   }
 
-  createOptimizedSpark(element) {
+  createScrambleSpark(element) {
     const spark = document.createElement("div");
     spark.className = "scramble-spark";
 
-    const size = 1;
+    const colors = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#feca57", "#ff9ff3"];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = 1 + Math.random() * 2;
     const angle = Math.random() * Math.PI * 2;
-    const distance = 4 + Math.random() * 4;
+    const distance = 8 + Math.random() * 8;
 
     spark.style.cssText = `
         position: absolute;
         width: ${size}px;
         height: ${size}px;
-        background: #5865F2;
+        background: ${color};
         border-radius: 50%;
         pointer-events: none;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        animation: scrambleSpark 0.3s ease-out forwards;
+        animation: scrambleSpark 0.4s ease-out forwards;
         z-index: 999;
+        box-shadow: 0 0 8px ${color};
     `;
 
     spark.style.setProperty("--end-x", `${Math.cos(angle) * distance}px`);
     spark.style.setProperty("--end-y", `${Math.sin(angle) * distance}px`);
 
     element.appendChild(spark);
-    const timeout = setTimeout(() => spark.remove(), 300);
-    this.activeTimeouts.add(timeout);
+    setTimeout(() => spark.remove(), 400);
   }
 
-  createOptimizedSparkle(element) {
-    const sparkle = document.createElement("div");
-    sparkle.className = "sparkle-particle";
+  createSparkleEffect(element) {
+    for (let i = 0; i < 2; i++) {
+      setTimeout(() => {
+        const sparkle = document.createElement("div");
+        sparkle.className = "sparkle-particle";
 
-    const size = 1.5;
-    const angle = Math.random() * Math.PI * 2;
-    const distance = 8 + Math.random() * 8;
+        const size = 1.5 + Math.random() * 2;
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 12 + Math.random() * 12;
 
-    sparkle.style.cssText = `
-        position: absolute;
-        width: ${size}px;
-        height: ${size}px;
-        background: linear-gradient(45deg, #fff, #5865F2);
-        border-radius: 50%;
-        pointer-events: none;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        animation: sparkleEffect 0.4s ease-out forwards;
-        z-index: 1000;
-    `;
+        sparkle.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                background: linear-gradient(45deg, #fff, #5865F2);
+                border-radius: 50%;
+                pointer-events: none;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                animation: sparkleEffect 0.6s ease-out forwards;
+                z-index: 1000;
+            `;
 
-    sparkle.style.setProperty("--end-x", `${Math.cos(angle) * distance}px`);
-    sparkle.style.setProperty("--end-y", `${Math.sin(angle) * distance}px`);
+        sparkle.style.setProperty("--end-x", `${Math.cos(angle) * distance}px`);
+        sparkle.style.setProperty("--end-y", `${Math.sin(angle) * distance}px`);
 
-    element.appendChild(sparkle);
-    const timeout = setTimeout(() => sparkle.remove(), 400);
-    this.activeTimeouts.add(timeout);
+        element.appendChild(sparkle);
+
+        setTimeout(() => sparkle.remove(), 600);
+      }, i * 75);
+    }
   }
+  createMagicParticles(element) {
+    for (let i = 0; i < 3; i++) {
+      const particle = document.createElement("div");
+      particle.className = "magic-particle";
 
-  createOptimizedExplosion(element) {
-    for (let i = 0; i < 4; i++) {
+      const colors = ["#ff6b6b", "#4ecdc4", "#45b7d1"];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+
+      particle.style.cssText = `
+            position: absolute;
+            width: 3px;
+            height: 3px;
+            background: ${color};
+            border-radius: 50%;
+            pointer-events: none;
+            top: ${Math.random() * 100}%;
+            left: ${Math.random() * 100}%;
+            animation: magicParticle 0.8s ease-out forwards;
+            box-shadow: 0 0 6px ${color};
+            z-index: 999;
+        `;
+
+      element.appendChild(particle);
+      setTimeout(() => particle.remove(), 800);
+    }
+  }
+  createExplosionEffect(element) {
+    for (let i = 0; i < 6; i++) {
       const fragment = document.createElement("div");
       fragment.className = "explosion-fragment";
 
-      const angle = (i / 4) * Math.PI * 2;
-      const distance = 12 + Math.random() * 8;
+      const angle = (i / 6) * Math.PI * 2;
+      const distance = 20 + Math.random() * 15;
 
       fragment.style.cssText = `
-        position: absolute;
-        width: 2px;
-        height: 2px;
-        background: #ff6b6b;
-        border-radius: 50%;
-        pointer-events: none;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        animation: explosionFragment 0.4s ease-out forwards;
-        z-index: 1001;
-      `;
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            pointer-events: none;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: explosionFragment 0.5s ease-out forwards;
+            z-index: 1001;
+        `;
 
       fragment.style.setProperty("--end-x", `${Math.cos(angle) * distance}px`);
       fragment.style.setProperty("--end-y", `${Math.sin(angle) * distance}px`);
 
       element.appendChild(fragment);
-      const timeout = setTimeout(() => fragment.remove(), 400);
-      this.activeTimeouts.add(timeout);
+      setTimeout(() => fragment.remove(), 500);
+    }
+  }
+  createCompletionSparkle(element) {
+    for (let i = 0; i < 3; i++) {
+      setTimeout(() => {
+        const sparkle = document.createElement("div");
+        sparkle.className = "completion-sparkle";
+
+        const size = 2 + Math.random() * 2;
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 15 + Math.random() * 15;
+
+        sparkle.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                background: linear-gradient(45deg, #fff, #5865F2);
+                border-radius: 50%;
+                pointer-events: none;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                animation: completionSparkle 0.8s ease-out forwards;
+                z-index: 1000;
+                box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+            `;
+
+        sparkle.style.setProperty("--end-x", `${Math.cos(angle) * distance}px`);
+        sparkle.style.setProperty("--end-y", `${Math.sin(angle) * distance}px`);
+
+        element.appendChild(sparkle);
+        setTimeout(() => sparkle.remove(), 800);
+      }, i * 100);
     }
   }
 
   addFinalGlowPulse(element) {
-    element.style.animation = "finalGlowPulse 1.5s ease-in-out";
+    element.style.animation = "finalGlowPulse 2s ease-in-out";
 
-    const timeout = setTimeout(() => {
+    setTimeout(() => {
       element.style.animation = "";
-    }, 1500);
-    this.activeTimeouts.add(timeout);
+    }, 2000);
   }
 
-  cleanup() {
-    this.activeIntervals.forEach(interval => clearInterval(interval));
-    this.activeTimeouts.forEach(timeout => clearTimeout(timeout));
-    this.activeIntervals.clear();
-    this.activeTimeouts.clear();
+  easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  slowScrambleFastReveal(t) {
+    if (t < 0.85) {
+      return Math.pow(t / 0.85, 4) * 0.3;
+    } else {
+      const fastPhase = (t - 0.85) / 0.15;
+      return 0.3 + (1 - 0.3) * this.easeOutCubic(fastPhase);
+    }
+  }
+
+  createCelebrationBurst(span) {
+    const burstCount = 6;
+
+    for (let i = 0; i < burstCount; i++) {
+      const burst = document.createElement("div");
+      burst.className = "celebration-particle";
+
+      const colors = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#feca57", "#ff9ff3"];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = 1 + Math.random() * 2;
+      const angle = (i / burstCount) * Math.PI * 2;
+      const distance = 10 + Math.random() * 10;
+
+      burst.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            border-radius: 50%;
+            pointer-events: none;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: celebrationBurst 0.5s ease-out forwards;
+            z-index: 999;
+            box-shadow: 0 0 8px ${color};
+        `;
+
+      burst.style.setProperty("--end-x", `${Math.cos(angle) * distance}px`);
+      burst.style.setProperty("--end-y", `${Math.sin(angle) * distance}px`);
+
+      span.appendChild(burst);
+      setTimeout(() => burst.remove(), 500);
+    }
+  }
+
+  startFloatingParticles(element) {
+    const container = document.createElement("div");
+    container.className = "floating-particles-container";
+    container.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: -1;
+    `;
+
+    element.appendChild(container);
+
+    const createParticle = () => {
+      if (!element.isConnected) return;
+
+      const particle = document.createElement("div");
+      particle.className = "floating-particle";
+
+      const colors = ["#5865F2", "#57F287", "#FEE75C", "#EB459E"];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = 1 + Math.random() * 2;
+      const startX = Math.random() * 100;
+      const endX = startX + (Math.random() * 40 - 20);
+      const duration = 5 + Math.random() * 10;
+
+      particle.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            border-radius: 50%;
+            opacity: 0;
+            bottom: -10px;
+            left: ${startX}%;
+            animation: floatingParticle ${duration}s ease-out forwards;
+            box-shadow: 0 0 ${size * 2}px ${color};
+            z-index: -1;
+        `;
+
+      particle.style.setProperty("--end-x", `${endX - startX}px`);
+      particle.style.setProperty("--end-y", `-${100 + Math.random() * 50}px`);
+
+      container.appendChild(particle);
+      setTimeout(() => {
+        if (particle.parentNode) {
+          particle.remove();
+        }
+      }, duration * 1000);
+
+      if (element.isConnected) {
+        setTimeout(createParticle, Math.random() * 1000 + 500);
+      }
+    };
+
+    for (let i = 0; i < 3; i++) {
+      setTimeout(createParticle, Math.random() * 1000);
+    }
+  }
+
+  addGentleMovement(span) {
+    const moveX = Math.random() * 4 - 2;
+    const moveY = Math.random() * 4 - 2;
+    const rotate = Math.random() * 6 - 3;
+    const scale = 1 + Math.random() * 0.1 - 0.05;
+    const duration = 0.8 + Math.random() * 0.4;
+
+    span.style.transition = `transform ${duration}s cubic-bezier(0.34, 1.56, 0.64, 1)`;
+    span.style.transform = `translateX(${moveX}px) translateY(${moveY}px) rotate(${rotate}deg) scale(${scale})`;
+
+    setTimeout(() => {
+      span.style.transition = `transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)`;
+      span.style.transform = `scale(1)`;
+    }, duration * 1000);
+  }
+
+  addGlowPulse(span) {
+    const originalShadow = span.style.textShadow;
+    const hue =
+      Math.random() > 0.5 ? 240 + Math.random() * 60 : 0 + Math.random() * 60;
+
+    span.style.transition = "text-shadow 0.8s ease-in-out";
+    span.style.textShadow = `
+        0 0 15px hsla(${hue}, 80%, 70%, 0.8),
+        0 0 30px hsla(${hue}, 80%, 60%, 0.5)
+    `;
+
+    setTimeout(() => {
+      span.style.textShadow = originalShadow;
+    }, 800);
+  }
+
+  addCharacterTwirl(span) {
+    const originalTransform = span.style.transform;
+    const rotations = Math.random() > 0.5 ? 1 : -1;
+
+    span.style.transition = "transform 1s cubic-bezier(0.34, 1.56, 0.64, 1)";
+    span.style.transform = `rotate(${rotations * 360}deg) scale(1.2)`;
+
+    setTimeout(() => {
+      span.style.transition =
+        "transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)";
+      span.style.transform = originalTransform;
+    }, 1000);
   }
 }
 
-window.addEventListener('beforeunload', () => {
-  if (window.scrambleText) {
-    window.scrambleText.cleanup();
-  }
-});
-
 const scrambleText = new ScrambleText();
-window.scrambleText = scrambleText;

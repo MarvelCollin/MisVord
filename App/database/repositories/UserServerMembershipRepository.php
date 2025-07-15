@@ -198,6 +198,7 @@ class UserServerMembershipRepository extends Repository {
             }
             
             $query = new Query();
+            $query->beginTransaction();
             
             $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
@@ -208,6 +209,7 @@ class UserServerMembershipRepository extends Repository {
 
             if ($updateNewOwner === false) {
                 error_log("Failed to update new owner role");
+                $query->rollback();
                 return false;
             }
 
@@ -220,15 +222,10 @@ class UserServerMembershipRepository extends Repository {
 
             if ($updateCurrentOwner === false) {
                 error_log("Failed to update current owner role to admin");
-                $query->table('user_server_memberships')
-                    ->where('user_id', $newOwnerId)
-                    ->where('server_id', $serverId)
-                    ->update(['role' => $existingNewOwnerMembership->role, 'updated_at' => date('Y-m-d H:i:s')]);
+                $query->rollback();
                 return false;
             }
 
-            error_log("Ownership transfer completed successfully");
-            
             $allOwners = $query->table('user_server_memberships')
                 ->where('server_id', $serverId)
                 ->where('role', 'owner')
@@ -246,6 +243,9 @@ class UserServerMembershipRepository extends Repository {
                     
                 error_log("Cleanup completed - demoted extra owners to admin");
             }
+
+            $query->commit();
+            error_log("Ownership transfer completed successfully");
             
             $verifyNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
@@ -255,6 +255,17 @@ class UserServerMembershipRepository extends Repository {
                 
             if (!$verifyNewOwner) {
                 error_log("Ownership transfer verification failed - new owner not found with owner role");
+                return false;
+            }
+            
+            $verifyCurrentOwnerAsAdmin = $query->table('user_server_memberships')
+                ->where('user_id', $currentOwnerId)
+                ->where('server_id', $serverId)
+                ->where('role', 'admin')
+                ->first();
+                
+            if (!$verifyCurrentOwnerAsAdmin) {
+                error_log("Ownership transfer verification failed - current owner not found as admin");
                 return false;
             }
             
@@ -291,7 +302,7 @@ class UserServerMembershipRepository extends Repository {
             $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
                 ->where('server_id', $serverId)
-                ->update(['role' => 'owner']);
+                ->update(['role' => 'owner', 'updated_at' => date('Y-m-d H:i:s')]);
 
             error_log("Update new owner result: " . ($updateNewOwner !== false ? "success ($updateNewOwner rows)" : 'failed'));
 
@@ -301,8 +312,21 @@ class UserServerMembershipRepository extends Repository {
                 return false;
             }
 
+            $removedOldOwner = $query->table('user_server_memberships')
+                ->where('user_id', $currentOwnerId)
+                ->where('server_id', $serverId)
+                ->delete();
+
+            error_log("Remove old owner result: " . ($removedOldOwner !== false ? "success ($removedOldOwner rows)" : 'failed'));
+
+            if ($removedOldOwner === false) {
+                error_log("Rolling back ownership transfer transaction - old owner removal failed");
+                $query->rollback();
+                return false;
+            }
+
             $query->commit();
-            error_log("Ownership transfer completed successfully");
+            error_log("Ownership transfer and old owner removal completed successfully");
             
             $verifyQuery = new Query();
             $verifyNewOwner = $verifyQuery->table('user_server_memberships')
@@ -316,7 +340,17 @@ class UserServerMembershipRepository extends Repository {
                 return false;
             }
             
-            error_log("Ownership transfer verified successfully");
+            $verifyOldOwnerRemoved = $verifyQuery->table('user_server_memberships')
+                ->where('user_id', $currentOwnerId)
+                ->where('server_id', $serverId)
+                ->first();
+                
+            if ($verifyOldOwnerRemoved) {
+                error_log("Old owner removal verification failed - old owner still found in server");
+                return false;
+            }
+            
+            error_log("Ownership transfer and removal verified successfully");
             return true;
         } catch (Exception $e) {
             if (isset($query)) {
