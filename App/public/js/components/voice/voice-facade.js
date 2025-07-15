@@ -14,6 +14,14 @@ class VoiceFacade {
         } else {
             window.addEventListener('globalSocketReady', () => this.setupInitialState());
         }
+        
+        if (window.localStorageManager) {
+            const voiceState = window.localStorageManager.getUnifiedVoiceState();
+            if (voiceState.isConnected && voiceState.needsRestoration && voiceState.channelId) {
+                console.log('🔄 [VOICE-FACADE] Detected voice state that needs restoration:', voiceState);
+                this.restoreVoiceConnection(voiceState);
+            }
+        }
     }
 
     setupInitialState() {
@@ -151,6 +159,42 @@ class VoiceFacade {
                 }
             }));
             this._isConnectEventDispatched = true;
+        }
+    }
+
+    async restoreVoiceConnection(voiceState) {
+        if (!window.voiceManager) {
+            console.warn('[VoiceFacade] voiceManager not available for restoration');
+            return false;
+        }
+        
+        try {
+            console.log('🔄 [VOICE-FACADE] Restoring voice connection:', {
+                channelId: voiceState.channelId,
+                channelName: voiceState.channelName,
+                meetingId: voiceState.meetingId
+            });
+            
+            window.voiceManager.currentChannelId = voiceState.channelId;
+            window.voiceManager.currentChannelName = voiceState.channelName;
+            window.voiceManager.currentMeetingId = voiceState.meetingId;
+            window.voiceManager.isConnected = true;
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...voiceState,
+                    needsRestoration: false,
+                    restoredAt: Date.now()
+                });
+            }
+            
+            await this.validateAndSyncState(voiceState.channelId, voiceState.channelName);
+            
+            console.log('✅ [VOICE-FACADE] Voice connection restored successfully');
+            return true;
+        } catch (error) {
+            console.error('❌ [VOICE-FACADE] Failed to restore voice connection:', error);
+            return false;
         }
     }
 }

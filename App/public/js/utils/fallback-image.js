@@ -248,7 +248,7 @@ class FallbackImageHandler {
         return window.fallbackImageHandler;
     }
 }
-
+    
 const fallbackHandler = FallbackImageHandler.getInstance();
 
 window.FallbackImageHandler = FallbackImageHandler;

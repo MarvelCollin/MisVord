@@ -20,8 +20,12 @@ class ChannelVoiceParticipants {
         }, 30000);
         
         document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                this.cleanupStaleParticipants();
+            if (!document.hidden && window.globalSocketManager?.isAuthenticated) {
+                this.requestAllChannelStatusImmediate();
+                const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+                if (voiceState?.isConnected && voiceState?.channelId) {
+                    this.updateSidebarForChannel(voiceState.channelId, 'full');
+                }
             }
         });
     }
@@ -52,7 +56,7 @@ class ChannelVoiceParticipants {
             this.requestAllChannelStatusImmediate();
             const voiceState = window.localStorageManager?.getUnifiedVoiceState();
             if (voiceState?.isConnected && voiceState?.channelId) {
-                this.forceRefreshChannel(voiceState.channelId);
+                this.updateSidebarForChannel(voiceState.channelId, 'full');
             }
         });
         
@@ -151,7 +155,8 @@ class ChannelVoiceParticipants {
             const activeChannelId = state.channelId || window.voiceManager?.currentChannelId;
             if (activeChannelId) {
                 this.updateChannelCount(activeChannelId, null);
-
+                this.ensureParticipantsVisible(activeChannelId);
+                this.updateSidebarForChannel(activeChannelId, 'full');
 
             }
         } else if (!isVoiceManagerConnected && !state.isConnected) {
@@ -164,11 +169,13 @@ class ChannelVoiceParticipants {
         if (window.localStorageManager) {
             const voiceState = window.localStorageManager.getUnifiedVoiceState();
             this.syncWithVoiceState(voiceState);
+            
+            if (voiceState.isConnected && voiceState.channelId) {
+                this.updateSidebarForChannel(voiceState.channelId, 'full');
+            }
         }
         
-        setTimeout(() => {
-            this.validateCurrentState();
-        }, 1000);
+        this.validateCurrentState();
     }
     
     validateCurrentState() {
@@ -184,11 +191,9 @@ class ChannelVoiceParticipants {
             }
             
 
-            setTimeout(() => {
-                window.globalSocketManager.io.emit('check-voice-meeting', { 
-                    channel_id: voiceState.channelId 
-                });
-            }, 200);
+            window.globalSocketManager.io.emit('check-voice-meeting', { 
+                channel_id: voiceState.channelId 
+            });
         }
         
 
@@ -344,6 +349,7 @@ class ChannelVoiceParticipants {
 
             this.updateChannelCount(data.channel_id, data.participant_count || 0);
             this.updateSidebarForChannel(data.channel_id, 'full');
+            this.ensureParticipantsVisible(data.channel_id);
 
             if (data.meeting_id) {
                 const channelEl = document.querySelector(`[data-channel-id="${data.channel_id}"]`);
@@ -351,10 +357,6 @@ class ChannelVoiceParticipants {
                     channelEl.setAttribute('data-meeting-id', data.meeting_id);
                 }
             }
-            
-            setTimeout(() => {
-                this.updateSidebarForChannel(data.channel_id, 'validate');
-            }, 100);
         });
         
         socket.on('bot-voice-participant-joined', (data) => {
@@ -463,6 +465,9 @@ class ChannelVoiceParticipants {
             window.voiceManager.isConnected &&
             window.voiceManager.getAllParticipants;
 
+        const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+        const isRestoringConnection = voiceState?.isConnected && voiceState?.channelId === channelId;
+
         if (isConnectedToChannel) {
             window.voiceManager.getAllParticipants().forEach(data => {
                 const participantId = String(data.user_id || data.id);
@@ -473,9 +478,29 @@ class ChannelVoiceParticipants {
             });
         }
 
+        if (isRestoringConnection && !isConnectedToChannel) {
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            const currentUsername = document.querySelector('meta[name="username"]')?.content;
+            const currentUserAvatar = document.querySelector('meta[name="user-avatar"]')?.content;
+            
+            if (currentUserId && !participantIds.has(currentUserId)) {
+                renderList.push({
+                    id: currentUserId,
+                    user_id: currentUserId,
+                    name: currentUsername || 'You',
+                    username: currentUsername || 'You', 
+                    avatar_url: currentUserAvatar || '/public/assets/common/default-profile-picture.png',
+                    isBot: false,
+                    isLocal: true,
+                    isSelf: true
+                });
+                participantIds.add(currentUserId);
+            }
+        }
+
 
         const map = this.externalParticipants.get(channelId);
-        if (map && !isConnectedToChannel) {
+        if (map) {
             map.forEach((pData, uid) => {
                 const participantId = String(uid);
                 if (!participantIds.has(participantId)) {

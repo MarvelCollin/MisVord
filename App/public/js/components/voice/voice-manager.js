@@ -27,7 +27,7 @@ class VoiceManager {
         
 
         if (window.localStorageManager) {
-            this.syncChannelWithUnifiedState();
+            this.restoreFromUnifiedState();
             
 
             window.localStorageManager.addVoiceStateListener(() => {
@@ -1288,6 +1288,51 @@ class VoiceManager {
             };
             
             window.localStorageManager.setUnifiedVoiceState(stateWithVideoStates);
+        }
+    }
+    
+    restoreFromUnifiedState() {
+        if (!window.localStorageManager) return;
+        
+        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+        
+        if (voiceState.isConnected && voiceState.needsRestoration && voiceState.channelId && voiceState.meetingId) {
+            console.log('🔄 [VOICE-MANAGER] Restoring voice connection from localStorage:', {
+                channelId: voiceState.channelId,
+                channelName: voiceState.channelName,
+                meetingId: voiceState.meetingId
+            });
+            
+            this.currentChannelId = voiceState.channelId;
+            this.currentChannelName = voiceState.channelName;
+            this.currentMeetingId = voiceState.meetingId;
+            this.isConnected = true;
+            
+            this._micOn = !voiceState.isMuted;
+            this._videoOn = voiceState.videoOn || false;
+            this._screenShareOn = voiceState.screenShareOn || false;
+            this._deafened = voiceState.isDeafened || false;
+            
+            window.localStorageManager.setUnifiedVoiceState({
+                ...voiceState,
+                needsRestoration: false,
+                restoredAt: Date.now()
+            });
+            
+            window.dispatchEvent(new CustomEvent('voiceConnect', {
+                detail: { 
+                    channelId: voiceState.channelId, 
+                    channelName: voiceState.channelName,
+                    meetingId: voiceState.meetingId,
+                    skipJoinSound: true,
+                    source: 'restoration'
+                }
+            }));
+            
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(voiceState.channelId, 'full');
+            }
         }
     }
 }
