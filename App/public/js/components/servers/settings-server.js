@@ -389,7 +389,7 @@ function initMemberManagementTab() {
     document.body.dataset.userRole = userRole;
     
     function getMemberPermissions(currentUserRole, currentUserId, member, isBot) {
-        const isCurrentUser = member.id === currentUserId;
+        const isCurrentUser = String(member.id) === String(currentUserId);
         
         return {
             canPromote: currentUserRole === 'owner' && member.role === 'member' && !isCurrentUser && !isBot,
@@ -550,10 +550,22 @@ function initMemberManagementTab() {
             
             const usernameElement = memberElement.querySelector('.member-username');
             if (usernameElement) {
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+                const isCurrentUser = String(member.id) === String(currentUserId);
                 const displayName = member.display_name || member.username;
-                usernameElement.textContent = displayName;
+                
+                console.log('Debug - Member:', displayName, 'ID:', member.id, 'Type:', typeof member.id);
+                console.log('Debug - Current User ID:', currentUserId, 'Type:', typeof currentUserId);
+                console.log('Debug - Is Current User:', isCurrentUser);
+                
+                let usernameText = displayName;
+                if (isCurrentUser) {
+                    usernameText += ' (you)';
+                }
+                
+                usernameElement.textContent = usernameText;
                 if (isBot) {
-                    usernameElement.innerHTML = `${displayName} <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>`;
+                    usernameElement.innerHTML = `${usernameText} <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>`;
                 }
             }
             
