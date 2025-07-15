@@ -31,6 +31,7 @@ ob_start();
 
 <meta name="server-id" content="<?php echo $serverId; ?>">
 <meta name="user-role" content="<?php echo $userRole; ?>">
+<meta name="user-id" content="<?php echo $_SESSION['user_id'] ?? ''; ?>">>
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto mt-10">
     <div class="w-60 bg-discord-light border-r border-discord-dark">

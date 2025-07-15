@@ -1,23 +1,41 @@
+async function handleApiResponse(response) {
+    if (!response.ok) {
+        try {
+            const errorData = await response.json();
+            throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
+        } catch (jsonError) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+    }
+    return response.json();
+}
+
+async function handleApiTextResponse(response) {
+    if (!response.ok) {
+        try {
+            const errorData = await response.json();
+            throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
+        } catch (jsonError) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+    }
+    return response.text();
+}
+
 const serverAPI = {
     createServer: function(formData) {
         return fetch('/api/servers/create', {
             method: 'POST',
             body: formData,
             credentials: 'include'
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
-        });
+        }).then(handleApiResponse);
     },
 
     getServerPageHTML: function(serverId) {
         return fetch(`/server/${serverId}?render_html=1`, {
             method: 'GET',
             credentials: 'include'
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.text();
-        });
+        }).then(handleApiTextResponse);
     },
     
     getServer: function(serverId) {
@@ -28,12 +46,7 @@ const serverAPI = {
                 'Accept': 'application/json'
             }
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
+        .then(handleApiResponse)
         .then(data => {
             if (data.success && data.data && data.data.server) {
                 return { server: data.data.server };
@@ -49,10 +62,7 @@ const serverAPI = {
             headers: {
                 'Accept': 'application/json'
             }
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
-        });
+        }).then(handleApiResponse);
     },
     
     listServers: function(page = 1, limit = 10, search = '') {
@@ -68,10 +78,7 @@ const serverAPI = {
             headers: {
                 'Accept': 'application/json'
             }
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
-        });
+        }).then(handleApiResponse);
     },
     
     getServerDetails: function(serverId) {
@@ -81,10 +88,7 @@ const serverAPI = {
             headers: {
                 'Accept': 'application/json'
             }
-        }).then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
-        });
+        }).then(handleApiResponse);
     },
 
     deleteServer: function(serverId) {
@@ -176,7 +180,11 @@ const serverAPI = {
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
+                }).catch(() => {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                });
             }
             return response.json();
         });
@@ -190,13 +198,7 @@ const serverAPI = {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        });
+        }).then(handleApiResponse);
     },
 
     kickMember: function(serverId, userId) {
@@ -207,13 +209,7 @@ const serverAPI = {
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
             }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        });
+        }).then(handleApiResponse);
     },
 
     updateServerName: function(serverId, name) {
@@ -225,13 +221,7 @@ const serverAPI = {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({ name: name })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        });
+        }).then(handleApiResponse);
     },
 
     updateServerDescription: function(serverId, description) {

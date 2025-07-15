@@ -372,4 +372,63 @@ class UserServerMembershipRepository extends Repository {
             return [];
         }
     }
+    
+    public function canPromoteMember($currentUserId, $serverId, $targetUserId) {
+        $currentMembership = $this->findByUserAndServer($currentUserId, $serverId);
+        $targetMembership = $this->findByUserAndServer($targetUserId, $serverId);
+        
+        if (!$currentMembership || !$targetMembership) {
+            return false;
+        }
+        
+        return $currentMembership->role === 'owner' && 
+               $targetMembership->role === 'member' && 
+               $currentUserId !== $targetUserId;
+    }
+    
+    public function canDemoteMember($currentUserId, $serverId, $targetUserId) {
+        $currentMembership = $this->findByUserAndServer($currentUserId, $serverId);
+        $targetMembership = $this->findByUserAndServer($targetUserId, $serverId);
+        
+        if (!$currentMembership || !$targetMembership) {
+            return false;
+        }
+        
+        return $currentMembership->role === 'owner' && 
+               $targetMembership->role === 'admin' && 
+               $currentUserId !== $targetUserId;
+    }
+    
+    public function canKickMember($currentUserId, $serverId, $targetUserId) {
+        $currentMembership = $this->findByUserAndServer($currentUserId, $serverId);
+        $targetMembership = $this->findByUserAndServer($targetUserId, $serverId);
+        
+        if (!$currentMembership || !$targetMembership) {
+            return false;
+        }
+        
+        if ($currentUserId === $targetUserId) {
+            return false;
+        }
+        
+        if ($targetMembership->role === 'owner') {
+            return false;
+        }
+        
+        return ($currentMembership->role === 'owner') || 
+               ($currentMembership->role === 'admin' && $targetMembership->role === 'member');
+    }
+
+    public function canTransferOwnership($currentUserId, $serverId, $targetUserId) {
+        $currentMembership = $this->findByUserAndServer($currentUserId, $serverId);
+        $targetMembership = $this->findByUserAndServer($targetUserId, $serverId);
+        
+        if (!$currentMembership || !$targetMembership) {
+            return false;
+        }
+        
+        return $currentMembership->role === 'owner' && 
+               $targetMembership->role === 'admin' && 
+               $currentUserId !== $targetUserId;
+    }
 }

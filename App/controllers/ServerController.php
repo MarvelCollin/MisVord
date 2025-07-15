@@ -1521,7 +1521,7 @@ class ServerController extends BaseController
             }
 
             if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
-                return $this->forbidden('Only server owners can promote members');
+                return $this->forbidden('You are not eligible to promote members. Only the server owner has permission to promote members to admin or moderator roles.');
             }
 
             if ($userId == $currentUserId) {
@@ -2174,7 +2174,7 @@ class ServerController extends BaseController
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Only server owner can transfer ownership'
+                    'error' => 'You are not eligible to transfer ownership. Only the current server owner can transfer ownership to another member.'
                 ]);
                 exit;
             }
@@ -2202,7 +2202,7 @@ class ServerController extends BaseController
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Selected user is not a member of this server'
+                    'error' => 'The selected user is not eligible for ownership transfer. Only server members can become owners.'
                 ]);
                 exit;
             }

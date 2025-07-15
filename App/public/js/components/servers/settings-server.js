@@ -388,6 +388,19 @@ function initMemberManagementTab() {
 
     document.body.dataset.userRole = userRole;
     
+    function getMemberPermissions(currentUserRole, currentUserId, member, isBot) {
+        const isCurrentUser = member.id === currentUserId;
+        
+        return {
+            canPromote: currentUserRole === 'owner' && member.role === 'member' && !isCurrentUser && !isBot,
+            canDemote: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser,
+            canKick: !isCurrentUser && member.role !== 'owner' && !isBot && 
+                    ((currentUserRole === 'owner') || 
+                     (currentUserRole === 'admin' && member.role === 'member')),
+            canTransferOwnership: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser
+        };
+    }
+    
     if (!membersList || !memberTemplate || !serverId) return;
     
     let allMembers = [];
@@ -572,33 +585,26 @@ function initMemberManagementTab() {
             const demoteBtn = memberElement.querySelector('.demote-btn');
             const kickBtn = memberElement.querySelector('.kick-btn');
             
-            if (member.role === 'owner') {
-
-                if (promoteBtn) promoteBtn.style.display = 'none';
-                if (demoteBtn) demoteBtn.style.display = 'none';
-                if (kickBtn) kickBtn.style.display = 'none';
-            } else if (isBot) {
-
-                if (promoteBtn) promoteBtn.style.display = 'none';
-                if (demoteBtn) demoteBtn.style.display = 'none';
-
-            } else if (member.role === 'admin') {
-                if (promoteBtn) {
-
-                    const currentUserIsOwner = document.body.dataset.userRole === 'owner';
-                    promoteBtn.disabled = !currentUserIsOwner;
-                }
-            } else if (member.role === 'member') {
-                if (demoteBtn) demoteBtn.disabled = true;
+            const currentUserRole = document.body.dataset.userRole;
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            const permissions = getMemberPermissions(currentUserRole, currentUserId, member, isBot);
+            
+            if (promoteBtn) {
+                promoteBtn.style.display = permissions.canPromote ? 'inline-flex' : 'none';
+            }
+            if (demoteBtn) {
+                demoteBtn.style.display = permissions.canDemote ? 'inline-flex' : 'none';
+            }
+            if (kickBtn) {
+                kickBtn.style.display = permissions.canKick ? 'inline-flex' : 'none';
             }
             
-            if (promoteBtn && !promoteBtn.disabled && promoteBtn.style.display !== 'none') {
-
+            if (promoteBtn && promoteBtn.style.display !== 'none') {
                 promoteBtn.replaceWith(promoteBtn.cloneNode(true));
                 const newPromoteBtn = memberElement.querySelector('.promote-btn');
                 
                 newPromoteBtn.addEventListener('click', () => {
-                    if (member.role === 'admin') {
+                    if (permissions.canTransferOwnership) {
                         showMemberActionModal('transfer-ownership', member);
                     } else {
                         showMemberActionModal('promote', member);
@@ -606,19 +612,16 @@ function initMemberManagementTab() {
                 });
             }
             
-            if (demoteBtn && !demoteBtn.disabled && demoteBtn.style.display !== 'none') {
-
+            if (demoteBtn && demoteBtn.style.display !== 'none') {
                 demoteBtn.replaceWith(demoteBtn.cloneNode(true));
                 const newDemoteBtn = memberElement.querySelector('.demote-btn');
                 
                 newDemoteBtn.addEventListener('click', () => {
-
-                    setTimeout(() => showMemberActionModal('demote', member), 0);
+                    showMemberActionModal('demote', member);
                 });
             }
             
-            if (kickBtn && !kickBtn.disabled && kickBtn.style.display !== 'none') {
-
+            if (kickBtn && kickBtn.style.display !== 'none') {
                 kickBtn.replaceWith(kickBtn.cloneNode(true));
                 const newKickBtn = memberElement.querySelector('.kick-btn');
                 
@@ -1083,13 +1086,18 @@ function initChannelManagementTab() {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => {
+            .then(async response => {
                 if (!response.ok) {
                     if (response.status === 401) {
                         window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                         return;
                     }
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    try {
+                        const errorData = await response.json();
+                        throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
+                    } catch (jsonError) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
                 }
                 return response.json();
             })
@@ -1481,13 +1489,18 @@ function initChannelManagementTab() {
             },
             body: JSON.stringify({ name: newName })
         })
-        .then(response => {
+        .then(async response => {
             if (!response.ok) {
                 if (response.status === 401) {
                     window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                     throw new Error('Unauthorized');
                 }
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                try {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
+                } catch (jsonError) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
             }
             return response.json();
         })
@@ -1521,13 +1534,18 @@ function initChannelManagementTab() {
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => {
+        .then(async response => {
             if (!response.ok) {
                 if (response.status === 401) {
                     window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
                     throw new Error('Unauthorized');
                 }
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                try {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
+                } catch (jsonError) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
             }
             return response.json();
         })
