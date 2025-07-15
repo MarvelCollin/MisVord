@@ -1011,7 +1011,10 @@ function initMemberManagementTab() {
             
             const response = await window.serverAPI.transferOwnership(serverId, member.id);
             if (response && response.success) {
-                showToast(`You have transferred server ownership to ${member.display_name || member.username}`, 'success', 5000, 'Ownership Transferred');
+                document.querySelector('meta[name="user-role"]')?.setAttribute('content', 'admin');
+                document.body.dataset.userRole = 'admin';
+                
+                showToast(`You have transferred server ownership to ${member.display_name || member.username}. You are now an admin.`, 'success', 5000, 'Ownership Transferred');
                 loadMembers();
             } else {
                 throw new Error(response.message || 'Failed to transfer server ownership');

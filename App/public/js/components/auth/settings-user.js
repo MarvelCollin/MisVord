@@ -2099,18 +2099,18 @@ function initDeleteAccount() {
                                 ${server.member_count === 2 ? '<div class="text-xs text-yellow-400 mb-2"><i class="fas fa-info-circle mr-1"></i>This server has only 1 other member - they will be automatically selected</div>' : ''}
                                 <div class="relative">
                                     <div class="flex items-center space-x-2 mb-2">
-                                        <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="${server.member_count === 2 ? 'Click search to auto-select the only member' : 'Search members...'}">
+                                        <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="${server.member_count === 2 ? 'Click search to auto-select the only member' : 'Search by name or role...'}">>
                                         <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded">
                                             <i class="fas fa-search"></i>
                                         </button>
                                     </div>
-                                    <div class="members-dropdown hidden absolute w-full mt-1 z-10 rounded-md overflow-hidden"></div>
+                                    <div class="members-dropdown hidden absolute w-full mt-1 z-10 rounded-md overflow-hidden bg-discord-bg-secondary border border-gray-600 max-h-60 overflow-y-auto"></div>
                                 </div>
                                 <div class="selected-member mt-3 hidden">
-                                    <div class="flex items-center justify-between p-2 rounded-md">
+                                    <div class="flex items-center justify-between p-3 rounded-md bg-discord-bg-secondary border border-gray-600">
                                         <div class="flex items-center">
-                                            <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-2 selected-member-avatar"></div>
-                                            <span class="text-sm text-white selected-member-name"></span>
+                                            <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3 selected-member-avatar"></div>
+                                            <div class="selected-member-name"></div>
                                         </div>
                                     </div>
                                     <div class="transfer-error text-red-400 text-xs mt-2 hidden"></div>
@@ -2243,19 +2243,37 @@ function initDeleteAccount() {
             return;
         }
         
-        members.forEach(member => {
+        const sortedMembers = members.sort((a, b) => {
+            const priorityA = getRolePriority(a.role);
+            const priorityB = getRolePriority(b.role);
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
+            }
+            return (a.display_name || a.username).localeCompare(b.display_name || b.username);
+        });
+        
+        sortedMembers.forEach(member => {
             const memberElement = document.createElement('div');
-            memberElement.className = 'flex items-center hover:bg-discord-bg-modifier-hover cursor-pointer';
+            memberElement.className = 'flex items-center justify-between hover:bg-discord-bg-modifier-hover cursor-pointer p-2';
+            
+            const roleColor = getRoleColor(member.role);
+            const roleDisplayName = getRoleDisplayName(member.role);
+            
             memberElement.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-2">
-                    ${member.avatar_url ? 
-                        `<img src="${member.avatar_url}" alt="${member.username}" class="w-full h-full object-cover">` : 
-                        `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${member.username.charAt(0)}</div>`
-                    }
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                        ${member.avatar_url ? 
+                            `<img src="${member.avatar_url}" alt="${member.username}" class="w-full h-full object-cover">` : 
+                            `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${member.username.charAt(0)}</div>`
+                        }
+                    </div>
+                    <div>
+                        <div class="text-sm font-medium text-white">${member.display_name || member.username}</div>
+                        <div class="text-xs text-discord-interactive-normal">${member.username}</div>
+                    </div>
                 </div>
-                <div>
-                    <div class="text-sm font-medium text-white">${member.display_name || member.username}</div>
-                    <div class="text-xs text-discord-interactive-normal">${member.username}</div>
+                <div class="flex items-center">
+                    <span class="text-xs px-2 py-1 rounded ${roleColor}">${roleDisplayName}</span>
                 </div>
             `;
             
@@ -2277,7 +2295,9 @@ function initDeleteAccount() {
         const filteredMembers = members.filter(member => {
             const username = member.username.toLowerCase();
             const displayName = (member.display_name || '').toLowerCase();
-            return username.includes(searchTerm) || displayName.includes(searchTerm);
+            const role = (member.role || '').toLowerCase();
+            const roleDisplayName = getRoleDisplayName(member.role).toLowerCase();
+            return username.includes(searchTerm) || displayName.includes(searchTerm) || role.includes(searchTerm) || roleDisplayName.includes(searchTerm);
         });
         
         renderMembersList(serverElement, filteredMembers);
@@ -2304,7 +2324,16 @@ function initDeleteAccount() {
         const transferError = serverElement.querySelector('.transfer-error');
         const transferSuccess = serverElement.querySelector('.transfer-success');
         
-        selectedMemberName.textContent = member.display_name || member.username;
+        const roleColor = getRoleColor(member.role);
+        const roleDisplayName = getRoleDisplayName(member.role);
+        
+        selectedMemberName.innerHTML = `
+            <div class="text-sm font-medium text-white">${member.display_name || member.username}</div>
+            <div class="text-xs text-discord-interactive-normal flex items-center gap-2">
+                <span>${member.username}</span>
+                <span class="text-xs px-2 py-0.5 rounded ${roleColor}">${roleDisplayName}</span>
+            </div>
+        `;
         
         if (member.avatar_url) {
             selectedMemberAvatar.innerHTML = `<img src="${member.avatar_url}" alt="${member.username}" class="w-full h-full object-cover">`;
@@ -2439,6 +2468,48 @@ function initDeleteAccount() {
             closeModal();
         }
     });
+}
+
+function getRoleColor(role) {
+    switch(role) {
+        case 'owner':
+            return 'bg-yellow-600 text-yellow-100';
+        case 'admin':
+            return 'bg-red-600 text-red-100';
+        case 'moderator':
+            return 'bg-blue-600 text-blue-100';
+        case 'member':
+        default:
+            return 'bg-gray-600 text-gray-100';
+    }
+}
+
+function getRoleDisplayName(role) {
+    switch(role) {
+        case 'owner':
+            return 'Owner';
+        case 'admin':
+            return 'Admin';
+        case 'moderator':
+            return 'Moderator';
+        case 'member':
+        default:
+            return 'Member';
+    }
+}
+
+function getRolePriority(role) {
+    switch(role) {
+        case 'owner':
+            return 1;
+        case 'admin':
+            return 2;
+        case 'moderator':
+            return 3;
+        case 'member':
+        default:
+            return 4;
+    }
 }
 
 

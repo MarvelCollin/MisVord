@@ -2080,7 +2080,7 @@ class ServerController extends BaseController
                 return $this->validationError(['new_owner_id' => 'Selected user is not a member of this server']);
             }
             
-            $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $this->getCurrentUserId(), $newOwnerId);
+            $transferSuccess = $this->userServerMembershipRepository->transferOwnershipAndRemoveOldOwner($serverId, $this->getCurrentUserId(), $newOwnerId);
             if (!$transferSuccess) {
                 return $this->serverError('Failed to transfer ownership');
             }
@@ -2207,12 +2207,22 @@ class ServerController extends BaseController
                 exit;
             }
             
+            if ($newOwnerMembership->role === 'owner') {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Selected user is already the server owner'
+                ]);
+                exit;
+            }
+            
             $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $newOwnerId);
             if (!$transferSuccess) {
+                error_log("Transfer ownership failed for server $serverId from user $currentUserId to user $newOwnerId");
                 http_response_code(500);
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Failed to transfer ownership'
+                    'error' => 'Database operation failed during ownership transfer'
                 ]);
                 exit;
             }

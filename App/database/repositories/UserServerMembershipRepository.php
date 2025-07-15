@@ -185,6 +185,106 @@ class UserServerMembershipRepository extends Repository {
         try {
             error_log("Transferring ownership of server $serverId from user $currentOwnerId to user $newOwnerId");
             
+            $existingNewOwnerMembership = $this->findByUserAndServer($newOwnerId, $serverId);
+            if (!$existingNewOwnerMembership) {
+                error_log("New owner user $newOwnerId is not a member of server $serverId");
+                return false;
+            }
+            
+            $existingCurrentOwnerMembership = $this->findByUserAndServer($currentOwnerId, $serverId);
+            if (!$existingCurrentOwnerMembership || $existingCurrentOwnerMembership->role !== 'owner') {
+                error_log("Current user $currentOwnerId is not the owner of server $serverId");
+                return false;
+            }
+            
+            $query = new Query();
+            
+            $updateNewOwner = $query->table('user_server_memberships')
+                ->where('user_id', $newOwnerId)
+                ->where('server_id', $serverId)
+                ->update(['role' => 'owner', 'updated_at' => date('Y-m-d H:i:s')]);
+
+            error_log("Update new owner result: " . ($updateNewOwner !== false ? "success ($updateNewOwner rows)" : 'failed'));
+
+            if ($updateNewOwner === false) {
+                error_log("Failed to update new owner role");
+                return false;
+            }
+
+            $updateCurrentOwner = $query->table('user_server_memberships')
+                ->where('user_id', $currentOwnerId)
+                ->where('server_id', $serverId)
+                ->update(['role' => 'admin', 'updated_at' => date('Y-m-d H:i:s')]);
+
+            error_log("Update current owner to admin result: " . ($updateCurrentOwner !== false ? "success ($updateCurrentOwner rows)" : 'failed'));
+
+            if ($updateCurrentOwner === false) {
+                error_log("Failed to update current owner role to admin");
+                $query->table('user_server_memberships')
+                    ->where('user_id', $newOwnerId)
+                    ->where('server_id', $serverId)
+                    ->update(['role' => $existingNewOwnerMembership->role, 'updated_at' => date('Y-m-d H:i:s')]);
+                return false;
+            }
+
+            error_log("Ownership transfer completed successfully");
+            
+            $allOwners = $query->table('user_server_memberships')
+                ->where('server_id', $serverId)
+                ->where('role', 'owner')
+                ->get();
+                
+            error_log("Found " . count($allOwners) . " owners after transfer: " . json_encode($allOwners));
+            
+            if (count($allOwners) > 1) {
+                error_log("Multiple owners detected - cleaning up");
+                $query->table('user_server_memberships')
+                    ->where('server_id', $serverId)
+                    ->where('role', 'owner')
+                    ->where('user_id', '!=', $newOwnerId)
+                    ->update(['role' => 'admin', 'updated_at' => date('Y-m-d H:i:s')]);
+                    
+                error_log("Cleanup completed - demoted extra owners to admin");
+            }
+            
+            $verifyNewOwner = $query->table('user_server_memberships')
+                ->where('user_id', $newOwnerId)
+                ->where('server_id', $serverId)
+                ->where('role', 'owner')
+                ->first();
+                
+            if (!$verifyNewOwner) {
+                error_log("Ownership transfer verification failed - new owner not found with owner role");
+                return false;
+            }
+            
+            error_log("Ownership transfer verified successfully");
+            return true;
+        } catch (Exception $e) {
+            if (isset($query)) {
+                $query->rollback();
+            }
+            error_log("Error transferring ownership: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    public function transferOwnershipAndRemoveOldOwner($serverId, $currentOwnerId, $newOwnerId) {
+        try {
+            error_log("Transferring ownership and removing old owner from server $serverId from user $currentOwnerId to user $newOwnerId");
+            
+            $existingNewOwnerMembership = $this->findByUserAndServer($newOwnerId, $serverId);
+            if (!$existingNewOwnerMembership) {
+                error_log("New owner user $newOwnerId is not a member of server $serverId");
+                return false;
+            }
+            
+            $existingCurrentOwnerMembership = $this->findByUserAndServer($currentOwnerId, $serverId);
+            if (!$existingCurrentOwnerMembership || $existingCurrentOwnerMembership->role !== 'owner') {
+                error_log("Current user $currentOwnerId is not the owner of server $serverId");
+                return false;
+            }
+            
             $query = new Query();
             $query->beginTransaction();
             
@@ -193,16 +293,10 @@ class UserServerMembershipRepository extends Repository {
                 ->where('server_id', $serverId)
                 ->update(['role' => 'owner']);
 
-            $updateCurrentOwner = $query->table('user_server_memberships')
-                ->where('user_id', $currentOwnerId)
-                ->where('server_id', $serverId)
-                ->update(['role' => 'member']);
+            error_log("Update new owner result: " . ($updateNewOwner !== false ? "success ($updateNewOwner rows)" : 'failed'));
 
-            error_log("Update new owner result: " . ($updateNewOwner !== false ? 'success' : 'failed'));
-            error_log("Update current owner to member result: " . ($updateCurrentOwner !== false ? 'success' : 'failed'));
-
-            if ($updateNewOwner === false || $updateCurrentOwner === false) {
-                error_log("Rolling back ownership transfer transaction");
+            if ($updateNewOwner === false) {
+                error_log("Rolling back ownership transfer transaction - new owner update failed");
                 $query->rollback();
                 return false;
             }
@@ -217,14 +311,8 @@ class UserServerMembershipRepository extends Repository {
                 ->where('role', 'owner')
                 ->first();
                 
-            $verifyOldOwner = $verifyQuery->table('user_server_memberships')
-                ->where('user_id', $currentOwnerId)
-                ->where('server_id', $serverId)
-                ->where('role', 'member')
-                ->first();
-                
-            if (!$verifyNewOwner || !$verifyOldOwner) {
-                error_log("Ownership transfer verification failed - new owner: " . ($verifyNewOwner ? 'found' : 'not found') . ", old owner: " . ($verifyOldOwner ? 'found' : 'not found'));
+            if (!$verifyNewOwner) {
+                error_log("Ownership transfer verification failed - new owner not found with owner role");
                 return false;
             }
             
