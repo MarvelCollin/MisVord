@@ -231,7 +231,7 @@ class UserAPI {
         return result;
     }
 
-    async deleteAccount(usernameConfirmation) {
+    async deleteAccount(usernameConfirmation, ownershipTransfers = {}) {
         if (!usernameConfirmation) {
             return {
                 success: false,
@@ -242,7 +242,8 @@ class UserAPI {
         const result = await this.makeRequest('/api/user/account', {
             method: 'DELETE',
             body: JSON.stringify({
-                username_confirmation: usernameConfirmation
+                username_confirmation: usernameConfirmation,
+                ownership_transfers: ownershipTransfers
             })
         });
         

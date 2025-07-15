@@ -1213,9 +1213,76 @@ class UserController extends BaseController
             $serverRepository = new ServerRepository();
             $membershipRepository = new UserServerMembershipRepository();
             
-            $ownedServers = $serverRepository->getServersByOwnerId($userId);
+            $ownershipTransfers = isset($input['ownership_transfers']) ? $input['ownership_transfers'] : [];
             
-            error_log("Delete account: User $userId owns " . count($ownedServers) . " servers");
+            if (!empty($ownershipTransfers)) {
+                error_log("Processing ownership transfers before account deletion: " . json_encode($ownershipTransfers));
+                
+                foreach ($ownershipTransfers as $serverId => $newOwnerId) {
+                    error_log("Transferring server $serverId to user $newOwnerId");
+                    
+                    $server = $serverRepository->find($serverId);
+                    if (!$server || $server->owner_id != $userId) {
+                        error_log("Skipping transfer: Server $serverId not found or not owned by user");
+                        continue;
+                    }
+                    
+                    error_log("Before transfer - Server {$serverId} owner_id: {$server->owner_id}");
+                    
+                    $transferResult = $membershipRepository->transferOwnership($serverId, $userId, $newOwnerId);
+                    if (!$transferResult) {
+                        error_log("Failed to transfer ownership of server $serverId");
+                        http_response_code(400);
+                        echo json_encode([
+                            'success' => false,
+                            'error' => "Failed to transfer ownership of server {$server->name}"
+                        ]);
+                        exit;
+                    }
+                    
+                    $updateResult = $serverRepository->update($serverId, ['owner_id' => $newOwnerId]);
+                    error_log("Server table update result for $serverId: " . ($updateResult ? 'success' : 'failed'));
+                    
+                    $updatedServer = $serverRepository->find($serverId);
+                    error_log("After transfer - Server {$serverId} owner_id: " . ($updatedServer ? $updatedServer->owner_id : 'not found'));
+                    
+                    error_log("Successfully transferred server $serverId ownership to user $newOwnerId");
+                }
+                
+                error_log("All ownership transfers completed successfully");
+            }
+            
+            error_log("Removing user from all servers before deletion");
+            $userServers = $membershipRepository->getServersForUser($userId);
+            foreach ($userServers as $server) {
+                $removeResult = $membershipRepository->removeMembership($userId, $server['id']);
+                error_log("Removed user $userId from server {$server['id']}: " . ($removeResult ? 'success' : 'failed'));
+            }
+            
+            $ownedServersAfterRemoval = $serverRepository->getServersByOwnerId($userId);
+            error_log("Delete account: User $userId owns " . count($ownedServersAfterRemoval) . " servers after membership removal");
+            
+            if (count($ownedServersAfterRemoval) > 0) {
+                error_log("ERROR: User still owns servers after transfers and membership removal!");
+                foreach ($ownedServersAfterRemoval as $server) {
+                    error_log("Still owns server: {$server['id']} - {$server['name']}");
+                }
+                http_response_code(500);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Cannot delete account - user still owns servers after ownership transfers',
+                    'debug_info' => [
+                        'user_id' => $userId,
+                        'remaining_owned_servers' => count($ownedServersAfterRemoval),
+                        'ownership_transfers_processed' => !empty($ownershipTransfers)
+                    ]
+                ]);
+                exit;
+            }
+            
+            $ownedServers = $ownedServersAfterRemoval;
+            
+            error_log("Delete account: User $userId owns " . count($ownedServers) . " servers after transfers");
             
             foreach ($ownedServers as $server) {
                 $memberCount = $membershipRepository->getMemberCount($server['id']);
@@ -1223,28 +1290,20 @@ class UserController extends BaseController
                 
                 error_log("Server {$server['id']} ({$server['name']}) has $memberCount total members, $memberCountExcludingUser excluding user");
                 
-                if ($memberCountExcludingUser > 0) {
-                    error_log("Blocking account deletion: Server {$server['name']} still has $memberCountExcludingUser other members");
-                    http_response_code(400);
-                    echo json_encode([
-                        'success' => false,
-                        'error' => 'You must transfer ownership of all servers with multiple members before deleting your account. Server "' . $server['name'] . '" still has ' . $memberCountExcludingUser . ' other members.'
+                if ($memberCountExcludingUser <= 0) {
+                    error_log("Server {$server['id']} will be empty after user deletion, scheduling for deletion");
+                    
+                    $this->logActivity('server_deleted_with_user', [
+                        'server_id' => $server['id'],
+                        'server_name' => $server['name'],
+                        'user_id' => $userId
                     ]);
-                    exit;
+                    
+                    $deleteResult = $serverRepository->deleteServerCompletely($server['id']);
+                    error_log("Server deletion result for {$server['id']}: " . ($deleteResult ? 'success' : 'failed'));
+                } else {
+                    error_log("Server {$server['id']} still has members, should not be deleted");
                 }
-            }
-            
-            foreach ($ownedServers as $server) {
-                error_log("Deleting server {$server['id']} ({$server['name']}) as part of user deletion");
-                
-                $this->logActivity('server_deleted_with_user', [
-                    'server_id' => $server['id'],
-                    'server_name' => $server['name'],
-                    'user_id' => $userId
-                ]);
-                
-                $deleteResult = $serverRepository->deleteServerCompletely($server['id']);
-                error_log("Server deletion result for {$server['id']}: " . ($deleteResult ? 'success' : 'failed'));
             }
 
             error_log("Proceeding to delete user $userId");
@@ -1252,10 +1311,23 @@ class UserController extends BaseController
             error_log("User deletion result: " . ($result ? 'success' : 'failed'));
 
             if (!$result) {
+                error_log("User deletion failed for user $userId - checking for constraint violations");
+                
+                $remainingMemberships = $membershipRepository->getServersForUser($userId);
+                $remainingOwnerships = $serverRepository->getServersByOwnerId($userId);
+                
+                error_log("User deletion failed - remaining memberships: " . count($remainingMemberships) . ", remaining ownerships: " . count($remainingOwnerships));
+                
                 http_response_code(500);
                 echo json_encode([
                     'success' => false,
-                    'error' => 'Failed to delete account'
+                    'error' => 'Failed to delete account - database constraints may be preventing deletion',
+                    'debug_info' => [
+                        'user_id' => $userId,
+                        'remaining_memberships' => count($remainingMemberships),
+                        'remaining_ownerships' => count($remainingOwnerships),
+                        'ownership_transfers_processed' => !empty($ownershipTransfers)
+                    ]
                 ]);
                 exit;
             }

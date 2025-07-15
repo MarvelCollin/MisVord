@@ -2095,10 +2095,11 @@ function initDeleteAccount() {
                                 </div>
                             </div>
                             <div class="server-transfer-section bg-discord-bg-tertiary p-4 rounded-md">
-                                <div class="text-sm text-white font-medium mb-3">Transfer ownership to:</div>
+                                <div class="text-sm text-white font-medium mb-3">Transfer ownership to ${server.member_count === 2 ? 'the only other member' : 'a member'}:</div>
+                                ${server.member_count === 2 ? '<div class="text-xs text-yellow-400 mb-2"><i class="fas fa-info-circle mr-1"></i>This server has only 1 other member - they will be automatically selected</div>' : ''}
                                 <div class="relative">
                                     <div class="flex items-center space-x-2 mb-2">
-                                        <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="Search members...">
+                                        <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="${server.member_count === 2 ? 'Click search to auto-select the only member' : 'Search members...'}">
                                         <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded">
                                             <i class="fas fa-search"></i>
                                         </button>
@@ -2214,11 +2215,15 @@ function initDeleteAccount() {
                     return;
                 }
                 
-
                 serverElement.dataset.members = JSON.stringify(members);
                 
-
-                renderMembersList(serverElement, members);
+                if (members.length === 1) {
+                    console.log(`Server has only 1 eligible member, auto-selecting: ${members[0].username}`);
+                    selectMember(serverElement, members[0]);
+                    dropdown.innerHTML = '<div class="text-center py-3 bg-discord-bg-secondary text-sm text-green-400">Only one eligible member - automatically selected</div>';
+                } else {
+                    renderMembersList(serverElement, members);
+                }
             })
             .catch(error => {
                 console.error('Error loading members:', error);
@@ -2322,11 +2327,15 @@ function initDeleteAccount() {
     }
     
     function checkAllServersReady() {
-        const serverElements = document.querySelectorAll('#owned-servers-list > div:not(.server-can-delete)');
+        const serverElements = document.querySelectorAll('#owned-servers-list > div');
         let allReady = true;
+        
         serverElements.forEach(server => {
             const serverId = server.getAttribute('data-server-id');
-            if (!selectedOwners[serverId]) {
+            const canDelete = server.classList.contains('server-can-delete');
+            const hasSelectedOwner = selectedOwners[serverId];
+            
+            if (!canDelete && !hasSelectedOwner) {
                 allReady = false;
             }
         });
@@ -2359,90 +2368,28 @@ function initDeleteAccount() {
             return;
         }
         
-        // Wait a bit more to ensure DOM is fully updated
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
         const serverElements = document.querySelectorAll('#owned-servers-list > div');
-        const serversRequiringTransfer = Array.from(serverElements).filter(server => {
-            return !server.classList.contains('server-can-delete') && !server.classList.contains('server-owner-selected');
+        const serversRequiringTransfer = [];
+        
+        serverElements.forEach(serverElement => {
+            const serverId = serverElement.getAttribute('data-server-id');  
+            const canDelete = serverElement.classList.contains('server-can-delete');
+            const hasSelectedOwner = selectedOwners[serverId];
+            
+            if (!canDelete && !hasSelectedOwner) {
+                serversRequiringTransfer.push(serverElement);
+            }
         });
         
         console.log('Total servers found:', serverElements.length);
-        console.log('Server elements:', serverElements);
         console.log('Servers requiring transfer:', serversRequiringTransfer.length);
-        console.log('Servers requiring transfer elements:', serversRequiringTransfer);
         console.log('Selected owners:', selectedOwners);
         
-        // Debug each server element
-        serverElements.forEach((element, index) => {
-            const serverId = element.getAttribute('data-server-id');
-            const hasCanDeleteClass = element.classList.contains('server-can-delete');
-            console.log(`Server element ${index}: ID=${serverId}, has server-can-delete class=${hasCanDeleteClass}, classes=${element.className}`);
-        });
-        
         if (serversRequiringTransfer.length > 0) {
-            console.log('Starting server ownership transfers...');
-            let allTransferred = true;
-            for (const server of serversRequiringTransfer) {
-                const serverId = server.getAttribute('data-server-id');
-                const newOwnerId = selectedOwners[serverId];
-                console.log(`Server ${serverId}: selected owner = ${newOwnerId}`);
-                
-                if (!newOwnerId) {
-                    console.error(`No new owner selected for server ${serverId}`);
-                    showError('Please select new owners for all servers that require transfer');
-                    return;
-                }
-                
-                console.log(`Attempting to transfer server ${serverId} to user ${newOwnerId}`);
-                try {
-                    console.log('Transferring server:', serverId, 'to user:', newOwnerId);
-                    const result = await window.serverAPI.transferOwnership(serverId, newOwnerId);
-                    console.log('Transfer result:', result);
-                    
-                    if (!result.success) {
-                        console.error('Transfer failed:', result);
-                        showError(`Failed to transfer ${server.querySelector('.font-medium.text-white.text-lg').textContent}: ${result.error || result.message || 'Unknown error'}`);
-                        allTransferred = false;
-                        break;
-                    }
-                    console.log('Successfully transferred server', serverId);
-                } catch (error) {
-                    console.error('Transfer error:', error);
-                    showError(`Error transferring server: ${error.message}`);
-                    allTransferred = false;
-                    break;
-                }
-            }
-            if (!allTransferred) return;
-            
-            console.log('All servers transferred successfully, verifying account state...');
-            
-            try {
-                const verificationResponse = await fetch('/api/users/owned-servers');
-                const verificationData = await verificationResponse.json();
-                
-                if (verificationData.success && verificationData.data && verificationData.data.servers) {
-                    const remainingServers = verificationData.data.servers;
-                    const serversNeedingTransfer = remainingServers.filter(s => s.requires_transfer);
-                    
-                    if (serversNeedingTransfer.length > 0) {
-                        console.error('Verification failed: Still have servers requiring transfer:', serversNeedingTransfer);
-                        showError('Server ownership transfers may not have completed properly. Please refresh the page and try again.');
-                        confirmBtn.disabled = false;
-                        confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';
-                        return;
-                    }
-                    console.log('Verification passed: No servers requiring transfer found');
-                } else {
-                    console.warn('Could not verify server state, proceeding anyway');
-                }
-            } catch (error) {
-                console.warn('Server verification failed, proceeding anyway:', error);
-            }
-        } else {
-            console.log('No servers require transfer, proceeding with delete...');
+            showError('Please select new owners for all servers that require transfer');
+            return;
         }
+        
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
         
@@ -2450,7 +2397,7 @@ function initDeleteAccount() {
         console.log('Username confirmation:', inputValue);
         
         try {
-            const result = await window.userAPI.deleteAccount(inputValue);
+            const result = await window.userAPI.deleteAccount(inputValue, selectedOwners);
             console.log('Delete account result:', result);
             if (result.success) {
                 showToast('Account deleted successfully. Redirecting...', 'success');

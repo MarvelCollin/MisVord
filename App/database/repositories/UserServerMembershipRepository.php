@@ -209,6 +209,26 @@ class UserServerMembershipRepository extends Repository {
 
             $query->commit();
             error_log("Ownership transfer completed successfully");
+            
+            $verifyQuery = new Query();
+            $verifyNewOwner = $verifyQuery->table('user_server_memberships')
+                ->where('user_id', $newOwnerId)
+                ->where('server_id', $serverId)
+                ->where('role', 'owner')
+                ->first();
+                
+            $verifyOldOwner = $verifyQuery->table('user_server_memberships')
+                ->where('user_id', $currentOwnerId)
+                ->where('server_id', $serverId)
+                ->where('role', 'member')
+                ->first();
+                
+            if (!$verifyNewOwner || !$verifyOldOwner) {
+                error_log("Ownership transfer verification failed - new owner: " . ($verifyNewOwner ? 'found' : 'not found') . ", old owner: " . ($verifyOldOwner ? 'found' : 'not found'));
+                return false;
+            }
+            
+            error_log("Ownership transfer verified successfully");
             return true;
         } catch (Exception $e) {
             if (isset($query)) {
@@ -242,6 +262,25 @@ class UserServerMembershipRepository extends Repository {
             return $results;
         } catch (Exception $e) {
             error_log("Error getting eligible new owners: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    public function getOwnershipRecords($serverId) {
+        try {
+            $query = new Query();
+            $results = $query->table('user_server_memberships usm')
+                ->join('users u', 'usm.user_id', '=', 'u.id')
+                ->where('usm.server_id', $serverId)
+                ->where('usm.role', 'owner')
+                ->select('usm.user_id, usm.role, u.username, u.id as user_table_id')
+                ->get();
+                
+            return array_map(function($row) {
+                return is_array($row) ? $row : (array) $row;
+            }, $results);
+        } catch (Exception $e) {
+            error_log("Error getting ownership records: " . $e->getMessage());
             return [];
         }
     }

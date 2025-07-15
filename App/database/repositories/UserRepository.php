@@ -557,31 +557,26 @@ class UserRepository extends Repository {
             
             $user = $this->find($userId);
             if (!$user) {
+                error_log("DeleteUser failed: User $userId not found");
                 return false;
             }
             
+            error_log("Starting user deletion for user $userId - relying on foreign key constraints");
             $query->beginTransaction();
             
-            $query->table('message_reactions')->where('user_id', $userId)->delete();
-            $query->table('pinned_messages')->where('user_id', $userId)->delete();
-            $query->table('chat_room_messages')->where('user_id', $userId)->delete();
-            $query->table('chat_participants')->where('user_id', $userId)->delete();
-            $query->table('channel_messages')->where('user_id', $userId)->delete();
-            $query->table('messages')->where('user_id', $userId)->delete();
-            $query->table('friend_list')->where('user_id', $userId)->delete();
-            $query->table('friend_list')->where('user_id2', $userId)->delete();
-            $query->table('nitro')->where('user_id', $userId)->delete();
-            $query->table('user_server_memberships')->where('user_id', $userId)->delete();
-            
+            error_log("Deleting user record for user $userId");
             $result = $query->table(User::getTable())->where('id', $userId)->delete();
+            error_log("User table deletion result: $result rows affected");
             
             if ($result > 0) {
                 $query->commit();
+                error_log("User deletion transaction committed successfully for user $userId");
                 
                 if (!empty($user->avatar_url) && strpos($user->avatar_url, '/public/storage/') === 0) {
                     $avatarPath = dirname(__DIR__, 2) . $user->avatar_url;
                     if (file_exists($avatarPath) && is_file($avatarPath)) {
                         unlink($avatarPath);
+                        error_log("Deleted avatar file: $avatarPath");
                     }
                 }
                 
@@ -589,12 +584,14 @@ class UserRepository extends Repository {
                     $bannerPath = dirname(__DIR__, 2) . $user->banner_url;
                     if (file_exists($bannerPath) && is_file($bannerPath)) {
                         unlink($bannerPath);
+                        error_log("Deleted banner file: $bannerPath");
                     }
                 }
                 
                 return true;
             } else {
                 $query->rollback();
+                error_log("User deletion failed: No rows affected when deleting user $userId");
                 return false;
             }
             
@@ -602,7 +599,8 @@ class UserRepository extends Repository {
             if (isset($query)) {
                 $query->rollback();
             }
-            error_log("UserRepository deleteUser error: " . $e->getMessage());
+            error_log("UserRepository deleteUser error for user $userId: " . $e->getMessage());
+            error_log("Error trace: " . $e->getTraceAsString());
             return false;
         }
     }
