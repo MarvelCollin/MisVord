@@ -158,6 +158,10 @@ class VoiceManager {
             window.globalSocketManager.io.on('bot-voice-participant-left', (data) => {
                 this.handleBotParticipantLeft(data);
             });
+            
+            window.globalSocketManager.io.on('voice-meeting-status', (data) => {
+                this.handleVoiceMeetingStatus(data);
+            });
         } else {
             window.addEventListener('globalSocketReady', () => {
                 this.setupBotEventListeners();
@@ -172,13 +176,16 @@ class VoiceManager {
         if (channelId === this.currentChannelId) {
             const botId = `bot-${participant.user_id}`;
             
-
+            if (this.participants.has(botId)) {
+                return;
+            }
+            
             let avatarUrl = participant.avatar_url;
             if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
                 avatarUrl = '/public/assets/landing-page/robot.webp';
             }
             
-            this.botParticipants.set(botId, {
+            const botData = {
                 id: botId,
                 user_id: participant.user_id,
                 name: participant.username || 'TitiBot',
@@ -189,29 +196,22 @@ class VoiceManager {
                 streams: new Map(),
                 channelId: channelId,
                 status: participant.status || 'Ready to play music' 
-            });
+            };
             
-            this.participants.set(botId, this.botParticipants.get(botId));
+            this.botParticipants.set(botId, botData);
+            this.participants.set(botId, botData);
             
             window.dispatchEvent(new CustomEvent('participantJoined', {
-                detail: { participant: botId, data: this.botParticipants.get(botId) }
+                detail: { participant: botId, data: botData }
             }));
             
             if (window.ChannelVoiceParticipants) {
                 const instance = window.ChannelVoiceParticipants.getInstance();
-
                 const updateMode = isRecovery ? 'full' : 'append';
-                setTimeout(() => {
+                requestAnimationFrame(() => {
                     instance.updateSidebarForChannel(channelId, updateMode);
-                }, isRecovery ? 100 : 0); 
+                });
             }
-            
-            console.log(`🤖 [VOICE-MANAGER] Bot participant ${isRecovery ? 'recovered' : 'joined'}:`, {
-                botId,
-                username: participant.username,
-                channelId,
-                isRecovery: !!isRecovery
-            });
         }
     }
     
@@ -235,6 +235,41 @@ class VoiceManager {
                 const instance = window.ChannelVoiceParticipants.getInstance();
                 instance.updateSidebarForChannel(channelId);
             }
+        }
+    }
+    
+    handleVoiceMeetingStatus(data) {
+        if (data.participants && Array.isArray(data.participants)) {
+            data.participants.forEach(serverParticipant => {
+                const participantId = serverParticipant.isBot ? 
+                    `bot-${serverParticipant.user_id}` : 
+                    serverParticipant.user_id;
+                
+                if (!this.participants.has(participantId)) {
+                    const participant = {
+                        id: participantId,
+                        displayName: serverParticipant.username || 'Unknown',
+                        avatar_url: serverParticipant.avatar_url,
+                        isBot: serverParticipant.isBot || false,
+                        user_id: serverParticipant.user_id,
+                        joinedAt: serverParticipant.joined_at
+                    };
+                    
+                    this.participants.set(participantId, participant);
+                    
+                    if (participant.isBot) {
+                        this.botParticipants.set(participantId, {
+                            ...participant,
+                            channelId: this.currentChannelId
+                        });
+                    }
+                    
+                    const event = new CustomEvent('participantJoined', {
+                        detail: { participant: participant }
+                    });
+                    window.dispatchEvent(event);
+                }
+            });
         }
     }
     
@@ -316,11 +351,14 @@ class VoiceManager {
             
             this.updatePresence();
             this.notifySocketServer('join', meetingId);
-            this.loadExistingBotParticipants();
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { channelId, channelName, meetingId, skipJoinSound }
             }));
+            
+            requestAnimationFrame(() => {
+                this.loadExistingBotParticipants();
+            });
             
             if (currentUserId) {
                 window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
@@ -529,8 +567,42 @@ class VoiceManager {
                 }
             });
         }
+        
+        if (this.meeting && this.meeting.participants) {
+            this.meeting.participants.forEach((participant) => {
+                if (participant && !this.participants.has(participant.id)) {
+                    this.handleParticipantJoined(participant);
+                }
+            });
+        }
     }
     
+    refreshAllParticipants() {
+        if (!this.isConnected || !this.currentChannelId) return;
+        
+        this.loadExistingBotParticipants();
+        
+        if (this.meeting && this.meeting.participants) {
+            this.meeting.participants.forEach((participant) => {
+                if (participant && !this.participants.has(participant.id)) {
+                    this.handleParticipantJoined(participant);
+                }
+            });
+        }
+        
+        if (this.meeting && this.meeting.localParticipant && !this.participants.has(this.meeting.localParticipant.id)) {
+            this.handleParticipantJoined(this.meeting.localParticipant);
+        }
+        
+        if (window.globalSocketManager?.io) {
+            window.globalSocketManager.io.emit('check-voice-meeting', { 
+                channel_id: this.currentChannelId 
+            });
+        }
+        
+        this.checkAllParticipantsForExistingStreams();
+    }
+
     getAllParticipants() {
         return new Map([...this.participants]);
     }
@@ -561,8 +633,17 @@ class VoiceManager {
             
             this.handleParticipantJoined(this.meeting.localParticipant);
             
-            this.checkAllParticipantsForExistingStreams();
-            await this.restoreVideoStatesFromStorage();
+            requestAnimationFrame(() => {
+                this.checkAllParticipantsForExistingStreams();
+            });
+            
+            requestAnimationFrame(() => {
+                this.restoreVideoStatesFromStorage();
+            });
+            
+            requestAnimationFrame(() => {
+                this.refreshAllParticipants();
+            });
         });
         
         this.meeting.on('meeting-left', () => {
@@ -647,7 +728,6 @@ class VoiceManager {
             console.warn('[VoiceManager] Failed to parse participant metaData:', e);
         }
         
-
         let userIdField = participant.id;
         try {
             if (participant.metaData) {
@@ -656,17 +736,13 @@ class VoiceManager {
                     userIdField = String(meta.user_id);
                 }
             }
-        } catch (e) {
-
-        }
-
-
+        } catch (e) {}
 
         const participantKey = participant.id;
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
         const isLocalUser = currentUserId && String(userIdField) === currentUserId;
         
-        this.participants.set(participantKey, {
+        const participantData = {
             id: participant.id,
             user_id: userIdField,
             name: participant.displayName || participant.name,
@@ -676,12 +752,14 @@ class VoiceManager {
             isLocal: participant.id === this.localParticipant?.id,
             isSelf: isLocalUser,
             streams: new Map()
-        });
+        };
+        
+        this.participants.set(participantKey, participantData);
         
         this.setupStreamHandlers(participant);
         
         if (this._deafened && participant.id !== this.localParticipant?.id) {
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 try {
                     participant.streams.forEach(stream => {
                         if (stream.kind === 'audio') {
@@ -691,13 +769,13 @@ class VoiceManager {
                 } catch (error) {
                     console.warn('Could not pause audio stream for new participant:', participant.id);
                 }
-            }, 100);
+            });
         }
         
         this.checkAndRestoreExistingStreams(participant);
         
         window.dispatchEvent(new CustomEvent('participantJoined', {
-            detail: { participant: participantKey, data: this.participants.get(participantKey) }
+            detail: { participant: participantKey, data: participantData }
         }));
         
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
@@ -770,117 +848,93 @@ class VoiceManager {
     checkAndRestoreExistingStreams(participant) {
         if (!participant) return;
         
+        if (participant.webcamOn && participant.webcamStream) {
+            const participantData = this.participants.get(participant.id);
+            if (participantData) {
+                participantData.streams.set('video', participant.webcamStream);
+            }
+            
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participant.id,
+                    kind: 'video',
+                    stream: participant.webcamStream
+                }
+            }));
+        }
         
-        console.log(`🔍 [VOICE-MANAGER] Participant object:`, {
-            id: participant.id,
-            webcamOn: participant.webcamOn,
-            screenShareOn: participant.screenShareOn,
-            micOn: participant.micOn,
-            hasWebcamStream: !!participant.webcamStream,
-            hasScreenShareStream: !!participant.screenShareStream,
-            hasMicStream: !!participant.micStream,
-            hasVideoStream: !!participant.videoStream,
-            hasStreamsObject: !!participant.streams
-        });
+        if (participant.screenShareOn && participant.screenShareStream) {
+            const participantData = this.participants.get(participant.id);
+            if (participantData) {
+                participantData.streams.set('share', participant.screenShareStream);
+            }
+            
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participant.id,
+                    kind: 'share',
+                    stream: participant.screenShareStream
+                }
+            }));
+        }
         
-        setTimeout(() => {
-            if (participant.webcamOn && participant.webcamStream) {
-                
+        if (participant.micOn && participant.micStream) {
+            const participantData = this.participants.get(participant.id);
+            if (participantData) {
+                participantData.streams.set('audio', participant.micStream);
+            }
+        }
+        
+        if (participant.videoStream) {
+            const participantData = this.participants.get(participant.id);
+            if (participantData) {
+                participantData.streams.set('video', participant.videoStream);
+            }
+            
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participant.id,
+                    kind: 'video',
+                    stream: participant.videoStream
+                }
+            }));
+        }
+        
+        if (participant.streams) {
+            if (participant.streams.video) {
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
-                    participantData.streams.set('video', participant.webcamStream);
+                    participantData.streams.set('video', participant.streams.video);
                 }
                 
                 window.dispatchEvent(new CustomEvent('streamEnabled', {
                     detail: { 
                         participantId: participant.id,
                         kind: 'video',
-                        stream: participant.webcamStream
+                        stream: participant.streams.video
                     }
                 }));
             }
             
-            if (participant.screenShareOn && participant.screenShareStream) {
-                
+            if (participant.streams.share) {
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
-                    participantData.streams.set('share', participant.screenShareStream);
+                    participantData.streams.set('share', participant.streams.share);
                 }
                 
                 window.dispatchEvent(new CustomEvent('streamEnabled', {
                     detail: { 
                         participantId: participant.id,
                         kind: 'share',
-                        stream: participant.screenShareStream
+                        stream: participant.streams.share
                     }
                 }));
             }
-            
-            if (participant.micOn && participant.micStream) {
-                
-                const participantData = this.participants.get(participant.id);
-                if (participantData) {
-                    participantData.streams.set('audio', participant.micStream);
-                }
-            }
-            
-            if (participant.videoStream) {
-                const participantData = this.participants.get(participant.id);
-                if (participantData) {
-                    participantData.streams.set('video', participant.videoStream);
-                }
-                
-                window.dispatchEvent(new CustomEvent('streamEnabled', {
-                    detail: { 
-                        participantId: participant.id,
-                        kind: 'video',
-                        stream: participant.videoStream
-                    }
-                }));
-            }
-            
-            if (participant.streams) {
-                
-                
-                if (participant.streams.video) {
-                    
-                    const participantData = this.participants.get(participant.id);
-                    if (participantData) {
-                        participantData.streams.set('video', participant.streams.video);
-                    }
-                    
-                    window.dispatchEvent(new CustomEvent('streamEnabled', {
-                        detail: { 
-                            participantId: participant.id,
-                            kind: 'video',
-                            stream: participant.streams.video
-                        }
-                    }));
-                }
-                
-                if (participant.streams.share) {
-                    
-                    const participantData = this.participants.get(participant.id);
-                    if (participantData) {
-                        participantData.streams.set('share', participant.streams.share);
-                    }
-                    
-                    window.dispatchEvent(new CustomEvent('streamEnabled', {
-                        detail: { 
-                            participantId: participant.id,
-                            kind: 'share',
-                            stream: participant.streams.share
-                        }
-                    }));
-                }
-            }
-        }, 200);
+        }
     }
     
     checkAllParticipantsForExistingStreams() {
         if (!this.meeting || !this.meeting.participants) return;
-        
-        
         
         this.meeting.participants.forEach((participant) => {
             if (participant && this.participants.has(participant.id)) {
@@ -1318,6 +1372,8 @@ class VoiceManager {
                 needsRestoration: false,
                 restoredAt: Date.now()
             });
+            
+            this.loadExistingBotParticipants();
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { 

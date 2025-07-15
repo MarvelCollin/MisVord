@@ -126,11 +126,7 @@ class VoiceCallSection {
         this.initializeVoiceState();
         this.ensureChannelSync();
         this.updateLocalParticipantIndicators();
-        this.syncButtonStates();
-        
-        this.duplicateCleanupInterval = setInterval(() => {
-            this.removeDuplicateCards();
-        }, 5000); 
+        this.syncButtonStates(); 
     }
     
     bindControls() {
@@ -354,13 +350,19 @@ class VoiceCallSection {
         
         setTimeout(() => {
             this.rebuildGridFromVideoSDK();
-        }, 500);
+        }, 100);
+        
+        setTimeout(() => {
+            if (window.voiceManager && typeof window.voiceManager.refreshAllParticipants === 'function') {
+                window.voiceManager.refreshAllParticipants();
+            }
+        }, 200);
         
         setTimeout(() => {
             if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
                 window.voiceManager.checkAllParticipantsForExistingStreams();
             }
-        }, 1500);
+        }, 300);
         
         if (!event.detail.skipJoinSound) {
             MusicLoaderStatic.playJoinVoiceSound();
@@ -494,7 +496,6 @@ class VoiceCallSection {
         if (!participant || this.participantElements.has(participant)) return;
         
         if (!window.voiceManager || !window.voiceManager.participants.has(participant)) {
-            
             return;
         }
         
@@ -503,7 +504,6 @@ class VoiceCallSection {
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
-                    
                     return;
                 }
             }
@@ -512,34 +512,38 @@ class VoiceCallSection {
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
-        const element = this.createParticipantElement(participant, data);
-        
-        element.style.opacity = '0';
-        element.style.transform = 'translateY(20px) scale(0.9)';
-        element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
-        
-        grid.appendChild(element);
-        this.participantElements.set(participant, element);
-        
-        if (element.hasAttribute('data-is-local')) {
-            this.updateLocalParticipantIndicators();
-        }
-        
-        setTimeout(() => {
-            element.style.opacity = '1';
-            element.style.transform = 'translateY(0) scale(1)';
-        }, 10);
-        
-        setTimeout(() => {
-            this.restoreExistingStreamsForParticipant(participant, data, element);
-        }, 100);
-        
-        this.updateGridLayout();
-        this.updateParticipantCount();
-        
-        if (window.ChannelVoiceParticipants && this.currentChannelId) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            instance.updateSidebarForChannel(this.currentChannelId, 'append');
+        try {
+            const element = this.createParticipantElement(participant, data);
+            
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px) scale(0.9)';
+            element.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+            
+            grid.appendChild(element);
+            this.participantElements.set(participant, element);
+            
+            if (element.hasAttribute('data-is-local')) {
+                this.updateLocalParticipantIndicators();
+            }
+            
+            requestAnimationFrame(() => {
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0) scale(1)';
+            });
+            
+            requestAnimationFrame(() => {
+                this.restoreExistingStreamsForParticipant(participant, data, element);
+            });
+            
+            this.updateGridLayout();
+            this.updateParticipantCount();
+            
+            if (window.ChannelVoiceParticipants && this.currentChannelId) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+                instance.updateSidebarForChannel(this.currentChannelId, 'append');
+            }
+        } catch (error) {
+            console.warn('Failed to handle participant joined:', participant, error);
         }
     }
 
@@ -547,9 +551,6 @@ class VoiceCallSection {
         const { participant } = event.detail;
         if (!participant) return;
         
-        
-        
-
         if (this.currentModal) {
             const modalParticipantId = this.currentModal.getAttribute('data-participant-id');
             if (modalParticipantId === participant) {
@@ -559,12 +560,11 @@ class VoiceCallSection {
         
         const element = this.participantElements.get(participant);
         if (element) {
-
             element.style.transition = 'opacity 0.3s ease-out, transform 0.3s ease-out';
             element.style.opacity = '0';
             element.style.transform = 'translateY(-20px) scale(0.9)';
             
-            setTimeout(() => {
+            requestAnimationFrame(() => {
                 if (element.parentNode) {
                     element.remove();
                 }
@@ -572,12 +572,11 @@ class VoiceCallSection {
                 this.updateGridLayout();
                 this.updateParticipantCount();
                 
-
                 if (window.ChannelVoiceParticipants && this.currentChannelId) {
                     const instance = window.ChannelVoiceParticipants.getInstance();
                     instance.updateSidebarForChannel(this.currentChannelId, 'full');
                 }
-            }, 300);
+            });
         }
     }
 
@@ -585,11 +584,6 @@ class VoiceCallSection {
         const { participantId, kind, stream } = event.detail;
         const element = this.participantElements.get(participantId);
         if (!element) return;
-        
-        if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
-            
-            return;
-        }
         
         if (kind === 'video' || kind === 'webcam') {
             this.showParticipantVideo(element, stream);
@@ -966,7 +960,8 @@ class VoiceCallSection {
     }
     
     updateBotParticipantStatus(botId, statusText) {
-        const element = this.participantElements.get(`bot-${botId}`);
+        const botParticipantId = `bot-${botId}`;
+        const element = this.participantElements.get(botParticipantId);
         if (element) {
             const statusElement = element.querySelector('.music-status');
             if (statusElement) {
@@ -977,11 +972,6 @@ class VoiceCallSection {
     
     clearGrid() {
         this.closeParticipantModal();
-        
-        if (this.duplicateCleanupInterval) {
-            clearInterval(this.duplicateCleanupInterval);
-            this.duplicateCleanupInterval = null;
-        }
         
         const grid = document.getElementById("participantGrid");
         if (grid) {
@@ -1002,19 +992,37 @@ class VoiceCallSection {
             return;
         }
         
-        
-        this.clearGrid();
-        
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
-        window.voiceManager.participants.forEach((participantData, participantId) => {
+        const existingParticipants = new Set(this.participantElements.keys());
+        const currentParticipants = new Set(window.voiceManager.participants.keys());
+        
+        currentParticipants.forEach(participantId => {
+            const participantData = window.voiceManager.participants.get(participantId);
             if (participantData && !this.participantElements.has(participantId)) {
-                const element = this.createParticipantElement(participantId, participantData);
-                grid.appendChild(element);
-                this.participantElements.set(participantId, element);
-                
-                this.restoreExistingStreamsForParticipant(participantId, participantData, element);
+                try {
+                    const element = this.createParticipantElement(participantId, participantData);
+                    grid.appendChild(element);
+                    this.participantElements.set(participantId, element);
+                    if (!participantData.isBot) {
+                        requestAnimationFrame(() => {
+                            this.restoreExistingStreamsForParticipant(participantId, participantData, element);
+                        });
+                    }
+                } catch (error) {
+                    console.warn('Failed to create participant element:', participantId, error);
+                }
+            }
+        });
+        
+        existingParticipants.forEach(participantId => {
+            if (!currentParticipants.has(participantId)) {
+                const element = this.participantElements.get(participantId);
+                if (element && element.parentNode) {
+                    element.remove();
+                    this.participantElements.delete(participantId);
+                }
             }
         });
         
@@ -1043,7 +1051,10 @@ class VoiceCallSection {
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
+        if (!window.voiceManager || !window.voiceManager.participants) return;
+        
         const seenUserIds = new Set();
+        const seenParticipantIds = new Set();
         const cardsToRemove = [];
         
         const cards = grid.querySelectorAll('.participant-card');
@@ -1051,29 +1062,33 @@ class VoiceCallSection {
             const userId = card.getAttribute('data-user-id');
             const participantId = card.getAttribute('data-participant-id');
             
-            if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
-                cardsToRemove.push({ card, participantId });
-                
+            if (!participantId) {
+                cardsToRemove.push({ card, participantId: 'unknown' });
                 return;
             }
             
-            if (userId) {
-                if (seenUserIds.has(userId)) {
-                    cardsToRemove.push({ card, participantId });
-                    
-                } else {
-                    seenUserIds.add(userId);
-                }
+            if (seenParticipantIds.has(participantId)) {
+                cardsToRemove.push({ card, participantId });
+                return;
             }
+            
+            if (userId && seenUserIds.has(userId)) {
+                cardsToRemove.push({ card, participantId });
+                return;
+            }
+            
+            if (participantId) seenParticipantIds.add(participantId);
+            if (userId) seenUserIds.add(userId);
         });
         
         cardsToRemove.forEach(({ card, participantId }) => {
             card.remove();
-            this.participantElements.delete(participantId);
+            if (participantId !== 'unknown') {
+                this.participantElements.delete(participantId);
+            }
         });
         
         if (cardsToRemove.length > 0) {
-            
             this.updateGridLayout();
             this.updateParticipantCount();
         }
@@ -1416,9 +1431,17 @@ class VoiceCallSection {
             this.currentChannelName = channelElement?.querySelector('.channel-name')?.textContent?.trim() || 
                                      channelElement?.getAttribute('data-channel-name') || 
                                      'Voice Channel';
+                                     
+            if (window.voiceManager && window.voiceManager.isConnected && window.voiceManager.currentChannelId === urlChannelId) {
+                window.voiceManager.refreshAllParticipants();
+            }
         } else if (metaChannelId && window.voiceManager?.currentChannelId === metaChannelId) {
             this.currentChannelId = metaChannelId;
             this.currentChannelName = window.voiceManager?.currentChannelName || 'Voice Channel';
+            
+            if (window.voiceManager && window.voiceManager.isConnected) {
+                window.voiceManager.refreshAllParticipants();
+            }
         }
         
         if (window.localStorageManager) {

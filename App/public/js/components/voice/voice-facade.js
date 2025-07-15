@@ -48,7 +48,9 @@ class VoiceFacade {
 
         const currentState = this.getCurrentState();
         if (currentState.isConnected && currentState.channelId === channelId) {
-            
+            if (window.voiceManager && typeof window.voiceManager.refreshAllParticipants === 'function') {
+                window.voiceManager.refreshAllParticipants();
+            }
             return true;
         }
 

@@ -317,21 +317,16 @@ class BotHandler extends EventEmitter {
     static async joinBotToVoiceChannel(io, botId, username, channelId) {
         const botParticipantKey = `${botId}-${channelId}`;
         
-
         if (this.botVoiceParticipants.has(botParticipantKey)) {
-            
             return;
         }
 
-
         for (const [key, participant] of this.botVoiceParticipants.entries()) {
             if (key.startsWith(`${botId}-`) && participant.channelId !== channelId) {
-                
                 await this.leaveBotFromVoiceChannel(io, botId, participant.channelId);
                 break;
             }
         }
-
 
         if (!this.bots.has(botId)) {
             await this.registerBot(botId, username);
@@ -341,7 +336,6 @@ class BotHandler extends EventEmitter {
         const avatarUrl = botData?.avatar_url || '/public/assets/landing-page/robot.webp';
 
         try {
-
             const virtualBotClient = {
                 id: `bot-${botId}-${channelId}`,
                 data: {
@@ -351,17 +345,10 @@ class BotHandler extends EventEmitter {
                     authenticated: true,
                     avatar_url: avatarUrl
                 },
-                join: async (room) => {
-                    
-                },
-                leave: async (room) => {
-                    
-                },
-                emit: (event, data) => {
-                    
-                }
+                join: async (room) => {},
+                leave: async (room) => {},
+                emit: (event, data) => {}
             };
-
 
             const registrationData = {
                 channel_id: channelId,
@@ -370,16 +357,8 @@ class BotHandler extends EventEmitter {
                 broadcast: true
             };
 
-            console.log(`🤖 [BOT-JOIN] Registering bot voice meeting:`, {
-                botId,
-                channelId,
-                meetingId: registrationData.meeting_id
-            });
-
-
             const roomManager = require('../services/roomManager');
             const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
-
 
             VoiceConnectionTracker.addBotToVoice(
                 botId, 
@@ -388,12 +367,9 @@ class BotHandler extends EventEmitter {
                 username
             );
 
-
             roomManager.addVoiceMeeting(channelId, registrationData.meeting_id, virtualBotClient.id);
 
-
             await virtualBotClient.join(`voice_channel_${channelId}`);
-
 
             const botParticipantData = {
                 id: `bot-voice-${botId}`,
@@ -408,13 +384,10 @@ class BotHandler extends EventEmitter {
                 status: 'Ready to play music'
             };
 
-
             this.botVoiceParticipants.set(botParticipantKey, botParticipantData);
-
 
             const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
             const participantCount = participants.length;
-
 
             const joinEventData = {
                 channel_id: channelId,
@@ -428,22 +401,18 @@ class BotHandler extends EventEmitter {
                 timestamp: Date.now()
             };
 
-
-            io.emit('voice-meeting-update', joinEventData);
-            io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', joinEventData);
-            io.to(`channel-${channelId}`).emit('voice-meeting-update', joinEventData);
-
-
             const botEventData = {
                 participant: botParticipantData,
                 channelId: channelId,
                 meetingId: registrationData.meeting_id
             };
 
+            io.emit('voice-meeting-update', joinEventData);
+            io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', joinEventData);
+            io.to(`channel-${channelId}`).emit('voice-meeting-update', joinEventData);
+            
             io.to(`voice_channel_${channelId}`).emit('bot-voice-participant-joined', botEventData);
             io.to(`channel-${channelId}`).emit('bot-voice-participant-joined', botEventData);
-
-            
 
         } catch (error) {
             console.error(`❌ [BOT-JOIN] Failed to join bot ${botId} to channel ${channelId}:`, error);
@@ -455,7 +424,6 @@ class BotHandler extends EventEmitter {
         const botParticipantKey = `${botId}-${channelId}`;
         
         if (!this.botVoiceParticipants.has(botParticipantKey)) {
-            
             return;
         }
 
@@ -463,29 +431,15 @@ class BotHandler extends EventEmitter {
             const botParticipantData = this.botVoiceParticipants.get(botParticipantKey);
             const virtualBotClientId = `bot-${botId}-${channelId}`;
 
-            console.log(`🤖 [BOT-LEAVE] Starting bot leave process:`, {
-                botId,
-                channelId,
-                meetingId: botParticipantData.meetingId
-            });
-
-
             const roomManager = require('../services/roomManager');
             const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
 
-
             const result = roomManager.removeVoiceMeeting(channelId, virtualBotClientId);
-
-
             VoiceConnectionTracker.removeBotFromVoice(botId, channelId);
-
-
             this.botVoiceParticipants.delete(botParticipantKey);
-
 
             const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
             const participantCount = participants.length;
-
 
             const leaveEventData = {
                 channel_id: channelId,
@@ -499,22 +453,18 @@ class BotHandler extends EventEmitter {
                 reason: 'command_triggered'
             };
 
-
-            io.emit('voice-meeting-update', leaveEventData);
-            io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', leaveEventData);
-            io.to(`channel-${channelId}`).emit('voice-meeting-update', leaveEventData);
-
-
             const botEventData = {
                 participant: botParticipantData,
                 channelId: channelId,
                 meetingId: botParticipantData.meetingId
             };
 
+            io.emit('voice-meeting-update', leaveEventData);
+            io.to(`voice_channel_${channelId}`).emit('voice-meeting-update', leaveEventData);
+            io.to(`channel-${channelId}`).emit('voice-meeting-update', leaveEventData);
+            
             io.to(`voice_channel_${channelId}`).emit('bot-voice-participant-left', botEventData);
             io.to(`channel-${channelId}`).emit('bot-voice-participant-left', botEventData);
-
-            
 
         } catch (error) {
             console.error(`❌ [BOT-LEAVE] Failed to remove bot ${botId} from channel ${channelId}:`, error);
