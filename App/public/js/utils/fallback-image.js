@@ -262,4 +262,4 @@ document.addEventListener('DOMContentLoaded', () => {
     fallbackHandler.processExistingImages();
 });
 
-export default FallbackImageHandler;
+window.FallbackImageHandler = FallbackImageHandler;

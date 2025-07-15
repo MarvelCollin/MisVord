@@ -119,7 +119,6 @@ function addReducedRandomMovements() {
             }, 4000 + (index * 200));
         }
     });
-}
     
     setInterval(() => {
         const randomChar = floatingChars[Math.floor(Math.random() * floatingChars.length)];

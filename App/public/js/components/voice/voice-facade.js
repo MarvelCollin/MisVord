@@ -1,4 +1,3 @@
-
 class VoiceFacade {
     constructor() {
         if (window.voiceFacade) {
@@ -6,6 +5,27 @@ class VoiceFacade {
         }
         window.voiceFacade = this;
         this._isConnectEventDispatched = false;
+        this.init();
+    }
+
+    init() {
+        if (window.globalSocketManager?.io) {
+            this.setupInitialState();
+        } else {
+            window.addEventListener('globalSocketReady', () => this.setupInitialState());
+        }
+    }
+
+    setupInitialState() {
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId && window.globalSocketManager?.isReady()) {
+                window.globalSocketManager.joinRoom('channel', channelId);
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: channelId 
+                });
+            }
+        });
     }
 
     async join(channelId, channelName, options = {}) {
@@ -109,6 +129,18 @@ class VoiceFacade {
             instance.updateSidebarForChannel(channelId);
         }
 
+        if (window.globalSocketManager?.isReady()) {
+            document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+                const chId = channel.getAttribute('data-channel-id');
+                if (chId) {
+                    window.globalSocketManager.joinRoom('channel', chId);
+                    window.globalSocketManager.io.emit('check-voice-meeting', { 
+                        channel_id: chId 
+                    });
+                }
+            });
+        }
+
         if (!this._isConnectEventDispatched) {
             window.dispatchEvent(new CustomEvent(isConnected ? 'voiceConnect' : 'voiceDisconnect', {
                 detail: {
@@ -126,4 +158,4 @@ class VoiceFacade {
 
 new VoiceFacade();
 
-export default window.voiceFacade; 
+export default window.voiceFacade;

@@ -193,15 +193,15 @@ class UserServerMembershipRepository extends Repository {
                 ->where('server_id', $serverId)
                 ->update(['role' => 'owner']);
 
-            $removeCurrentOwner = $query->table('user_server_memberships')
+            $updateCurrentOwner = $query->table('user_server_memberships')
                 ->where('user_id', $currentOwnerId)
                 ->where('server_id', $serverId)
-                ->delete();
+                ->update(['role' => 'member']);
 
             error_log("Update new owner result: " . ($updateNewOwner !== false ? 'success' : 'failed'));
-            error_log("Remove current owner result: " . ($removeCurrentOwner !== false ? 'success' : 'failed'));
+            error_log("Update current owner to member result: " . ($updateCurrentOwner !== false ? 'success' : 'failed'));
 
-            if ($updateNewOwner === false || $removeCurrentOwner === false) {
+            if ($updateNewOwner === false || $updateCurrentOwner === false) {
                 error_log("Rolling back ownership transfer transaction");
                 $query->rollback();
                 return false;

@@ -1237,9 +1237,33 @@ class VoiceManager {
         window.globalSocketManager.io.emit('voice-state-change', stateData);
     }
 
+    validateCurrentState() {
+        if (!window.localStorageManager || !window.globalSocketManager?.io) return;
+        
+        const voiceState = window.localStorageManager.getUnifiedVoiceState();
+        if (voiceState.isConnected && voiceState.channelId) {
+            if (window.globalSocketManager.isReady()) {
+                window.globalSocketManager.joinRoom('channel', voiceState.channelId);
+            }
+            
+            window.globalSocketManager.io.emit('check-voice-meeting', { 
+                channel_id: voiceState.channelId 
+            });
+        }
+        
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId && window.globalSocketManager?.isReady()) {
+                window.globalSocketManager.joinRoom('channel', channelId);
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: channelId 
+                });
+            }
+        });
+    }
+
     updateUnifiedVoiceState(state) {
         if (window.localStorageManager) {
-
             if (this.currentChannelId && state.channelId && 
                 this.currentChannelId !== state.channelId) {
                 console.warn(`⚠️ [VOICE-MANAGER] Channel ID mismatch while updating unified state:
@@ -1249,7 +1273,6 @@ class VoiceManager {
                 state.channelName = this.currentChannelName;
             }
             
-
             if (this.currentMeetingId && state.meetingId && 
                 this.currentMeetingId !== state.meetingId) {
                 console.warn(`⚠️ [VOICE-MANAGER] Meeting ID mismatch while updating unified state:

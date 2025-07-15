@@ -8,7 +8,6 @@ class ChannelVoiceParticipants {
     
     init() {
         this.setupEventListeners();
-        this.loadInitialState();
         this.initializeVoiceState();
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => this.createDebugPanel());
@@ -22,15 +21,9 @@ class ChannelVoiceParticipants {
         
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
-                setTimeout(() => {
-                    this.cleanupStaleParticipants();
-                }, 1000);
+                this.cleanupStaleParticipants();
             }
         });
-        
-        setTimeout(() => {
-            this.requestAllChannelStatusWithRetry();
-        }, 2000);
     }
     
     setupEventListeners() {
@@ -47,21 +40,20 @@ class ChannelVoiceParticipants {
         
         if (window.globalSocketManager?.io) {
             this.attachSocketEvents();
+            this.requestAllChannelStatusImmediate();
         } else {
-            window.addEventListener('globalSocketReady', () => this.attachSocketEvents());
+            window.addEventListener('globalSocketReady', () => {
+                this.attachSocketEvents();
+                this.requestAllChannelStatusImmediate();
+            });
         }
 
-
         window.addEventListener('socketAuthenticated', () => {
-
-            setTimeout(() => {
-                this.requestAllChannelStatus();
-
-                const voiceState = window.localStorageManager?.getUnifiedVoiceState();
-                if (voiceState?.isConnected && voiceState?.channelId) {
-                    this.forceRefreshChannel(voiceState.channelId);
-                }
-            }, 500);
+            this.requestAllChannelStatusImmediate();
+            const voiceState = window.localStorageManager?.getUnifiedVoiceState();
+            if (voiceState?.isConnected && voiceState?.channelId) {
+                this.forceRefreshChannel(voiceState.channelId);
+            }
         });
         
         if (window.localStorageManager) {
@@ -715,16 +707,26 @@ class ChannelVoiceParticipants {
     }
     
     loadInitialState() {
-        this.requestAllChannelStatusWithRetry();
-        
-        setTimeout(() => {
-            this.loadExistingBotParticipants();
-        }, 1000);
+        this.requestAllChannelStatusImmediate();
+        this.loadExistingBotParticipants();
+    }
+
+    requestAllChannelStatusImmediate() {
+        if (!window.globalSocketManager?.io || !window.globalSocketManager.isAuthenticated) {
+            return;
+        }
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                window.globalSocketManager.joinRoom('channel', channelId);
+                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
+            }
+        });
     }
 
     requestAllChannelStatusWithRetry(attempt = 0) {
         if (window.globalSocketManager?.io && window.globalSocketManager.isAuthenticated) {
-            this.requestAllChannelStatus();
+            this.requestAllChannelStatusImmediate();
             return;
         }
         
@@ -736,16 +738,7 @@ class ChannelVoiceParticipants {
     }
 
     requestAllChannelStatus() {
-        if (!window.globalSocketManager?.io || !window.globalSocketManager.isAuthenticated) {
-            return;
-        }
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId) {
-                window.globalSocketManager.joinRoom('channel', channelId);
-                window.globalSocketManager.io.emit('check-voice-meeting', { channel_id: channelId });
-            }
-        });
+        this.requestAllChannelStatusImmediate();
     }
     
     loadExistingBotParticipants() {

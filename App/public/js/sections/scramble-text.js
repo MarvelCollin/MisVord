@@ -183,15 +183,7 @@ class ScrambleText {
       this.createOptimizedSpark(span);
     }
   }
-    const easingTypes = [
-      "ease-out",
-      "ease-in-out",
-      "cubic-bezier(0.68, -0.55, 0.265, 1.55)",
-    ];
-    const randomEasing =
-      easingTypes[Math.floor(Math.random() * easingTypes.length)];
-    span.style.transition = `all 0.1s ${randomEasing}`;
-  }
+
   completeAnimation(elementData) {
     const { spans, element } = elementData;
     elementData.isAnimating = false;

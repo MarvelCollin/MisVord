@@ -272,6 +272,13 @@ class VoiceCallSection {
             
             this.updateParticipantVoiceState(data.user_id, data.type, data.state);
         });
+        
+        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
+            const channelId = channel.getAttribute('data-channel-id');
+            if (channelId) {
+                socket.emit('check-voice-meeting', { channel_id: channelId });
+            }
+        });
     }
     
     handleUnifiedVoiceStateChanged(event) {
