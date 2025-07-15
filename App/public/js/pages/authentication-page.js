@@ -476,14 +476,16 @@ function initAuth() {
             if (loginCaptchaContainer && !window.loginCaptchaInstance) {
                 window.loginCaptchaInstance = new TextCaptcha('login-captcha-container', {
                     length: 6,
-                    inputId: 'login_captcha'
+                    inputId: 'login_captcha',
+                    caseSensitive: true
                 });
             }
             
             if (registerCaptchaContainer && !window.registerCaptchaInstance) {
                 window.registerCaptchaInstance = new TextCaptcha('register-captcha-container', {
                     length: 6,
-                    inputId: 'register_captcha'
+                    inputId: 'register_captcha',
+                    caseSensitive: true
                 });
             }
         } catch (e) {

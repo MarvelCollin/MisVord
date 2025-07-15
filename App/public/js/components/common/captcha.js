@@ -10,9 +10,11 @@ export class TextCaptcha {
             length: options.length || 6,
             refreshButtonId: options.refreshButtonId || null,
             inputId: options.inputId || null,
-            caseSensitive: options.caseSensitive || false,
+            caseSensitive: options.caseSensitive !== undefined ? options.caseSensitive : true,
             bypassCaptcha: options.bypassCaptcha !== undefined ? options.bypassCaptcha : (window.BYPASS_CAPTCHA || false),
         };
+
+        console.log('Captcha initialized with options:', this.options);
 
         this.code = '';
         this.init();
@@ -124,7 +126,8 @@ export class TextCaptcha {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         
-        this.code = code.toLowerCase();
+        this.code = code;
+        console.log('Generated captcha code:', code);
         this.displayCode(code);
     }
 
@@ -189,16 +192,41 @@ export class TextCaptcha {
     }
 
     verify(input) {
+        console.log('Captcha verify called:', {
+            input: input,
+            storedCode: this.code,
+            caseSensitive: this.options.caseSensitive,
+            bypassCaptcha: this.options.bypassCaptcha,
+            windowBypass: window.BYPASS_CAPTCHA
+        });
+        
         if (this.options.bypassCaptcha) {
+            console.log('Captcha bypassed');
             return true;
         }
         
         if (!input) return false;
         if (!this.code) return false;
         
-        const inputLower = input.toLowerCase().trim();
+        const trimmedInput = input.trim();
         
-        return inputLower === this.code;
+        if (this.options.caseSensitive) {
+            const result = trimmedInput === this.code;
+            console.log('Case sensitive comparison:', {
+                input: trimmedInput,
+                code: this.code,
+                match: result
+            });
+            return result;
+        } else {
+            const result = trimmedInput.toLowerCase() === this.code.toLowerCase();
+            console.log('Case insensitive comparison:', {
+                inputLower: trimmedInput.toLowerCase(),
+                codeLower: this.code.toLowerCase(),
+                match: result
+            });
+            return result;
+        }
     }
 
     refresh() {
