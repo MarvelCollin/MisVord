@@ -1540,6 +1540,14 @@ input[type="radio"]:checked + .radio-dot:after {
   transform: translateY(-1px);
 }
 
+.promote-btn .fa-crown {
+  color: #ffd700;
+}
+
+.promote-btn:hover .fa-crown {
+  color: #fff200;
+}
+
 .demote-btn:hover {
   background-color: var(--discord-yellow);
   color: white;

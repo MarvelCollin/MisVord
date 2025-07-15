@@ -392,7 +392,7 @@ function initMemberManagementTab() {
         const isCurrentUser = String(member.id) === String(currentUserId);
         
         return {
-            canPromote: currentUserRole === 'owner' && member.role === 'member' && !isCurrentUser && !isBot,
+            canPromote: currentUserRole === 'owner' && (member.role === 'member' || member.role === 'admin') && !isCurrentUser && !isBot,
             canDemote: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser,
             canKick: !isCurrentUser && member.role !== 'owner' && !isBot && 
                     ((currentUserRole === 'owner') || 
@@ -603,6 +603,14 @@ function initMemberManagementTab() {
             
             if (promoteBtn) {
                 promoteBtn.style.display = permissions.canPromote ? 'inline-flex' : 'none';
+                
+                if (permissions.canPromote && permissions.canTransferOwnership) {
+                    promoteBtn.title = 'Transfer Ownership';
+                    promoteBtn.innerHTML = '<i class="fas fa-crown"></i>';
+                } else if (permissions.canPromote) {
+                    promoteBtn.title = 'Promote Member';
+                    promoteBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                }
             }
             if (demoteBtn) {
                 demoteBtn.style.display = permissions.canDemote ? 'inline-flex' : 'none';
@@ -618,7 +626,7 @@ function initMemberManagementTab() {
                 newPromoteBtn.addEventListener('click', () => {
                     if (permissions.canTransferOwnership) {
                         showMemberActionModal('transfer-ownership', member);
-                    } else {
+                    } else if (member.role === 'member') {
                         showMemberActionModal('promote', member);
                     }
                 });
@@ -778,7 +786,7 @@ function initMemberManagementTab() {
                 case 'transfer-ownership':
                     if (modalIcon) modalIcon.className = 'fas fa-crown';
                     if (modalTitle) modalTitle.textContent = 'Transfer Ownership';
-                    if (actionMessage) actionMessage.textContent = `Are you sure you want to transfer server ownership to ${member.display_name || member.username}? This will make them the server owner and demote you to admin. This action cannot be undone.`;
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to transfer server ownership to ${member.display_name || member.username}? This will make them the server owner and you will become an admin. This action cannot be undone.`;
                     
                     if (roleChangePreview) roleChangePreview.classList.remove('hidden');
                     if (fromRole) {
