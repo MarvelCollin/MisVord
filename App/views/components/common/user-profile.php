@@ -60,7 +60,7 @@ if ($hasTooltip) {
             $statusColor = 'bg-discord-green';
         }
         ?>
-        <span class="absolute bottom-0 right-0.5 w-3 h-3 rounded-full border-2 border-discord-darker <?php echo $statusColor; ?> transition-colors"></span>
+        <span class="absolute bottom-0 right-0.5 w-3 h-3 rounded-full border-2 border-discord-darker <?php echo $statusColor; ?> transition-colors z-30"></span>
     </div>
     
     <div class="flex-1 min-w-0">

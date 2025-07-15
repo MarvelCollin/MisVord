@@ -211,7 +211,7 @@ function createActivityItem(data) {
                                 <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                                      alt="Avatar" class="w-full h-full object-cover">
                             </div>
-                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></span>
+                            <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green z-30"></span>
                         </div>
                         <div class="flex-1">
                             <div class="font-medium text-white text-sm">${escapeHtml(user.username)}</div>

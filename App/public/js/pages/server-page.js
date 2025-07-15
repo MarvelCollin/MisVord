@@ -97,7 +97,7 @@ function renderMemberItem(member) {
                 <div class="w-8 h-8 rounded-full bg-discord-light overflow-hidden user-profile-trigger" data-user-id="${member.id}" data-server-id="${getCurrentServerId()}">
                                             <img src="${member.avatar_url || '/public/assets/common/default-profile-picture.png'}" alt="${member.display_name || member.username}" class="w-full h-full object-cover">
                 </div>
-                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusClass}"></span>
+                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusClass} z-30"></span>
             </div>
             <div>
                                     <div class="text-sm font-medium ${member.role === 'owner' ? 'text-yellow-300' : member.role === 'admin' ? 'text-red-400' : 'text-white'}">${member.display_name || member.username}</div>

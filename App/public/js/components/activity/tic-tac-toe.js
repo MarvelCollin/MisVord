@@ -507,7 +507,7 @@ class TicTacToeModal {
                     <img src="${player.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                          alt="${player.username}" 
                          class="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 rounded-full border-2 border-[#5865f2]">
-                    <div class="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full ${player.ready ? 'bg-green-400' : 'bg-yellow-400'} border-2 border-[#2f3136]"></div>
+                    <div class="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full ${player.ready ? 'bg-green-400' : 'bg-yellow-400'} border-2 border-[#2f3136] z-30"></div>
                 </div>
                 <div class="flex-1 text-left">
                     <div class="text-white font-bold text-sm sm:text-base">${player.username}</div>

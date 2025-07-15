@@ -59,7 +59,7 @@ $onlineFriends = $GLOBALS['onlineFriends'] ?? [];
                                                                                 <img src="<?php echo $friend['avatar_url'] ?? ''; ?>" 
                                    alt="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username'] ?? 'User'); ?>" class="w-full h-full object-cover user-avatar">
                                 </div>
-                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background <?php echo $statusColor; ?> friend-status-indicator" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></span>
+                                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background <?php echo $statusColor; ?> friend-status-indicator z-30" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></span>
                             </div>
                             <div>
                                 <div class="font-medium text-white"><?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?></div>

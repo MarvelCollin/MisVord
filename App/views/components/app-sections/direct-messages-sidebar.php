@@ -64,7 +64,7 @@ if (file_exists($tooltipPath)) {
             <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
-                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton z-30"></div>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="skeleton-text mb-1"></div>
@@ -73,7 +73,7 @@ if (file_exists($tooltipPath)) {
             <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
-                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton z-30"></div>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="skeleton-text mb-1"></div>
@@ -82,7 +82,7 @@ if (file_exists($tooltipPath)) {
             <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
-                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton z-30"></div>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="skeleton-text mb-1"></div>
@@ -91,7 +91,7 @@ if (file_exists($tooltipPath)) {
             <div class="dm-skeleton-item flex items-center p-1.5 rounded">
                 <div class="relative mr-3">
                     <div class="skeleton-avatar"></div>
-                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton"></div>
+                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-gray-500 skeleton z-30"></div>
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="skeleton-text mb-1"></div>
@@ -145,9 +145,9 @@ if (file_exists($tooltipPath)) {
                         <?php endif; ?>
                     </div>
                     <?php if ($roomType === 'direct' && $otherUserId): ?>
-                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> user-status-indicator" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"></span>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark <?php echo $statusColor; ?> user-status-indicator z-30" data-user-id="<?php echo htmlspecialchars($otherUserId); ?>"></span>
                     <?php elseif ($roomType === 'group'): ?>
-                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-green-500"></span>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark bg-green-500 z-30"></span>
                     <?php endif; ?>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -265,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateUserStatus(userId, isOnline) {
         const statusIndicator = document.querySelector(`.user-status-indicator[data-user-id="${userId}"]`);
         if (statusIndicator) {
-            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark user-status-indicator ${getStatusColor(isOnline)}`;
+            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark user-status-indicator ${getStatusColor(isOnline)} z-30`;
 
         }
     }

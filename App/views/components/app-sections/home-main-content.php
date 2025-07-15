@@ -121,7 +121,7 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                                              alt="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username'] ?? 'User'); ?>" 
                                              class="w-full h-full object-cover user-avatar">
                                     </div>
-                                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator transition-colors duration-300" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></div>
+                                    <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator transition-colors duration-300 z-30" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"></div>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="font-medium text-white friend-name truncate" data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"><?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?></div>
@@ -292,7 +292,7 @@ function createAvatarHTML(user, size = 'standard') {
                      alt="${username}" 
                      class="w-full h-full object-cover user-avatar">
             </div>
-            <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator transition-colors duration-300" data-user-id="${userId}"></div>
+            <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-gray-500 friend-status-indicator transition-colors duration-300 z-30" data-user-id="${userId}"></div>
         </div>
     `;
 }
@@ -640,7 +640,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
         
         if (statusIndicator) {
-            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${getStatusClass(status)} friend-status-indicator transition-colors duration-300`;
+            statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background ${getStatusClass(status)} friend-status-indicator transition-colors duration-300 z-30`;
             statusIndicator.setAttribute('data-user-id', userId);
         }
         
@@ -733,7 +733,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                      alt="${displayName}" 
                                      class="w-full h-full object-cover user-avatar">
                             </div>
-                            <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green"></div>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-background bg-discord-green z-30"></div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-white truncate friend-name" data-user-id="${friend.id}">${displayName}</div>

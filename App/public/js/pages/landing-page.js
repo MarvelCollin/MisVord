@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
-
+    let ticking = false;
+    const isReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
     initParallax();
     initScrollTransition();
@@ -8,32 +9,37 @@ document.addEventListener('DOMContentLoaded', function() {
     initAuthIcon();
     initHeroAssets();
     initTaglineAnimation();
-    
-
 });
 
 function initParallax() {
     const layers = document.querySelectorAll('.parallax-layer');
     
-    if (window.innerWidth > 768) {
+    if (window.innerWidth > 768 && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        let mouseMoveRAF;
         document.addEventListener('mousemove', function(e) {
-            const x = e.clientX;
-            const y = e.clientY;
+            if (mouseMoveRAF) return;
             
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            
-            const xPercent = x / windowWidth - 0.5;
-            const yPercent = y / windowHeight - 0.5;        
-            
-            layers.forEach(layer => {
-                const depth = parseFloat(layer.getAttribute('data-depth'));
-                const translateX = xPercent * depth * 100;
-                const translateY = yPercent * depth * 100;
+            mouseMoveRAF = requestAnimationFrame(() => {
+                const x = e.clientX;
+                const y = e.clientY;
                 
-                layer.style.transform = `translate(${translateX}px, ${translateY}px)`;
+                const windowWidth = window.innerWidth;
+                const windowHeight = window.innerHeight;
+                
+                const xPercent = (x / windowWidth - 0.5) * 0.5;
+                const yPercent = (y / windowHeight - 0.5) * 0.5;        
+                
+                layers.forEach(layer => {
+                    const depth = parseFloat(layer.getAttribute('data-depth'));
+                    const translateX = xPercent * depth * 50;
+                    const translateY = yPercent * depth * 50;
+                    
+                    layer.style.transform = `translate3d(${translateX}px, ${translateY}px, 0)`;
+                });
+                
+                mouseMoveRAF = null;
             });
-        });
+        }, { passive: true });
     } else {
         layers.forEach(layer => {
             layer.style.transform = 'none';
@@ -43,7 +49,7 @@ function initParallax() {
 
 function initTaglineAnimation() {
     const taglineText = document.querySelector('.tagline-text');
-    if (!taglineText) return;
+    if (!taglineText || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     
     const originalText = "Confront the challenges of learning and outgrow the boundaries together.";
     taglineText.innerHTML = '';
@@ -62,24 +68,17 @@ function initTaglineAnimation() {
                 const charSpan = document.createElement('span');
                 charSpan.className = 'floating-char';
                 charSpan.textContent = char;
-                charSpan.style.setProperty('--char-index', charIndex);
-                
-                charSpan.style.animationDelay = `
-                    ${charIndex * 0.1}s, 
-                    ${charIndex * 0.15}s, 
-                    ${charIndex * 0.2}s
+                charSpan.style.cssText = `
+                    display: inline-block;
+                    opacity: 0;
+                    transform: translateY(10px);
+                    transition: all 0.4s ease-out;
                 `;
                 
                 setTimeout(() => {
-                    charSpan.style.opacity = '0';
-                    charSpan.style.transform = 'translateY(20px) scale(0.5)';
-                    charSpan.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
-                    
-                    requestAnimationFrame(() => {
-                        charSpan.style.opacity = '1';
-                        charSpan.style.transform = 'translateY(0) scale(1)';
-                    });
-                }, charIndex * 80);
+                    charSpan.style.opacity = '1';
+                    charSpan.style.transform = 'translateY(0)';
+                }, charIndex * 40);
                 
                 wordSpan.appendChild(charSpan);
                 charIndex++;
@@ -91,56 +90,36 @@ function initTaglineAnimation() {
         setTimeout(() => {
             const suffixElement = document.querySelector('.tagline-suffix');
             if (suffixElement) {
-                suffixElement.style.opacity = '0';
-                suffixElement.style.transform = 'translateY(10px) scale(0.8)';
-                suffixElement.style.transition = 'all 0.8s cubic-bezier(0.23, 1, 0.32, 1)';
-                
-                requestAnimationFrame(() => {
-                    suffixElement.style.opacity = '0.75';
-                    suffixElement.style.transform = 'translateY(0) scale(1)';
-                });
+                suffixElement.style.opacity = '1';
+                suffixElement.style.transform = 'translateY(0) scale(1)';
             }
             
-            addRandomMovements();
-        }, (charIndex * 80) + 500);
+            addReducedRandomMovements();
+        }, (charIndex * 40) + 300);
         
-    }, 1800);
+    }, 1200);
 }
 
-function addRandomMovements() {
+function addReducedRandomMovements() {
     const floatingChars = document.querySelectorAll('.floating-char');
     
     floatingChars.forEach((char, index) => {
-        setInterval(() => {
-            if (Math.random() < 0.3) {
-                const randomX = (Math.random() - 0.5) * 10;
-                const randomY = (Math.random() - 0.5) * 10;
-                const randomRotate = (Math.random() - 0.5) * 4;
-                const randomScale = 0.95 + (Math.random() * 0.1);
-                
-                char.style.transform = `translate(${randomX}px, ${randomY}px) rotate(${randomRotate}deg) scale(${randomScale})`;
-                
-                setTimeout(() => {
-                    char.style.transform = 'translate(0, 0) rotate(0deg) scale(1)';
-                }, 800);
-            }
-        }, 2000 + (index * 100));
-        
-        setInterval(() => {
-            if (Math.random() < 0.2) {
-                char.style.textShadow = `
-                    0 0 ${5 + Math.random() * 15}px rgba(88, 101, 242, ${0.8 + Math.random() * 0.2}),
-                    0 0 ${10 + Math.random() * 20}px rgba(88, 101, 242, ${0.6 + Math.random() * 0.2}),
-                    0 0 ${15 + Math.random() * 25}px rgba(88, 101, 242, ${0.4 + Math.random() * 0.2}),
-                    0 0 ${20 + Math.random() * 30}px rgba(88, 101, 242, ${0.2 + Math.random() * 0.2})
-                `;
-                
-                setTimeout(() => {
-                    char.style.textShadow = '';
-                }, 1000);
-            }
-        }, 1500 + (index * 50));
+        if (index % 3 === 0) {
+            setInterval(() => {
+                if (Math.random() < 0.15) {
+                    const randomY = (Math.random() - 0.5) * 4;
+                    const randomScale = 0.98 + (Math.random() * 0.04);
+                    
+                    char.style.transform = `translateY(${randomY}px) scale(${randomScale})`;
+                    
+                    setTimeout(() => {
+                        char.style.transform = 'translateY(0) scale(1)';
+                    }, 400);
+                }
+            }, 4000 + (index * 200));
+        }
     });
+}
     
     setInterval(() => {
         const randomChar = floatingChars[Math.floor(Math.random() * floatingChars.length)];
@@ -174,32 +153,16 @@ function initScrollTransition() {
     window.addEventListener('scroll', () => {
         if (!ticking) {
             requestAnimationFrame(() => {
-        const scrollPosition = window.scrollY;
-        const opacity = Math.max(0, 1 - (scrollPosition / (window.innerHeight * 0.5)));
-        
-        heroTitle.style.opacity = opacity;
-        
-        const translateY = scrollPosition * 0.5;
-        heroTitle.style.transform = `translateY(${translateY}px)`;
-        
-        const layers = document.querySelectorAll('.parallax-layer');
-        layers.forEach(layer => {
-            const depth = parseFloat(layer.getAttribute('data-depth'));
-            const translateY = scrollPosition * depth;
-            
-            const currentTransform = layer.style.transform;
-            if (currentTransform.includes('translate(')) {
-                const existingTranslate = currentTransform.match(/translate\(([^)]+)\)/)[1].split(',');
-                const existingX = parseFloat(existingTranslate[0]);
+                const scrollPosition = window.scrollY;
+                const opacity = Math.max(0, 1 - (scrollPosition / (window.innerHeight * 0.6)));
                 
-                layer.style.transform = `translate(${existingX}px, ${translateY}px)`;
-            } else {
-                layer.style.transform = `translateY(${translateY}px)`;
-            }
-        });
+                heroTitle.style.opacity = opacity;
+                
+                const translateY = scrollPosition * 0.3;
+                heroTitle.style.transform = `translate3d(0, ${translateY}px, 0)`;
                 
                 ticking = false;
-    });
+            });
             ticking = true;
         }
     }, { passive: true });

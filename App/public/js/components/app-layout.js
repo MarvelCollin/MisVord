@@ -243,7 +243,7 @@ async function loadOnlineFriends(forceRefresh = false) {
                                      alt="${displayName}" 
                                      class="w-full h-full object-cover user-avatar">
                             </div>
-                            <div class="absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300"></div>
+                            <div class="absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300 z-30"></div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
@@ -398,7 +398,7 @@ async function loadAllFriends(forceRefresh = false) {
                                      alt="${displayName}" 
                                      class="w-full h-full object-cover user-avatar">
                             </div>
-                            <div class="friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300" data-user-id="${friend.id}"></div>
+                            <div class="friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300 z-30" data-user-id="${friend.id}"></div>
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
@@ -1170,7 +1170,7 @@ function updateFriendPresenceInDOM(presenceData) {
     
     const statusIndicators = document.querySelectorAll(`.friend-status-indicator[data-user-id="${userId}"]`);
     statusIndicators.forEach(indicator => {
-        indicator.className = `friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300`;
+        indicator.className = `friend-status-indicator absolute bottom-0 right-0 w-3 h-3 ${statusClass} rounded-full border-2 border-discord-background transition-colors duration-300 z-30`;
         indicator.setAttribute('data-user-id', userId);
     });
     

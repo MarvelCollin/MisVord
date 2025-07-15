@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (currentStatus !== status) {
             const statusIndicator = friendEl.querySelector('.w-3.h-3.rounded-full');
             if (statusIndicator) {
-                statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300`;
+                statusIndicator.className = `absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300 z-30`;
             }
             friendEl.setAttribute('data-status', status);
         }
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
                          alt="${displayName}" 
                          class="w-full h-full object-cover user-avatar">
                 </div>
-                <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300"></div>
+                <div class="absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusClass} border-2 border-discord-dark transition-colors duration-300 z-30"></div>
             </div>
             <div class="flex-1">
                 <div class="font-semibold text-white active-now-username" data-user-id="${friend.id}">${displayName}</div>

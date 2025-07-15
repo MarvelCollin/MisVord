@@ -518,7 +518,7 @@ function updateParticipantDisplay() {
                             `<img src="/public/assets/common/default-profile-picture.png" alt="${username}" class="w-full h-full object-cover ${imgOpacityClass}">`
                         }
                     </div>
-                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator"></span>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator z-30"></span>
                 </div>
                 <div class="flex-1 min-w-0">
                     <span class="${textColorClass} ${hoverTextColorClass} text-sm truncate font-bold member-username" data-user-id="${member.id || '0'}">${username}</span>

@@ -369,7 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <img src="${user.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
                              alt="Avatar" class="w-full h-full object-cover">
                     </div>
-                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusColor}"></span>
+                    <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusColor} z-30"></span>
                 </div>
                 <div class="flex-1 min-w-0">
                     <p class="font-medium text-white truncate">${escapeHtml(user.display_name || user.username)}</p>

@@ -342,7 +342,7 @@ function updateParticipantDisplay() {
                          class="w-full h-full object-cover ${isOnline || isInVoice ? '' : 'opacity-70'}"
                          onerror="this.src='/public/assets/common/default-profile-picture.png'">
                 </div>
-                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator"
+                <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-dark ${statusColor} status-indicator z-30"
                       data-user-id="${participant.user_id}"></span>
             </div>
             <div class="flex-1 min-w-0">
