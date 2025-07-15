@@ -479,17 +479,25 @@ class BotHandler extends EventEmitter {
 
 
     static removeBotFromVoiceChannel(io, botId, channelId) {
-        
-        
-
         const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
         const humanParticipants = VoiceConnectionTracker.getHumanParticipants(channelId);
         
         if (humanParticipants.length > 0) {
-            
             return;
         }
 
+        const musicStopData = {
+            channel_id: channelId,
+            music_data: { action: 'stop' },
+            bot_id: botId,
+            timestamp: Date.now()
+        };
+        
+        const voiceChannelRoom = `voice_channel_${channelId}`;
+        const channelRoom = `channel-${channelId}`;
+        
+        io.to(voiceChannelRoom).emit('bot-music-command', musicStopData);
+        io.to(channelRoom).emit('bot-music-command', musicStopData);
 
         this.leaveBotFromVoiceChannel(io, botId, channelId);
     }
@@ -870,7 +878,7 @@ class BotHandler extends EventEmitter {
                         timestamp: Date.now()
                     };
                     
-                    console.log(`🎵 [BOT-DEBUG] Emitting music command to target rooms:`, {
+                    console.log(`🎵 [BOT-DEBUG] Emitting music command to all voice participants:`, {
                         targetRoom,
                         channelId,
                         roomId,
@@ -881,7 +889,26 @@ class BotHandler extends EventEmitter {
                     
                     if (channelId) {
                         const voiceChannelRoom = `voice_channel_${channelId}`;
+                        const channelRoom = `channel-${channelId}`;
+                        
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
+                        io.to(channelRoom).emit('bot-music-command', musicCommandData);
+                        
+                        const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
+                        const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
+                        
+                        console.log(`🎵 [BOT-DEBUG] Found ${participants.length} participants in channel ${channelId}:`, 
+                            participants.map(p => ({ userId: p.userId, username: p.username, socketId: p.socket_id }))
+                        );
+                        
+                        participants.forEach(participant => {
+                            if (participant.socket_id) {
+                                console.log(`🎵 [BOT-DEBUG] Sending music command to participant ${participant.username} (${participant.socket_id})`);
+                                io.to(participant.socket_id).emit('bot-music-command', musicCommandData);
+                            } else {
+                                console.warn(`⚠️ [BOT-DEBUG] Participant ${participant.username} has no socket_id`);
+                            }
+                        });
                     }
                 }
             } else {

@@ -526,7 +526,8 @@ class MessageHandler {
                                 voiceChannelData.voice_channel_id, 
                                 `voice_channel_${voiceChannelData.voice_channel_id}`,
                                 broadcastData.username,
-                                client.data?.avatar_url
+                                client.data?.avatar_url,
+                                client.id
                             );
 
                         }

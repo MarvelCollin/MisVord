@@ -401,7 +401,7 @@ function showPresenceDebugPanel() {
                         <div class="mt-3 space-y-3">
                             <div class="grid grid-cols-2 gap-3">
                                 <button onclick="setPresenceStatus('online', {type: 'active'})" class="bg-green-600 hover:bg-green-700 text-white py-2 px-3 rounded text-sm">
-                                    <i class="fas fa-circle mr-1"></i>Set Online
+                                    Set Online
                                 </button>
                                 <button onclick="setPresenceStatus('afk', {type: 'afk'})" class="bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-3 rounded text-sm">
                                     <i class="fas fa-moon mr-1"></i>Set AFK

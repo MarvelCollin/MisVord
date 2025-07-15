@@ -274,6 +274,27 @@ function getStatusText(status) {
     }
 }
 
+function getActivityText(activityDetails) {
+    if (!activityDetails || !activityDetails.type) {
+        return 'Online';
+    }
+    
+    switch (activityDetails.type) {
+        case 'playing Tic Tac Toe':
+            return 'Playing Tic Tac Toe';
+        case 'In Voice Call':
+            return 'In Voice';
+        case 'afk':
+            return 'Away';
+        case 'idle':
+        default:
+            if (activityDetails.type.startsWith('In Voice - ')) {
+                return 'In Voice';
+            }
+            return 'Online';
+    }
+}
+
 function createAvatarHTML(user, size = 'standard') {
     const sizeClasses = {
         small: 'w-8 h-8',
@@ -635,6 +656,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initGlobalSearchShortcut();
     
     function updateAllTabStatus(userId, status) {
+        const userData = onlineUsers[userId];
+        const activityDetails = userData?.activity_details;
+        const activityText = getActivityText(activityDetails);
 
         const statusIndicator = document.querySelector(`.friend-status-indicator[data-user-id="${userId}"]`);
         const statusText = document.querySelector(`.friend-status-text[data-user-id="${userId}"]`);
@@ -645,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (statusText) {
-            statusText.textContent = getStatusText(status);
+            statusText.textContent = activityText;
         }
     }
     
@@ -725,6 +749,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const displayName = friend.display_name || friend.username;
                 const userTag = friend.discriminator ? `${friend.username}#${friend.discriminator}` : friend.username;
                 
+                const userData = onlineUsers[friend.id];
+                const activityDetails = userData?.activity_details;
+                const activityText = getActivityText(activityDetails);
+                
                 friendEl.innerHTML = `
                     <div class="flex items-center">
                         <div class="relative mr-3">
@@ -738,7 +766,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="flex-1 min-w-0">
                             <div class="font-medium text-white truncate friend-name" data-user-id="${friend.id}">${displayName}</div>
                             <div class="text-xs text-gray-400">${userTag}</div>
-                            <div class="text-xs text-gray-400">Online</div>
+                            <div class="text-xs text-gray-400">${activityText}</div>
                         </div>
                     </div>
                 `;

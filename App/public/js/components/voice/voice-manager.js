@@ -360,6 +360,12 @@ class VoiceManager {
                 this.loadExistingBotParticipants();
             });
             
+            if (window.globalSocketManager?.io) {
+                window.globalSocketManager.io.emit('request-music-state', {
+                    channel_id: channelId
+                });
+            }
+            
             if (currentUserId) {
                 window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
                     detail: {

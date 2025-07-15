@@ -461,7 +461,7 @@ function setup(io) {
                 await client.join(voiceChannelRoom);
                 
 
-                VoiceConnectionTracker.addUserToVoice(userId, channel_id, finalMeetingId, username || client.data?.username, client.data?.avatar_url);
+                VoiceConnectionTracker.addUserToVoice(userId, channel_id, finalMeetingId, username || client.data?.username, client.data?.avatar_url, client.id);
                 
 
                 roomManager.addVoiceMeeting(channel_id, finalMeetingId, client.id);
@@ -694,11 +694,48 @@ function setup(io) {
         client.on('bot-init', (data) => {
 
             handleBotInit(io, client, data);
+        });        client.on('bot-join-channel', (data) => {
+            handleBotJoinChannel(io, client, data);
         });
 
-        client.on('bot-join-channel', (data) => {
+        client.on('music-state-sync', (data) => {
+            if (!data || !data.channel_id) return;
+            
+            console.log(`🎵 [MUSIC-SYNC] Broadcasting music state sync:`, {
+                channelId: data.channel_id,
+                action: data.action,
+                userId: client.data?.user_id
+            });
+            
+            const voiceChannelRoom = `voice_channel_${data.channel_id}`;
+            const channelRoom = `channel-${data.channel_id}`;
+            
+            io.to(voiceChannelRoom).emit('music-state-sync', data);
+            io.to(channelRoom).emit('music-state-sync', data);
+            
+            const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
+            const participants = VoiceConnectionTracker.getChannelParticipants(data.channel_id);
+            
+            participants.forEach(participant => {
+                if (participant.socket_id) {
+                    io.to(participant.socket_id).emit('music-state-sync', data);
+                }
+            });
+        });
 
-            handleBotJoinChannel(io, client, data);
+        client.on('request-music-state', (data) => {
+            if (!data || !data.channel_id) return;
+            
+            console.log(`🎵 [MUSIC-STATE-REQUEST] User requesting current music state:`, {
+                channelId: data.channel_id,
+                userId: client.data?.user_id
+            });
+            
+            const voiceChannelRoom = `voice_channel_${data.channel_id}`;
+            io.to(voiceChannelRoom).emit('music-state-request', {
+                channel_id: data.channel_id,
+                requester_id: client.data?.user_id
+            });
         });
 
         client.on('bot-left-voice', (data) => {

@@ -38,7 +38,7 @@ function getActivityText(activityDetails) {
             return 'Online';
         default: 
             if (activityDetails.type.startsWith('In Voice - ')) {
-                return activityDetails.type;
+                return 'In Voice';
             }
             return 'Online';
     }
@@ -46,7 +46,7 @@ function getActivityText(activityDetails) {
 
 function getActivityIcon(activityDetails) {
     if (!activityDetails || !activityDetails.type) {
-        return 'fa-solid fa-circle';
+        return '';
     }
     
     switch (activityDetails.type) {
@@ -56,12 +56,12 @@ function getActivityIcon(activityDetails) {
             return 'fa-solid fa-clock';
         case 'idle':
         case 'active':
-            return 'fa-solid fa-circle';
+            return '';
         default: 
             if (activityDetails.type.startsWith('In Voice - ')) {
                 return 'fa-solid fa-microphone';
             }
-            return 'fa-solid fa-circle';
+            return '';
     }
 }
 
@@ -249,7 +249,6 @@ async function loadOnlineFriends(forceRefresh = false) {
                             <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
                             <div class="text-xs text-gray-400">${friendsManager.escapeHtml(userTag)}</div>
                             <div class="text-xs text-gray-400 flex items-center">
-                                <i class="${activityIcon} mr-1"></i>
                                 ${activityText}
                             </div>
                         </div>
@@ -380,7 +379,7 @@ async function loadAllFriends(forceRefresh = false) {
             let activityText, activityIcon;
             if (status === 'offline') {
                 activityText = 'Offline';
-                activityIcon = 'fa-solid fa-circle';
+                activityIcon = '';
             } else {
                 activityText = getActivityText(activityDetails);
                 activityIcon = getActivityIcon(activityDetails);
@@ -404,7 +403,6 @@ async function loadAllFriends(forceRefresh = false) {
                             <div class="font-medium text-white truncate">${friendsManager.escapeHtml(displayName)}</div>
                             <div class="text-xs text-gray-400">${friendsManager.escapeHtml(userTag)}</div>
                             <div class="friend-status-text text-xs text-gray-400 flex items-center" data-user-id="${friend.id}">
-                                <i class="${activityIcon} mr-1"></i>
                                 ${activityText}
                             </div>
                         </div>
@@ -1162,7 +1160,7 @@ function updateFriendPresenceInDOM(presenceData) {
     let activityText, activityIcon;
     if (status === 'offline') {
         activityText = 'Offline';
-        activityIcon = 'fa-solid fa-circle';
+        activityIcon = '';
     } else {
         activityText = getActivityText(activityDetails);
         activityIcon = getActivityIcon(activityDetails);
@@ -1176,7 +1174,7 @@ function updateFriendPresenceInDOM(presenceData) {
     
     const statusTexts = document.querySelectorAll(`.friend-status-text[data-user-id="${userId}"]`);
     statusTexts.forEach(textEl => {
-        textEl.innerHTML = `<i class="${activityIcon} mr-1"></i>${activityText}`;
+        textEl.innerHTML = `${activityText}`;
     });
 }
 

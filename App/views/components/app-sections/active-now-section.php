@@ -65,13 +65,15 @@ document.addEventListener('DOMContentLoaded', function() {
         
         switch (activityDetails.type) {
             case 'playing Tic Tac Toe':
-                return 'Playing Tic Mac Voe';
+                return 'Playing Tic Tac Toe';
+            case 'In Voice Call':
+                return 'In Voice';
             case 'afk':
                 return 'Away';
             case 'idle':
             default:
                 if (activityDetails.type.startsWith('In Voice - ')) {
-                    return activityDetails.type;
+                    return 'In Voice';
                 }
                 return 'Online';
         }
@@ -79,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function getActivityIcon(activityDetails) {
         if (!activityDetails || !activityDetails.type) {
-            return 'fa-solid fa-circle';
+            return '';
         }
         
         switch (activityDetails.type) {
@@ -92,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (activityDetails.type.startsWith('In Voice - ')) {
                     return 'fa-solid fa-microphone';
                 }
-                return 'fa-solid fa-circle';
+                return '';
         }
     }
     
@@ -143,7 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const currentActivity = activityEl.textContent.trim();
             const newActivity = activityText;
             if (currentActivity !== newActivity) {
-                activityEl.innerHTML = `<i class="${activityIcon} mr-1"></i>${activityText}`;
+                activityEl.innerHTML = `${activityText}`;
             }
         }
         
@@ -178,7 +180,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="flex-1">
                 <div class="font-semibold text-white active-now-username" data-user-id="${friend.id}">${displayName}</div>
                 <div class="text-xs text-gray-400 transition-all duration-200 flex items-center">
-                    <i class="${activityIcon} mr-1"></i>
                     ${activityText}
                 </div>
             </div>
