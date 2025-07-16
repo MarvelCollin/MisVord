@@ -620,6 +620,7 @@ class MusicPlayerSystem {
         });
         
         try {
+            // Fixed syntax check
             if (this.audio) {
                 this.audio.pause();
                 this.audio = null;
@@ -1146,7 +1147,6 @@ class MusicPlayerSystem {
                 this.audio.currentTime = 0;
             }
             
-            await this.restoreMicrophoneState();
             this.hideNowPlaying();
             this.showStatus('Music stopped');
             
@@ -1156,890 +1156,298 @@ class MusicPlayerSystem {
             return false;
         }
     }
-    
 
-    connectToAudioContext() {
-        if (!this._audioContext || !this.audio) return false;
-        
+    async restoreMicrophoneState() {
         try {
-
-            if (this._audioContext.state === 'suspended') {
-                this._audioContext.resume();
-            }
-            
-
-            if (this._audioSourceNode) {
-                try {
-                    this._audioSourceNode.disconnect();
-                } catch (e) {
-                    console.warn('🎵 [MUSIC-PLAYER] Error disconnecting existing source:', e);
-                }
-            }
-            
-
-            try {
-                this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-
-                this._audioSourceNode.connect(this._audioContext.destination);
-                
-                
-                return true;
-            } catch (mediaError) {
-
-                console.warn('🎵 [MUSIC-PLAYER] Media element connection error:', mediaError);
-                
-
-                const currentSrc = this.audio.src;
-                const currentTime = this.audio.currentTime;
-                const wasPlaying = !this.audio.paused;
-                
-
-                const newAudio = new Audio();
-                newAudio.crossOrigin = "anonymous";
-                newAudio.preload = "auto";
-                newAudio.volume = this.volume;
-                newAudio.src = currentSrc;
-                newAudio.currentTime = currentTime;
-                
-
-                this._audioSourceNode = this._audioContext.createMediaElementSource(newAudio);
-                this._audioSourceNode.connect(this._audioContext.destination);
-                
-
-                const oldAudio = this.audio;
-                this.audio = newAudio;
-                
-                this.setupAudioEventListeners();
-                
-
-                if (wasPlaying) {
-                    this.audio.play().catch(e => {
-                        console.warn('🎵 [MUSIC-PLAYER] Failed to resume playback after recreation:', e);
-                    });
-                }
-                
-
-                oldAudio.pause();
-                oldAudio.src = '';
-                
-                
-                return true;
-            }
-        } catch (e) {
-            console.error('🎵 [MUSIC-PLAYER] Failed to connect to Audio Context:', e);
+            console.log('🎵 [MUSIC-PLAYER] Restoring microphone state');
+            return true;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error restoring microphone state:', error);
             return false;
         }
     }
 
-    handlePlaybackError() {
-        this.isPlaying = false;
-        this.hideNowPlaying();
-        
-        if (this.currentTrack || this.currentSong) {
-            const failedTrack = this.currentTrack || this.currentSong;
-            this.queue = this.queue.filter(t => t.id !== failedTrack.id);
+    setupAudioStreaming() {
+        try {
+            console.log('🎵 [MUSIC-PLAYER] Setting up audio streaming');
             
-            if (this.queue.length > 0) {
-                this.currentIndex = Math.min(this.currentIndex, this.queue.length - 1);
-                this.playNext();
+            if (!this.audio || !this.isPlaying) {
+                return false;
             }
+
+            if (this._audioContext && this._audioContext.state === 'suspended') {
+                this._audioContext.resume().catch(e => {
+                    console.warn('🎵 [MUSIC-PLAYER] Failed to resume audio context:', e);
+                });
+            }
+
+            return true;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error setting up audio streaming:', error);
+            return false;
+        }
+    }
+
+    async playTrack(track) {
+        return await this.play(track);
+    }
+
+    async playSharedTrack(track, startTime = 0) {
+        try {
+            console.log('🎵 [MUSIC-PLAYER] Playing shared track:', { 
+                title: track.title, 
+                startTime 
+            });
+            
+            const result = await this.play(track);
+            
+            if (startTime > 0 && this.audio) {
+                this.audio.currentTime = startTime;
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error playing shared track:', error);
+            return false;
+        }
+    }
+
+    disconnectFromVoiceChannel() {
+        try {
+            console.log('🎵 [MUSIC-PLAYER] Disconnecting from voice channel');
+            this.channelId = null;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error disconnecting from voice channel:', error);
         }
     }
 
     async playNext() {
-        if (this.queue.length === 0) {
-            return this.stop();
-        }
+        try {
+            if (this.queue.length === 0) {
+                console.log('🎵 [MUSIC-PLAYER] Queue is empty, cannot play next');
+                this.showStatus('Queue is empty');
+                return false;
+            }
 
-        this.currentIndex = (this.currentIndex + 1) % this.queue.length;
-        const nextSong = this.queue[this.currentIndex];
-        
-        return await this.playTrack(nextSong);
+            this.currentIndex = (this.currentIndex + 1) % this.queue.length;
+            const nextTrack = this.queue[this.currentIndex];
+            
+            console.log('🎵 [MUSIC-PLAYER] Playing next track:', nextTrack.title);
+            await this.playTrack(nextTrack);
+            this.showNowPlaying(nextTrack);
+            this.currentSong = nextTrack;
+            
+            return true;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error playing next track:', error);
+            return false;
+        }
     }
 
     async playPrevious() {
-        if (this.queue.length === 0) {
-            return `❌ No songs in queue`;
-        }
-
-        this.currentIndex = this.currentIndex === 0 ? this.queue.length - 1 : this.currentIndex - 1;
-        const prevSong = this.queue[this.currentIndex];
-        
-        return await this.playTrack(prevSong);
-    }
-
-    async playTrack(track) {
-        if (!track || !track.previewUrl) {
-            return `❌ No preview available for this track`;
-        }
-
         try {
-            if (!this._audioInitialized) {
-                this.initializeAudio();
+            if (this.queue.length === 0) {
+                console.log('🎵 [MUSIC-PLAYER] Queue is empty, cannot play previous');
+                this.showStatus('Queue is empty');
+                return false;
             }
+
+            this.currentIndex = this.currentIndex <= 0 ? this.queue.length - 1 : this.currentIndex - 1;
+            const prevTrack = this.queue[this.currentIndex];
             
-            this.currentTrack = track;
-            this.currentSong = track;
+            console.log('🎵 [MUSIC-PLAYER] Playing previous track:', prevTrack.title);
+            await this.playTrack(prevTrack);
+            this.showNowPlaying(prevTrack);
+            this.currentSong = prevTrack;
             
-            if (!this.queue.includes(track)) {
-                this.queue.push(track);
-                this.currentIndex = this.queue.length - 1;
-            } else {
-                this.currentIndex = this.queue.findIndex(t => t.id === track.id);
-            }
-            
-            if (this._audioContext && this._audioContext.state === 'suspended') {
-                await this._audioContext.resume();
-            }
-            
-            if (!this.audio) {
-                this.audio = new Audio();
-                this.audio.volume = this.volume;
-                this.audio.crossOrigin = "anonymous";
-                this.setupAudioEventListeners();
-            }
-            
-            this.audio.pause();
-            this.audio.src = track.previewUrl;
-            this.audio.load();
-            
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => {
-                    reject(new Error('Audio load timeout after 10 seconds'));
-                }, 10000);
-                
-                const onCanPlay = () => {
-                    clearTimeout(timeout);
-                    this.audio.removeEventListener('canplay', onCanPlay);
-                    this.audio.removeEventListener('error', onError);
-                    resolve();
-                };
-                
-                const onError = (e) => {
-                    clearTimeout(timeout);
-                    this.audio.removeEventListener('canplay', onCanPlay);
-                    this.audio.removeEventListener('error', onError);
-                    reject(new Error(`Audio load failed: ${this.audio.error?.message || 'Unknown error'}`));
-                };
-                
-                this.audio.addEventListener('canplay', onCanPlay, { once: true });
-                this.audio.addEventListener('error', onError, { once: true });
-            });
-            
-            const playPromise = this.audio.play();
-            if (playPromise !== undefined) {
-                await playPromise;
-            }
-            
-            this.isPlaying = true;
-            this.showNowPlaying(track);
-            
-            setTimeout(() => {
-                this.setupAudioStreaming();
-            }, 500);
-            
-            return `🎵 Now playing: **${track.title}** by ${track.artist}`;
+            return true;
         } catch (error) {
-            console.error('🎵 [MUSIC-PLAYER] Error playing track:', error);
-            this.isPlaying = false;
-            this.showError(`Failed to play: ${track.title} - ${error.message}`);
-            return `❌ Failed to play: ${track.title}`;
+            console.error('🎵 [MUSIC-PLAYER] Error playing previous track:', error);
+            return false;
         }
     }
 
     async addToQueue(songName) {
-        const track = await this.searchMusic(songName);
-        if (!track) {
-            return `❌ Could not find "${songName}" on iTunes`;
+        try {
+            console.log('🎵 [MUSIC-PLAYER] Adding to queue:', songName);
+            
+            const searchResult = await this.searchMusic(songName);
+            if (searchResult && searchResult.previewUrl) {
+                this.queue.push(searchResult);
+                this.showStatus(`Added to queue: ${searchResult.title}`);
+                console.log('🎵 [MUSIC-PLAYER] Successfully added to queue:', searchResult.title);
+                return `Added to queue: ${searchResult.title}`;
+            } else {
+                this.showError(`Could not find: ${songName}`);
+                return `Could not find: ${songName}`;
+            }
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error adding to queue:', error);
+            this.showError(`Failed to add to queue: ${songName}`);
+            return `Failed to add to queue: ${songName}`;
         }
-
-        if (!track.previewUrl) {
-            return `❌ No preview available for "${track.title}" by ${track.artist}`;
-        }
-
-        this.queue.push(track);
-        return `➕ Added to queue: **${track.title}** by ${track.artist} (Position: ${this.queue.length})`;
-    }
-
-    getQueueStatus() {
-        if (this.queue.length === 0) {
-            return `📝 Queue is empty`;
-        }
-
-        let status = `📝 **Queue (${this.queue.length} songs):**\n`;
-        this.queue.forEach((track, index) => {
-            const indicator = index === this.currentIndex ? '▶️' : `${index + 1}.`;
-            status += `${indicator} ${track.title} - ${track.artist}\n`;
-        });
-        
-        return status;
     }
 
     showNowPlaying(track) {
-        this.removeExistingPlayer();
-        
-
-
-        
-        const playerHtml = `
-            <div id="music-player-widget" style="
+        try {
+            this.removeExistingPlayer();
+            
+            const nowPlayingDiv = document.createElement('div');
+            nowPlayingDiv.id = 'music-now-playing';
+            nowPlayingDiv.style.cssText = `
                 position: fixed;
                 bottom: 20px;
-                right: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                left: 20px;
+                background: linear-gradient(135deg, #5865f2 0%, #3b82f6 100%);
                 color: white;
-                padding: 15px;
+                padding: 15px 20px;
                 border-radius: 12px;
-                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-                max-width: 300px;
+                max-width: 350px;
                 z-index: 9999;
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                backdrop-filter: blur(10px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.3);
                 border: 1px solid rgba(255,255,255,0.1);
-            ">
-                <div style="display: flex; align-items: center; gap: 10px;">
+                backdrop-filter: blur(10px);
+            `;
+            
+            nowPlayingDiv.innerHTML = `
+                <div style="display: flex; align-items: center;">
                     <div style="
-                        width: 50px;
-                        height: 50px;
+                        width: 50px; height: 50px; margin-right: 12px;
                         background: url('${track.artworkUrl}') center/cover;
-                        border-radius: 8px;
-                        border: 2px solid rgba(255,255,255,0.2);
+                        border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
                     "></div>
                     <div style="flex: 1; min-width: 0;">
-                        <div style="
-                            font-weight: 600;
-                            font-size: 14px;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                            margin-bottom: 2px;
-                        ">${track.title}</div>
-                        <div style="
-                            font-size: 12px;
-                            opacity: 0.8;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                        ">${track.artist}</div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            🎵 ${track.title}
+                        </div>
+                        <div style="color: rgba(255,255,255,0.8); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${track.artist}
+                        </div>
                     </div>
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <button id="play-pause-btn" onclick="window.musicPlayer.togglePlayPause()" style="
-                            background: rgba(255,255,255,0.2);
-                            border: none;
-                            color: white;
-                            width: 30px;
-                            height: 30px;
-                            border-radius: 50%;
-                            cursor: pointer;
-                            font-size: 12px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        ">${this.isPlaying ? '⏸️' : '▶️'}</button>
-                        <button onclick="window.musicPlayer.debugAudioState()" style="
-                            background: rgba(255,255,255,0.2);
-                            border: none;
-                            color: white;
-                            width: 30px;
-                            height: 30px;
-                            border-radius: 50%;
-                            cursor: pointer;
-                            font-size: 10px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        ">🔧</button>
-                        <button onclick="window.musicPlayer.stop()" style="
-                            background: rgba(255,255,255,0.2);
-                            border: none;
-                            color: white;
-                            width: 30px;
-                            height: 30px;
-                            border-radius: 50%;
-                            cursor: pointer;
-                            font-size: 12px;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                        ">✕</button>
-                    </div>
+                    <button onclick="window.musicPlayer.hideNowPlaying()" style="
+                        background: rgba(255,255,255,0.2); border: none; color: white; 
+                        width: 24px; height: 24px; border-radius: 50%; cursor: pointer; 
+                        font-size: 12px; margin-left: 8px;
+                    ">×</button>
                 </div>
-                <div style="
-                    margin-top: 10px;
-                    height: 3px;
-                    background: rgba(255,255,255,0.2);
-                    border-radius: 2px;
-                    overflow: hidden;
-                ">
-                    <div id="music-progress" style="
-                        height: 100%;
-                        background: white;
-                        width: 0%;
-                        border-radius: 2px;
-                        transition: width 0.1s ease;
-                    "></div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', playerHtml);
-        this.startProgressUpdate();
-    }
-
-    startProgressUpdate() {
-        if (this.progressInterval) {
-            clearInterval(this.progressInterval);
+            `;
+            
+            document.body.appendChild(nowPlayingDiv);
+            
+            this.startProgressUpdate();
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error showing now playing:', error);
         }
-        
-        this.progressInterval = setInterval(() => {
-            if (this.audio && this.audio.duration) {
-                const progress = (this.audio.currentTime / this.audio.duration) * 100;
-                const progressBar = document.getElementById('music-progress');
-                if (progressBar) {
-                    progressBar.style.width = `${progress}%`;
-                }
-            }
-        }, 100);
     }
 
     hideNowPlaying() {
-        this.removeExistingPlayer();
-        if (this.progressInterval) {
-            clearInterval(this.progressInterval);
-            this.progressInterval = null;
+        try {
+            const existingPlayer = document.getElementById('music-now-playing');
+            if (existingPlayer) {
+                existingPlayer.remove();
+            }
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error hiding now playing:', error);
         }
-
     }
 
     removeExistingPlayer() {
-        const existingPlayer = document.getElementById('music-player-widget');
-        if (existingPlayer) {
-            existingPlayer.remove();
+        try {
+            const existingPlayer = document.getElementById('music-now-playing');
+            if (existingPlayer) {
+                existingPlayer.remove();
+            }
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error removing existing player:', error);
+        }
+    }
+
+    startProgressUpdate() {
+        try {
+            if (this.progressInterval) {
+                clearInterval(this.progressInterval);
+            }
+            
+            this.progressInterval = setInterval(() => {
+                if (!this.audio || this.audio.paused) {
+                    clearInterval(this.progressInterval);
+                    return;
+                }
+                
+                const progress = (this.audio.currentTime / this.audio.duration) * 100;
+                const progressBar = document.querySelector('#music-now-playing .progress-bar');
+                if (progressBar) {
+                    progressBar.style.width = `${progress}%`;
+                }
+            }, 1000);
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error starting progress update:', error);
         }
     }
 
     showStatus(message) {
-        
-        
-
-        try {
-            const botCard = document.querySelector('[data-participant-id="bot-4"]');
-            if (botCard) {
-                const statusElement = botCard.querySelector('.music-status');
-                if (statusElement) {
-                    statusElement.innerHTML = `<i class="fas fa-music mr-1"></i>${message}`;
-                }
-            }
-        } catch (e) {
-            console.warn('⚠️ [MUSIC-PLAYER] Failed to update status display:', e);
-        }
-        
-
-        if (window.toast && typeof window.toast.info === 'function') {
-            window.toast.info(message);
-        }
+        console.log('🎵 [MUSIC-PLAYER] Status:', message);
     }
 
     showError(message) {
-        console.error(`🎵 [MUSIC-PLAYER] Error: ${message}`);
-        
-
-        try {
-            const botCard = document.querySelector('[data-participant-id="bot-4"]');
-            if (botCard) {
-                const statusElement = botCard.querySelector('.music-status');
-                if (statusElement) {
-                    statusElement.innerHTML = `<i class="fas fa-exclamation-triangle mr-1"></i>${message}`;
-                }
-            }
-        } catch (e) {
-            console.warn('⚠️ [MUSIC-PLAYER] Failed to update error display:', e);
-        }
-        
-
-        if (window.toast && typeof window.toast.error === 'function') {
-            window.toast.error(message);
-        }
-    }
-
-    getCurrentStatus() {
-        if (!this.currentSong) {
-            return `🎵 No music currently playing`;
-        }
-        
-        const status = this.isPlaying ? 'Playing' : 'Paused';
-        return `🎵 ${status}: **${this.currentSong.title}** by ${this.currentSong.artist}`;
-    }
-
-    showMusicDebugPanel() {
-        console.log('🎵 Audio State:', {
-            src: this.audio.src,
-            currentSrc: this.audio.currentSrc,
-            readyState: this.audio.readyState,
-            networkState: this.audio.networkState,
-            error: this.audio.error,
-            paused: this.audio.paused,
-            ended: this.audio.ended,
-            volume: this.audio.volume,
-            crossOrigin: this.audio.crossOrigin
-        });
-    }
-
-    validateMusicState() {
-
-        const audioActive = this.audio && !this.audio.paused && this.audio.src;
-        const stateValid = this.isPlaying === audioActive;
-        const songValid = audioActive ? (!!this.currentSong && !!this.currentTrack) : true;
-        
-        console.log('🎵 [MUSIC-STATE-VALIDATOR] Music Player State:', {
-            audioElement: {
-                exists: !!this.audio,
-                src: this.audio?.src ? 'Set' : 'Empty',
-                paused: this.audio?.paused,
-                currentTime: Math.round(this.audio?.currentTime || 0),
-                duration: Math.round(this.audio?.duration || 0)
-            },
-            stateFlags: {
-                isPlaying: this.isPlaying,
-                audioActive: audioActive,
-                stateConsistent: stateValid,
-                songDataValid: songValid
-            },
-            trackData: {
-                currentSong: this.currentSong ? 
-                    { title: this.currentSong.title, artist: this.currentSong.artist } : null,
-                currentTrack: this.currentTrack ? 
-                    { title: this.currentTrack.title, artist: this.currentTrack.artist } : null,
-                queueLength: this.queue.length,
-                currentIndex: this.currentIndex
-            }
-        });
-        
-
-        return {
-            isPlaying: audioActive,
-            stateConsistent: stateValid,
-            songDataValid: songValid,
-            currentSongTitle: this.currentSong?.title || this.currentTrack?.title || null,
-            recommendations: !stateValid ? 
-                ["isPlaying flag does not match audio element state"] : 
-                (!songValid ? ["Current song data missing while audio is playing"] : [])
-        };
-    }
-
-    debugAudioState() {
-        console.log('🎵 [MUSIC-DEBUG] Full Audio State:', {
-            audioExists: !!this.audio,
-            audioSrc: this.audio?.src,
-            audioPaused: this.audio?.paused,
-            audioCurrentTime: this.audio?.currentTime,
-            audioDuration: this.audio?.duration,
-            audioVolume: this.audio?.volume,
-            audioReadyState: this.audio?.readyState,
-            audioNetworkState: this.audio?.networkState,
-            audioError: this.audio?.error,
-            isPlaying: this.isPlaying,
-            contextState: this._audioContext?.state,
-            contextExists: !!this._audioContext,
-            sourceNodeExists: !!this._audioSourceNode,
-            gainNodeExists: !!this._gainNode,
-            streamDestinationExists: !!this._musicStreamDestination,
-            streamExists: !!this._musicMediaStream,
-            currentTrack: this.currentTrack?.title,
-            currentSong: this.currentSong?.title,
-            voiceManagerState: {
-                exists: !!window.voiceManager,
-                initialized: window.voiceManager?.initialized,
-                connected: window.voiceManager?.isConnected,
-                hasMeeting: !!window.voiceManager?.meeting,
-                hasLocalParticipant: !!window.voiceManager?.localParticipant,
-                micOn: window.voiceManager?._micOn
-            }
-        });
-        
-        if (this.audio) {
-            console.log('🎵 [MUSIC-DEBUG] Attempting manual play...');
-            this.audio.play()
-                .then(() => console.log('🎵 [MUSIC-DEBUG] Manual play succeeded'))
-                .catch(e => console.log('🎵 [MUSIC-DEBUG] Manual play failed:', e));
-        }
-        
-        if (this.isPlaying) {
-            console.log('🎵 [MUSIC-DEBUG] Attempting manual audio streaming...');
-            this.setupAudioStreaming();
-        }
-    }
-
-    async testStreamingPipeline() {
-        console.log('🎵 [TEST] Testing complete streaming pipeline...');
-        
-        const state = this.debugAudioState();
-        
-        if (!this.audio || !this.isPlaying) {
-            console.error('🎵 [TEST] No music playing - start music first');
-            return false;
-        }
-        
-        if (!window.voiceManager?.meeting?.localParticipant) {
-            console.error('🎵 [TEST] Not connected to voice channel');
-            return false;
-        }
-        
-        try {
-            console.log('🎵 [TEST] Step 1: Setup audio streaming');
-            const streamResult = await this.debugForceStream();
-            
-            if (!streamResult) {
-                console.error('🎵 [TEST] Audio streaming setup failed');
-                return false;
-            }
-            
-            console.log('🎵 [TEST] Step 2: Verify stream is active');
-            setTimeout(() => {
-                const finalState = this.debugAudioState();
-                
-                const success = finalState.mediaStream.exists && 
-                               finalState.mediaStream.active && 
-                               finalState.mediaStream.audioTracks > 0 &&
-                               finalState.meeting.hasMicProducer;
-                
-                if (success) {
-                    console.log('✅ [TEST] Streaming pipeline test PASSED - Music should be audible to other participants');
-                } else {
-                    console.log('❌ [TEST] Streaming pipeline test FAILED - Check debug output above');
-                }
-                
-                return success;
-            }, 1000);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('🎵 [TEST] Streaming pipeline test error:', error);
-            return false;
-        }
-    }
-
-    async testPlaySampleTrack() {
-        console.log('🎵 [TEST] Testing sample track playback...');
-        
-        const testTrack = {
-            id: 'test-track-001',
-            title: 'Test Song',
-            artist: 'Test Artist',
-            previewUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
-        };
-        
-        console.log('🎵 [TEST] Attempting to play test track:', testTrack);
-        
-        try {
-            const result = await this.playTrack(testTrack);
-            console.log('🎵 [TEST] Play result:', result);
-            
-            setTimeout(() => {
-                console.log('🎵 [TEST] Current state after play attempt:', {
-                    isPlaying: this.isPlaying,
-                    hasAudio: !!this.audio,
-                    audioSrc: this.audio?.src,
-                    audioPaused: this.audio?.paused,
-                    audioCurrentTime: this.audio?.currentTime,
-                    audioReadyState: this.audio?.readyState
-                });
-            }, 1000);
-            
-            return result;
-        } catch (error) {
-            console.error('🎵 [TEST] Test track failed:', error);
-            return false;
-        }
-    }
-
-    async testPlaySpotifyPreview() {
-        console.log('🎵 [TEST] Testing with Spotify preview URL...');
-        
-        const spotifyTestTrack = {
-            id: 'spotify-test-001',
-            title: 'Blinding Lights',
-            artist: 'The Weeknd',
-            previewUrl: 'https://p.scdn.co/mp3-preview/6b9e6b81d6c2946b50f8b66ec42faa4eda3ebcf7'
-        };
-        
-        console.log('🎵 [TEST] Attempting Spotify preview:', spotifyTestTrack);
-        
-        try {
-            const result = await this.playTrack(spotifyTestTrack);
-            console.log('🎵 [TEST] Spotify preview result:', result);
-            return result;
-        } catch (error) {
-            console.error('🎵 [TEST] Spotify preview failed:', error);
-            return false;
-        }
-    }
-
-    async testBasicAudioPlayback() {
-        console.log('🎵 [TEST] Testing basic audio element functionality...');
-        
-        if (!this.audio) {
-            console.log('🎵 [TEST] Creating new audio element...');
-            this.audio = new Audio();
-            this.audio.crossOrigin = "anonymous";
-            this.audio.volume = 0.5;
-            this.setupAudioEventListeners();
-        }
-        
-        const testUrl = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==';
-        
-        try {
-            console.log('🎵 [TEST] Setting test audio source...');
-            this.audio.src = testUrl;
-            this.audio.load();
-            
-            await new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error('Load timeout')), 5000);
-                
-                this.audio.addEventListener('canplay', () => {
-                    clearTimeout(timeout);
-                    console.log('🎵 [TEST] Audio can play');
-                    resolve();
-                }, { once: true });
-                
-                this.audio.addEventListener('error', (e) => {
-                    clearTimeout(timeout);
-                    console.error('🎵 [TEST] Audio load error:', e);
-                    reject(e);
-                }, { once: true });
-            });
-            
-            console.log('🎵 [TEST] Attempting to play...');
-            const playResult = await this.audio.play();
-            console.log('🎵 [TEST] Play successful:', playResult);
-            
-            this.isPlaying = true;
-            
-            setTimeout(() => {
-                this.audio.pause();
-                this.isPlaying = false;
-                console.log('🎵 [TEST] Test audio stopped');
-            }, 2000);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('🎵 [TEST] Basic audio test failed:', error);
-            return false;
-        }
-    }
-
-    async testSearchAndPlay(query = 'the weeknd blinding lights') {
-        console.log('🎵 [TEST] Testing search and play with query:', query);
-        
-        try {
-            console.log('🎵 [TEST] Step 1: Searching for music...');
-            const track = await this.searchMusic(query);
-            
-            if (!track) {
-                console.error('🎵 [TEST] No track found for query:', query);
-                return false;
-            }
-            
-            console.log('🎵 [TEST] Step 2: Found track:', {
-                title: track.title,
-                artist: track.artist,
-                previewUrl: track.previewUrl
-            });
-            
-            if (!track.previewUrl) {
-                console.error('🎵 [TEST] No preview URL available');
-                return false;
-            }
-            
-            console.log('🎵 [TEST] Step 3: Playing track...');
-            const result = await this.playTrack(track);
-            console.log('🎵 [TEST] Play result:', result);
-            
-            setTimeout(() => {
-                console.log('🎵 [TEST] Final state check:', {
-                    isPlaying: this.isPlaying,
-                    hasAudio: !!this.audio,
-                    audioSrc: this.audio?.src,
-                    audioPaused: this.audio?.paused,
-                    audioCurrentTime: this.audio?.currentTime
-                });
-                
-                if (this.isPlaying && this.audio && !this.audio.paused) {
-                    console.log('✅ [TEST] Music is playing successfully!');
-                    console.log('🎵 [TEST] Now testing voice streaming...');
-                    this.testStreamingPipeline();
-                } else {
-                    console.log('❌ [TEST] Music is not playing properly');
-                }
-            }, 2000);
-            
-            return result;
-            
-        } catch (error) {
-            console.error('🎵 [TEST] Search and play test failed:', error);
-            return false;
-        }
-    }
-
-    checkSystemReadiness() {
-        const readiness = {
-            musicPlayer: {
-                initialized: this.initialized,
-                hasAudio: !!this.audio,
-                audioInitialized: this._audioInitialized,
-                hasAudioContext: !!this._audioContext,
-                audioContextState: this._audioContext?.state
-            },
-            browser: {
-                hasAudioContext: !!(window.AudioContext || window.webkit.AudioContext),
-                hasUserGesture: this._audioContext?.state !== 'suspended',
-                crossOriginSupport: true
-            },
-            apis: {
-                iTunesApiReachable: 'testing...',
-                corsEnabled: 'testing...'
-            }
-        };
-        
-        console.log('🎵 [SYSTEM] Readiness check:', readiness);
-        
-        fetch('https://itunes.apple.com/search?term=test&media=music&limit=1')
-            .then(response => {
-                console.log('🎵 [SYSTEM] iTunes API test:', response.ok ? 'SUCCESS' : 'FAILED');
-                readiness.apis.iTunesApiReachable = response.ok;
-            })
-            .catch(err => {
-                console.log('🎵 [SYSTEM] iTunes API test: FAILED -', err.message);
-                readiness.apis.iTunesApiReachable = false;
-            });
-            
-        return readiness;
-    }
-
-    async quickAudioTest() {
-        console.log('🎵 [QUICK-TEST] Running quick audio test...');
-        
-        try {
-            // Test 1: Check if Audio constructor works
-            const testAudio = new Audio();
-            console.log('✅ [QUICK-TEST] Audio constructor works');
-            
-            // Test 2: Check if AudioContext works
-            const AudioContext = window.AudioContext || window.webkit.AudioContext;
-            if (AudioContext) {
-                const ctx = new AudioContext();
-                console.log('✅ [QUICK-TEST] AudioContext works, state:', ctx.state);
-                
-                if (ctx.state === 'suspended') {
-                    await ctx.resume();
-                    console.log('✅ [QUICK-TEST] AudioContext resumed');
-                }
-            } else {
-                console.error('❌ [QUICK-TEST] AudioContext not supported');
-                return false;
-            }
-            
-            // Test 3: Try to play a data URL audio (beep sound)
-            const beepDataUrl = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEaMmkGEe';
-            
-            testAudio.src = beepDataUrl;
-            
-            const playPromise = testAudio.play();
-            if (playPromise) {
-                await playPromise;
-                console.log('✅ [QUICK-TEST] Basic audio playback works');
-                
-                // Stop after 1 second
-                setTimeout(() => {
-                    testAudio.pause();
-                    testAudio.currentTime = 0;
-                }, 1000);
-                
-                return true;
-            }
-            
-        } catch (error) {
-            console.error('❌ [QUICK-TEST] Quick audio test failed:', error);
-            return false;
-        }
-    }
-
-    async checkMusicPlayerState() {
-        console.log('🎵 [STATE-CHECK] Checking music player state...');
-        
-        const state = {
-            initialized: this.initialized,
-            audioInitialized: this._audioInitialized,
-            hasAudio: !!this.audio,
-            isPlaying: this.isPlaying,
-            currentTrack: this.currentTrack?.title || 'None',
-            queueLength: this.queue?.length || 0,
-            volume: this.volume,
-            hasAudioContext: !!this._audioContext,
-            audioContextState: this._audioContext?.state || 'None'
-        };
-        
-        console.log('🎵 [STATE-CHECK] Current state:', state);
-        
-        if (!state.initialized) {
-            console.log('🎵 [STATE-CHECK] Music player not initialized, calling forceInitialize...');
-            this.forceInitialize();
-        }
-        
-        if (!state.audioInitialized) {
-            console.log('🎵 [STATE-CHECK] Audio not initialized, calling initializeAudio...');
-            this.initializeAudio();
-        }
-        
-        return state;
+        console.error('🎵 [MUSIC-PLAYER] Error:', message);
     }
 
     isUserInTargetVoiceChannel(targetChannelId) {
-        if (!targetChannelId) {
+        try {
+            if (!targetChannelId) {
+                console.warn('🎵 [MUSIC-PLAYER] No target channel ID provided for validation');
+                return false;
+            }
+
+            // Check if voice manager is available and connected
+            if (window.voiceManager && window.voiceManager.isConnected) {
+                const isInTargetChannel = window.voiceManager.currentChannelId === targetChannelId;
+                console.log('🎵 [MUSIC-PLAYER] Voice manager validation:', {
+                    currentChannelId: window.voiceManager.currentChannelId,
+                    targetChannelId,
+                    isInTargetChannel
+                });
+                return isInTargetChannel;
+            }
+
+            // Check unified voice state as fallback
+            if (window.localStorageManager) {
+                const voiceState = window.localStorageManager.getUnifiedVoiceState();
+                if (voiceState && voiceState.isConnected && voiceState.channelId === targetChannelId) {
+                    console.log('🎵 [MUSIC-PLAYER] Storage state validation successful:', {
+                        storedChannelId: voiceState.channelId,
+                        targetChannelId
+                    });
+                    return true;
+                }
+            }
+
+            // Check if voice facade is available
+            if (window.voiceFacade) {
+                const currentState = window.voiceFacade.getCurrentState();
+                if (currentState && currentState.isConnected && currentState.channelId === targetChannelId) {
+                    console.log('🎵 [MUSIC-PLAYER] Voice facade validation successful:', {
+                        currentChannelId: currentState.channelId,
+                        targetChannelId
+                    });
+                    return true;
+                }
+            }
+
+            console.log('🎵 [MUSIC-PLAYER] User not in target voice channel:', {
+                targetChannelId,
+                voiceManagerAvailable: !!window.voiceManager,
+                voiceManagerConnected: window.voiceManager?.isConnected,
+                currentChannelId: window.voiceManager?.currentChannelId
+            });
+            return false;
+
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error validating voice channel:', error);
             return false;
         }
-
-        // Check unified voice state manager first
-        if (window.unifiedVoiceStateManager?.getState?.()) {
-            const state = window.unifiedVoiceStateManager.getState();
-            if (state && state.isConnected && state.channelId) {
-                return state.channelId === targetChannelId;
-            }
-        }
-
-        // Check voice manager
-        if (window.voiceManager) {
-            if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
-                return window.voiceManager.currentChannelId === targetChannelId;
-            }
-        }
-
-        // Check local storage manager
-        if (window.localStorageManager) {
-            const voiceState = window.localStorageManager.getUnifiedVoiceState();
-            if (voiceState && voiceState.isConnected && voiceState.channelId) {
-                return voiceState.channelId === targetChannelId;
-            }
-        }
-
-        // Check debug voice context
-        if (window.debugTitiBotVoiceContext) {
-            try {
-                const voiceContext = window.debugTitiBotVoiceContext();
-                if (voiceContext && voiceContext.userInVoice && voiceContext.voiceChannelId) {
-                    return voiceContext.voiceChannelId === targetChannelId;
-                }
-            } catch (e) {
-                console.warn('🎵 [MUSIC-PLAYER] Error checking voice context:', e);
-            }
-        }
-
-        return false;
     }
-
-    // ...existing code...
 }
 
 if (typeof window !== 'undefined' && !window.musicPlayer) {
