@@ -793,6 +793,99 @@ class VoiceManager {
             detail: { participant: participantKey, data: participantData }
         }));
         
+        // Add delayed stream check to ensure streams are detected after participant is added
+        // Multiple checks for remote participants with increasing delays
+        if (participant.id !== this.localParticipant?.id) {
+            const checkRemoteStreams = (attempt = 1, maxAttempts = 4) => {
+                console.log(`� [VOICE-MANAGER] Remote stream check for ${participantKey} (attempt ${attempt}/${maxAttempts})`);
+                
+                let foundStreams = false;
+                
+                if (participant.webcamOn || participant.videoOn) {
+                    console.log(`📹 [VOICE-MANAGER] Found video stream for remote participant ${participantKey}`);
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participant.id,
+                            kind: 'video',
+                            stream: participant.webcamStream
+                        }
+                    }));
+                    foundStreams = true;
+                }
+                
+                if (participant.screenShareOn) {
+                    console.log(`🖥️ [VOICE-MANAGER] Found screen share for remote participant ${participantKey}`);
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participant.id,
+                            kind: 'share',
+                            stream: participant.screenShareStream
+                        }
+                    }));
+                    foundStreams = true;
+                }
+                
+                // Also check getStreams() method
+                const streams = participant.getStreams?.() || [];
+                if (streams.length > 0) {
+                    console.log(`📊 [VOICE-MANAGER] getStreams() found ${streams.length} streams for ${participantKey}`);
+                    streams.forEach(stream => {
+                        const streamKey = stream.kind === 'webcam' ? 'video' : 
+                                        stream.kind === 'screenshare' ? 'share' : 
+                                        stream.kind;
+                        participantData.streams.set(streamKey, stream);
+                        
+                        const eventKind = stream.kind === 'webcam' ? 'video' : 
+                                       stream.kind === 'screenshare' ? 'share' : 
+                                       stream.kind;
+                        
+                        window.dispatchEvent(new CustomEvent('streamEnabled', {
+                            detail: { 
+                                participantId: participant.id,
+                                kind: eventKind,
+                                stream: stream
+                            }
+                        }));
+                        foundStreams = true;
+                    });
+                }
+                
+                if (!foundStreams && attempt < maxAttempts) {
+                    setTimeout(() => checkRemoteStreams(attempt + 1, maxAttempts), 150 * attempt);
+                }
+            };
+            
+            checkRemoteStreams();
+        } else {
+            // For local participant, do the standard check
+            setTimeout(() => {
+                console.log(`🔄 [VOICE-MANAGER] Delayed stream check for local participant: ${participantKey}`);
+                this.checkAndRestoreExistingStreams(participant);
+                
+                if (participant.webcamOn || participant.videoOn) {
+                    console.log(`📹 [VOICE-MANAGER] Found video stream for local participant`);
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participant.id,
+                            kind: 'video',
+                            stream: participant.webcamStream
+                        }
+                    }));
+                }
+                
+                if (participant.screenShareOn) {
+                    console.log(`🖥️ [VOICE-MANAGER] Found screen share for local participant`);
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participant.id,
+                            kind: 'share',
+                            stream: participant.screenShareStream
+                        }
+                    }));
+                }
+            }, 200);
+        }
+        
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             instance.updateSidebarForChannel(this.currentChannelId);
@@ -822,17 +915,23 @@ class VoiceManager {
     setupStreamHandlers(participant) {
         if (!participant) return;
         
+        console.log(`🎬 [VOICE-MANAGER] Setting up stream handlers for participant: ${participant.id}`);
+        
         participant.on('stream-enabled', (stream) => {
             console.log(`🎥 [VOICE-MANAGER] Stream enabled for ${participant.id}:`, {
                 kind: stream.kind,
                 trackLabel: stream.track?.label,
-                streamId: stream.id
+                streamId: stream.id,
+                isLocal: participant.id === this.localParticipant?.id
             });
             
             const participantData = this.participants.get(participant.id);
             if (participantData) {
-                const streamKey = stream.kind === 'webcam' ? 'video' : stream.kind;
+                const streamKey = stream.kind === 'webcam' ? 'video' : 
+                                stream.kind === 'screenshare' ? 'share' : 
+                                stream.kind;
                 participantData.streams.set(streamKey, stream);
+                console.log(`💾 [VOICE-MANAGER] Stored stream ${streamKey} for participant ${participant.id}`);
             }
             
             if (this._deafened && participant.id !== this.localParticipant?.id && stream.kind === 'audio') {
@@ -843,7 +942,22 @@ class VoiceManager {
                 }
             }
             
-            const eventKind = stream.kind === 'webcam' ? 'video' : stream.kind;
+            const eventKind = stream.kind === 'webcam' ? 'video' : 
+                           stream.kind === 'screenshare' ? 'share' : 
+                           stream.kind;
+            
+            console.log(`🎬 [VOICE-MANAGER] Dispatching streamEnabled event:`, {
+                participantId: participant.id,
+                originalKind: stream.kind,
+                mappedKind: eventKind,
+                streamDetails: {
+                    id: stream.id,
+                    track: !!stream.track,
+                    stream: !!stream.stream
+                }
+            });
+            
+            // Dispatch immediately
             window.dispatchEvent(new CustomEvent('streamEnabled', {
                 detail: { 
                     participantId: participant.id,
@@ -851,6 +965,18 @@ class VoiceManager {
                     stream: stream
                 }
             }));
+            
+            // Also dispatch with a slight delay to ensure UI is ready
+            setTimeout(() => {
+                console.log(`🔄 [VOICE-MANAGER] Re-dispatching streamEnabled event for reliability`);
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: participant.id,
+                        kind: eventKind,
+                        stream: stream
+                    }
+                }));
+            }, 100);
         });
         
         participant.on('stream-disabled', (stream) => {
@@ -861,11 +987,16 @@ class VoiceManager {
             
             const participantData = this.participants.get(participant.id);
             if (participantData) {
-                const streamKey = stream.kind === 'webcam' ? 'video' : stream.kind;
+                const streamKey = stream.kind === 'webcam' ? 'video' : 
+                                stream.kind === 'screenshare' ? 'share' : 
+                                stream.kind;
                 participantData.streams.delete(streamKey);
             }
             
-            const eventKind = stream.kind === 'webcam' ? 'video' : stream.kind;
+            const eventKind = stream.kind === 'webcam' ? 'video' : 
+                           stream.kind === 'screenshare' ? 'share' : 
+                           stream.kind;
+                           
             window.dispatchEvent(new CustomEvent('streamDisabled', {
                 detail: {
                     participantId: participant.id,
@@ -934,12 +1065,23 @@ class VoiceManager {
                 
                 const participantData = this.participants.get(participant.id);
                 if (participantData) {
-                    const streamKey = kind === 'webcam' ? 'video' : kind;
+                    const streamKey = kind === 'webcam' ? 'video' : 
+                                    kind === 'screenshare' ? 'share' : 
+                                    kind;
                     participantData.streams.set(streamKey, stream);
                 }
                 
-                const eventKind = kind === 'webcam' ? 'video' : kind;
+                const eventKind = kind === 'webcam' ? 'video' : 
+                               kind === 'screenshare' ? 'share' : 
+                               kind;
+                               
                 if (eventKind === 'video' || eventKind === 'share') {
+                    console.log(`📡 [VOICE-MANAGER] Dispatching stream event for existing stream:`, {
+                        participantId: participant.id,
+                        originalKind: kind,
+                        mappedKind: eventKind
+                    });
+                    
                     window.dispatchEvent(new CustomEvent('streamEnabled', {
                         detail: { 
                             participantId: participant.id,
@@ -1103,12 +1245,16 @@ class VoiceManager {
         if (!this.meeting || !this.localParticipant) return this._videoOn;
         
         try {
+            console.log(`📹 [VOICE-MANAGER] Toggling video. Current state: ${this._videoOn}`);
+            
             if (this._videoOn) {
                 await this.meeting.disableWebcam();
                 this._videoOn = false;
+                console.log(`📹❌ [VOICE-MANAGER] Video disabled`);
             } else {
                 await this.meeting.enableWebcam();
                 this._videoOn = true;
+                console.log(`📹✅ [VOICE-MANAGER] Video enabled`);
             }
             
             this.updateUnifiedVoiceState({
@@ -1119,14 +1265,75 @@ class VoiceManager {
                 detail: { type: 'video', state: this._videoOn }
             }));
             
+            // Multiple checks with different delays to ensure stream detection
             setTimeout(() => {
+                console.log(`🔍 [VOICE-MANAGER] First video stream check (100ms delay)`);
                 this.checkAndRestoreExistingStreams(this.localParticipant);
+                this.forceVideoStreamCheck();
             }, 100);
+            
+            setTimeout(() => {
+                console.log(`🔍 [VOICE-MANAGER] Second video stream check (300ms delay)`);
+                this.forceVideoStreamCheck();
+            }, 300);
+            
+            setTimeout(() => {
+                console.log(`🔍 [VOICE-MANAGER] Third video stream check (500ms delay)`);
+                this.forceVideoStreamCheck();
+            }, 500);
             
             return this._videoOn;
         } catch (error) {
             console.error('Failed to toggle video:', error);
             return this._videoOn;
+        }
+    }
+    
+    forceVideoStreamCheck() {
+        if (!this.localParticipant) return;
+        
+        console.log(`🔧 [VOICE-MANAGER] Force video stream check for local participant:`, {
+            webcamOn: this.localParticipant.webcamOn,
+            webcamStream: !!this.localParticipant.webcamStream,
+            videoOn: this._videoOn,
+            streams: this.localParticipant.streams?.size || 0
+        });
+        
+        // Check different possible properties for video streams
+        const possibleVideoProps = [
+            'webcamStream',
+            'videoStream', 
+            'camStream'
+        ];
+        
+        for (const prop of possibleVideoProps) {
+            if (this.localParticipant[prop]) {
+                console.log(`📹 [VOICE-MANAGER] Found video stream via ${prop}`);
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: this.localParticipant.id,
+                        kind: 'video',
+                        stream: this.localParticipant[prop]
+                    }
+                }));
+                break;
+            }
+        }
+        
+        // Check streams collection for video
+        if (this.localParticipant.streams) {
+            this.localParticipant.streams.forEach((stream, kind) => {
+                if (kind === 'video' || kind === 'webcam' || kind === 'camera') {
+                    console.log(`📹 [VOICE-MANAGER] Found video stream in streams collection: ${kind}`);
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: this.localParticipant.id,
+                            kind: 'video',
+                            stream: stream
+                        }
+                    }));
+                }
+            });
         }
     }
     
@@ -1206,12 +1413,16 @@ class VoiceManager {
         if (!this.meeting || !this.localParticipant) return this._screenShareOn;
         
         try {
+            console.log(`🖥️ [VOICE-MANAGER] Toggling screen share. Current state: ${this._screenShareOn}`);
+            
             if (this._screenShareOn) {
                 await this.meeting.disableScreenShare();
                 this._screenShareOn = false;
+                console.log(`🖥️❌ [VOICE-MANAGER] Screen share disabled`);
             } else {
                 await this.meeting.enableScreenShare();
                 this._screenShareOn = true;
+                console.log(`🖥️✅ [VOICE-MANAGER] Screen share enabled`);
             }
             
             this.updateUnifiedVoiceState({
@@ -1223,13 +1434,62 @@ class VoiceManager {
             }));
             
             setTimeout(() => {
+                console.log(`🔍 [VOICE-MANAGER] Checking for screen share streams after toggle`);
                 this.checkAndRestoreExistingStreams(this.localParticipant);
+                this.forceScreenShareCheck();
             }, 100);
             
             return this._screenShareOn;
         } catch (error) {
             console.error('Failed to toggle screen share:', error);
             return this._screenShareOn;
+        }
+    }
+    
+    forceScreenShareCheck() {
+        if (!this.localParticipant) return;
+        
+        console.log(`🔧 [VOICE-MANAGER] Force screen share check for local participant:`, {
+            screenShareOn: this.localParticipant.screenShareOn,
+            screenShareStream: !!this.localParticipant.screenShareStream,
+            streams: this.localParticipant.streams?.size || 0
+        });
+        
+        // Check different possible properties for screen share streams
+        const possibleScreenShareProps = [
+            'screenShareStream',
+            'shareStream', 
+            'screenStream'
+        ];
+        
+        for (const prop of possibleScreenShareProps) {
+            if (this.localParticipant[prop]) {
+                console.log(`🖥️ [VOICE-MANAGER] Found screen share stream via ${prop}`);
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: this.localParticipant.id,
+                        kind: 'share',
+                        stream: this.localParticipant[prop]
+                    }
+                }));
+                break;
+            }
+        }
+        
+        // Check streams collection for screen share
+        if (this.localParticipant.streams) {
+            this.localParticipant.streams.forEach((stream, kind) => {
+                if (kind === 'share' || kind === 'screenshare' || kind === 'screen') {
+                    console.log(`🖥️ [VOICE-MANAGER] Found screen share stream in streams collection: ${kind}`);
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: this.localParticipant.id,
+                            kind: 'share',
+                            stream: stream
+                        }
+                    }));
+                }
+            });
         }
     }
     

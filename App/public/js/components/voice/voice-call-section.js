@@ -689,6 +689,7 @@ class VoiceCallSection {
             console.error(`❌ [VOICE-CALL-SECTION] No participant element found for ID: ${participantId}`);
             console.log(`📋 [VOICE-CALL-SECTION] Available participant keys:`, Array.from(this.participantElements.keys()));
             
+            // Try to find via DOM first
             element = document.querySelector(`[data-participant-id="${participantId}"]`);
             if (element) {
                 console.log(`🔧 [VOICE-CALL-SECTION] Found element via DOM query, adding to map`);
@@ -697,19 +698,59 @@ class VoiceCallSection {
                 console.error(`❌ [VOICE-CALL-SECTION] Element not found in DOM either`);
                 console.log(`🔧 [VOICE-CALL-SECTION] Attempting to create participant card first...`);
 
+                // Check if participant exists in voice manager
                 if (window.voiceManager && window.voiceManager.participants.has(participantId)) {
                     const participantData = window.voiceManager.participants.get(participantId);
-                    const element = this.createParticipantElement(participantId, participantData);
-                    if (element) {
+                    console.log(`✅ [VOICE-CALL-SECTION] Found participant data, creating element`);
+                    
+                    const newElement = this.createParticipantElement(participantId, participantData);
+                    if (newElement) {
                         const grid = document.getElementById("participantGrid");
                         if (grid) {
-                            grid.appendChild(element);
-                            this.participantElements.set(participantId, element);
+                            // Add with animation
+                            newElement.style.opacity = '0';
+                            newElement.style.transform = 'translateY(20px) scale(0.9)';
+                            newElement.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+                            
+                            grid.appendChild(newElement);
+                            this.participantElements.set(participantId, newElement);
                             this.updateGridLayout();
                             this.updateParticipantCount();
+                            
+                            requestAnimationFrame(() => {
+                                newElement.style.opacity = '1';
+                                newElement.style.transform = 'translateY(0) scale(1)';
+                            });
+                            
+                            element = newElement;
+                            console.log(`✅ [VOICE-CALL-SECTION] Created and added new participant element`);
                         }
                     }
-                    element = this.participantElements.get(participantId);
+                } else {
+                    // Participant data doesn't exist, create a basic card
+                    console.log(`⚠️ [VOICE-CALL-SECTION] Participant data not found, creating basic card`);
+                    const basicParticipantData = {
+                        id: participantId,
+                        name: `User ${participantId.slice(-4)}`,
+                        username: `User ${participantId.slice(-4)}`,
+                        avatar_url: '/public/assets/common/default-profile-picture.png',
+                        isBot: false,
+                        isLocal: false,
+                        streams: new Map()
+                    };
+                    
+                    const newElement = this.createParticipantElement(participantId, basicParticipantData);
+                    if (newElement) {
+                        const grid = document.getElementById("participantGrid");
+                        if (grid) {
+                            grid.appendChild(newElement);
+                            this.participantElements.set(participantId, newElement);
+                            this.updateGridLayout();
+                            this.updateParticipantCount();
+                            element = newElement;
+                            console.log(`✅ [VOICE-CALL-SECTION] Created basic participant element`);
+                        }
+                    }
                 }
                 
                 if (!element) {
@@ -722,19 +763,23 @@ class VoiceCallSection {
         if (kind === 'video' || kind === 'webcam') {
             console.log(`📹 [VOICE-CALL-SECTION] Showing participant video for ${participantId}`);
             this.showParticipantVideo(element, stream);
-        } else if (kind === 'share') {
+        } else if (kind === 'share' || kind === 'screenshare') {
             console.log(`🖥️ [VOICE-CALL-SECTION] Creating screen share card for ${participantId}`);
             this.createScreenShareCard(participantId, stream);
+        } else {
+            console.log(`⚠️ [VOICE-CALL-SECTION] Unknown stream kind: ${kind} for ${participantId}`);
         }
     }
     
     handleStreamDisabled(event) {
         const { participantId, kind } = event.detail;
+        console.log(`🎥❌ [VOICE-CALL-SECTION] Stream disabled:`, { participantId, kind });
+        
         const element = this.participantElements.get(participantId);
         
         if (kind === 'video' || kind === 'webcam') {
             if (element) this.hideParticipantVideo(element);
-        } else if (kind === 'share') {
+        } else if (kind === 'share' || kind === 'screenshare') {
             this.removeScreenShareCard(participantId);
         }
     }
