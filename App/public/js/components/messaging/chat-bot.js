@@ -19,14 +19,18 @@ class ChatBot {
             
 
             io.on('bot-music-command', (data) => {
+                console.log('🤖 [CHAT-BOT] Received bot-music-command:', {
+                    userId: window.globalSocketManager?.userId,
+                    data: data
+                });
 
                 if (!data || !data.music_data) {
                     console.warn('⚠️ [CHAT-BOT] Invalid bot-music-command data:', data);
                     return;
                 }
-                
 
                 if (window.musicPlayer) {
+                    console.log('🤖 [CHAT-BOT] Forwarding to music player');
                     window.musicPlayer.processBotMusicCommand(data);
                 } else {
                     console.warn('⚠️ [CHAT-BOT] Music player not available');

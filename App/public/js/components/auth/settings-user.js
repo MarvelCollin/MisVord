@@ -1,6 +1,13 @@
 import ImageCutter from '../common/image-cutter.js';
 
+let settingsInitialized = false;
+
 document.addEventListener('DOMContentLoaded', function() {
+    if (settingsInitialized) {
+        return;
+    }
+    settingsInitialized = true;
+    
     initUserSettingsPage();
     
     const logoutBtn = document.getElementById('logout-btn');
@@ -91,12 +98,18 @@ function initUserAvatarUpload() {
     
     if (!iconContainer || !iconInput) return;
     
+    if (iconInput.dataset.listenerAttached) {
+        return;
+    }
+    iconInput.dataset.listenerAttached = 'true';
+    
     try {
         const avatarCutter = new ImageCutter({
             container: iconContainer,
             type: 'profile',
             modalTitle: 'Upload Profile Picture',
             aspectRatio: 1,
+            fileInputSelector: '#avatar-input',
             onCrop: (result) => {
                 if (result && result.error) {
                     showToast(result.message || 'Error cropping avatar', 'error');
@@ -125,68 +138,52 @@ function initUserAvatarUpload() {
     } catch (error) {
         console.error('Error initializing image cutter:', error);
     }
-    
-    if (iconContainer) {
-        if (!iconContainer.dataset.listenerAttached) {
-            iconContainer.dataset.listenerAttached = 'true';
-            iconContainer.addEventListener('click', function() {
-                iconInput.click();
-            });
+
+    iconInput.addEventListener('change', function() {
+        if (!this.files || !this.files[0]) return;
+        
+        const file = this.files[0];
+        
+        if (!file.type.match('image.*')) {
+            showToast('Please select a valid image file', 'error');
+            return;
         }
-    }
-    
-    if (iconInput) {
-        if (!iconInput.dataset.listenerAttached) {
-            iconInput.dataset.listenerAttached = 'true';
-            iconInput.addEventListener('change', function() {
-                if (!this.files || !this.files[0]) return;
-                
-                const file = this.files[0];
-                
-                if (!file.type.match('image.*')) {
-                    showToast('Please select a valid image file', 'error');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        if (window.userAvatarCutter) {
-                            window.userAvatarCutter.loadImage(e.target.result);
-                        } else {
-                            if (iconPreview) {
-                                iconPreview.src = e.target.result;
-                                iconPreview.classList.remove('hidden');
-                                
-                                const placeholder = document.getElementById('user-avatar-placeholder');
-                                if (placeholder) placeholder.classList.add('hidden');
-                            }
-                            
-                            iconContainer.dataset.croppedImage = e.target.result;
-                            
-                            uploadAvatar(e.target.result);
-                        }
-                    } catch (error) {
-                        showToast('Error processing avatar', 'error');
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                if (window.userAvatarCutter) {
+                    window.userAvatarCutter.loadImage(e.target.result);
+                } else {
+                    if (iconPreview) {
+                        iconPreview.src = e.target.result;
+                        iconPreview.classList.remove('hidden');
+                        
+                        const placeholder = document.getElementById('user-avatar-placeholder');
+                        if (placeholder) placeholder.classList.add('hidden');
                     }
-                };
-                
-                reader.readAsDataURL(file);
-            });
-        }
-    }
+                    
+                    iconContainer.dataset.croppedImage = e.target.result;
+                    
+                    uploadAvatar(e.target.result);
+                }
+            } catch (error) {
+                showToast('Error processing avatar', 'error');
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    });
     
-    if (removeIconBtn) {
-        if (!removeIconBtn.dataset.listenerAttached) {
-            removeIconBtn.dataset.listenerAttached = 'true';
-            removeIconBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                showImageRemovalConfirmation('avatar', () => {
-                    removeUserImage('avatar');
-                });
+    if (removeIconBtn && !removeIconBtn.dataset.listenerAttached) {
+        removeIconBtn.dataset.listenerAttached = 'true';
+        removeIconBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            showImageRemovalConfirmation('avatar', () => {
+                removeUserImage('avatar');
             });
-        }
+        });
     }
 }
 
@@ -199,12 +196,18 @@ function initUserBannerUpload() {
     
     if (!bannerContainer || !bannerInput) return;
     
+    if (bannerInput.dataset.listenerAttached) {
+        return;
+    }
+    bannerInput.dataset.listenerAttached = 'true';
+    
     try {
         const bannerCutter = new ImageCutter({
             container: bannerContainer,
             type: 'banner',
             modalTitle: 'Upload Profile Banner',
             aspectRatio: 4/1,
+            fileInputSelector: '#user-banner-input',
             onCrop: (result) => {
                 if (result && result.error) {
                     showToast(result.message || 'Error cropping banner', 'error');
@@ -233,68 +236,52 @@ function initUserBannerUpload() {
     } catch (error) {
         console.error('Error initializing banner cutter:', error);
     }
-    
-    if (bannerContainer) {
-        if (!bannerContainer.dataset.listenerAttached) {
-            bannerContainer.dataset.listenerAttached = 'true';
-            bannerContainer.addEventListener('click', function() {
-                bannerInput.click();
-            });
+
+    bannerInput.addEventListener('change', function() {
+        if (!this.files || !this.files[0]) return;
+        
+        const file = this.files[0];
+        
+        if (!file.type.match('image.*')) {
+            showToast('Please select a valid image file', 'error');
+            return;
         }
-    }
-    
-    if (bannerInput) {
-        if (!bannerInput.dataset.listenerAttached) {
-            bannerInput.dataset.listenerAttached = 'true';
-            bannerInput.addEventListener('change', function() {
-                if (!this.files || !this.files[0]) return;
-                
-                const file = this.files[0];
-                
-                if (!file.type.match('image.*')) {
-                    showToast('Please select a valid image file', 'error');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        if (window.userBannerCutter) {
-                            window.userBannerCutter.loadImage(e.target.result);
-                        } else {
-                            if (bannerPreview) {
-                                bannerPreview.src = e.target.result;
-                                bannerPreview.classList.remove('hidden');
-                                
-                                const placeholder = document.getElementById('user-banner-placeholder');
-                                if (placeholder) placeholder.classList.add('hidden');
-                            }
-                            
-                            bannerContainer.dataset.croppedImage = e.target.result;
-                            
-                            uploadBanner(e.target.result);
-                        }
-                    } catch (error) {
-                        showToast('Error processing banner', 'error');
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                if (window.userBannerCutter) {
+                    window.userBannerCutter.loadImage(e.target.result);
+                } else {
+                    if (bannerPreview) {
+                        bannerPreview.src = e.target.result;
+                        bannerPreview.classList.remove('hidden');
+                        
+                        const placeholder = document.getElementById('user-banner-placeholder');
+                        if (placeholder) placeholder.classList.add('hidden');
                     }
-                };
-                
-                reader.readAsDataURL(file);
-            });
-        }
-    }
+                    
+                    bannerContainer.dataset.croppedImage = e.target.result;
+                    
+                    uploadBanner(e.target.result);
+                }
+            } catch (error) {
+                showToast('Error processing banner', 'error');
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    });
     
-    if (removeBannerBtn) {
-        if (!removeBannerBtn.dataset.listenerAttached) {
-            removeBannerBtn.dataset.listenerAttached = 'true';
-            removeBannerBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                showImageRemovalConfirmation('banner', () => {
-                    removeUserImage('banner');
-                });
+    if (removeBannerBtn && !removeBannerBtn.dataset.listenerAttached) {
+        removeBannerBtn.dataset.listenerAttached = 'true';
+        removeBannerBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            showImageRemovalConfirmation('banner', () => {
+                removeUserImage('banner');
             });
-        }
+        });
     }
 }
 

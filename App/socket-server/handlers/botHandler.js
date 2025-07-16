@@ -875,40 +875,34 @@ class BotHandler extends EventEmitter {
                         room_id: roomId,
                         music_data: musicData,
                         bot_id: botId,
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        trigger_sync: true
                     };
                     
-                    console.log(`🎵 [BOT-DEBUG] Emitting music command to all voice participants:`, {
+                    console.log(`🎵 [BOT-DEBUG] Emitting music command for synchronized playback:`, {
                         targetRoom,
                         channelId,
                         roomId,
                         action: musicData.action
                     });
                     
-                    io.to(targetRoom).emit('bot-music-command', musicCommandData);
-                    
                     if (channelId) {
-                        const voiceChannelRoom = `voice_channel_${channelId}`;
-                        const channelRoom = `channel-${channelId}`;
-                        
-                        io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
-                        io.to(channelRoom).emit('bot-music-command', musicCommandData);
-                        
                         const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
                         const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
                         
-                        console.log(`🎵 [BOT-DEBUG] Found ${participants.length} participants in channel ${channelId}:`, 
-                            participants.map(p => ({ userId: p.userId, username: p.username, socketId: p.socket_id }))
-                        );
+                        console.log(`🎵 [BOT-DEBUG] Found ${participants.length} participants in channel ${channelId}`);
                         
-                        participants.forEach(participant => {
-                            if (participant.socket_id) {
-                                console.log(`🎵 [BOT-DEBUG] Sending music command to participant ${participant.username} (${participant.socket_id})`);
-                                io.to(participant.socket_id).emit('bot-music-command', musicCommandData);
-                            } else {
-                                console.warn(`⚠️ [BOT-DEBUG] Participant ${participant.username} has no socket_id`);
+                        if (participants.length > 0) {
+                            const firstParticipant = participants[0];
+                            if (firstParticipant.socket_id) {
+                                console.log(`🎵 [BOT-DEBUG] Sending music command to primary participant ${firstParticipant.username} for sync broadcast`);
+                                io.to(firstParticipant.socket_id).emit('bot-music-command', musicCommandData);
                             }
-                        });
+                        } else {
+                            io.to(targetRoom).emit('bot-music-command', musicCommandData);
+                        }
+                    } else {
+                        io.to(targetRoom).emit('bot-music-command', musicCommandData);
                     }
                 }
             } else {

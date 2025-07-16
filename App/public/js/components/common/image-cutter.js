@@ -53,6 +53,11 @@ class ImageCutter {
                     
                     if (this.image && this.image.src) {
                         this.showModal();
+                    } else if (this.options.fileInputSelector) {
+                        const fileInput = document.querySelector(this.options.fileInputSelector);
+                        if (fileInput) {
+                            fileInput.click();
+                        }
                     }
                 } catch (error) {
                     console.error('Error in container click handler:', error);

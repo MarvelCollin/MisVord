@@ -1,8 +1,14 @@
 import ImageCutter from '../common/image-cutter.js';
 import { showToast } from '../../core/ui/toast.js';
 
+let serverSettingsInitialized = false;
+
 document.addEventListener('DOMContentLoaded', function() {
     if (document.body.classList.contains('settings-page') && document.querySelector('meta[name="server-id"]')) {
+        if (serverSettingsInitialized) {
+            return;
+        }
+        serverSettingsInitialized = true;
         initServerSettingsPage();
     }
 });
@@ -105,12 +111,18 @@ function createImageUploadHandler(containerId, previewId, placeholderId, type, o
         return;
     }
     
+    if (input.dataset.listenerAttached) {
+        return;
+    }
+    input.dataset.listenerAttached = 'true';
+    
     try {
         const cutter = new ImageCutter({
             container: container,
             type: type,
             modalTitle: `Upload Server ${type === 'profile' ? 'Icon' : 'Banner'}`,
             aspectRatio: type === 'profile' ? 1 : 16/9,
+            fileInputSelector: `#${inputId}`,
             onCrop: async (result) => {
                 if (result && result.error) {
                     showToast(result.message || 'An error occurred during cropping.', 'error');
@@ -155,12 +167,7 @@ function createImageUploadHandler(containerId, previewId, placeholderId, type, o
             }
         });
 
-        container.addEventListener('click', (e) => {
-             e.preventDefault();
-             input.click();
-         });
- 
-         input.addEventListener('change', (e) => {
+        input.addEventListener('change', (e) => {
              const file = e.target.files[0];
              if (!file) return;
  
@@ -2067,17 +2074,20 @@ function initServerInputApproveButtons(serverId) {
         serverNameInput.dataset.originalValue = serverNameInput.value.trim();
         checkForChanges(serverNameInput, approveServerNameBtn);
         
-        serverNameInput.addEventListener('input', function() {
-            checkForChanges(this, approveServerNameBtn);
-        });
-        
-        serverNameInput.addEventListener('keyup', function() {
-            checkForChanges(this, approveServerNameBtn);
-        });
-        
-        serverNameInput.addEventListener('paste', function() {
-            setTimeout(() => checkForChanges(this, approveServerNameBtn), 10);
-        });
+        if (!serverNameInput.dataset.listenerAttached) {
+            serverNameInput.dataset.listenerAttached = 'true';
+            serverNameInput.addEventListener('input', function() {
+                checkForChanges(this, approveServerNameBtn);
+            });
+            
+            serverNameInput.addEventListener('keyup', function() {
+                checkForChanges(this, approveServerNameBtn);
+            });
+            
+            serverNameInput.addEventListener('paste', function() {
+                setTimeout(() => checkForChanges(this, approveServerNameBtn), 10);
+            });
+        }
         
         if (!approveServerNameBtn.dataset.listenerAttached) {
             approveServerNameBtn.dataset.listenerAttached = 'true';
@@ -2095,17 +2105,20 @@ function initServerInputApproveButtons(serverId) {
         serverDescriptionInput.dataset.originalValue = serverDescriptionInput.value.trim();
         checkForChanges(serverDescriptionInput, approveServerDescriptionBtn);
         
-        serverDescriptionInput.addEventListener('input', function() {
-            checkForChanges(this, approveServerDescriptionBtn);
-        });
-        
-        serverDescriptionInput.addEventListener('keyup', function() {
-            checkForChanges(this, approveServerDescriptionBtn);
-        });
-        
-        serverDescriptionInput.addEventListener('paste', function() {
-            setTimeout(() => checkForChanges(this, approveServerDescriptionBtn), 10);
-        });
+        if (!serverDescriptionInput.dataset.listenerAttached) {
+            serverDescriptionInput.dataset.listenerAttached = 'true';
+            serverDescriptionInput.addEventListener('input', function() {
+                checkForChanges(this, approveServerDescriptionBtn);
+            });
+            
+            serverDescriptionInput.addEventListener('keyup', function() {
+                checkForChanges(this, approveServerDescriptionBtn);
+            });
+            
+            serverDescriptionInput.addEventListener('paste', function() {
+                setTimeout(() => checkForChanges(this, approveServerDescriptionBtn), 10);
+            });
+        }
         
         if (!approveServerDescriptionBtn.dataset.listenerAttached) {
             approveServerDescriptionBtn.dataset.listenerAttached = 'true';
@@ -2123,9 +2136,12 @@ function initServerInputApproveButtons(serverId) {
         isPublicInput.dataset.originalValue = isPublicInput.checked ? '1' : '0';
         checkForChangesCheckbox(isPublicInput, approveIsPublicBtn);
         
-        isPublicInput.addEventListener('change', function() {
-            updateServerPublic(serverId, this.checked);
-        });
+        if (!isPublicInput.dataset.listenerAttached) {
+            isPublicInput.dataset.listenerAttached = 'true';
+            isPublicInput.addEventListener('change', function() {
+                updateServerPublic(serverId, this.checked);
+            });
+        }
         
         if (!approveIsPublicBtn.dataset.listenerAttached) {
             approveIsPublicBtn.dataset.listenerAttached = 'true';
@@ -2143,9 +2159,12 @@ function initServerInputApproveButtons(serverId) {
         serverCategoryInput.dataset.originalValue = serverCategoryInput.value;
         checkForChanges(serverCategoryInput, approveServerCategoryBtn);
         
-        serverCategoryInput.addEventListener('change', function() {
-            checkForChanges(this, approveServerCategoryBtn);
-        });
+        if (!serverCategoryInput.dataset.listenerAttached) {
+            serverCategoryInput.dataset.listenerAttached = 'true';
+            serverCategoryInput.addEventListener('change', function() {
+                checkForChanges(this, approveServerCategoryBtn);
+            });
+        }
         
         if (!approveServerCategoryBtn.dataset.listenerAttached) {
             approveServerCategoryBtn.dataset.listenerAttached = 'true';
