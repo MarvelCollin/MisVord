@@ -200,6 +200,8 @@ class UserServerMembershipRepository extends Repository {
             $query = new Query();
             $query->beginTransaction();
             
+            error_log("Starting transaction for ownership transfer");
+            
             $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
                 ->where('server_id', $serverId)
@@ -235,17 +237,17 @@ class UserServerMembershipRepository extends Repository {
             
             if (count($allOwners) > 1) {
                 error_log("Multiple owners detected - cleaning up");
-                $query->table('user_server_memberships')
+                $cleanupResult = $query->table('user_server_memberships')
                     ->where('server_id', $serverId)
                     ->where('role', 'owner')
                     ->where('user_id', '!=', $newOwnerId)
                     ->update(['role' => 'admin', 'updated_at' => date('Y-m-d H:i:s')]);
                     
-                error_log("Cleanup completed - demoted extra owners to admin");
+                error_log("Cleanup completed - demoted extra owners to admin: $cleanupResult rows affected");
             }
 
             $query->commit();
-            error_log("Ownership transfer completed successfully");
+            error_log("Transaction committed successfully");
             
             $verifyNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
@@ -272,10 +274,16 @@ class UserServerMembershipRepository extends Repository {
             error_log("Ownership transfer verified successfully");
             return true;
         } catch (Exception $e) {
+            error_log("Exception in transferOwnership: " . $e->getMessage());
+            error_log("Exception trace: " . $e->getTraceAsString());
             if (isset($query)) {
-                $query->rollback();
+                try {
+                    $query->rollback();
+                    error_log("Transaction rolled back due to exception");
+                } catch (Exception $rollbackEx) {
+                    error_log("Failed to rollback transaction: " . $rollbackEx->getMessage());
+                }
             }
-            error_log("Error transferring ownership: " . $e->getMessage());
             return false;
         }
     }

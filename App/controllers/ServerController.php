@@ -2147,21 +2147,35 @@ class ServerController extends BaseController
         $this->requireAuth();
         $currentUserId = $this->getCurrentUserId();
         
-        $input = $this->getInput();
-        $newOwnerId = $input['new_owner_id'] ?? null;
-        
-        if (!$serverId) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Server ID is required'
-            ]);
-            exit;
-        }
-        
         try {
+            $input = $this->getInput();
+            $newOwnerId = $input['new_owner_id'] ?? null;
+            
+            error_log("Transfer ownership request - Server: $serverId, Current Owner: $currentUserId, New Owner: $newOwnerId");
+            
+            if (!$serverId) {
+                error_log("Transfer ownership error: Missing server ID");
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'Server ID is required'
+                ]);
+                exit;
+            }
+            
+            if (!$newOwnerId) {
+                error_log("Transfer ownership error: Missing new owner ID");
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'New owner ID is required'
+                ]);
+                exit;
+            }
+            
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
+                error_log("Transfer ownership error: Server not found - ID: $serverId");
                 http_response_code(404);
                 echo json_encode([
                     'success' => false,
@@ -2171,6 +2185,7 @@ class ServerController extends BaseController
             }
             
             if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
+                error_log("Transfer ownership error: User $currentUserId is not owner of server $serverId");
                 http_response_code(403);
                 echo json_encode([
                     'success' => false,
@@ -2179,16 +2194,8 @@ class ServerController extends BaseController
                 exit;
             }
             
-            if (!$newOwnerId) {
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'New owner ID is required'
-                ]);
-                exit;
-            }
-            
             if ($newOwnerId == $currentUserId) {
+                error_log("Transfer ownership error: Cannot transfer to self");
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -2199,6 +2206,7 @@ class ServerController extends BaseController
             
             $newOwnerMembership = $this->userServerMembershipRepository->findByUserAndServer($newOwnerId, $serverId);
             if (!$newOwnerMembership) {
+                error_log("Transfer ownership error: New owner $newOwnerId is not a member of server $serverId");
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -2208,6 +2216,7 @@ class ServerController extends BaseController
             }
             
             if ($newOwnerMembership->role === 'owner') {
+                error_log("Transfer ownership error: New owner $newOwnerId is already owner of server $serverId");
                 http_response_code(400);
                 echo json_encode([
                     'success' => false,
@@ -2216,7 +2225,9 @@ class ServerController extends BaseController
                 exit;
             }
             
+            error_log("Attempting transfer ownership - Server: $serverId, From: $currentUserId, To: $newOwnerId");
             $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $newOwnerId);
+            
             if (!$transferSuccess) {
                 error_log("Transfer ownership failed for server $serverId from user $currentUserId to user $newOwnerId");
                 http_response_code(500);
@@ -2234,6 +2245,7 @@ class ServerController extends BaseController
                 'new_owner_id' => $newOwnerId
             ]);
             
+            error_log("Transfer ownership successful - Server: $serverId, From: $currentUserId, To: $newOwnerId");
             http_response_code(200);
             echo json_encode([
                 'success' => true,
@@ -2244,10 +2256,14 @@ class ServerController extends BaseController
             exit;
             
         } catch (Exception $e) {
+            error_log("Transfer ownership exception: " . $e->getMessage());
+            error_log("Transfer ownership stack trace: " . $e->getTraceAsString());
+            
             $this->logActivity('transfer_ownership_error', [
                 'server_id' => $serverId,
-                'new_owner_id' => $newOwnerId,
-                'error' => $e->getMessage()
+                'new_owner_id' => $newOwnerId ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             http_response_code(500);

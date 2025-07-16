@@ -466,12 +466,17 @@ class BaseController
         $input = [];
 
         $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        error_log("BaseController getInput - Content-Type: $contentType");
+        
         if (strpos($contentType, 'application/json') !== false) {
             $jsonInput = file_get_contents('php://input');
+            error_log("BaseController getInput - JSON Input: " . ($jsonInput ?: 'empty'));
+            
             if (!empty($jsonInput)) {
                 $decoded = json_decode($jsonInput, true);
                 if ($decoded !== null) {
                     $input = $decoded;
+                    error_log("BaseController getInput - Decoded successfully: " . json_encode($input));
                 } else {
                     error_log("Failed to decode JSON input: " . json_last_error_msg());
                     error_log("Raw input: " . $jsonInput);
@@ -486,6 +491,8 @@ class BaseController
         foreach ($_POST as $key => $value) {
             $input[$key] = $value;
         }
+
+        error_log("BaseController getInput - Final input: " . json_encode($input));
 
         if (function_exists('logger')) {
             logger()->debug("Input received", [

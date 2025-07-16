@@ -442,6 +442,12 @@ const serverAPI = {
     },
     
     transferOwnership: function(serverId, newOwnerId) {
+        if (!serverId || !newOwnerId) {
+            return Promise.reject(new Error('Server ID and new owner ID are required'));
+        }
+        
+        console.log(`Transferring ownership of server ${serverId} to user ${newOwnerId}`);
+        
         return fetch(`/api/servers/${serverId}/transfer-ownership`, {
             method: 'POST',
             credentials: 'include',
@@ -453,11 +459,33 @@ const serverAPI = {
                 new_owner_id: newOwnerId
             })
         })
-        .then(response => {
+        .then(async response => {
+            console.log(`Transfer ownership response status: ${response.status}`);
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
+                let errorMessage = `HTTP error! Status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    errorMessage = errorData.error || errorData.message || errorMessage;
+                } catch (parseError) {
+                    console.error('Failed to parse error response:', parseError);
+                    try {
+                        const textResponse = await response.text();
+                        console.error('Error response text:', textResponse);
+                        if (textResponse.includes('Fatal error') || textResponse.includes('Parse error')) {
+                            errorMessage = 'Server configuration error. Please contact support.';
+                        }
+                    } catch (textError) {
+                        console.error('Failed to get error text:', textError);
+                    }
+                }
+                throw new Error(errorMessage);
             }
             return response.json();
+        })
+        .catch(error => {
+            console.error('Transfer ownership request failed:', error);
+            throw error;
         });
     },
 

@@ -1,0 +1,2 @@
+[2025-07-16 04:09:25] DEBUG [5c404c] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-16 04:09:33] ERROR [5c404c] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}

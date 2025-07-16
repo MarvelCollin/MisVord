@@ -1036,22 +1036,31 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
-
-            showToast(`Transferring ownership to ${member.display_name || member.username}...`, 'info', 2000);
+            if (!member || !member.id) throw new Error("Invalid member data");
+            
+            const memberName = member.display_name || member.username || 'Unknown User';
+            console.log(`Attempting to transfer ownership to ${memberName} (ID: ${member.id})`);
+            
+            showToast(`Transferring ownership to ${memberName}...`, 'info', 2000);
             
             const response = await window.serverAPI.transferOwnership(serverId, member.id);
+            
+            console.log('Transfer ownership response:', response);
+            
             if (response && response.success) {
                 document.querySelector('meta[name="user-role"]')?.setAttribute('content', 'admin');
                 document.body.dataset.userRole = 'admin';
                 
-                showToast(`You have transferred server ownership to ${member.display_name || member.username}. You are now an admin.`, 'success', 5000, 'Ownership Transferred');
+                showToast(`You have transferred server ownership to ${memberName}. You are now an admin.`, 'success', 5000, 'Ownership Transferred');
                 loadMembers();
             } else {
-                throw new Error(response.message || 'Failed to transfer server ownership');
+                const errorMessage = response?.error || response?.message || 'Failed to transfer server ownership';
+                throw new Error(errorMessage);
             }
         } catch (error) {
             console.error('Error transferring server ownership:', error);
-            showToast(error.message || 'Failed to transfer server ownership', 'error', 5000, 'Transfer Failed');
+            const errorMessage = error.message || 'Failed to transfer server ownership';
+            showToast(errorMessage, 'error', 5000, 'Transfer Failed');
         }
     }
     

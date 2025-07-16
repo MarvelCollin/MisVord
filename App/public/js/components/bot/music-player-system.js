@@ -1487,7 +1487,7 @@ class MusicPlayerSystem {
     }
 
     startProgressUpdate() {
-        if this.progressInterval) {
+        if (this.progressInterval) {
             clearInterval(this.progressInterval);
         }
         
@@ -1994,6 +1994,49 @@ class MusicPlayerSystem {
         }
         
         return state;
+    }
+
+    isUserInTargetVoiceChannel(targetChannelId) {
+        if (!targetChannelId) {
+            return false;
+        }
+
+        // Check unified voice state manager first
+        if (window.unifiedVoiceStateManager?.getState?.()) {
+            const state = window.unifiedVoiceStateManager.getState();
+            if (state && state.isConnected && state.channelId) {
+                return state.channelId === targetChannelId;
+            }
+        }
+
+        // Check voice manager
+        if (window.voiceManager) {
+            if (window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
+                return window.voiceManager.currentChannelId === targetChannelId;
+            }
+        }
+
+        // Check local storage manager
+        if (window.localStorageManager) {
+            const voiceState = window.localStorageManager.getUnifiedVoiceState();
+            if (voiceState && voiceState.isConnected && voiceState.channelId) {
+                return voiceState.channelId === targetChannelId;
+            }
+        }
+
+        // Check debug voice context
+        if (window.debugTitiBotVoiceContext) {
+            try {
+                const voiceContext = window.debugTitiBotVoiceContext();
+                if (voiceContext && voiceContext.userInVoice && voiceContext.voiceChannelId) {
+                    return voiceContext.voiceChannelId === targetChannelId;
+                }
+            } catch (e) {
+                console.warn('🎵 [MUSIC-PLAYER] Error checking voice context:', e);
+            }
+        }
+
+        return false;
     }
 
     // ...existing code...
