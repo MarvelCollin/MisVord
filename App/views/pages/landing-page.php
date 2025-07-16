@@ -25,7 +25,7 @@ ob_start();
 <section class="hero-section scroll-section min-h-screen flex items-center justify-center">
     <div class="hero-background">
         <div class="bg-gradient"></div>
-        <div class="parallax-layer stars-layer" data-depth="0.1">
+        <div class="parallax-layer stars-layer" data-depth="0.2">
             <?php for ($i = 0; $i < 50; $i++): ?>
                 <div class="star small" style="top: <?php echo rand(5, 95) . '%; left: ' . rand(5, 95); ?>%;"></div>
             <?php endfor; ?>
@@ -39,13 +39,13 @@ ob_start();
             <?php endfor; ?>
         </div>
 
-        <div class="parallax-layer nebulas-layer" data-depth="0.2">
+        <div class="parallax-layer nebulas-layer" data-depth="0.3">
             <div class="nebula nebula-1"></div>
             <div class="nebula nebula-2"></div>
             <div class="nebula nebula-3"></div>
         </div>
 
-        <div class="parallax-layer assets-layer-1" data-depth="0.15">
+        <div class="parallax-layer assets-layer-1" data-depth="0.4">
             <div class="floating-asset robot" style="top: 15%; left: 10%;">
                 <img src="<?php echo asset('landing-page/robot.webp'); ?>" alt="Robot">
             </div>
@@ -63,7 +63,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="parallax-layer assets-layer-2" data-depth="0.25">
+        <div class="parallax-layer assets-layer-2" data-depth="0.6">
             <div class="floating-asset flying-cat" style="top: 30%; right: 8%;">
                 <img src="<?php echo asset('landing-page/flying-cat.webp'); ?>" alt="Flying Cat">
             </div>
@@ -84,7 +84,7 @@ ob_start();
             </div>
         </div>
 
-        <div class="parallax-layer assets-layer-3" data-depth="0.35">
+        <div class="parallax-layer assets-layer-3" data-depth="0.8">
             <div class="floating-asset leaf leaf-6" style="top: 45%; left: 5%;">
                 <img src="<?php echo asset('landing-page/leaf.webp'); ?>" alt="Leaf">
             </div>

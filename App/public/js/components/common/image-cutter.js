@@ -27,6 +27,7 @@ class ImageCutter {
         this.imageOffset = { x: 0, y: 0 };
         this.sizeSlider = null;
         this.sizeValueDisplay = null;
+        this.originalImageData = null;
 
         this.init();
     }
@@ -678,18 +679,82 @@ class ImageCutter {
         }
     }
 
-    applyCrop() {
-        if (this.options.onCrop) {
-            const result = this.getCroppedImage();
-            this.options.onCrop(result);
-        }
+    getCroppedImage() {
+        const tempImg = new Image();
+        tempImg.crossOrigin = "Anonymous";
         
-        const event = new CustomEvent('imageCropComplete', {
-            detail: { dataUrl: this.getCroppedImage().dataUrl }
+        return new Promise((resolve) => {
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            svg.setAttribute("width", this.cropArea.width);
+            svg.setAttribute("height", this.cropArea.height);
+            svg.setAttribute("viewBox", `0 0 ${this.cropArea.width} ${this.cropArea.height}`);
+            
+            const foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+            foreignObject.setAttribute("width", this.cropArea.width);
+            foreignObject.setAttribute("height", this.cropArea.height);
+            
+            const div = document.createElement("div");
+            div.style.cssText = `
+                width: ${this.image.width}px;
+                height: ${this.image.height}px;
+                background-image: url(${this.image.src});
+                background-size: ${this.image.width}px ${this.image.height}px;
+                background-repeat: no-repeat;
+                background-position: -${this.cropArea.x}px -${this.cropArea.y}px;
+                transform: scale(1);
+            `;
+            
+            foreignObject.appendChild(div);
+            svg.appendChild(foreignObject);
+            
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const svgUrl = URL.createObjectURL(svgBlob);
+            
+            tempImg.onload = () => {
+                const dataUrl = this.imageToDataUrl(tempImg);
+                URL.revokeObjectURL(svgUrl);
+                resolve({
+                    dataUrl: dataUrl,
+                    width: this.cropArea.width,
+                    height: this.cropArea.height
+                });
+            };
+            
+            tempImg.src = svgUrl;
         });
-        this.options.container.dispatchEvent(event);
-        
-        this.hideModal();
+    }
+
+    imageToDataUrl(img) {
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width || this.cropArea.width;
+        tempCanvas.height = img.height || this.cropArea.height;
+        const ctx = tempCanvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        return tempCanvas.toDataURL('image/png');
+    }
+
+    getBlob(callback) {
+        this.getCroppedImage().then(result => {
+            fetch(result.dataUrl)
+                .then(res => res.blob())
+                .then(blob => callback(blob));
+        });
+    }
+
+    applyCrop() {
+        this.getCroppedImage().then(result => {
+            if (this.options.onCrop) {
+                this.options.onCrop(result);
+            }
+            
+            const event = new CustomEvent('imageCropComplete', {
+                detail: { dataUrl: result.dataUrl }
+            });
+            this.options.container.dispatchEvent(event);
+            
+            this.hideModal();
+        });
     }
 
     calculateInitialCrop() {
@@ -814,117 +879,52 @@ class ImageCutter {
         this.isDragging = false;
     }
 
-    getCroppedImage() {
-        const canvas = document.createElement('canvas');
-        const { width, height, x, y } = this.cropArea;
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(this.image, x, y, width, height, 0, 0, width, height);
-        
+    cleanupFailedModal() {
+        try {
+            this.isActive = false;
+            if (this.modal) {
+                this.modal.style.display = 'none';
+                
+                if (this.modal.parentNode) {
+                    this.modal.parentNode.removeChild(this.modal);
+                }
+            }
+            
+            this.modal = null;
+            this.cutterContainer = null;
+            this.imageElement = null;
+            this.overlay = null;
+            this.sizeSlider = null;
+            this.sizeValueDisplay = null;
+            
+            document.body.style.overflow = '';
+            
+            if (typeof this.options.onCrop === 'function') {
+                this.options.onCrop({ 
+                    error: true, 
+                    message: 'Failed to process image'
+                });
+            }
+        } catch (error) {
+            console.error('Error cleaning up failed modal:', error);
+        }
+    }
+
+    testBannerSlider() {
         return {
-            dataUrl: canvas.toDataURL('image/png'),
-            width: width,
-            height: height
+            type: this.options.type,
+            sliderExists: !!this.sizeSlider,
+            sliderVisible: this.sizeSlider ? this.sizeSlider.style.display !== 'none' : false,
+            sliderValue: this.sizeSlider ? this.sizeSlider.value : null,
+            modalActive: this.isActive,
+            imageLoaded: this.image && this.image.complete,
+            sliderParent: this.sizeSlider ? !!this.sizeSlider.parentElement : false,
+            controlsSectionExists: !!document.querySelector('.image-cutter-modal-content')
         };
     }
+}
 
-    getBlob(callback) {
-        const canvas = document.createElement('canvas');
-        const { width, height, x, y } = this.cropArea;
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(this.image, x, y, width, height, 0, 0, width, height);
-        
-        canvas.toBlob(callback, 'image/png');
-    }
-
-    setType(type) {
-        if (type !== 'profile' && type !== 'banner') {
-            console.error('Invalid type. Must be "profile" or "banner"');
-            return;
-        }
-        
-        this.options.type = type;
-        
-        if (this.overlay) {
-            this.overlay.style.borderRadius = type === 'profile' ? '50%' : '0';
-        }
-        
-        const infoText = this.modal?.querySelector('.image-cutter-modal-content span');
-        if (infoText) {
-            infoText.textContent = type === 'profile' 
-                ? 'Drag to move • Use slider to resize • 1:1 aspect ratio' 
-                : 'Drag to move • Use slider to resize • 2:1 aspect ratio';
-        }
-        
-        if (this.image.src) {
-            this.calculateInitialCrop();
-            this.updateImageDisplay();
-            this.initializeSliderValue();
-        }
-    }
-
-    recreateModalContent() {
-        try {
-            if (this.modal) {
-                while (this.modal.firstChild) {
-                    this.modal.removeChild(this.modal.firstChild);
-                }
-            } else {
-                return;
-            }
-            
-            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
-            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
-            
-            const modalContent = document.createElement('div');
-            modalContent.className = 'image-cutter-modal-content';
-            
-            let maxWidth = '90vw';
-            let padding = '16px';
-            if (vw > 768) {
-                maxWidth = '700px';
-                padding = '24px';
-            } else if (vw > 480) {
-                maxWidth = '95vw';
-                padding = '20px';
-            }
-            
-            modalContent.style.cssText = `
-                background-color: #2f3136;
-                border-radius: 8px;
-                padding: ${padding};
-                width: 100%;
-                max-width: ${maxWidth};
-                max-height: 95vh;
-                position: relative;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-                box-sizing: border-box;
-                overflow-y: auto;
-            `;
-            
-            const modalHeader = document.createElement('div');
-            modalHeader.style.cssText = `
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-            `;
-            
-            const modalTitle = document.createElement('h3');
-            modalTitle.textContent = this.options.modalTitle || 'Crop Image';
-            
-            let titleFontSize = '18px';
-            if (vw > 768) {
-                titleFontSize = '20px';
-            }
-            
+export default ImageCutter;
             modalTitle.style.cssText = `
                 color: #fff;
                 margin: 0;

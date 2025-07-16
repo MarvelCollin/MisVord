@@ -24,7 +24,10 @@ class ChannelVoiceParticipants {
                 this.requestAllChannelStatusImmediate();
                 const voiceState = window.localStorageManager?.getUnifiedVoiceState();
                 if (voiceState?.isConnected && voiceState?.channelId) {
-                    this.updateSidebarForChannel(voiceState.channelId, 'full');
+                    this.updateSidebarForChannel(voiceState.channelId, 'append');
+                    if (window.voiceCallSection && window.voiceManager?.participants?.size > 0) {
+                        window.voiceCallSection.syncWithExistingParticipants();
+                    }
                 }
             }
         });

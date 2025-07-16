@@ -447,6 +447,39 @@ class VoiceCallSection {
         this.updateLocalParticipantIndicators();
     }
     
+    syncWithExistingParticipants() {
+        if (!window.voiceManager || !window.voiceManager.participants) return;
+        
+        console.log('🔄 [VOICE-CALL-SECTION] Syncing with existing participants after visibility change');
+        
+        const grid = document.getElementById("participantGrid");
+        if (!grid) return;
+        
+        const allParticipants = window.voiceManager.getAllParticipants();
+        const botParticipants = window.voiceManager.getBotParticipants();
+        
+        allParticipants.forEach((participantData, participantId) => {
+            if (!this.participantElements.has(participantId)) {
+                const element = this.createParticipantElement(participantId, participantData);
+                grid.appendChild(element);
+                this.participantElements.set(participantId, element);
+                this.restoreExistingStreamsForParticipant(participantId, participantData, element);
+            }
+        });
+        
+        botParticipants.forEach((botData, botId) => {
+            if (!this.participantElements.has(botId)) {
+                const element = this.createParticipantElement(botId, botData);
+                grid.appendChild(element);
+                this.participantElements.set(botId, element);
+            }
+        });
+        
+        this.updateGridLayout();
+        this.updateParticipantCount();
+        this.updateLocalParticipantIndicators();
+    }
+
     ensureChannelSync() {
         const urlParams = new URLSearchParams(window.location.search);
         const urlChannelId = urlParams.get('channel');
