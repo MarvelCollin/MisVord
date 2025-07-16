@@ -17,6 +17,7 @@ $server = $settingsData['server'];
 $serverId = $settingsData['serverId'];
 $section = $settingsData['section'] ?? 'profile';
 $userRole = $settingsData['userRole'] ?? 'member';
+$categories = $settingsData['categories'] ?? [];
 
 $page_title = 'MisVord - Server Settings';
 $body_class = 'bg-discord-dark text-white settings-page';
@@ -224,11 +225,9 @@ ob_start();
                             <div class="flex">
                                 <select id="server-category" name="category" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary flex-grow" data-original-value="<?php echo htmlspecialchars($server->category ?? ''); ?>">
                                     <option value="">Select a category</option>
-                                    <option value="gaming" <?php echo ($server->category === 'gaming') ? 'selected' : ''; ?>>Gaming</option>
-                                    <option value="music" <?php echo ($server->category === 'music') ? 'selected' : ''; ?>>Music</option>
-                                    <option value="education" <?php echo ($server->category === 'education') ? 'selected' : ''; ?>>Education</option>
-                                    <option value="science" <?php echo ($server->category === 'science') ? 'selected' : ''; ?>>Science & Tech</option>
-                                    <option value="entertainment" <?php echo ($server->category === 'entertainment') ? 'selected' : ''; ?>>Entertainment</option>
+                                    <?php foreach ($categories as $value => $label): ?>
+                                        <option value="<?php echo htmlspecialchars($value); ?>" <?php echo ($server->category === $value) ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                                 <button type="button" id="approve-server-category" class="ml-2 bg-yellow-600 hover:bg-yellow-700 text-white px-3 rounded-md hidden approve-btn">
                                     <i class="fas fa-check"></i>

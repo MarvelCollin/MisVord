@@ -51,13 +51,23 @@ class SettingsController extends BaseController
             }
         }
 
+        $categories = [
+            'gaming' => 'Gaming',
+            'music' => 'Music',
+            'education' => 'Education',
+            'science' => 'Science & Tech',
+            'entertainment' => 'Entertainment',
+            'community' => 'Community'
+        ];
+
         return [
             'server' => $server,
             'channel' => $channel,
             'serverId' => $serverId,
             'channelId' => $channelId,
             'section' => $section,
-            'userRole' => $userRole
+            'userRole' => $userRole,
+            'categories' => $categories
         ];
     }
 }

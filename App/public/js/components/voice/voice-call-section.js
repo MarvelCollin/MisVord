@@ -496,6 +496,7 @@ class VoiceCallSection {
         if (!participant || this.participantElements.has(participant)) return;
         
         if (!window.voiceManager || !window.voiceManager.participants.has(participant)) {
+            console.warn('Voice manager not ready or participant not found:', participant);
             return;
         }
         
@@ -647,7 +648,9 @@ class VoiceCallSection {
     }
     
     updateLocalParticipantIndicators() {
-        if (!window.voiceManager) return;
+        if (!window.voiceManager || !window.voiceManager.initialized) {
+            return;
+        }
         
         const localCard = document.querySelector('[data-is-local="true"]');
         if (!localCard) return;
@@ -987,7 +990,7 @@ class VoiceCallSection {
     }
     
     rebuildGridFromVideoSDK() {
-        if (!window.voiceManager || !window.voiceManager.participants) {
+        if (!window.voiceManager || !window.voiceManager.initialized || !window.voiceManager.participants) {
             this.clearGrid();
             return;
         }

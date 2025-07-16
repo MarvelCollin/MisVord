@@ -41,10 +41,15 @@ class VoiceFacade {
         if (!channelName) channelName = 'Voice Channel';
 
         if (!window.voiceManager) {
-            console.error('[VoiceFacade] not available');
+            console.error('[VoiceFacade] VoiceManager not available');
             return false;
         }
-        await window.voiceManager.ensureInitialized();
+        
+        const isReady = await window.voiceManager.ensureInitialized();
+        if (!isReady) {
+            console.error('[VoiceFacade] VoiceManager failed to initialize');
+            return false;
+        }
 
         const currentState = this.getCurrentState();
         if (currentState.isConnected && currentState.channelId === channelId) {
@@ -166,7 +171,13 @@ class VoiceFacade {
 
     async restoreVoiceConnection(voiceState) {
         if (!window.voiceManager) {
-            console.warn('[VoiceFacade] voiceManager not available for restoration');
+            console.warn('[VoiceFacade] VoiceManager not available for restoration');
+            return false;
+        }
+        
+        const isReady = await window.voiceManager.ensureInitialized();
+        if (!isReady) {
+            console.error('[VoiceFacade] VoiceManager failed to initialize for restoration');
             return false;
         }
         

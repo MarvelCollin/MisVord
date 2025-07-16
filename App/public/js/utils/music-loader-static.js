@@ -1,23 +1,36 @@
 export function playDiscordoSound() {
     const sound = new Audio('/public/assets/sound/discordo_sound.mp3');
     sound.volume = 0.5;
-    sound.play()
-        .catch(err => console.error('Error playing Discordo sound:', err));
+    
+    const playPromise = sound.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(err => console.error('Error playing Discordo sound:', err));
+    }
 }
 
 let currentCallSound = null;
 
 export function playCallSound() {
     if (currentCallSound) {
-        currentCallSound.currentTime = 0;
         return;
     }
 
     currentCallSound = new Audio('/public/assets/sound/call_sound.mp3');
     currentCallSound.volume = 0.4;
-    currentCallSound.play().catch(err => console.error('Error playing Call sound:', err));
+    
+    const playPromise = currentCallSound.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(err => {
+            console.error('Error playing Call sound:', err);
+            currentCallSound = null;
+        });
+    }
 
     currentCallSound.addEventListener('ended', () => {
+        currentCallSound = null;
+    });
+    
+    currentCallSound.addEventListener('error', () => {
         currentCallSound = null;
     });
 }

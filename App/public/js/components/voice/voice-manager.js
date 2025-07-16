@@ -10,6 +10,8 @@ class VoiceManager {
         this.participants = new Map();
         this.botParticipants = new Map();
         this.localParticipant = null;
+        this.sdkLoaded = false;
+        this.initialized = false;
         
         this._micOn = false;
         this._videoOn = false;
@@ -20,36 +22,41 @@ class VoiceManager {
     }
     
     async init() {
-        await this.loadVideoSDK();
-        await this.fetchAuthToken();
-        this.setupBeforeUnloadHandler();
-        this.setupBotEventListeners();
+        if (this.initialized) return;
         
-
-        if (window.localStorageManager) {
-            this.restoreFromUnifiedState();
+        try {
+            await this.loadVideoSDK();
+            await this.fetchAuthToken();
+            this.setupBeforeUnloadHandler();
+            this.setupBotEventListeners();
             
-
-            window.localStorageManager.addVoiceStateListener(() => {
-                this.syncChannelWithUnifiedState();
-            });
-            console.log('VoiceManager: LocalStorageManager detected and connected');
-        } else {
-            console.warn('VoiceManager: LocalStorageManager not available during initialization');
+            if (window.localStorageManager) {
+                this.restoreFromUnifiedState();
+                window.localStorageManager.addVoiceStateListener(() => {
+                    this.syncChannelWithUnifiedState();
+                });
+                console.log('VoiceManager: LocalStorageManager detected and connected');
+            } else {
+                console.warn('VoiceManager: LocalStorageManager not available during initialization');
+            }
+            
+            this.initialized = true;
+            window.voiceManager = this;
+        } catch (error) {
+            console.error('VoiceManager initialization failed:', error);
+            this.initialized = false;
         }
-        
-        window.voiceManager = this;
-        
     }
     
     async ensureInitialized() {
+        if (this.initialized) return true;
         if (!this.sdkLoaded) {
             await this.loadVideoSDK();
         }
         if (!this.authToken) {
             await this.fetchAuthToken();
         }
-        return this.sdkLoaded;
+        return this.sdkLoaded && this.authToken !== null;
     }
 
     async fetchAuthToken() {
@@ -84,7 +91,10 @@ class VoiceManager {
                 this.sdkLoaded = true;
                 resolve();
             };
-            script.onerror = reject;
+            script.onerror = () => {
+                this.sdkLoaded = false;
+                reject(new Error('Failed to load VideoSDK'));
+            };
             document.head.appendChild(script);
         });
     }

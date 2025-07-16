@@ -25,6 +25,8 @@ class MusicPlayerSystem {
         this._musicStreamDestination = null;
         this._musicMediaStream = null;
         this._gainNode = null;
+        this._lastCommandTime = 0;
+        this._commandDebounce = 1000;
         
         this.initializeAudio();
         this.setupEventListeners();
@@ -33,23 +35,27 @@ class MusicPlayerSystem {
 
     initializeAudio() {
         try {
-            this.audio = new Audio();
-            this.audio.crossOrigin = "anonymous";
-            this.audio.preload = "auto"; 
-            this.audio.volume = this.volume;
+            if (!this.audio) {
+                this.audio = new Audio();
+                this.audio.crossOrigin = "anonymous";
+                this.audio.preload = "metadata";
+                this.audio.volume = this.volume;
+                this.setupAudioEventListeners();
+            }
             
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext && !this._audioContext) {
                 this._audioContext = new AudioContext();
+                console.log('🎵 [MUSIC-PLAYER] Created AudioContext, state:', this._audioContext.state);
             }
             
-            this.setupAudioEventListeners();
             this._audioInitialized = true;
             
         } catch (e) {
             console.error('🎵 [MUSIC-PLAYER] Failed to initialize audio system:', e);
             this.audio = new Audio();
             this.audio.crossOrigin = "anonymous";
+            this.audio.volume = this.volume;
         }
     }
 
@@ -57,31 +63,42 @@ class MusicPlayerSystem {
         if (typeof window !== 'undefined') {
             window.musicPlayer = this;
             window.MusicPlayerSystem = MusicPlayerSystem;
+            window.debugMusicStream = () => this.debugForceStream();
+            window.debugAudioState = () => this.debugAudioState();
+            window.testVoiceStreaming = () => this.connectAudioToVoiceChannel();
+            window.testStreamingPipeline = () => this.testStreamingPipeline();
+            window.testPlaySampleTrack = () => this.testPlaySampleTrack();
+            window.testPlaySpotifyPreview = () => this.testPlaySpotifyPreview();
+            window.testBasicAudioPlayback = () => this.testBasicAudioPlayback();
+            window.testSearchAndPlay = (query) => this.testSearchAndPlay(query);
+            window.checkSystemReadiness = () => this.checkSystemReadiness();
+            window.playTestTrack = () => this.playTestTrack();
+            window.playLocalTestTrack = () => this.playLocalTestTrack();
+            window.forcePlayAnyTrack = () => this.forcePlayAnyTrack();
+            window.quickAudioTest = () => this.quickAudioTest();
+            window.checkMusicPlayerState = () => this.checkMusicPlayerState();
         }
         
         this.setupImmediateListeners();
         
         this.initialized = true;
         
-
         if (!this._audioInitialized) {
             this.initializeAudio();
         }
         
-
         if (!this._audioContext && typeof window !== 'undefined') {
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (AudioContext) {
                     this._audioContext = new AudioContext();
+                    console.log('🎵 [MUSIC-PLAYER] Force created AudioContext, state:', this._audioContext.state);
                     
-                    
-
                     if (this.audio && !this._audioSourceNode) {
                         try {
                             this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
                             this._audioSourceNode.connect(this._audioContext.destination);
-                            
+                            console.log('🎵 [MUSIC-PLAYER] Connected audio source to context');
                         } catch (e) {
                             console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
                         }
@@ -92,19 +109,40 @@ class MusicPlayerSystem {
             }
         }
         
-
-        setTimeout(() => {
-            this.playTestSound();
-        }, 1000);
+        const userInteractionEvents = ['click', 'touchstart', 'keydown'];
+        const resumeAudioContext = () => {
+            if (this._audioContext && this._audioContext.state === 'suspended') {
+                this._audioContext.resume().then(() => {
+                    console.log('🎵 [MUSIC-PLAYER] AudioContext resumed after user interaction');
+                    userInteractionEvents.forEach(event => {
+                        document.removeEventListener(event, resumeAudioContext);
+                    });
+                });
+            }
+        };
+        
+        userInteractionEvents.forEach(event => {
+            document.addEventListener(event, resumeAudioContext, { once: true });
+        });
     }
     
     setupAudioEventListeners() {
         if (!this.audio) return;
         
         this.audio.addEventListener('error', (e) => {
+            console.error('🎵 [MUSIC-PLAYER] Audio playback error:', {
+                error: e,
+                audioSrc: this.audio?.src,
+                audioError: this.audio?.error,
+                currentTrack: this.currentTrack?.title
+            });
+            
             this.isPlaying = false;
             this.hideNowPlaying();
-            this.playNext();
+            
+            if (this.currentTrack) {
+                this.showError(`Failed to play: ${this.currentTrack.title}`);
+            }
         });
 
         this.audio.addEventListener('ended', () => {
@@ -228,14 +266,19 @@ class MusicPlayerSystem {
         window.addEventListener('voiceConnect', (e) => {
             if (e.detail && e.detail.channelId) {
                 this.channelId = e.detail.channelId;
+                
+                if (this.isPlaying && this.audio) {
+                    console.log('🎵 [MUSIC-PLAYER] User joined voice while music playing, setting up streaming');
+                    this.setupAudioStreaming();
+                }
             }
         });
         
         window.addEventListener('voiceDisconnect', (e) => {
             this.channelId = null;
+            this.disconnectFromVoiceChannel();
             if (this.isPlaying) {
-                this.stop();
-                this.showStatus('Music stopped - left voice channel');
+                this.showStatus('Music continues locally - left voice channel');
             }
         });
 
@@ -355,6 +398,13 @@ class MusicPlayerSystem {
     }
 
     async processBotMusicCommand(data) {
+        const now = Date.now();
+        if (now - this._lastCommandTime < this._commandDebounce) {
+            console.log('🎵 [MUSIC-PLAYER] Command debounced, ignoring rapid requests');
+            return;
+        }
+        this._lastCommandTime = now;
+
         console.log('🎵 [MUSIC-PLAYER] Received bot music command:', {
             userId: window.globalSocketManager?.userId,
             username: window.globalSocketManager?.username,
@@ -1027,38 +1077,76 @@ class MusicPlayerSystem {
         }
 
         try {
-            await this.stop();
+            if (!this._audioInitialized) {
+                this.initializeAudio();
+            }
             
             this.currentTrack = track;
+            
+            if (!this.audio) {
+                this.audio = new Audio();
+                this.audio.volume = this.volume;
+                this.audio.crossOrigin = "anonymous";
+                this.setupAudioEventListeners();
+            }
+            
+            this.audio.pause();
             this.audio.src = track.previewUrl;
+            this.audio.load();
             
             await new Promise((resolve, reject) => {
-                this.audio.addEventListener('canplaythrough', resolve, { once: true });
-                this.audio.addEventListener('error', reject, { once: true });
-                this.audio.load();
+                const timeout = setTimeout(() => {
+                    reject(new Error('Audio load timeout after 10 seconds'));
+                }, 10000);
+                
+                const onCanPlay = () => {
+                    clearTimeout(timeout);
+                    this.audio.removeEventListener('canplay', onCanPlay);
+                    this.audio.removeEventListener('error', onError);
+                    resolve();
+                };
+                
+                const onError = (e) => {
+                    clearTimeout(timeout);
+                    this.audio.removeEventListener('canplay', onCanPlay);
+                    this.audio.removeEventListener('error', onError);
+                    reject(new Error(`Audio load failed: ${this.audio.error?.message || 'Unknown error'}`));
+                };
+                
+                this.audio.addEventListener('canplay', onCanPlay);
+                this.audio.addEventListener('error', onError);
             });
 
-
-            await this.audio.play();
+            const playPromise = this.audio.play();
+            if (playPromise !== undefined) {
+                await playPromise;
+            }
+            
             this.isPlaying = true;
             
+            setTimeout(() => {
+                this.setupAudioStreaming();
+            }, 500);
 
             return true;
         } catch (error) {
-            console.error('🎵 Music Player Error:', error.message || 'Failed to play audio');
-            this.handlePlaybackError();
+            console.error('🎵 [MUSIC-PLAYER] Error in play method:', error);
+            this.isPlaying = false;
+            this.showError(`Failed to play: ${track.title} - ${error.message}`);
             return false;
         }
     }
 
     async stop() {
         try {
+            this.isPlaying = false;
+            
             if (this.audio) {
                 this.audio.pause();
                 this.audio.currentTime = 0;
-                this.isPlaying = false;
             }
             
+            await this.restoreMicrophoneState();
             this.hideNowPlaying();
             this.showStatus('Music stopped');
             
@@ -1200,18 +1288,43 @@ class MusicPlayerSystem {
                 this.currentIndex = this.queue.findIndex(t => t.id === track.id);
             }
             
-            await this.stop();
-            
-            this.unlockAudio();
-            
             if (this._audioContext && this._audioContext.state === 'suspended') {
                 await this._audioContext.resume();
             }
             
-            this.audio.volume = this.volume;
-            this.audio.crossOrigin = "anonymous";
+            if (!this.audio) {
+                this.audio = new Audio();
+                this.audio.volume = this.volume;
+                this.audio.crossOrigin = "anonymous";
+                this.setupAudioEventListeners();
+            }
+            
+            this.audio.pause();
             this.audio.src = track.previewUrl;
             this.audio.load();
+            
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => {
+                    reject(new Error('Audio load timeout after 10 seconds'));
+                }, 10000);
+                
+                const onCanPlay = () => {
+                    clearTimeout(timeout);
+                    this.audio.removeEventListener('canplay', onCanPlay);
+                    this.audio.removeEventListener('error', onError);
+                    resolve();
+                };
+                
+                const onError = (e) => {
+                    clearTimeout(timeout);
+                    this.audio.removeEventListener('canplay', onCanPlay);
+                    this.audio.removeEventListener('error', onError);
+                    reject(new Error(`Audio load failed: ${this.audio.error?.message || 'Unknown error'}`));
+                };
+                
+                this.audio.addEventListener('canplay', onCanPlay, { once: true });
+                this.audio.addEventListener('error', onError, { once: true });
+            });
             
             const playPromise = this.audio.play();
             if (playPromise !== undefined) {
@@ -1221,10 +1334,15 @@ class MusicPlayerSystem {
             this.isPlaying = true;
             this.showNowPlaying(track);
             
+            setTimeout(() => {
+                this.setupAudioStreaming();
+            }, 500);
+            
             return `🎵 Now playing: **${track.title}** by ${track.artist}`;
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error playing track:', error);
             this.isPlaying = false;
+            this.showError(`Failed to play: ${track.title} - ${error.message}`);
             return `❌ Failed to play: ${track.title}`;
         }
     }
@@ -1369,7 +1487,7 @@ class MusicPlayerSystem {
     }
 
     startProgressUpdate() {
-        if (this.progressInterval) {
+        if this.progressInterval) {
             clearInterval(this.progressInterval);
         }
         
@@ -1510,7 +1628,7 @@ class MusicPlayerSystem {
     }
 
     debugAudioState() {
-        console.log('🎵 [MUSIC-DEBUG] Audio State:', {
+        console.log('🎵 [MUSIC-DEBUG] Full Audio State:', {
             audioExists: !!this.audio,
             audioSrc: this.audio?.src,
             audioPaused: this.audio?.paused,
@@ -1524,8 +1642,19 @@ class MusicPlayerSystem {
             contextState: this._audioContext?.state,
             contextExists: !!this._audioContext,
             sourceNodeExists: !!this._audioSourceNode,
+            gainNodeExists: !!this._gainNode,
+            streamDestinationExists: !!this._musicStreamDestination,
+            streamExists: !!this._musicMediaStream,
             currentTrack: this.currentTrack?.title,
-            currentSong: this.currentSong?.title
+            currentSong: this.currentSong?.title,
+            voiceManagerState: {
+                exists: !!window.voiceManager,
+                initialized: window.voiceManager?.initialized,
+                connected: window.voiceManager?.isConnected,
+                hasMeeting: !!window.voiceManager?.meeting,
+                hasLocalParticipant: !!window.voiceManager?.localParticipant,
+                micOn: window.voiceManager?._micOn
+            }
         });
         
         if (this.audio) {
@@ -1534,261 +1663,340 @@ class MusicPlayerSystem {
                 .then(() => console.log('🎵 [MUSIC-DEBUG] Manual play succeeded'))
                 .catch(e => console.log('🎵 [MUSIC-DEBUG] Manual play failed:', e));
         }
+        
+        if (this.isPlaying) {
+            console.log('🎵 [MUSIC-DEBUG] Attempting manual audio streaming...');
+            this.setupAudioStreaming();
+        }
     }
 
-    async togglePlayPause() {
-        if (!this.audio) return;
+    async testStreamingPipeline() {
+        console.log('🎵 [TEST] Testing complete streaming pipeline...');
+        
+        const state = this.debugAudioState();
+        
+        if (!this.audio || !this.isPlaying) {
+            console.error('🎵 [TEST] No music playing - start music first');
+            return false;
+        }
+        
+        if (!window.voiceManager?.meeting?.localParticipant) {
+            console.error('🎵 [TEST] Not connected to voice channel');
+            return false;
+        }
         
         try {
-            if (this.isPlaying) {
-                this.audio.pause();
-                this.isPlaying = false;
-                this.showStatus('Music paused');
-            } else {
-                this.unlockAudio();
-                
-                if (this._audioContext && this._audioContext.state === 'suspended') {
-                    await this._audioContext.resume();
-                }
-                
-                await this.audio.play();
-                this.isPlaying = true;
-                this.showStatus('Music resumed');
+            console.log('🎵 [TEST] Step 1: Setup audio streaming');
+            const streamResult = await this.debugForceStream();
+            
+            if (!streamResult) {
+                console.error('🎵 [TEST] Audio streaming setup failed');
+                return false;
             }
             
-            const playPauseBtn = document.getElementById('play-pause-btn');
-            if (playPauseBtn) {
-                playPauseBtn.innerHTML = this.isPlaying ? '⏸️' : '▶️';
-            }
-        } catch (error) {
-            this.showError('Failed to toggle playback');
-        }
-    }
-
-    connectAudioToContext() {
-        if (!this._audioContext || !this.audio) return;
-        
-        try {
-            if (!this._audioSourceNode) {
-                this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-                this._audioSourceNode.connect(this._audioContext.destination);
-            }
-        } catch (e) {
-            console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context:', e);
-        }
-    }
-
-    isUserInTargetVoiceChannel(channelId) {
-        if (!channelId) return false;
-        
-        const currentVoiceChannelId = window.voiceManager?.currentChannelId || 
-                                     window.localStorageManager?.getUnifiedVoiceState()?.channelId;
-        
-        const isInVoiceChannel = currentVoiceChannelId === channelId;
-        
-        if (isInVoiceChannel) {
+            console.log('🎵 [TEST] Step 2: Verify stream is active');
+            setTimeout(() => {
+                const finalState = this.debugAudioState();
+                
+                const success = finalState.mediaStream.exists && 
+                               finalState.mediaStream.active && 
+                               finalState.mediaStream.audioTracks > 0 &&
+                               finalState.meeting.hasMicProducer;
+                
+                if (success) {
+                    console.log('✅ [TEST] Streaming pipeline test PASSED - Music should be audible to other participants');
+                } else {
+                    console.log('❌ [TEST] Streaming pipeline test FAILED - Check debug output above');
+                }
+                
+                return success;
+            }, 1000);
+            
             return true;
-        }
-        
-        if (window.ChannelVoiceParticipants) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-            
-            if (currentUserId && instance.externalParticipants.has(channelId)) {
-                const participants = instance.externalParticipants.get(channelId);
-                const isInParticipants = participants.has(currentUserId);
-                
-                if (isInParticipants) {
-                    console.log('🎵 [MUSIC-PLAYER] User found in external participants for channel', channelId);
-                    return true;
-                }
-            }
-        }
-        
-        console.log('🎵 [MUSIC-PLAYER] User not in target voice channel:', {
-            targetChannelId: channelId,
-            currentVoiceChannelId: currentVoiceChannelId,
-            isInVoiceChannel: isInVoiceChannel
-        });
-        
-        return false;
-    }
-
-    async playSharedTrack(track, startTime = 0) {
-        console.log('🎵 [MUSIC-PLAYER] Playing shared track:', {
-            title: track.title,
-            startTime: startTime,
-            url: track.previewUrl
-        });
-
-        try {
-            await this.playTrack(track);
-            
-            if (startTime > 0 && this.audio) {
-                this.audio.currentTime = startTime;
-            }
-            
-            this.broadcastMusicState('sync_play', track, startTime);
             
         } catch (error) {
-            console.error('🎵 [MUSIC-PLAYER] Failed to play shared track:', error);
-            this.showError(`Failed to play: ${track.title}`);
+            console.error('🎵 [TEST] Streaming pipeline test error:', error);
+            return false;
         }
     }
 
-    broadcastMusicState(action, track = null, currentTime = 0) {
-        if (!window.globalSocketManager?.io || !this.channelId) return;
+    async testPlaySampleTrack() {
+        console.log('🎵 [TEST] Testing sample track playback...');
         
-        const musicStateData = {
-            channel_id: this.channelId,
-            action: action,
-            track: track || this.currentSong,
-            current_time: currentTime,
-            is_playing: this.isPlaying,
-            timestamp: Date.now(),
-            broadcaster_id: window.globalSocketManager?.userId
+        const testTrack = {
+            id: 'test-track-001',
+            title: 'Test Song',
+            artist: 'Test Artist',
+            previewUrl: 'https://www.soundjay.com/misc/sounds/bell-ringing-05.wav'
         };
         
-        console.log('🎵 [MUSIC-PLAYER] Broadcasting music state:', musicStateData);
-        window.globalSocketManager.io.emit('sync-music-state', musicStateData);
-    }
-
-    requestCurrentMusicState(channelId) {
-        if (!window.globalSocketManager?.io || !channelId) return;
-        
-        console.log('🎵 [MUSIC-PLAYER] Requesting current music state for channel:', channelId);
-        
-        setTimeout(() => {
-            window.globalSocketManager.io.emit('request-music-state', {
-                channel_id: channelId,
-                requester_id: window.globalSocketManager?.userId
-            });
-        }, 1000);
-    }
-
-    async connectAudioToVoiceChannel() {
-        if (!this._audioContext || !this._gainNode || !this._musicMediaStream) {
-            console.warn('🎵 [MUSIC-PLAYER] Audio infrastructure not ready for voice streaming');
-            return;
-        }
-        
-        if (!window.voiceManager || !window.voiceManager.meeting || !window.voiceManager.localParticipant) {
-            console.warn('🎵 [MUSIC-PLAYER] Voice manager not ready for music streaming');
-            return;
-        }
+        console.log('🎵 [TEST] Attempting to play test track:', testTrack);
         
         try {
-            if (this._audioSourceNode) {
-                this._audioSourceNode.disconnect();
-            }
+            const result = await this.playTrack(testTrack);
+            console.log('🎵 [TEST] Play result:', result);
             
-            this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-            this._audioSourceNode.connect(this._gainNode);
+            setTimeout(() => {
+                console.log('🎵 [TEST] Current state after play attempt:', {
+                    isPlaying: this.isPlaying,
+                    hasAudio: !!this.audio,
+                    audioSrc: this.audio?.src,
+                    audioPaused: this.audio?.paused,
+                    audioCurrentTime: this.audio?.currentTime,
+                    audioReadyState: this.audio?.readyState
+                });
+            }, 1000);
             
-            const audioTrack = this._musicMediaStream.getAudioTracks()[0];
-            if (audioTrack) {
-                console.log('🎵 [MUSIC-PLAYER] Adding music stream to voice channel');
+            return result;
+        } catch (error) {
+            console.error('🎵 [TEST] Test track failed:', error);
+            return false;
+        }
+    }
+
+    async testPlaySpotifyPreview() {
+        console.log('🎵 [TEST] Testing with Spotify preview URL...');
+        
+        const spotifyTestTrack = {
+            id: 'spotify-test-001',
+            title: 'Blinding Lights',
+            artist: 'The Weeknd',
+            previewUrl: 'https://p.scdn.co/mp3-preview/6b9e6b81d6c2946b50f8b66ec42faa4eda3ebcf7'
+        };
+        
+        console.log('🎵 [TEST] Attempting Spotify preview:', spotifyTestTrack);
+        
+        try {
+            const result = await this.playTrack(spotifyTestTrack);
+            console.log('🎵 [TEST] Spotify preview result:', result);
+            return result;
+        } catch (error) {
+            console.error('🎵 [TEST] Spotify preview failed:', error);
+            return false;
+        }
+    }
+
+    async testBasicAudioPlayback() {
+        console.log('🎵 [TEST] Testing basic audio element functionality...');
+        
+        if (!this.audio) {
+            console.log('🎵 [TEST] Creating new audio element...');
+            this.audio = new Audio();
+            this.audio.crossOrigin = "anonymous";
+            this.audio.volume = 0.5;
+            this.setupAudioEventListeners();
+        }
+        
+        const testUrl = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQAAAAAAA==';
+        
+        try {
+            console.log('🎵 [TEST] Setting test audio source...');
+            this.audio.src = testUrl;
+            this.audio.load();
+            
+            await new Promise((resolve, reject) => {
+                const timeout = setTimeout(() => reject(new Error('Load timeout')), 5000);
                 
-                try {
-                    await window.voiceManager.meeting.localParticipant.enableMic();
-                    
-                    const micProducer = window.voiceManager.meeting.localParticipant.micProducer;
-                    if (micProducer) {
-                        await micProducer.replaceTrack({ track: audioTrack });
-                        console.log('🎵 [MUSIC-PLAYER] Successfully replaced mic track with music stream');
-                    } else {
-                        console.warn('🎵 [MUSIC-PLAYER] No mic producer available to replace');
-                    }
-                } catch (replaceError) {
-                    console.warn('🎵 [MUSIC-PLAYER] Failed to replace mic track, trying alternative method:', replaceError);
-                    
-                    try {
-                        await window.voiceManager.meeting.localParticipant.disableMic();
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                        const tempAudio = new Audio();
-                        tempAudio.srcObject = this._musicMediaStream;
-                        tempAudio.play();
-                        
-                        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false } })
-                            .then(async (micStream) => {
-                                const mixedStream = this.mixAudioStreams(micStream, this._musicMediaStream);
-                                await window.voiceManager.meeting.localParticipant.enableMic();
-                                
-                                const micProducer = window.voiceManager.meeting.localParticipant.micProducer;
-                                if (micProducer) {
-                                    await micProducer.replaceTrack({ track: mixedStream.getAudioTracks()[0] });
-                                    console.log('🎵 [MUSIC-PLAYER] Successfully mixed music with microphone');
-                                }
-                            })
-                            .catch(err => console.warn('🎵 [MUSIC-PLAYER] Failed to get microphone for mixing:', err));
-                        
-                    } catch (altError) {
-                        console.error('🎵 [MUSIC-PLAYER] All audio streaming methods failed:', altError);
-                    }
-                }
-            }
+                this.audio.addEventListener('canplay', () => {
+                    clearTimeout(timeout);
+                    console.log('🎵 [TEST] Audio can play');
+                    resolve();
+                }, { once: true });
+                
+                this.audio.addEventListener('error', (e) => {
+                    clearTimeout(timeout);
+                    console.error('🎵 [TEST] Audio load error:', e);
+                    reject(e);
+                }, { once: true });
+            });
+            
+            console.log('🎵 [TEST] Attempting to play...');
+            const playResult = await this.audio.play();
+            console.log('🎵 [TEST] Play successful:', playResult);
+            
+            this.isPlaying = true;
+            
+            setTimeout(() => {
+                this.audio.pause();
+                this.isPlaying = false;
+                console.log('🎵 [TEST] Test audio stopped');
+            }, 2000);
+            
+            return true;
+            
         } catch (error) {
-            console.error('🎵 [MUSIC-PLAYER] Failed to connect audio to voice channel:', error);
+            console.error('🎵 [TEST] Basic audio test failed:', error);
+            return false;
         }
     }
 
-    mixAudioStreams(micStream, musicStream) {
-        const audioContext = new AudioContext();
+    async testSearchAndPlay(query = 'the weeknd blinding lights') {
+        console.log('🎵 [TEST] Testing search and play with query:', query);
         
-        const micSource = audioContext.createMediaStreamSource(micStream);
-        const musicSource = audioContext.createMediaStreamSource(musicStream);
-        
-        const mixGain = audioContext.createGain();
-        const micGain = audioContext.createGain();
-        const musicGain = audioContext.createGain();
-        
-        micGain.gain.value = 0.3;
-        musicGain.gain.value = 0.8;
-        
-        micSource.connect(micGain);
-        musicSource.connect(musicGain);
-        
-        micGain.connect(mixGain);
-        musicGain.connect(mixGain);
-        
-        const destination = audioContext.createMediaStreamDestination();
-        mixGain.connect(destination);
-        
-        return destination.stream;
-    }
-
-    async disconnectFromVoiceChannel() {
         try {
-            if (this._audioSourceNode) {
-                this._audioSourceNode.disconnect();
-                this._audioSourceNode = null;
+            console.log('🎵 [TEST] Step 1: Searching for music...');
+            const track = await this.searchMusic(query);
+            
+            if (!track) {
+                console.error('🎵 [TEST] No track found for query:', query);
+                return false;
             }
             
-            if (window.voiceManager && window.voiceManager.meeting && window.voiceManager.localParticipant) {
-                const micProducer = window.voiceManager.meeting.localParticipant.micProducer;
-                if (micProducer) {
-                    try {
-                        await window.voiceManager.meeting.localParticipant.disableMic();
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                        if (!window.voiceManager._micOn) {
-                            console.log('🎵 [MUSIC-PLAYER] Restored mic state to muted after music stop');
-                        } else {
-                            await window.voiceManager.meeting.localParticipant.enableMic();
-                            console.log('🎵 [MUSIC-PLAYER] Restored normal microphone after music stop');
-                        }
-                    } catch (error) {
-                        console.warn('🎵 [MUSIC-PLAYER] Failed to restore mic state:', error);
-                    }
+            console.log('🎵 [TEST] Step 2: Found track:', {
+                title: track.title,
+                artist: track.artist,
+                previewUrl: track.previewUrl
+            });
+            
+            if (!track.previewUrl) {
+                console.error('🎵 [TEST] No preview URL available');
+                return false;
+            }
+            
+            console.log('🎵 [TEST] Step 3: Playing track...');
+            const result = await this.playTrack(track);
+            console.log('🎵 [TEST] Play result:', result);
+            
+            setTimeout(() => {
+                console.log('🎵 [TEST] Final state check:', {
+                    isPlaying: this.isPlaying,
+                    hasAudio: !!this.audio,
+                    audioSrc: this.audio?.src,
+                    audioPaused: this.audio?.paused,
+                    audioCurrentTime: this.audio?.currentTime
+                });
+                
+                if (this.isPlaying && this.audio && !this.audio.paused) {
+                    console.log('✅ [TEST] Music is playing successfully!');
+                    console.log('🎵 [TEST] Now testing voice streaming...');
+                    this.testStreamingPipeline();
+                } else {
+                    console.log('❌ [TEST] Music is not playing properly');
                 }
-            }
+            }, 2000);
             
-            console.log('🎵 [MUSIC-PLAYER] Disconnected from voice channel');
+            return result;
+            
         } catch (error) {
-            console.error('🎵 [MUSIC-PLAYER] Error disconnecting from voice channel:', error);
+            console.error('🎵 [TEST] Search and play test failed:', error);
+            return false;
         }
     }
+
+    checkSystemReadiness() {
+        const readiness = {
+            musicPlayer: {
+                initialized: this.initialized,
+                hasAudio: !!this.audio,
+                audioInitialized: this._audioInitialized,
+                hasAudioContext: !!this._audioContext,
+                audioContextState: this._audioContext?.state
+            },
+            browser: {
+                hasAudioContext: !!(window.AudioContext || window.webkit.AudioContext),
+                hasUserGesture: this._audioContext?.state !== 'suspended',
+                crossOriginSupport: true
+            },
+            apis: {
+                iTunesApiReachable: 'testing...',
+                corsEnabled: 'testing...'
+            }
+        };
+        
+        console.log('🎵 [SYSTEM] Readiness check:', readiness);
+        
+        fetch('https://itunes.apple.com/search?term=test&media=music&limit=1')
+            .then(response => {
+                console.log('🎵 [SYSTEM] iTunes API test:', response.ok ? 'SUCCESS' : 'FAILED');
+                readiness.apis.iTunesApiReachable = response.ok;
+            })
+            .catch(err => {
+                console.log('🎵 [SYSTEM] iTunes API test: FAILED -', err.message);
+                readiness.apis.iTunesApiReachable = false;
+            });
+            
+        return readiness;
+    }
+
+    async quickAudioTest() {
+        console.log('🎵 [QUICK-TEST] Running quick audio test...');
+        
+        try {
+            // Test 1: Check if Audio constructor works
+            const testAudio = new Audio();
+            console.log('✅ [QUICK-TEST] Audio constructor works');
+            
+            // Test 2: Check if AudioContext works
+            const AudioContext = window.AudioContext || window.webkit.AudioContext;
+            if (AudioContext) {
+                const ctx = new AudioContext();
+                console.log('✅ [QUICK-TEST] AudioContext works, state:', ctx.state);
+                
+                if (ctx.state === 'suspended') {
+                    await ctx.resume();
+                    console.log('✅ [QUICK-TEST] AudioContext resumed');
+                }
+            } else {
+                console.error('❌ [QUICK-TEST] AudioContext not supported');
+                return false;
+            }
+            
+            // Test 3: Try to play a data URL audio (beep sound)
+            const beepDataUrl = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEaMmkGEe';
+            
+            testAudio.src = beepDataUrl;
+            
+            const playPromise = testAudio.play();
+            if (playPromise) {
+                await playPromise;
+                console.log('✅ [QUICK-TEST] Basic audio playback works');
+                
+                // Stop after 1 second
+                setTimeout(() => {
+                    testAudio.pause();
+                    testAudio.currentTime = 0;
+                }, 1000);
+                
+                return true;
+            }
+            
+        } catch (error) {
+            console.error('❌ [QUICK-TEST] Quick audio test failed:', error);
+            return false;
+        }
+    }
+
+    async checkMusicPlayerState() {
+        console.log('🎵 [STATE-CHECK] Checking music player state...');
+        
+        const state = {
+            initialized: this.initialized,
+            audioInitialized: this._audioInitialized,
+            hasAudio: !!this.audio,
+            isPlaying: this.isPlaying,
+            currentTrack: this.currentTrack?.title || 'None',
+            queueLength: this.queue?.length || 0,
+            volume: this.volume,
+            hasAudioContext: !!this._audioContext,
+            audioContextState: this._audioContext?.state || 'None'
+        };
+        
+        console.log('🎵 [STATE-CHECK] Current state:', state);
+        
+        if (!state.initialized) {
+            console.log('🎵 [STATE-CHECK] Music player not initialized, calling forceInitialize...');
+            this.forceInitialize();
+        }
+        
+        if (!state.audioInitialized) {
+            console.log('🎵 [STATE-CHECK] Audio not initialized, calling initializeAudio...');
+            this.initializeAudio();
+        }
+        
+        return state;
+    }
+
+    // ...existing code...
 }
 
 if (typeof window !== 'undefined' && !window.musicPlayer) {
