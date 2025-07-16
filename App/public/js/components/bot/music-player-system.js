@@ -281,17 +281,28 @@ class MusicPlayerSystem {
             }
         });
         
-        window.addEventListener('voiceDisconnect', (e) => {
+        window.addEventListener('voiceDisconnect', async (e) => {
             this.channelId = null;
             this.disconnectFromVoiceChannel();
             if (this.isPlaying) {
-                this.showStatus('Music continues locally - left voice channel');
+                await this.stop();
+                this.showStatus('Music stopped - user left voice channel');
             }
         });
 
         window.addEventListener('bot-voice-participant-joined', (e) => {
             if (e.detail && e.detail.participant && e.detail.participant.channelId) {
                 
+            }
+        });
+
+        window.addEventListener('participantLeft', async (e) => {
+            if (this.isPlaying && window.voiceManager) {
+                const humanParticipants = window.voiceManager.getHumanParticipants();
+                if (humanParticipants.size === 0) {
+                    await this.stop();
+                    this.showStatus('Music stopped - no participants in voice channel');
+                }
             }
         });
         
@@ -1381,49 +1392,6 @@ class MusicPlayerSystem {
     showNowPlaying(track) {
         try {
             this.removeExistingPlayer();
-            
-            const nowPlayingDiv = document.createElement('div');
-            nowPlayingDiv.id = 'music-now-playing';
-            nowPlayingDiv.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                left: 20px;
-                background: linear-gradient(135deg, #5865f2 0%, #3b82f6 100%);
-                color: white;
-                padding: 15px 20px;
-                border-radius: 12px;
-                max-width: 350px;
-                z-index: 9999;
-                box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-                border: 1px solid rgba(255,255,255,0.1);
-                backdrop-filter: blur(10px);
-            `;
-            
-            nowPlayingDiv.innerHTML = `
-                <div style="display: flex; align-items: center;">
-                    <div style="
-                        width: 50px; height: 50px; margin-right: 12px;
-                        background: url('${track.artworkUrl}') center/cover;
-                        border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-                    "></div>
-                    <div style="flex: 1; min-width: 0;">
-                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            🎵 ${track.title}
-                        </div>
-                        <div style="color: rgba(255,255,255,0.8); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            ${track.artist}
-                        </div>
-                    </div>
-                    <button onclick="window.musicPlayer.hideNowPlaying()" style="
-                        background: rgba(255,255,255,0.2); border: none; color: white; 
-                        width: 24px; height: 24px; border-radius: 50%; cursor: pointer; 
-                        font-size: 12px; margin-left: 8px;
-                    ">×</button>
-                </div>
-            `;
-            
-            document.body.appendChild(nowPlayingDiv);
-            
             this.startProgressUpdate();
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error showing now playing:', error);

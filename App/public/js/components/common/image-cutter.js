@@ -350,7 +350,7 @@ class ImageCutter {
                 pointer-events: none;
             `;
             this.cutterContainer.appendChild(this.imageElement);
-
+            
             this.overlay = document.createElement('div');
             this.overlay.className = 'image-cutter-overlay';
             this.overlay.style.cssText = `
@@ -369,16 +369,13 @@ class ImageCutter {
 
             const controlsSection = this.createSliderControls();
             modalContent.appendChild(controlsSection);
-
+            
             const buttonContainer = document.createElement('div');
             buttonContainer.style.cssText = `
                 display: flex;
                 justify-content: flex-end;
                 gap: 12px;
             `;
-
-            this.cancelButton = document.createElement('button');
-            this.cancelButton.textContent = 'Cancel';
             
             let buttonPadding = '10px 16px';
             let buttonFontSize = '14px';
@@ -389,6 +386,8 @@ class ImageCutter {
                 buttonFontSize = '13px';
             }
             
+            this.cancelButton = document.createElement('button');
+            this.cancelButton.textContent = 'Cancel';
             this.cancelButton.style.cssText = `
                 background-color: transparent;
                 color: #b9bbbe;
@@ -410,7 +409,7 @@ class ImageCutter {
             });
             this.cancelButton.addEventListener('click', () => this.hideModal());
             buttonContainer.appendChild(this.cancelButton);
-
+            
             this.applyButton = document.createElement('button');
             this.applyButton.textContent = 'Apply';
             this.applyButton.style.cssText = `
@@ -432,7 +431,7 @@ class ImageCutter {
             });
             this.applyButton.addEventListener('click', () => this.applyCrop());
             buttonContainer.appendChild(this.applyButton);
-
+            
             modalContent.appendChild(buttonContainer);
             this.modal.appendChild(modalContent);
             document.body.appendChild(this.modal);
@@ -680,65 +679,116 @@ class ImageCutter {
     }
 
     getCroppedImage() {
-        const tempImg = new Image();
-        tempImg.crossOrigin = "Anonymous";
-        
         return new Promise((resolve) => {
-            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            svg.setAttribute("width", this.cropArea.width);
-            svg.setAttribute("height", this.cropArea.height);
-            svg.setAttribute("viewBox", `0 0 ${this.cropArea.width} ${this.cropArea.height}`);
+            const { x, y, width, height } = this.cropArea;
             
-            const foreignObject = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
-            foreignObject.setAttribute("width", this.cropArea.width);
-            foreignObject.setAttribute("height", this.cropArea.height);
-            
-            const div = document.createElement("div");
-            div.style.cssText = `
-                width: ${this.image.width}px;
-                height: ${this.image.height}px;
-                background-image: url(${this.image.src});
-                background-size: ${this.image.width}px ${this.image.height}px;
-                background-repeat: no-repeat;
-                background-position: -${this.cropArea.x}px -${this.cropArea.y}px;
-                transform: scale(1);
-            `;
-            
-            foreignObject.appendChild(div);
-            svg.appendChild(foreignObject);
-            
-            const svgData = new XMLSerializer().serializeToString(svg);
-            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-            const svgUrl = URL.createObjectURL(svgBlob);
-            
-            tempImg.onload = () => {
-                const dataUrl = this.imageToDataUrl(tempImg);
-                URL.revokeObjectURL(svgUrl);
+            try {
+                const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+                    <defs>
+                        <clipPath id="crop-path">
+                            <rect x="0" y="0" width="${width}" height="${height}"/>
+                        </clipPath>
+                    </defs>
+                    <image href="${this.image.src}" x="${-x}" y="${-y}" width="${this.image.width}" height="${this.image.height}" clip-path="url(#crop-path)" preserveAspectRatio="none"/>
+                </svg>`;
+                
+                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                
+                const svgImage = new Image();
+                svgImage.crossOrigin = "anonymous";
+                
+                svgImage.onload = () => {
+                    URL.revokeObjectURL(url);
+                    
+                    const hiddenImg = document.createElement('img');
+                    hiddenImg.style.cssText = `
+                        position: absolute;
+                        left: -10000px;
+                        top: -10000px;
+                        width: ${width}px;
+                        height: ${height}px;
+                    `;
+                    hiddenImg.crossOrigin = "anonymous";
+                    
+                    hiddenImg.onload = () => {
+                        document.body.appendChild(hiddenImg);
+                        
+                        setTimeout(() => {
+                            try {
+                                const finalSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
+                                    <foreignObject width="100%" height="100%">
+                                        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:url('${this.image.src}') ${-x}px ${-y}px no-repeat;background-size:${this.image.width}px ${this.image.height}px;"></div>
+                                    </foreignObject>
+                                </svg>`;
+                                
+                                const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(finalSvg);
+                                
+                                document.body.removeChild(hiddenImg);
+                                
+                                resolve({
+                                    dataUrl: dataUrl,
+                                    width: width,
+                                    height: height
+                                });
+                            } catch (error) {
+                                console.error('Error generating final image:', error);
+                                document.body.removeChild(hiddenImg);
+                                resolve({
+                                    dataUrl: this.image.src,
+                                    width: this.image.width,
+                                    height: this.image.height
+                                });
+                            }
+                        }, 50);
+                    };
+                    
+                    hiddenImg.onerror = () => {
+                        resolve({
+                            dataUrl: this.image.src,
+                            width: this.image.width,
+                            height: this.image.height
+                        });
+                    };
+                    
+                    hiddenImg.src = url;
+                };
+                
+                svgImage.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    resolve({
+                        dataUrl: this.image.src,
+                        width: this.image.width,
+                        height: this.image.height
+                    });
+                };
+                
+                svgImage.src = url;
+                
+            } catch (error) {
+                console.error('Error in getCroppedImage:', error);
                 resolve({
-                    dataUrl: dataUrl,
-                    width: this.cropArea.width,
-                    height: this.cropArea.height
+                    dataUrl: this.image.src,
+                    width: this.image.width,
+                    height: this.image.height
                 });
-            };
-            
-            tempImg.src = svgUrl;
+            }
         });
-    }
-
-    imageToDataUrl(img) {
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.width || this.cropArea.width;
-        tempCanvas.height = img.height || this.cropArea.height;
-        const ctx = tempCanvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        return tempCanvas.toDataURL('image/png');
     }
 
     getBlob(callback) {
         this.getCroppedImage().then(result => {
             fetch(result.dataUrl)
                 .then(res => res.blob())
-                .then(blob => callback(blob));
+                .then(blob => {
+                    const pngBlob = new Blob([blob], { type: 'image/png' });
+                    callback(pngBlob);
+                })
+                .catch(error => {
+                    console.error('Error converting to blob:', error);
+                    const emptyBlob = new Blob([], { type: 'image/png' });
+                    callback(emptyBlob);
+                });
         });
     }
 
@@ -910,21 +960,87 @@ class ImageCutter {
         }
     }
 
-    testBannerSlider() {
-        return {
-            type: this.options.type,
-            sliderExists: !!this.sizeSlider,
-            sliderVisible: this.sizeSlider ? this.sizeSlider.style.display !== 'none' : false,
-            sliderValue: this.sizeSlider ? this.sizeSlider.value : null,
-            modalActive: this.isActive,
-            imageLoaded: this.image && this.image.complete,
-            sliderParent: this.sizeSlider ? !!this.sizeSlider.parentElement : false,
-            controlsSectionExists: !!document.querySelector('.image-cutter-modal-content')
-        };
+    setType(type) {
+        if (type !== 'profile' && type !== 'banner') {
+            console.error('Invalid type. Must be "profile" or "banner"');
+            return;
+        }
+        
+        this.options.type = type;
+        
+        if (this.overlay) {
+            this.overlay.style.borderRadius = type === 'profile' ? '50%' : '0';
+        }
+        
+        const infoText = this.modal?.querySelector('.image-cutter-modal-content span');
+        if (infoText) {
+            infoText.textContent = type === 'profile' 
+                ? 'Drag to move • Use slider to resize • 1:1 aspect ratio' 
+                : 'Drag to move • Use slider to resize • 2:1 aspect ratio';
+        }
+        
+        if (this.image.src) {
+            this.calculateInitialCrop();
+            this.updateImageDisplay();
+            this.initializeSliderValue();
+        }
     }
-}
 
-export default ImageCutter;
+    recreateModalContent() {
+        try {
+            if (this.modal) {
+                while (this.modal.firstChild) {
+                    this.modal.removeChild(this.modal.firstChild);
+                }
+            } else {
+                return;
+            }
+            
+            const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+            const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'image-cutter-modal-content';
+            
+            let maxWidth = '90vw';
+            let padding = '16px';
+            if (vw > 768) {
+                maxWidth = '700px';
+                padding = '24px';
+            } else if (vw > 480) {
+                maxWidth = '95vw';
+                padding = '20px';
+            }
+            
+            modalContent.style.cssText = `
+                background-color: #2f3136;
+                border-radius: 8px;
+                padding: ${padding};
+                width: 100%;
+                max-width: ${maxWidth};
+                max-height: 95vh;
+                position: relative;
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+                box-sizing: border-box;
+                overflow-y: auto;
+            `;
+            
+            const modalHeader = document.createElement('div');
+            modalHeader.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+            `;
+            
+            const modalTitle = document.createElement('h3');
+            modalTitle.textContent = this.options.modalTitle || 'Crop Image';
+            
+            let titleFontSize = '18px';
+            if (vw > 768) {
+                titleFontSize = '20px';
+            }
+            
             modalTitle.style.cssText = `
                 color: #fff;
                 margin: 0;
@@ -953,11 +1069,11 @@ export default ImageCutter;
                 closeButton.style.color = '#b9bbbe';
             });
             closeButton.addEventListener('click', () => this.hideModal());
-            
+
             modalHeader.appendChild(modalTitle);
             modalHeader.appendChild(closeButton);
             modalContent.appendChild(modalHeader);
-            
+
             this.cutterContainer = document.createElement('div');
             this.cutterContainer.className = 'image-cutter-container';
             
@@ -1079,37 +1195,6 @@ export default ImageCutter;
             this.modal.appendChild(modalContent);
         } catch (error) {
             console.error('Error recreating modal content:', error);
-        }
-    }
-    
-    cleanupFailedModal() {
-        try {
-            this.isActive = false;
-            if (this.modal) {
-                this.modal.style.display = 'none';
-                
-                if (this.modal.parentNode) {
-                    this.modal.parentNode.removeChild(this.modal);
-                }
-            }
-            
-            this.modal = null;
-            this.cutterContainer = null;
-            this.imageElement = null;
-            this.overlay = null;
-            this.sizeSlider = null;
-            this.sizeValueDisplay = null;
-            
-            document.body.style.overflow = '';
-            
-            if (typeof this.options.onCrop === 'function') {
-                this.options.onCrop({ 
-                    error: true, 
-                    message: 'Failed to process image'
-                });
-            }
-        } catch (error) {
-            console.error('Error cleaning up failed modal:', error);
         }
     }
 
