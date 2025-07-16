@@ -1,3 +1,4 @@
+
 class VoiceFacade {
     constructor() {
         if (window.voiceFacade) {
@@ -5,35 +6,6 @@ class VoiceFacade {
         }
         window.voiceFacade = this;
         this._isConnectEventDispatched = false;
-        this.init();
-    }
-
-    init() {
-        if (window.globalSocketManager?.io) {
-            this.setupInitialState();
-        } else {
-            window.addEventListener('globalSocketReady', () => this.setupInitialState());
-        }
-        
-        if (window.localStorageManager) {
-            const voiceState = window.localStorageManager.getUnifiedVoiceState();
-            if (voiceState.isConnected && voiceState.needsRestoration && voiceState.channelId) {
-                console.log('🔄 [VOICE-FACADE] Detected voice state that needs restoration:', voiceState);
-                this.restoreVoiceConnection(voiceState);
-            }
-        }
-    }
-
-    setupInitialState() {
-        document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-            const channelId = channel.getAttribute('data-channel-id');
-            if (channelId && window.globalSocketManager?.isReady()) {
-                window.globalSocketManager.joinRoom('channel', channelId);
-                window.globalSocketManager.io.emit('check-voice-meeting', { 
-                    channel_id: channelId 
-                });
-            }
-        });
     }
 
     async join(channelId, channelName, options = {}) {
@@ -41,22 +13,14 @@ class VoiceFacade {
         if (!channelName) channelName = 'Voice Channel';
 
         if (!window.voiceManager) {
-            console.error('[VoiceFacade] VoiceManager not available');
+            console.error('[VoiceFacade] not available');
             return false;
         }
-        
-        try {
-            await window.voiceManager.ensureInitialized();
-        } catch (error) {
-            console.error('[VoiceFacade] Failed to initialize VoiceManager:', error);
-            return false;
-        }
+        await window.voiceManager.ensureInitialized();
 
         const currentState = this.getCurrentState();
         if (currentState.isConnected && currentState.channelId === channelId) {
-            if (window.voiceManager && typeof window.voiceManager.refreshAllParticipants === 'function') {
-                window.voiceManager.refreshAllParticipants();
-            }
+            
             return true;
         }
 
@@ -72,17 +36,11 @@ class VoiceFacade {
             console.warn('[VoiceFacade] voiceManager not available');
             return false;
         }
-        
-        try {
-            const channelId = window.voiceManager.currentChannelId;
-            await window.voiceManager._leaveVoice();
-            this._isConnectEventDispatched = true;
-            await this.validateAndSyncState(null, null);
-            return true;
-        } catch (error) {
-            console.error('[VoiceFacade] Error during leave:', error);
-            return false;
-        }
+        const channelId = window.voiceManager.currentChannelId;
+        await window.voiceManager._leaveVoice();
+        this._isConnectEventDispatched = true;
+        await this.validateAndSyncState(null, null);
+        return true;
     }
 
     getCurrentState() {
@@ -151,18 +109,6 @@ class VoiceFacade {
             instance.updateSidebarForChannel(channelId);
         }
 
-        if (window.globalSocketManager?.isReady()) {
-            document.querySelectorAll('[data-channel-type="voice"]').forEach(channel => {
-                const chId = channel.getAttribute('data-channel-id');
-                if (chId) {
-                    window.globalSocketManager.joinRoom('channel', chId);
-                    window.globalSocketManager.io.emit('check-voice-meeting', { 
-                        channel_id: chId 
-                    });
-                }
-            });
-        }
-
         if (!this._isConnectEventDispatched) {
             window.dispatchEvent(new CustomEvent(isConnected ? 'voiceConnect' : 'voiceDisconnect', {
                 detail: {
@@ -175,45 +121,9 @@ class VoiceFacade {
             this._isConnectEventDispatched = true;
         }
     }
-
-    async restoreVoiceConnection(voiceState) {
-        if (!window.voiceManager) {
-            console.warn('[VoiceFacade] voiceManager not available for restoration');
-            return false;
-        }
-        
-        try {
-            console.log('🔄 [VOICE-FACADE] Restoring voice connection:', {
-                channelId: voiceState.channelId,
-                channelName: voiceState.channelName,
-                meetingId: voiceState.meetingId
-            });
-            
-            window.voiceManager.currentChannelId = voiceState.channelId;
-            window.voiceManager.currentChannelName = voiceState.channelName;
-            window.voiceManager.currentMeetingId = voiceState.meetingId;
-            window.voiceManager.isConnected = true;
-            
-            if (window.localStorageManager) {
-                window.localStorageManager.setUnifiedVoiceState({
-                    ...voiceState,
-                    needsRestoration: false,
-                    restoredAt: Date.now()
-                });
-            }
-            
-            await this.validateAndSyncState(voiceState.channelId, voiceState.channelName);
-            
-            console.log('✅ [VOICE-FACADE] Voice connection restored successfully');
-            return true;
-        } catch (error) {
-            console.error('❌ [VOICE-FACADE] Failed to restore voice connection:', error);
-            return false;
-        }
-    }
 }
 
 
 new VoiceFacade();
 
-export default window.voiceFacade;
+export default window.voiceFacade; 
