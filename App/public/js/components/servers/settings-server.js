@@ -2130,23 +2130,18 @@ function initServerInputApproveButtons(serverId) {
     
 
     const isPublicInput = document.getElementById('is-public');
-    const approveIsPublicBtn = document.getElementById('approve-is-public');
     
-    if (isPublicInput && approveIsPublicBtn) {
+    if (isPublicInput) {
         isPublicInput.dataset.originalValue = isPublicInput.checked ? '1' : '0';
-        checkForChangesCheckbox(isPublicInput, approveIsPublicBtn);
         
         if (!isPublicInput.dataset.listenerAttached) {
             isPublicInput.dataset.listenerAttached = 'true';
             isPublicInput.addEventListener('change', function() {
+                const publicLabel = document.getElementById('public-label');
+                if (publicLabel) {
+                    publicLabel.textContent = this.checked ? 'Make this server private' : 'Make this server public';
+                }
                 updateServerPublic(serverId, this.checked);
-            });
-        }
-        
-        if (!approveIsPublicBtn.dataset.listenerAttached) {
-            approveIsPublicBtn.dataset.listenerAttached = 'true';
-            approveIsPublicBtn.addEventListener('click', () => {
-                updateServerPublic(serverId, isPublicInput.checked);
             });
         }
     }
@@ -2315,7 +2310,6 @@ async function updateServerDescription(serverId, description) {
 
 
 async function updateServerPublic(serverId, isPublic) {
-    const approveBtn = document.getElementById('approve-is-public');
     const publicInput = document.getElementById('is-public');
     
     if (!publicInput) {
@@ -2325,10 +2319,8 @@ async function updateServerPublic(serverId, isPublic) {
     
     const checkboxWrapper = publicInput.nextElementSibling;
     
-
     publicInput.disabled = true;
     
-
     let originalCheckboxContent = '';
     if (checkboxWrapper) {
         originalCheckboxContent = checkboxWrapper.innerHTML;
@@ -2343,32 +2335,54 @@ async function updateServerPublic(serverId, isPublic) {
             
             publicInput.dataset.originalValue = isPublic ? '1' : '0';
             
-
-            if (approveBtn) {
-                approveBtn.classList.remove('show');
-                setTimeout(() => {
-                    if (approveBtn) {
-                        approveBtn.style.display = 'none';
-                        approveBtn.classList.add('hidden');
-                    }
-                }, 300);
+            const publicLabel = document.getElementById('public-label');
+            if (publicLabel) {
+                publicLabel.textContent = isPublic ? 'Make this server private' : 'Make this server public';
+            }
+            
+            const descriptionText = publicInput.closest('.form-group').querySelector('.text-discord-lighter');
+            if (descriptionText) {
+                descriptionText.textContent = isPublic ? 
+                    'Your server is currently discoverable by anyone' : 
+                    'Your server is currently private and not discoverable';
             }
         } else {
-
             publicInput.checked = !isPublic;
+            const publicLabel = document.getElementById('public-label');
+            if (publicLabel) {
+                publicLabel.textContent = !isPublic ? 'Make this server private' : 'Make this server public';
+            }
+            
+            const descriptionText = publicInput.closest('.form-group').querySelector('.text-discord-lighter');
+            if (descriptionText) {
+                descriptionText.textContent = !isPublic ? 
+                    'Your server is currently discoverable by anyone' : 
+                    'Your server is currently private and not discoverable';
+            }
             throw new Error(data.message || 'Failed to update server visibility');
         }
     } catch (error) {
         console.error('Error updating server visibility:', error);
         showToast(error.message || 'Error updating server visibility', 'error');
+        
+        publicInput.checked = !isPublic;
+        const publicLabel = document.getElementById('public-label');
+        if (publicLabel) {
+            publicLabel.textContent = !isPublic ? 'Make this server private' : 'Make this server public';
+        }
+        
+        const descriptionText = publicInput.closest('.form-group').querySelector('.text-discord-lighter');
+        if (descriptionText) {
+            descriptionText.textContent = !isPublic ? 
+                'Your server is currently discoverable by anyone' : 
+                'Your server is currently private and not discoverable';
+        }
     } finally {
         publicInput.disabled = false;
         
-
         if (checkboxWrapper) {
             checkboxWrapper.innerHTML = originalCheckboxContent;
             
-
             if (publicInput.checked) {
                 checkboxWrapper.classList.add('bg-discord-blurple');
                 checkboxWrapper.classList.add('border-discord-blurple');

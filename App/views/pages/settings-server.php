@@ -31,7 +31,7 @@ ob_start();
 
 <meta name="server-id" content="<?php echo $serverId; ?>">
 <meta name="user-role" content="<?php echo $userRole; ?>">
-<meta name="user-id" content="<?php echo $_SESSION['user_id'] ?? ''; ?>">>>
+<meta name="user-id" content="<?php echo $_SESSION['user_id'] ?? ''; ?>">
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto mt-10">
     <div class="w-60 bg-discord-light border-r border-discord-dark">
@@ -207,23 +207,16 @@ ob_start();
                         <h3 class="text-lg font-medium mb-4">Discovery Settings</h3>
                         
                         <div class="form-group">
-                            <div class="flex items-center space-x-3 mb-2">
-                                <div class="relative inline-flex items-center">
-                                    <label for="is-public" class="flex items-center cursor-pointer">
-                                        <input type="checkbox" id="is-public" name="is_public" class="custom-checkbox absolute opacity-0 w-5 h-5 cursor-pointer z-10" <?php echo $server->is_public ? 'checked' : ''; ?> data-original-value="<?php echo $server->is_public ? '1' : '0'; ?>">
-                                        <div class="checkbox-wrapper flex items-center justify-center w-5 h-5 bg-discord-dark-input rounded border border-discord-darker">
-                                            <svg class="checkbox-check w-3.5 h-3.5 text-white opacity-0 transform scale-50 transition-all duration-100" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <span class="ml-2 text-sm text-white">Make this server public</span>
-                                    </label>
+                            <label for="is-public" class="flex items-center cursor-pointer">
+                                <input type="checkbox" id="is-public" name="is_public" class="custom-checkbox absolute opacity-0 w-5 h-5 cursor-pointer z-10" <?php echo $server->is_public ? 'checked' : ''; ?> data-original-value="<?php echo $server->is_public ? '1' : '0'; ?>">
+                                <div class="checkbox-wrapper flex items-center justify-center w-5 h-5 bg-discord-dark-input rounded border border-discord-darker">
+                                    <svg class="checkbox-check w-3.5 h-3.5 text-white opacity-0 transform scale-50 transition-all duration-100" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
                                 </div>
-                                <button type="button" id="approve-is-public" class="ml-2 bg-purple-600 hover:bg-purple-700 text-white px-3 rounded-md hidden approve-btn" style="display:none !important;">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            </div>
-                            <p class="text-discord-lighter text-xs ml-8">Public servers can be found by anyone in Server Discovery</p>
+                                <span class="ml-2 text-sm text-white" id="public-label"><?php echo $server->is_public ? 'Make this server private' : 'Make this server public'; ?></span>
+                            </label>
+                            <p class="text-discord-lighter text-xs ml-8"><?php echo $server->is_public ? 'Your server is currently discoverable by anyone' : 'Your server is currently private and not discoverable'; ?></p>
                         </div>
                         
                         <div class="form-group">

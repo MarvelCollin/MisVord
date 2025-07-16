@@ -41,15 +41,6 @@ class MusicPlayerSystem {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext && !this._audioContext) {
                 this._audioContext = new AudioContext();
-                
-                this._musicStreamDestination = this._audioContext.createMediaStreamDestination();
-                this._musicMediaStream = this._musicStreamDestination.stream;
-                
-                this._gainNode = this._audioContext.createGain();
-                this._gainNode.connect(this._musicStreamDestination);
-                this._gainNode.gain.value = this.volume;
-                
-                console.log('🎵 [MUSIC-PLAYER] Voice streaming infrastructure initialized');
             }
             
             this.setupAudioEventListeners();
@@ -237,7 +228,6 @@ class MusicPlayerSystem {
         window.addEventListener('voiceConnect', (e) => {
             if (e.detail && e.detail.channelId) {
                 this.channelId = e.detail.channelId;
-                this.requestCurrentMusicState(e.detail.channelId);
             }
         });
         
@@ -345,7 +335,6 @@ class MusicPlayerSystem {
 
             io.off('bot-music-command');
             io.off('music-state-sync');
-            io.off('sync-music-state');
             io.off('music-state-request');
             
             io.on('bot-music-command', (data) => {
@@ -355,10 +344,6 @@ class MusicPlayerSystem {
             
             io.on('music-state-sync', (data) => {
                 this.handleMusicStateSync(data);
-            });
-            
-            io.on('sync-music-state', (data) => {
-                this.handleSyncMusicState(data);
             });
             
             io.on('music-state-request', (data) => {
@@ -385,12 +370,20 @@ class MusicPlayerSystem {
             return;
         }
 
-        if (!this.isUserInTargetVoiceChannel(data.channel_id)) {
-            console.log('🎵 [MUSIC-PLAYER] User not in target voice channel, ignoring music command');
-            return;
+        const isInTargetChannel = this.isUserInTargetVoiceChannel(data.channel_id);
+        if (!isInTargetChannel) {
+            console.log('🎵 [MUSIC-PLAYER] User not in target voice channel but checking if in voice participants...');
+            
+            const hasVoiceParticipants = window.ChannelVoiceParticipants && 
+                                       window.ChannelVoiceParticipants.getInstance().externalParticipants.has(data.channel_id);
+            
+            if (!hasVoiceParticipants) {
+                console.log('🎵 [MUSIC-PLAYER] User not in voice participants either, ignoring music command');
+                return;
+            } else {
+                console.log('🎵 [MUSIC-PLAYER] User found in voice participants, proceeding with music command');
+            }
         }
-
-        const shouldBroadcast = data.trigger_sync === true;
 
         if (data.channel_id && !this.channelId) {
             this.channelId = data.channel_id;
@@ -436,10 +429,6 @@ class MusicPlayerSystem {
                                 this.showStatus(`Now playing: ${searchResult.title}`);
                                 this.isPlaying = true;
                                 
-                                if (shouldBroadcast) {
-                                    this.broadcastMusicState('sync_play', searchResult, 0);
-                                }
-                                
                             } catch (playError) {
                                 this.showError(`Failed to play: ${searchResult.title}`);
                             }
@@ -456,10 +445,6 @@ class MusicPlayerSystem {
                         this.isPlaying = true;
                         this.currentSong = track;
                         
-                        if (shouldBroadcast) {
-                            this.broadcastMusicState('sync_play', track, 0);
-                        }
-                        
                     } else {
                         this.showError('No song specified or found');
                     }
@@ -468,25 +453,16 @@ class MusicPlayerSystem {
                 case 'stop':
                     await this.stop();
                     this.hideNowPlaying();
-                    if (shouldBroadcast) {
-                        this.broadcastMusicState('sync_stop');
-                    }
                     this.showStatus('Music stopped');
                     break;
                     
                 case 'next':
                     await this.playNext();
-                    if (shouldBroadcast) {
-                        this.broadcastMusicState('sync_play', this.currentSong, 0);
-                    }
                     this.showStatus('Playing next song');
                     break;
                     
                 case 'prev':
                     await this.playPrevious();
-                    if (shouldBroadcast) {
-                        this.broadcastMusicState('sync_play', this.currentSong, 0);
-                    }
                     this.showStatus('Playing previous song');
                     break;
                     
@@ -530,23 +506,23 @@ class MusicPlayerSystem {
         if (!this.isUserInTargetVoiceChannel(data.channel_id)) return;
         
         if (this.isPlaying && this.currentSong && window.globalSocketManager?.io) {
-            const syncData = {
+            const musicCommandData = {
                 channel_id: data.channel_id,
-                action: 'sync_play',
-                track: this.currentSong,
+                music_data: {
+                    action: 'play',
+                    track: this.currentSong
+                },
                 current_time: this.audio ? this.audio.currentTime : 0,
                 is_playing: this.isPlaying,
-                timestamp: Date.now(),
-                broadcaster_id: window.globalSocketManager?.userId
+                timestamp: Date.now()
             };
             
             console.log('🎵 [MUSIC-PLAYER] Sharing current music state with new participant:', {
                 requester: data.requester_id,
-                currentSong: this.currentSong?.title,
-                currentTime: syncData.current_time
+                currentSong: this.currentSong?.title
             });
             
-            window.globalSocketManager.io.emit('sync-music-state', syncData);
+            window.globalSocketManager.io.emit('bot-music-command', musicCommandData);
         }
     }
 
@@ -1232,9 +1208,7 @@ class MusicPlayerSystem {
                 await this._audioContext.resume();
             }
             
-            await this.connectAudioToVoiceChannel();
-            
-            this.audio.volume = 0;
+            this.audio.volume = this.volume;
             this.audio.crossOrigin = "anonymous";
             this.audio.src = track.previewUrl;
             this.audio.load();
@@ -1254,22 +1228,7 @@ class MusicPlayerSystem {
             return `❌ Failed to play: ${track.title}`;
         }
     }
-            
-        } catch (error) {
-            this.isPlaying = false;
-            this.hideNowPlaying();
-            
-            if (this.queue.length > 0) {
-                this.queue = this.queue.filter(t => t.id !== track.id);
-                if (this.queue.length > 0) {
-                    this.currentIndex = Math.min(this.currentIndex, this.queue.length - 1);
-                    return this.playNext();
-                }
-            }
-            
-            return `❌ Failed to play "${track.title}"`;
-        }
-    }
+
     async addToQueue(songName) {
         const track = await this.searchMusic(songName);
         if (!track) {
@@ -1625,7 +1584,34 @@ class MusicPlayerSystem {
         const currentVoiceChannelId = window.voiceManager?.currentChannelId || 
                                      window.localStorageManager?.getUnifiedVoiceState()?.channelId;
         
-        return currentVoiceChannelId === channelId;
+        const isInVoiceChannel = currentVoiceChannelId === channelId;
+        
+        if (isInVoiceChannel) {
+            return true;
+        }
+        
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            
+            if (currentUserId && instance.externalParticipants.has(channelId)) {
+                const participants = instance.externalParticipants.get(channelId);
+                const isInParticipants = participants.has(currentUserId);
+                
+                if (isInParticipants) {
+                    console.log('🎵 [MUSIC-PLAYER] User found in external participants for channel', channelId);
+                    return true;
+                }
+            }
+        }
+        
+        console.log('🎵 [MUSIC-PLAYER] User not in target voice channel:', {
+            targetChannelId: channelId,
+            currentVoiceChannelId: currentVoiceChannelId,
+            isInVoiceChannel: isInVoiceChannel
+        });
+        
+        return false;
     }
 
     async playSharedTrack(track, startTime = 0) {
@@ -1771,6 +1757,38 @@ class MusicPlayerSystem {
         
         return destination.stream;
     }
+
+    async disconnectFromVoiceChannel() {
+        try {
+            if (this._audioSourceNode) {
+                this._audioSourceNode.disconnect();
+                this._audioSourceNode = null;
+            }
+            
+            if (window.voiceManager && window.voiceManager.meeting && window.voiceManager.localParticipant) {
+                const micProducer = window.voiceManager.meeting.localParticipant.micProducer;
+                if (micProducer) {
+                    try {
+                        await window.voiceManager.meeting.localParticipant.disableMic();
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                        if (!window.voiceManager._micOn) {
+                            console.log('🎵 [MUSIC-PLAYER] Restored mic state to muted after music stop');
+                        } else {
+                            await window.voiceManager.meeting.localParticipant.enableMic();
+                            console.log('🎵 [MUSIC-PLAYER] Restored normal microphone after music stop');
+                        }
+                    } catch (error) {
+                        console.warn('🎵 [MUSIC-PLAYER] Failed to restore mic state:', error);
+                    }
+                }
+            }
+            
+            console.log('🎵 [MUSIC-PLAYER] Disconnected from voice channel');
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error disconnecting from voice channel:', error);
+        }
+    }
 }
 
 if (typeof window !== 'undefined' && !window.musicPlayer) {
@@ -1788,8 +1806,8 @@ if (typeof window !== 'undefined' && !window.musicPlayer) {
     }
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = MusicPlayerSystem;
 }
 
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = MusicPlayerSystem;
 }
