@@ -4,7 +4,7 @@ class VoiceConnectionTracker {
     static botConnections = new Map();
     static participantStates = new Map();
 
-    static addUserToVoice(userId, channelId, meetingId, username = null, avatarUrl = null) {
+    static addUserToVoice(userId, channelId, meetingId, username = null, avatarUrl = null, socketId = null) {
         const userKey = userId.toString();
 
         this.connections.set(userKey, {
@@ -15,7 +15,8 @@ class VoiceConnectionTracker {
             avatar_url: avatarUrl || '/public/assets/common/default-profile-picture.png',
             joinedAt: Date.now(),
             isConnected: true,
-            isBot: false
+            isBot: false,
+            socket_id: socketId
         });
         
         this.userVoiceStatus.set(userKey, true);
@@ -148,7 +149,8 @@ class VoiceConnectionTracker {
                 joinedAt: conn.joinedAt,
                 username: conn.username || 'Unknown',
                 avatar_url: conn.avatar_url || '/public/assets/common/default-profile-picture.png',
-                isBot: conn.isBot || false
+                isBot: conn.isBot || false,
+                socket_id: conn.socket_id
             }));
         
         return participants;

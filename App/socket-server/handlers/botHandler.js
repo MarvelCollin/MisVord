@@ -293,6 +293,19 @@ class BotHandler extends EventEmitter {
 
             if (voiceChannelToJoin) {
                 await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
+                
+                const musicCommandData = {
+                    channel_id: voiceChannelToJoin,
+                    music_data: {
+                        action: 'play',
+                        query: songName
+                    },
+                    bot_id: botId,
+                    timestamp: Date.now()
+                };
+                
+                io.to(`voice_channel_${voiceChannelToJoin}`).emit('bot-music-command', musicCommandData);
+                io.to(`channel-${voiceChannelToJoin}`).emit('bot-music-command', musicCommandData);
             } else {
                 console.warn(`⚠️ [BOT-DEBUG] No voice channel context for PLAY command - music will play without bot joining`);
             }
@@ -902,11 +915,15 @@ class BotHandler extends EventEmitter {
                         );
                         
                         participants.forEach(participant => {
-                            if (participant.socket_id) {
-                                console.log(`🎵 [BOT-DEBUG] Sending music command to participant ${participant.username} (${participant.socket_id})`);
-                                io.to(participant.socket_id).emit('bot-music-command', musicCommandData);
-                            } else {
-                                console.warn(`⚠️ [BOT-DEBUG] Participant ${participant.username} has no socket_id`);
+                            if (participant.userId && participant.userId !== botId.toString()) {
+                                console.log(`🎵 [BOT-DEBUG] Sending music command to participant ${participant.username} (${participant.userId})`);
+                                
+                                const userSockets = require('../services/roomManager').userSockets.get(participant.userId.toString());
+                                if (userSockets && userSockets.size > 0) {
+                                    userSockets.forEach(socketId => {
+                                        io.to(socketId).emit('bot-music-command', musicCommandData);
+                                    });
+                                }
                             }
                         });
                     }

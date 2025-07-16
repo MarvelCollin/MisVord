@@ -69,6 +69,7 @@ class MusicPlayerSystem {
             window.debugAudioState = () => this.debugAudioState();
             window.testVoiceStreaming = () => this.connectAudioToVoiceChannel();
             window.testStreamingPipeline = () => this.testStreamingPipeline();
+            window.debugAudioConnections = () => this.debugAudioConnections();
             window.testPlaySampleTrack = () => this.testPlaySampleTrack();
             window.testPlaySpotifyPreview = () => this.testPlaySpotifyPreview();
             window.testBasicAudioPlayback = () => this.testBasicAudioPlayback();
@@ -99,7 +100,6 @@ class MusicPlayerSystem {
                     if (this.audio && !this._audioSourceNode) {
                         try {
                             this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-                            this._audioSourceNode.connect(this._audioContext.destination);
                             console.log('🎵 [MUSIC-PLAYER] Connected audio source to context');
                         } catch (e) {
                             console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
@@ -1132,9 +1132,7 @@ class MusicPlayerSystem {
             
             this.isPlaying = true;
             
-            setTimeout(() => {
-                this.setupAudioStreaming();
-            }, 500);
+            this.setupAudioStreaming();
 
             return true;
         } catch (error) {
@@ -1157,6 +1155,8 @@ class MusicPlayerSystem {
             this.hideNowPlaying();
             this.showStatus('Music stopped');
             
+            await this.restoreMicrophoneState();
+            
             return true;
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error stopping playback:', error);
@@ -1167,6 +1167,19 @@ class MusicPlayerSystem {
     async restoreMicrophoneState() {
         try {
             console.log('🎵 [MUSIC-PLAYER] Restoring microphone state');
+            
+            if (window.voiceManager && window.voiceManager.meeting) {
+                window.voiceManager.meeting.muteMic();
+                
+                const originalStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: true, 
+                    video: false 
+                });
+                
+                window.voiceManager.meeting.unmuteMic(originalStream);
+                console.log('🎵 [MUSIC-PLAYER] Microphone restored to original state');
+            }
+            
             return true;
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error restoring microphone state:', error);
@@ -1188,9 +1201,67 @@ class MusicPlayerSystem {
                 });
             }
 
+            this.connectAudioToVoiceChannel();
             return true;
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error setting up audio streaming:', error);
+            return false;
+        }
+    }
+
+    connectAudioToVoiceChannel() {
+        try {
+            if (!this.audio || !this._audioContext) {
+                console.warn('🎵 [MUSIC-PLAYER] Audio or AudioContext not available for streaming');
+                return false;
+            }
+
+            if (!window.voiceManager || !window.voiceManager.meeting) {
+                console.warn('🎵 [MUSIC-PLAYER] Voice manager or meeting not available');
+                return false;
+            }
+
+            if (this._musicStreamDestination) {
+                this._musicStreamDestination.disconnect();
+                this._musicStreamDestination = null;
+            }
+
+            if (this._musicMediaStream) {
+                this._musicMediaStream.getTracks().forEach(track => track.stop());
+                this._musicMediaStream = null;
+            }
+
+            if (!this._audioSourceNode) {
+                this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
+            }
+
+            if (!this._gainNode) {
+                this._gainNode = this._audioContext.createGain();
+                this._gainNode.gain.value = 0.7;
+            }
+
+            this._musicStreamDestination = this._audioContext.createMediaStreamDestination();
+
+            this._audioSourceNode.connect(this._gainNode);
+            this._gainNode.connect(this._musicStreamDestination);
+            this._gainNode.connect(this._audioContext.destination);
+
+            this._musicMediaStream = this._musicStreamDestination.stream;
+
+            const audioTrack = this._musicMediaStream.getAudioTracks()[0];
+            if (audioTrack && window.voiceManager.meeting) {
+                window.voiceManager.meeting.muteMic();
+                
+                const customMicStream = new MediaStream([audioTrack]);
+                window.voiceManager.meeting.unmuteMic(customMicStream);
+
+                console.log('🎵 [MUSIC-PLAYER] Successfully connected music to voice channel');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error connecting audio to voice channel:', error);
             return false;
         }
     }
@@ -1223,6 +1294,18 @@ class MusicPlayerSystem {
         try {
             console.log('🎵 [MUSIC-PLAYER] Disconnecting from voice channel');
             this.channelId = null;
+            
+            if (this._musicStreamDestination) {
+                this._musicStreamDestination.disconnect();
+                this._musicStreamDestination = null;
+            }
+
+            if (this._musicMediaStream) {
+                this._musicMediaStream.getTracks().forEach(track => track.stop());
+                this._musicMediaStream = null;
+            }
+
+            this.restoreMicrophoneState();
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error disconnecting from voice channel:', error);
         }
@@ -1407,7 +1490,6 @@ class MusicPlayerSystem {
                 return false;
             }
 
-            // Check if voice manager is available and connected
             if (window.voiceManager && window.voiceManager.isConnected) {
                 const isInTargetChannel = window.voiceManager.currentChannelId === targetChannelId;
                 console.log('🎵 [MUSIC-PLAYER] Voice manager validation:', {
@@ -1418,7 +1500,6 @@ class MusicPlayerSystem {
                 return isInTargetChannel;
             }
 
-            // Check unified voice state as fallback
             if (window.localStorageManager) {
                 const voiceState = window.localStorageManager.getUnifiedVoiceState();
                 if (voiceState && voiceState.isConnected && voiceState.channelId === targetChannelId) {
@@ -1430,7 +1511,6 @@ class MusicPlayerSystem {
                 }
             }
 
-            // Check if voice facade is available
             if (window.voiceFacade) {
                 const currentState = window.voiceFacade.getCurrentState();
                 if (currentState && currentState.isConnected && currentState.channelId === targetChannelId) {
@@ -1454,6 +1534,18 @@ class MusicPlayerSystem {
             console.error('🎵 [MUSIC-PLAYER] Error validating voice channel:', error);
             return false;
         }
+    }
+
+    debugAudioConnections() {
+        console.log('🎵 [MUSIC-PLAYER] Audio connections debug:', {
+            audioContextState: this._audioContext?.state,
+            audioSourceNode: !!this._audioSourceNode,
+            gainNode: !!this._gainNode,
+            musicStreamDestination: !!this._musicStreamDestination,
+            musicMediaStream: !!this._musicMediaStream,
+            voiceManagerMeeting: !!window.voiceManager?.meeting,
+            isPlaying: this.isPlaying
+        });
     }
     
     destroy() {
