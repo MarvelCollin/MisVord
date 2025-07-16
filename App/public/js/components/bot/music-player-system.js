@@ -27,6 +27,8 @@ class MusicPlayerSystem {
         this._gainNode = null;
         this._lastCommandTime = 0;
         this._commandDebounce = 1000;
+        this._eventListeners = [];
+        this._destroyed = false;
         
         this.initializeAudio();
         this.setupEventListeners();
@@ -220,17 +222,19 @@ class MusicPlayerSystem {
     }
 
     setupImmediateListeners() {
-        if (typeof window !== 'undefined') {
-            window.addEventListener('bot-music-command', (e) => {
+        if (typeof window !== 'undefined' && !this._destroyed) {
+            const botMusicCommandHandler = (e) => {
+                if (this._destroyed) return;
                 this.processBotMusicCommand(e.detail);
-            });
-            
+            };
+            window.addEventListener('bot-music-command', botMusicCommandHandler);
+            this._eventListeners.push({ element: window, event: 'bot-music-command', handler: botMusicCommandHandler });
 
             const autoUnlockEvents = ['click', 'touch', 'keydown', 'mousedown'];
             const autoUnlock = () => {
+                if (this._destroyed) return;
                 if (this._audioContext && this._audioContext.state === 'suspended') {
                     this._audioContext.resume().then(() => {
-                        
                         autoUnlockEvents.forEach(event => {
                             document.removeEventListener(event, autoUnlock);
                         });
@@ -240,12 +244,15 @@ class MusicPlayerSystem {
             
             autoUnlockEvents.forEach(event => {
                 document.addEventListener(event, autoUnlock, { once: true });
+                this._eventListeners.push({ element: document, event, handler: autoUnlock });
             });
             
             if (window.globalSocketManager?.io) {
-                window.globalSocketManager.io.on('bot-music-command', (data) => {
+                const socketMusicCommandHandler = (data) => {
+                    if (this._destroyed) return;
                     this.processBotMusicCommand(data);
-                });
+                };
+                window.globalSocketManager.io.on('bot-music-command', socketMusicCommandHandler);
                 window.globalSocketManager.io.on('music-state-sync', (data) => {
                     this.handleMusicStateSync(data);
                 });
@@ -1448,6 +1455,59 @@ class MusicPlayerSystem {
             return false;
         }
     }
+    
+    destroy() {
+        if (this._destroyed) return;
+        
+        this._destroyed = true;
+        
+        if (this.audio) {
+            this.audio.pause();
+            this.audio.src = '';
+            this.audio.load();
+            this.audio = null;
+        }
+        
+        if (this._audioSourceNode) {
+            this._audioSourceNode.disconnect();
+            this._audioSourceNode = null;
+        }
+        
+        if (this._gainNode) {
+            this._gainNode.disconnect();
+            this._gainNode = null;
+        }
+        
+        if (this._musicStreamDestination) {
+            this._musicStreamDestination.disconnect();
+            this._musicStreamDestination = null;
+        }
+        
+        if (this._musicMediaStream) {
+            this._musicMediaStream.getTracks().forEach(track => track.stop());
+            this._musicMediaStream = null;
+        }
+        
+        if (this._audioContext && this._audioContext.state !== 'closed') {
+            this._audioContext.close();
+            this._audioContext = null;
+        }
+        
+        this._eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this._eventListeners = [];
+        
+        this.removeExistingSearchModal();
+        this.removeExistingQueueModal();
+        this.hideNowPlaying();
+        
+        this.currentSong = null;
+        this.queue = [];
+        this.searchResults = [];
+        this.currentTrack = null;
+        this.processedMessageIds.clear();
+    }
 }
 
 if (typeof window !== 'undefined' && !window.musicPlayer) {
@@ -1458,11 +1518,17 @@ if (typeof window !== 'undefined' && !window.musicPlayer) {
     
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
-            window.musicPlayer.forceInitialize();
+            if (window.musicPlayer && !window.musicPlayer._destroyed) {
+                window.musicPlayer.forceInitialize();
+            }
         });
     } else {
-        window.musicPlayer.forceInitialize();
+        if (window.musicPlayer && !window.musicPlayer._destroyed) {
+            window.musicPlayer.forceInitialize();
+        }
     }
+} else if (typeof window !== 'undefined' && window.musicPlayer && window.musicPlayer._destroyed) {
+    window.musicPlayer = new MusicPlayerSystem();
 }
 
 }

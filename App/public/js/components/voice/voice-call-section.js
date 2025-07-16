@@ -19,12 +19,19 @@ class VoiceCallSection {
         this.currentChannelName = null;
         this.currentMeetingId = null;
         
+        this.eventListeners = [];
+        this.isDestroyed = false;
+        
         this.init();
     }
     
     init() {
+        if (this.isDestroyed) return;
+        
         if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", () => this.setup());
+            document.addEventListener("DOMContentLoaded", () => {
+                if (!this.isDestroyed) this.setup();
+            });
         } else {
             this.setup();
         }
@@ -138,93 +145,159 @@ class VoiceCallSection {
         this.disconnectBtn = document.getElementById("disconnectBtn");
         
         if (this.micBtn) {
-            this.micBtn.addEventListener("click", () => {
-                if (window.voiceManager) {
-                    const newState = window.voiceManager.toggleMic();
-                    this.updateMicButton(newState);
-                    
-                    if (newState) {
-                        MusicLoaderStatic.playDiscordUnmuteSound();
-                    } else {
-                        MusicLoaderStatic.playDiscordMuteSound();
-                    }
+            const micHandler = () => {
+                if (!window.voiceManager || this.isDestroyed) return;
+                const newState = window.voiceManager.toggleMic();
+                this.updateMicButton(newState);
+                
+                if (newState) {
+                    MusicLoaderStatic.playDiscordUnmuteSound();
+                } else {
+                    MusicLoaderStatic.playDiscordMuteSound();
                 }
-            });
+            };
+            this.micBtn.addEventListener("click", micHandler);
+            this.eventListeners.push({ element: this.micBtn, event: "click", handler: micHandler });
         }
         
         if (this.videoBtn) {
-            this.videoBtn.addEventListener("click", async () => {
-                if (window.voiceManager) {
-                    const newState = await window.voiceManager.toggleVideo();
-                    this.updateVideoButton(newState);
-                }
-            });
+            const videoHandler = async () => {
+                if (!window.voiceManager || this.isDestroyed) return;
+                const newState = await window.voiceManager.toggleVideo();
+                this.updateVideoButton(newState);
+            };
+            this.videoBtn.addEventListener("click", videoHandler);
+            this.eventListeners.push({ element: this.videoBtn, event: "click", handler: videoHandler });
         }
         
         if (this.deafenBtn) {
-            this.deafenBtn.addEventListener("click", () => {
-                if (window.voiceManager) {
-                    const wasPreviouslyDeafened = window.voiceManager._deafened;
-                    const state = window.voiceManager.toggleDeafen();
-                    this.updateDeafenButton(state);
-                    
-                    if (window.MusicLoaderStatic) {
-                        if (wasPreviouslyDeafened) {
-                            window.MusicLoaderStatic.playDiscordUnmuteSound();
-                        } else {
-                            window.MusicLoaderStatic.playDiscordMuteSound();
-                        }
+            const deafenHandler = () => {
+                if (!window.voiceManager || this.isDestroyed) return;
+                const wasPreviouslyDeafened = window.voiceManager._deafened;
+                const state = window.voiceManager.toggleDeafen();
+                this.updateDeafenButton(state);
+                
+                if (window.MusicLoaderStatic) {
+                    if (wasPreviouslyDeafened) {
+                        window.MusicLoaderStatic.playDiscordUnmuteSound();
+                    } else {
+                        window.MusicLoaderStatic.playDiscordMuteSound();
                     }
                 }
-            });
+            };
+            this.deafenBtn.addEventListener("click", deafenHandler);
+            this.eventListeners.push({ element: this.deafenBtn, event: "click", handler: deafenHandler });
         }
         
         if (this.screenBtn) {
-            this.screenBtn.addEventListener("click", async () => {
-                if (window.voiceManager) {
-                    const state = await window.voiceManager.toggleScreenShare();
-                    this.updateScreenButton(state);
-                }
-            });
+            const screenHandler = async () => {
+                if (!window.voiceManager || this.isDestroyed) return;
+                const state = await window.voiceManager.toggleScreenShare();
+                this.updateScreenButton(state);
+            };
+            this.screenBtn.addEventListener("click", screenHandler);
+            this.eventListeners.push({ element: this.screenBtn, event: "click", handler: screenHandler });
         }
         
         if (this.ticTacToeBtn) {
-            this.ticTacToeBtn.addEventListener("click", () => {
+            const ticTacToeHandler = () => {
+                if (this.isDestroyed) return;
                 this.openTicTacToe();
-            });
+            };
+            this.ticTacToeBtn.addEventListener("click", ticTacToeHandler);
+            this.eventListeners.push({ element: this.ticTacToeBtn, event: "click", handler: ticTacToeHandler });
         }
         
         if (this.disconnectBtn) {
-            this.disconnectBtn.addEventListener("click", () => {
-                if (!window.voiceFacade) return;
+            const disconnectHandler = () => {
+                if (!window.voiceFacade || this.isDestroyed) return;
                 MusicLoaderStatic.playDisconnectVoiceSound();
                 window.voiceFacade.leave();
-            });
+            };
+            this.disconnectBtn.addEventListener("click", disconnectHandler);
+            this.eventListeners.push({ element: this.disconnectBtn, event: "click", handler: disconnectHandler });
         }
     }
     
     bindEvents() {
-        window.addEventListener("participantJoined", (e) => this.handleParticipantJoined(e));
-        window.addEventListener("participantLeft", (e) => this.handleParticipantLeft(e));
-        window.addEventListener("streamEnabled", (e) => this.handleStreamEnabled(e));
-        window.addEventListener("streamDisabled", (e) => this.handleStreamDisabled(e));
-        window.addEventListener("voiceStateChanged", (e) => this.handleVoiceStateChanged(e));
-        window.addEventListener("localVoiceStateChanged", (e) => this.handleLocalVoiceStateChanged(e));
-        window.addEventListener("voiceDisconnect", () => this.clearGrid());
+        const participantJoinedHandler = (e) => {
+            if (this.isDestroyed) return;
+            this.handleParticipantJoined(e);
+        };
+        const participantLeftHandler = (e) => {
+            if (this.isDestroyed) return;
+            this.handleParticipantLeft(e);
+        };
+        const streamEnabledHandler = (e) => {
+            if (this.isDestroyed) return;
+            this.handleStreamEnabled(e);
+        };
+        const streamDisabledHandler = (e) => {
+            if (this.isDestroyed) return;
+            this.handleStreamDisabled(e);
+        };
+        const voiceStateChangedHandler = (e) => {
+            if (this.isDestroyed) return;
+            this.handleVoiceStateChanged(e);
+        };
         
-        window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
-        window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
+        window.addEventListener("participantJoined", participantJoinedHandler);
+        window.addEventListener("participantLeft", participantLeftHandler);
+        window.addEventListener("streamEnabled", streamEnabledHandler);
+        window.addEventListener("streamDisabled", streamDisabledHandler);
+        window.addEventListener("voiceStateChanged", voiceStateChangedHandler);
         
+        this.eventListeners.push(
+            { element: window, event: "participantJoined", handler: participantJoinedHandler },
+            { element: window, event: "participantLeft", handler: participantLeftHandler },
+            { element: window, event: "streamEnabled", handler: streamEnabledHandler },
+            { element: window, event: "streamDisabled", handler: streamDisabledHandler },
+            { element: window, event: "voiceStateChanged", handler: voiceStateChangedHandler }
+        );
+        
+        const localVoiceStateHandler = (e) => {
+            if (this.isDestroyed) return;
+            this.handleLocalVoiceStateChanged(e);
+        };
+        const voiceDisconnectHandler1 = () => {
+            if (this.isDestroyed) return;
+            this.clearGrid();
+        };
+        const voiceConnectHandler = (e) => {
+            if (this.isDestroyed) return;
+            this.handleVoiceConnect(e);
+        };
+        const voiceDisconnectHandler2 = (e) => {
+            if (this.isDestroyed) return;
+            this.handleVoiceDisconnect(e);
+        };
+        
+        window.addEventListener("localVoiceStateChanged", localVoiceStateHandler);
+        window.addEventListener("voiceDisconnect", voiceDisconnectHandler1);
+        window.addEventListener("voiceConnect", voiceConnectHandler);
+        window.addEventListener("voiceDisconnect", voiceDisconnectHandler2);
+        
+        this.eventListeners.push(
+            { element: window, event: "localVoiceStateChanged", handler: localVoiceStateHandler },
+            { element: window, event: "voiceDisconnect", handler: voiceDisconnectHandler1 },
+            { element: window, event: "voiceConnect", handler: voiceConnectHandler },
+            { element: window, event: "voiceDisconnect", handler: voiceDisconnectHandler2 }
+        );
 
         if (window.globalSocketManager?.io) {
             this.setupSocketListeners();
         } else {
-            window.addEventListener('globalSocketReady', () => this.setupSocketListeners());
+            const globalSocketReadyHandler = () => {
+                if (this.isDestroyed) return;
+                this.setupSocketListeners();
+            };
+            window.addEventListener('globalSocketReady', globalSocketReadyHandler);
+            this.eventListeners.push({ element: window, event: "globalSocketReady", handler: globalSocketReadyHandler });
         }
-        
 
         if (window.localStorageManager) {
-            window.localStorageManager.addVoiceStateListener((state) => {
+            const voiceStateListener = (state) => {
+                if (this.isDestroyed) return;
                 if (state.isConnected && state.channelId && state.meetingId) {
                     this.currentChannelId = state.channelId;
                     this.currentChannelName = state.channelName;
@@ -236,7 +309,8 @@ class VoiceCallSection {
                     this.currentMeetingId = null;
                     this.updateConnectionStatus(false);
                 }
-            });
+            };
+            window.localStorageManager.addVoiceStateListener(voiceStateListener);
         }
     }
     
@@ -493,18 +567,39 @@ class VoiceCallSection {
 
     handleParticipantJoined(event) {
         const { participant, data } = event.detail;
-        if (!participant || this.participantElements.has(participant)) return;
+        console.log(`👤 [VOICE-CALL-SECTION] handleParticipantJoined:`, { participant, data });
         
-        if (!window.voiceManager || !window.voiceManager.participants.has(participant)) {
-            console.warn('Voice manager not ready or participant not found:', participant);
+        if (!participant) {
+            console.warn('No participant ID provided');
             return;
         }
         
-        const userId = data?.user_id || data?.id;
+        if (this.participantElements.has(participant)) {
+            console.log(`⚠️ [VOICE-CALL-SECTION] Participant already exists:`, participant);
+            return;
+        }
+        
+        if (!window.voiceManager) {
+            console.warn('Voice manager not ready');
+            return;
+        }
+        
+        let participantData = data;
+        if (!participantData && window.voiceManager.participants.has(participant)) {
+            participantData = window.voiceManager.participants.get(participant);
+        }
+        
+        if (!participantData) {
+            console.warn('Participant data not found for:', participant);
+            return;
+        }
+        
+        const userId = participantData?.user_id || participantData?.id;
         if (userId) {
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
+                    console.log(`⚠️ [VOICE-CALL-SECTION] User already has a participant card:`, userId);
                     return;
                 }
             }
@@ -514,7 +609,7 @@ class VoiceCallSection {
         if (!grid) return;
         
         try {
-            const element = this.createParticipantElement(participant, data);
+            const element = this.createParticipantElement(participant, participantData);
             
             element.style.opacity = '0';
             element.style.transform = 'translateY(20px) scale(0.9)';
@@ -522,6 +617,8 @@ class VoiceCallSection {
             
             grid.appendChild(element);
             this.participantElements.set(participant, element);
+            console.log(`✅ [VOICE-CALL-SECTION] Participant element stored with key: ${participant}`);
+            console.log(`📋 [VOICE-CALL-SECTION] Current participant keys:`, Array.from(this.participantElements.keys()));
             
             if (element.hasAttribute('data-is-local')) {
                 this.updateLocalParticipantIndicators();
@@ -533,7 +630,7 @@ class VoiceCallSection {
             });
             
             requestAnimationFrame(() => {
-                this.restoreExistingStreamsForParticipant(participant, data, element);
+                this.restoreExistingStreamsForParticipant(participant, participantData, element);
             });
             
             this.updateGridLayout();
@@ -583,12 +680,50 @@ class VoiceCallSection {
 
     handleStreamEnabled(event) {
         const { participantId, kind, stream } = event.detail;
-        const element = this.participantElements.get(participantId);
-        if (!element) return;
+        console.log(`🎥 [VOICE-CALL-SECTION] handleStreamEnabled:`, { participantId, kind, stream });
+        
+        let element = this.participantElements.get(participantId);
+        console.log(`🔍 [VOICE-CALL-SECTION] Participant element found:`, element ? 'YES' : 'NO');
+        
+        if (!element) {
+            console.error(`❌ [VOICE-CALL-SECTION] No participant element found for ID: ${participantId}`);
+            console.log(`📋 [VOICE-CALL-SECTION] Available participant keys:`, Array.from(this.participantElements.keys()));
+            
+            element = document.querySelector(`[data-participant-id="${participantId}"]`);
+            if (element) {
+                console.log(`🔧 [VOICE-CALL-SECTION] Found element via DOM query, adding to map`);
+                this.participantElements.set(participantId, element);
+            } else {
+                console.error(`❌ [VOICE-CALL-SECTION] Element not found in DOM either`);
+                console.log(`🔧 [VOICE-CALL-SECTION] Attempting to create participant card first...`);
+
+                if (window.voiceManager && window.voiceManager.participants.has(participantId)) {
+                    const participantData = window.voiceManager.participants.get(participantId);
+                    const element = this.createParticipantElement(participantId, participantData);
+                    if (element) {
+                        const grid = document.getElementById("participantGrid");
+                        if (grid) {
+                            grid.appendChild(element);
+                            this.participantElements.set(participantId, element);
+                            this.updateGridLayout();
+                            this.updateParticipantCount();
+                        }
+                    }
+                    element = this.participantElements.get(participantId);
+                }
+                
+                if (!element) {
+                    console.error(`❌ [VOICE-CALL-SECTION] Still no element after attempting to create participant card`);
+                    return;
+                }
+            }
+        }
         
         if (kind === 'video' || kind === 'webcam') {
+            console.log(`📹 [VOICE-CALL-SECTION] Showing participant video for ${participantId}`);
             this.showParticipantVideo(element, stream);
         } else if (kind === 'share') {
+            console.log(`🖥️ [VOICE-CALL-SECTION] Creating screen share card for ${participantId}`);
             this.createScreenShareCard(participantId, stream);
         }
     }
@@ -811,27 +946,75 @@ class VoiceCallSection {
     }
     
     showParticipantVideo(element, stream) {
+        console.log(`🎦 [VOICE-CALL-SECTION] showParticipantVideo called with:`, { 
+            element: !!element, 
+            stream: !!stream,
+            streamType: stream?.constructor?.name,
+            streamKind: stream?.kind,
+            streamTrack: !!stream?.track,
+            streamId: stream?.id
+        });
+        
         const videoOverlay = element.querySelector(".participant-video-overlay");
         const defaultView = element.querySelector(".participant-default-view");
         const video = element.querySelector("video");
         
+        console.log(`🔍 [VOICE-CALL-SECTION] Video elements found:`, { 
+            videoOverlay: !!videoOverlay, 
+            defaultView: !!defaultView, 
+            video: !!video 
+        });
+        
         if (video && stream) {
             let mediaStream;
+            
             if (stream instanceof MediaStream) {
                 mediaStream = stream;
+                console.log(`📺 [VOICE-CALL-SECTION] Stream is already MediaStream`);
             } else if (stream.track) {
                 mediaStream = new MediaStream([stream.track]);
+                console.log(`📺 [VOICE-CALL-SECTION] Created MediaStream from track`);
             } else if (stream.stream) {
                 mediaStream = stream.stream;
+                console.log(`📺 [VOICE-CALL-SECTION] Using stream.stream property`);
+            } else if (stream.getTracks && typeof stream.getTracks === 'function') {
+                const tracks = stream.getTracks();
+                if (tracks.length > 0) {
+                    mediaStream = new MediaStream(tracks);
+                    console.log(`📺 [VOICE-CALL-SECTION] Created MediaStream from getTracks()`, tracks.length);
+                }
+            } else {
+                console.log(`📺 [VOICE-CALL-SECTION] Trying to use stream directly`);
+                mediaStream = stream;
             }
+            
+            console.log(`📺 [VOICE-CALL-SECTION] Final media stream:`, {
+                mediaStream: !!mediaStream,
+                tracks: mediaStream?.getTracks?.()?.length || 0,
+                videoTracks: mediaStream?.getVideoTracks?.()?.length || 0
+            });
             
             if (mediaStream) {
                 video.srcObject = mediaStream;
-                video.play().catch(() => {});
+                video.play().then(() => {
+                    console.log(`✅ [VOICE-CALL-SECTION] Video started playing successfully`);
+                }).catch((error) => {
+                    console.error(`❌ [VOICE-CALL-SECTION] Video play failed:`, error);
+                });
                 
-                if (videoOverlay) videoOverlay.classList.remove("hidden");
-                if (defaultView) defaultView.classList.add("hidden");
+                if (videoOverlay) {
+                    videoOverlay.classList.remove("hidden");
+                    console.log(`✅ [VOICE-CALL-SECTION] Video overlay shown`);
+                }
+                if (defaultView) {
+                    defaultView.classList.add("hidden");
+                    console.log(`✅ [VOICE-CALL-SECTION] Default view hidden`);
+                }
+            } else {
+                console.error(`❌ [VOICE-CALL-SECTION] Could not create valid MediaStream`);
             }
+        } else {
+            console.error(`❌ [VOICE-CALL-SECTION] Missing video or stream:`, { video: !!video, stream: !!stream });
         }
     }
     
@@ -849,12 +1032,26 @@ class VoiceCallSection {
     }
     
     createScreenShareCard(participantId, stream) {
+        console.log(`🖥️ [VOICE-CALL-SECTION] createScreenShareCard called:`, { 
+            participantId, 
+            stream: !!stream,
+            streamType: stream?.constructor?.name,
+            streamKind: stream?.kind,
+            streamId: stream?.id
+        });
+        
         const existingCard = document.querySelector(`[data-screen-share-id="${participantId}"]`);
-        if (existingCard) return;
+        if (existingCard) {
+            console.log(`⚠️ [VOICE-CALL-SECTION] Screen share card already exists for ${participantId}`);
+            return;
+        }
         
         const participantName = this.participantElements.get(participantId)?.querySelector(".participant-name")?.textContent || "Unknown";
         const grid = document.getElementById("participantGrid");
-        if (!grid) return;
+        if (!grid) {
+            console.error(`❌ [VOICE-CALL-SECTION] No participant grid found`);
+            return;
+        }
         
         const card = document.createElement("div");
         card.className = "screen-share-card bg-[#1e1f22] rounded-lg p-2 flex flex-col relative border-2 border-[#5865f2] h-full";
@@ -870,7 +1067,6 @@ class VoiceCallSection {
             </div>
         `;
         
-
         card.addEventListener('dblclick', (e) => {
             e.preventDefault();
             this.openParticipantModal(participantId, { displayName: participantName }, 'screenshare');
@@ -879,22 +1075,46 @@ class VoiceCallSection {
         const video = card.querySelector("video");
         if (video && stream) {
             let mediaStream;
+            
             if (stream instanceof MediaStream) {
                 mediaStream = stream;
+                console.log(`📺 [VOICE-CALL-SECTION] Screen share stream is already MediaStream`);
             } else if (stream.track) {
                 mediaStream = new MediaStream([stream.track]);
+                console.log(`📺 [VOICE-CALL-SECTION] Created screen share MediaStream from track`);
             } else if (stream.stream) {
                 mediaStream = stream.stream;
+                console.log(`📺 [VOICE-CALL-SECTION] Using screen share stream.stream property`);
+            } else if (stream.getTracks && typeof stream.getTracks === 'function') {
+                const tracks = stream.getTracks();
+                if (tracks.length > 0) {
+                    mediaStream = new MediaStream(tracks);
+                    console.log(`📺 [VOICE-CALL-SECTION] Created screen share MediaStream from getTracks()`, tracks.length);
+                }
+            } else {
+                console.log(`📺 [VOICE-CALL-SECTION] Trying to use screen share stream directly`);
+                mediaStream = stream;
             }
+            
+            console.log(`📺 [VOICE-CALL-SECTION] Final screen share media stream:`, {
+                mediaStream: !!mediaStream,
+                tracks: mediaStream?.getTracks?.()?.length || 0,
+                videoTracks: mediaStream?.getVideoTracks?.()?.length || 0
+            });
             
             if (mediaStream) {
                 video.srcObject = mediaStream;
-                video.play().catch(() => {});
+                video.play().then(() => {
+                    console.log(`✅ [VOICE-CALL-SECTION] Screen share video started playing`);
+                }).catch((error) => {
+                    console.error(`❌ [VOICE-CALL-SECTION] Screen share video play failed:`, error);
+                });
             }
         }
         
         grid.appendChild(card);
         this.updateGridLayout();
+        console.log(`✅ [VOICE-CALL-SECTION] Screen share card added to grid`);
     }
     
     removeScreenShareCard(participantId) {
@@ -1474,8 +1694,42 @@ class VoiceCallSection {
             }
         }
     }
+    
+    destroy() {
+        if (this.isDestroyed) return;
+        
+        this.isDestroyed = true;
+        
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            element.removeEventListener(event, handler);
+        });
+        this.eventListeners = [];
+        
+        if (this.duplicateCleanupInterval) {
+            clearInterval(this.duplicateCleanupInterval);
+            this.duplicateCleanupInterval = null;
+        }
+        
+        this.closeParticipantModal();
+        
+        this.participantElements.clear();
+        
+        this.currentChannelId = null;
+        this.currentChannelName = null;
+        this.currentMeetingId = null;
+        
+        this.micBtn = null;
+        this.videoBtn = null;
+        this.deafenBtn = null;
+        this.screenBtn = null;
+        this.ticTacToeBtn = null;
+        this.disconnectBtn = null;
+    }
 }
 
 if (typeof window !== "undefined") {
+    if (window.voiceCallSection) {
+        window.voiceCallSection.destroy();
+    }
     window.voiceCallSection = new VoiceCallSection();
 }
