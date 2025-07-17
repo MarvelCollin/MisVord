@@ -625,11 +625,15 @@ class BotHandler extends EventEmitter {
                     if (queue.length > 1) {
                         let currentPlayingIndex = queue.findIndex(song => song.isCurrentlyPlaying);
                         if (currentPlayingIndex === -1) {
-                            currentPlayingIndex = 0;
                             queue.forEach(song => song.isCurrentlyPlaying = false);
                             queue[0].isCurrentlyPlaying = true;
-                        }
-                        if (currentPlayingIndex < queue.length - 1) {
+                            const firstTrack = queue[0];
+                            responseContent = `🎵 Starting with first song: **${firstTrack.title}** by **${firstTrack.artist}**`;
+                            musicData = { 
+                                action: 'next',
+                                track: firstTrack
+                            };
+                        } else if (currentPlayingIndex < queue.length - 1) {
                             queue.forEach(song => song.isCurrentlyPlaying = false);
                             queue[currentPlayingIndex + 1].isCurrentlyPlaying = true;
                             const nextTrack = queue[currentPlayingIndex + 1];
@@ -642,7 +646,18 @@ class BotHandler extends EventEmitter {
                             responseContent = '❌ Already at the last song in queue';
                         }
                     } else if (queue.length === 1) {
-                        responseContent = '❌ No next song in queue. Add more songs with `/titibot queue [song name]`';
+                        let currentPlayingIndex = queue.findIndex(song => song.isCurrentlyPlaying);
+                        if (currentPlayingIndex === -1) {
+                            queue[0].isCurrentlyPlaying = true;
+                            const onlyTrack = queue[0];
+                            responseContent = `🎵 Playing the only song: **${onlyTrack.title}** by **${onlyTrack.artist}**`;
+                            musicData = { 
+                                action: 'next',
+                                track: onlyTrack
+                            };
+                        } else {
+                            responseContent = '❌ No next song in queue. Add more songs with `/titibot queue [song name]`';
+                        }
                     } else {
                         responseContent = '❌ Queue is empty. Add songs first with `/titibot play [song name]` or `/titibot queue [song name]`';
                     }
@@ -658,11 +673,15 @@ class BotHandler extends EventEmitter {
                     if (queue.length > 1) {
                         let currentPlayingIndex = queue.findIndex(song => song.isCurrentlyPlaying);
                         if (currentPlayingIndex === -1) {
-                            currentPlayingIndex = 0;
                             queue.forEach(song => song.isCurrentlyPlaying = false);
                             queue[0].isCurrentlyPlaying = true;
-                        }
-                        if (currentPlayingIndex > 0) {
+                            const firstTrack = queue[0];
+                            responseContent = `🎵 Starting with first song: **${firstTrack.title}** by **${firstTrack.artist}**`;
+                            musicData = { 
+                                action: 'prev',
+                                track: firstTrack
+                            };
+                        } else if (currentPlayingIndex > 0) {
                             queue.forEach(song => song.isCurrentlyPlaying = false);
                             queue[currentPlayingIndex - 1].isCurrentlyPlaying = true;
                             const prevTrack = queue[currentPlayingIndex - 1];
@@ -675,7 +694,18 @@ class BotHandler extends EventEmitter {
                             responseContent = '❌ Already at the first song in queue';
                         }
                     } else if (queue.length === 1) {
-                        responseContent = '❌ No previous song in queue. Add more songs with `/titibot queue [song name]`';
+                        let currentPlayingIndex = queue.findIndex(song => song.isCurrentlyPlaying);
+                        if (currentPlayingIndex === -1) {
+                            queue[0].isCurrentlyPlaying = true;
+                            const onlyTrack = queue[0];
+                            responseContent = `🎵 Playing the only song: **${onlyTrack.title}** by **${onlyTrack.artist}**`;
+                            musicData = { 
+                                action: 'prev',
+                                track: onlyTrack
+                            };
+                        } else {
+                            responseContent = '❌ No previous song in queue. Add more songs with `/titibot queue [song name]`';
+                        }
                     } else {
                         responseContent = '❌ Queue is empty. Add songs first with `/titibot play [song name]` or `/titibot queue [song name]`';
                     }

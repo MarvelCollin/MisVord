@@ -985,6 +985,20 @@ class VoiceManager {
                 isMuted: !this._micOn
             });
             
+            this.broadcastVoiceState('deafen', this._deafened);
+            
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (currentUserId) {
+                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                    detail: {
+                        userId: currentUserId,
+                        channelId: this.currentChannelId,
+                        type: 'deafen',
+                        state: this._deafened
+                    }
+                }));
+            }
+            
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: { type: 'deafen', state: this._deafened }
             }));

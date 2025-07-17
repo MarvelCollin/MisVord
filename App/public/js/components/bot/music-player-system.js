@@ -29,6 +29,8 @@ class MusicPlayerSystem {
         this._commandDebounce = 1000;
         this._eventListeners = [];
         this._destroyed = false;
+        this._savedVolume = null;
+        this._isDeafenMuted = false;
         
         this.initializeAudio();
         this.setupEventListeners();
@@ -41,7 +43,7 @@ class MusicPlayerSystem {
                 this.audio = new Audio();
                 this.audio.crossOrigin = "anonymous";
                 this.audio.preload = "metadata";
-                this.audio.volume = this.volume;
+                this.audio.volume = this._isDeafenMuted ? 0 : this.volume;
                 this.setupAudioEventListeners();
             }
             
@@ -89,6 +91,8 @@ class MusicPlayerSystem {
         if (!this._audioInitialized) {
             this.initializeAudio();
         }
+        
+        this.checkInitialDeafenState();
         
         if (!this._audioContext && typeof window !== 'undefined') {
             try {
@@ -313,6 +317,20 @@ class MusicPlayerSystem {
                     await this.stop();
                     this.showStatus('Music stopped - no participants in voice channel');
                 }
+            }
+        });
+
+        window.addEventListener('localVoiceStateChanged', (e) => {
+            console.log('🎵 [MUSIC-PLAYER] localVoiceStateChanged event received:', e.detail);
+            if (e.detail && e.detail.type === 'deafen') {
+                this.handleDeafenStateChange(e.detail.state);
+            }
+        });
+
+        window.addEventListener('voiceStateChanged', (e) => {
+            console.log('🎵 [MUSIC-PLAYER] voiceStateChanged event received:', e.detail);
+            if (e.detail && e.detail.type === 'deafen') {
+                this.handleDeafenStateChange(e.detail.state);
             }
         });
         
@@ -1151,7 +1169,7 @@ class MusicPlayerSystem {
             
             if (!this.audio) {
                 this.audio = new Audio();
-                this.audio.volume = this.volume;
+                this.audio.volume = this._isDeafenMuted ? 0 : this.volume;
                 this.audio.crossOrigin = "anonymous";
                 this.setupAudioEventListeners();
             }
@@ -1220,6 +1238,54 @@ class MusicPlayerSystem {
             console.error('🎵 [MUSIC-PLAYER] Error stopping playback:', error);
             return false;
         }
+    }
+
+    handleDeafenStateChange(isDeafened) {
+        console.log('🎵 [MUSIC-PLAYER] Deafen state change received:', { isDeafened, hasAudio: !!this.audio, currentVolume: this.audio?.volume });
+        
+        if (!this.audio) return;
+
+        if (isDeafened) {
+            if (!this._isDeafenMuted) {
+                this._savedVolume = this.audio.volume;
+                this.audio.volume = 0;
+                this._isDeafenMuted = true;
+                console.log('🎵 [MUSIC-PLAYER] Music muted due to deafen state, saved volume:', this._savedVolume);
+            }
+        } else {
+            if (this._isDeafenMuted) {
+                this.audio.volume = this._savedVolume !== null ? this._savedVolume : this.volume;
+                this._isDeafenMuted = false;
+                this._savedVolume = null;
+                console.log('🎵 [MUSIC-PLAYER] Music unmuted, deafen state removed, restored volume:', this.audio.volume);
+            }
+        }
+    }
+
+    checkInitialDeafenState() {
+        console.log('🎵 [MUSIC-PLAYER] Checking initial deafen state...');
+        
+        if (window.localStorageManager) {
+            const voiceState = window.localStorageManager.getUnifiedVoiceState();
+            console.log('🎵 [MUSIC-PLAYER] Voice state from localStorage:', voiceState);
+            if (voiceState && voiceState.isDeafened) {
+                console.log('🎵 [MUSIC-PLAYER] Initial deafen state: true (from localStorage)');
+                this.handleDeafenStateChange(true);
+                return;
+            }
+        }
+        
+        if (window.voiceManager && window.voiceManager.getDeafenState) {
+            const isDeafened = window.voiceManager.getDeafenState();
+            console.log('🎵 [MUSIC-PLAYER] Voice state from voiceManager:', isDeafened);
+            if (isDeafened) {
+                console.log('🎵 [MUSIC-PLAYER] Initial deafen state: true (from voiceManager)');
+                this.handleDeafenStateChange(true);
+                return;
+            }
+        }
+        
+        console.log('🎵 [MUSIC-PLAYER] Initial deafen state: false');
     }
 
     async restoreMicrophoneState() {

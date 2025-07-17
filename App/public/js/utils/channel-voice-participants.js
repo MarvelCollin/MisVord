@@ -592,7 +592,7 @@ class ChannelVoiceParticipants {
     
     createParticipantElement(participant) {
         const div = document.createElement('div');
-        div.className = 'voice-participant-card bg-[#2f3136] rounded-lg p-2 flex items-center space-x-3 border border-[#40444b] hover:border-[#5865f2] transition-all duration-200';
+        div.className = 'voice-participant-card rounded-lg p-2 flex items-center space-x-3 transition-all duration-200';
         div.setAttribute('data-user-id', participant.user_id || participant.id);
 
 
@@ -711,15 +711,19 @@ class ChannelVoiceParticipants {
         
 
         if (window.BotComponent && window.BotComponent.voiceBots) {
+            let botCount = 0;
             window.BotComponent.voiceBots.forEach((botData, botId) => {
                 if (botData.channel_id === channelId) {
-
                     const botParticipantId = `bot-${botData.bot_id || botId}`;
                     if (!participantIds.has(botParticipantId)) {
-                        count++;
+                        botCount++;
                     }
                 }
             });
+            
+            if (botCount > 0) {
+                count = Math.max(0, count - 1);
+            }
         }
         
         return count;
