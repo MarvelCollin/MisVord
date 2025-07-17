@@ -515,6 +515,60 @@ class BotHandler extends EventEmitter {
         this.leaveBotFromVoiceChannel(io, botId, channelId);
     }
 
+    static async searchMusic(query) {
+        try {
+            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=5&country=us`;
+            const https = require('https');
+            
+            return new Promise((resolve, reject) => {
+                const req = https.get(apiUrl, (res) => {
+                    let data = '';
+                    
+                    res.on('data', (chunk) => {
+                        data += chunk;
+                    });
+                    
+                    res.on('end', () => {
+                        try {
+                            const result = JSON.parse(data);
+                            if (result.results && result.results.length > 0) {
+                                const track = result.results.find(t => t.previewUrl);
+                                if (track) {
+                                    resolve({
+                                        title: track.trackName,
+                                        artist: track.artistName,
+                                        album: track.collectionName,
+                                        previewUrl: track.previewUrl,
+                                        artworkUrl: track.artworkUrl100,
+                                        duration: track.trackTimeMillis,
+                                        id: track.trackId
+                                    });
+                                } else {
+                                    resolve(null);
+                                }
+                            } else {
+                                resolve(null);
+                            }
+                        } catch (parseError) {
+                            resolve(null);
+                        }
+                    });
+                });
+                
+                req.on('error', () => {
+                    resolve(null);
+                });
+                
+                req.setTimeout(5000, () => {
+                    req.abort();
+                    resolve(null);
+                });
+            });
+        } catch (error) {
+            return null;
+        }
+    }
+
     static async sendBotResponse(io, originalMessage, messageType, botId, username, command, parameter = null) {
         console.log(`📤 [BOT-DEBUG] Starting response generation:`, {
             command,
@@ -561,16 +615,17 @@ class BotHandler extends EventEmitter {
                 if (!parameter) {
                     responseContent = '❌ Udah di bilang formatnya play {namaLagu} masih ngemeng';
                 } else {
-                    responseContent = `🎵 MUSIGGGGGGG: "${parameter}" - Searching and playing...`;
-                    musicData = {
-                        action: 'play',
-                        query: parameter,
-                        track: {
-                            title: parameter,
-                            artist: '',
-                            previewUrl: null
-                        }
-                    };
+                    const searchResult = await this.searchMusic(parameter);
+                    if (searchResult && searchResult.previewUrl) {
+                        responseContent = `🎵 MUSIGGGGGGGGGGGGGG: **${searchResult.title}** by **${searchResult.artist}** 🎶`;
+                        musicData = {
+                            action: 'play',
+                            query: parameter,
+                            track: searchResult
+                        };
+                    } else {
+                        responseContent = `❌ Sorry bang, ga nemu lagu "${parameter}" di iTunes. Coba judul lagu yang lain ya~`;
+                    }
                 }
                 break;
 
@@ -593,15 +648,17 @@ class BotHandler extends EventEmitter {
                 if (!parameter) {
                     responseContent = '❌ Udah di bilang formatnya queue {namaLagu} malah ngemeng';
                 } else {
-                    responseContent = `➕ Berhasil di tambahin di queue king: "${parameter}"`;
-                    musicData = {
-                        action: 'queue',
-                        query: parameter,
-                        track: {
-                            title: parameter,
-                            artist: ''
-                        }
-                    };
+                    const searchResult = await this.searchMusic(parameter);
+                    if (searchResult && searchResult.previewUrl) {
+                        responseContent = `➕ Added to queue: **${searchResult.title}** by **${searchResult.artist}** 🎶`;
+                        musicData = {
+                            action: 'queue',
+                            query: parameter,
+                            track: searchResult
+                        };
+                    } else {
+                        responseContent = `❌ Sorry bang, ga nemu lagu "${parameter}" buat di queue. Coba judul lagu yang lain ya~`;
+                    }
                 }
                 break;
 

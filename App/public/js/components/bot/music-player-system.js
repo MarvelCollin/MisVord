@@ -470,7 +470,16 @@ class MusicPlayerSystem {
             switch (action) {
                 case 'play':
                     if (track && track.previewUrl) {
-                        await this.playSharedTrack(track, data.current_time || 0);
+                        this.showStatus(`Playing: ${track.title} by ${track.artist}`);
+                        
+                        await this.stop();
+                        this.currentSong = track;
+                        this.currentTrack = track;
+                        
+                        await this.playTrack(track);
+                        this.showNowPlaying(track);
+                        this.isPlaying = true;
+                        
                     } else if (query && query.trim()) {
                         this.showStatus(`Searching for: ${query}`);
                         
@@ -503,16 +512,6 @@ class MusicPlayerSystem {
                         } else {
                             this.showError('No playable track found for: ' + query);
                         }
-                    } else if (track && track.previewUrl) {
-                        this.showStatus(`Preparing to play "${track.title}"...`);
-                        
-                        await this.stop();
-                        await this.playTrack(track);
-                        this.showNowPlaying(track);
-                        this.showStatus(`Now playing: ${track.title}`);
-                        this.isPlaying = true;
-                        this.currentSong = track;
-                        
                     } else {
                         this.showError('No song specified or found');
                     }
@@ -535,8 +534,10 @@ class MusicPlayerSystem {
                     break;
                     
                 case 'queue':
-
-                    if (query && query.trim()) {
+                    if (track && track.previewUrl) {
+                        this.queue.push(track);
+                        this.showStatus(`Added to queue: ${track.title} by ${track.artist}`);
+                    } else if (query && query.trim()) {
                         await this.addToQueue(query.trim());
                         this.showStatus('Added to queue: ' + query);
                     } else {
