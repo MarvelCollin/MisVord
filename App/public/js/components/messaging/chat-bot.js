@@ -97,7 +97,7 @@ class ChatBot {
         
         if (content.startsWith('/titibot') && content.length > 8) {
             const afterSlash = content.substring(8).trim();
-            const allCommands = ['ping', 'help', 'play', 'stop', 'next', 'prev', 'queue'];
+            const allCommands = ['ping', 'help', 'play', 'stop', 'next', 'prev', 'queue', 'list'];
             
             if (afterSlash === '') {
                 this.showTitiBotSuggestions(allCommands);
@@ -182,10 +182,11 @@ class ChatBot {
             'ping': 'Check if TitiBot is alive and responding',
             'help': 'Show all available TitiBot commands',
             'play': 'Play music from iTunes (e.g., /titibot play never gonna give you up)',
-            'stop': 'Stop the currently playing music',
+            'stop': 'Stop the currently playing music and leave voice channel',
             'next': 'Play the next song in the queue',
             'prev': 'Play the previous song in the queue',
-            'queue': 'Add a song to the music queue (e.g., /titibot queue bohemian rhapsody)'
+            'queue': 'Add a song to the music queue (e.g., /titibot queue bohemian rhapsody)',
+            'list': 'Show the current music queue list'
         };
         return descriptions[command] || 'TitiBot command';
     }
@@ -293,6 +294,11 @@ class ChatBot {
 
                 await window.musicPlayer.playPrevious();
                 this.updateBotParticipantStatus('⏮️ Previous track');
+                break;
+
+            case 'list':
+
+                this.updateBotParticipantStatus('📋 Queue list displayed in chat');
                 break;
 
             default:

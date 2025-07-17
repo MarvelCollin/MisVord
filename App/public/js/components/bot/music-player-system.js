@@ -148,7 +148,17 @@ class MusicPlayerSystem {
         });
 
         this.audio.addEventListener('ended', () => {
-            this.playNext();
+            console.log('🎵 [MUSIC-PLAYER] Song ended - checking queue for next song');
+            this.isPlaying = false;
+            
+            if (this.queue.length > 1 && this.currentIndex < this.queue.length - 1) {
+                console.log('🎵 [MUSIC-PLAYER] Auto-playing next song in queue');
+                this.playNext();
+            } else {
+                console.log('🎵 [MUSIC-PLAYER] Reached end of queue or single song - stopping playback');
+                this.hideNowPlaying();
+                this.showStatus('Playback finished');
+            }
         });
         
         this.audio.addEventListener('playing', () => {
@@ -476,6 +486,9 @@ class MusicPlayerSystem {
                         this.currentSong = track;
                         this.currentTrack = track;
                         
+                        this.queue.unshift(track);
+                        this.currentIndex = 0;
+                        
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.isPlaying = true;
@@ -501,6 +514,9 @@ class MusicPlayerSystem {
                                 this.currentSong = searchResult;
                                 this.currentTrack = searchResult;
                                 
+                                this.queue.unshift(searchResult);
+                                this.currentIndex = 0;
+                                
                                 await this.playTrack(searchResult);
                                 this.showNowPlaying(searchResult);
                                 this.showStatus(`Now playing: ${searchResult.title}`);
@@ -524,13 +540,43 @@ class MusicPlayerSystem {
                     break;
                     
                 case 'next':
-                    await this.playNext();
-                    this.showStatus('Playing next song');
+                    if (track && track.previewUrl) {
+                        await this.stop();
+                        this.currentSong = track;
+                        this.currentTrack = track;
+                        this.currentIndex = this.queue.findIndex(t => t.title === track.title && t.artist === track.artist);
+                        if (this.currentIndex === -1) {
+                            this.currentIndex = this.queue.length;
+                            this.queue.push(track);
+                        }
+                        await this.playTrack(track);
+                        this.showNowPlaying(track);
+                        this.isPlaying = true;
+                        this.showStatus(`Playing next: ${track.title} by ${track.artist}`);
+                    } else {
+                        await this.playNext();
+                        this.showStatus('Playing next song');
+                    }
                     break;
                     
                 case 'prev':
-                    await this.playPrevious();
-                    this.showStatus('Playing previous song');
+                    if (track && track.previewUrl) {
+                        await this.stop();
+                        this.currentSong = track;
+                        this.currentTrack = track;
+                        this.currentIndex = this.queue.findIndex(t => t.title === track.title && t.artist === track.artist);
+                        if (this.currentIndex === -1) {
+                            this.currentIndex = 0;
+                            this.queue.unshift(track);
+                        }
+                        await this.playTrack(track);
+                        this.showNowPlaying(track);
+                        this.isPlaying = true;
+                        this.showStatus(`Playing previous: ${track.title} by ${track.artist}`);
+                    } else {
+                        await this.playPrevious();
+                        this.showStatus('Playing previous song');
+                    }
                     break;
                     
                 case 'queue':
@@ -1331,7 +1377,14 @@ class MusicPlayerSystem {
                 return false;
             }
 
-            this.currentIndex = (this.currentIndex + 1) % this.queue.length;
+            if (this.currentIndex >= this.queue.length - 1) {
+                console.log('🎵 [MUSIC-PLAYER] Reached end of queue, stopping playback');
+                await this.stop();
+                this.showStatus('Reached end of queue');
+                return false;
+            }
+
+            this.currentIndex = this.currentIndex + 1;
             const nextTrack = this.queue[this.currentIndex];
             
             console.log('🎵 [MUSIC-PLAYER] Playing next track:', nextTrack.title);
@@ -1354,7 +1407,13 @@ class MusicPlayerSystem {
                 return false;
             }
 
-            this.currentIndex = this.currentIndex <= 0 ? this.queue.length - 1 : this.currentIndex - 1;
+            if (this.currentIndex <= 0) {
+                console.log('🎵 [MUSIC-PLAYER] Already at first song in queue');
+                this.showStatus('Already at first song');
+                return false;
+            }
+
+            this.currentIndex = this.currentIndex - 1;
             const prevTrack = this.queue[this.currentIndex];
             
             console.log('🎵 [MUSIC-PLAYER] Playing previous track:', prevTrack.title);
@@ -1568,6 +1627,17 @@ class MusicPlayerSystem {
         this.searchResults = [];
         this.currentTrack = null;
         this.processedMessageIds.clear();
+    }
+
+    cleanupProcessedMessages() {
+        if (this.processedMessageIds.size > this.maxProcessedMessages) {
+            const messagesToRemove = Math.floor(this.maxProcessedMessages / 2);
+            const messageArray = Array.from(this.processedMessageIds);
+            for (let i = 0; i < messagesToRemove; i++) {
+                this.processedMessageIds.delete(messageArray[i]);
+            }
+            console.log('🎵 [MUSIC-PLAYER] Cleaned up old processed message IDs');
+        }
     }
 }
 

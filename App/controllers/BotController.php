@@ -564,4 +564,89 @@ class BotController extends BaseController
             return false;
         }
     }
+
+    public function handleCommand()
+    {
+        $this->requireAuth();
+
+        $input = $this->getInput();
+
+        try {
+            if (empty($input['channel_id']) || empty($input['command'])) {
+                return $this->error('Channel ID and command are required', 400);
+            }
+
+            $channelId = $input['channel_id'];
+            $roomId = $input['room_id'] ?? null;
+            $command = $input['command'];
+            $parameter = $input['parameter'] ?? null;
+
+            $response = [
+                'command' => $command,
+                'status' => 'processed',
+                'timestamp' => time()
+            ];
+
+            if ($parameter) {
+                $response['parameter'] = $parameter;
+            }
+
+            return $this->success($response);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to handle bot command: ' . $e->getMessage());
+        }
+    }
+
+    public function getBotStatus($botId)
+    {
+        $this->requireAuth();
+
+        try {
+            $db = $this->db();
+            $query = $db->prepare("SELECT * FROM users WHERE id = ? AND status = 'bot'");
+            $query->execute([$botId]);
+            $bot = $query->fetch(PDO::FETCH_OBJ);
+
+            if (!$bot) {
+                return $this->error('Bot not found', 404);
+            }
+
+            $response = [
+                'bot_id' => $bot->id,
+                'username' => $bot->username,
+                'status' => 'active',
+                'last_activity' => time()
+            ];
+
+            return $this->success($response);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to get bot status: ' . $e->getMessage());
+        }
+    }
+
+    public function getMusicQueue()
+    {
+        $this->requireAuth();
+
+        try {
+            $channelId = $_GET['channel_id'] ?? null;
+            $roomId = $_GET['room_id'] ?? null;
+
+            if (!$channelId && !$roomId) {
+                return $this->error('Channel ID or Room ID is required', 400);
+            }
+
+            $response = [
+                'queue' => [],
+                'current_track' => null,
+                'is_playing' => false,
+                'channel_id' => $channelId,
+                'room_id' => $roomId
+            ];
+
+            return $this->success($response);
+        } catch (Exception $e) {
+            return $this->serverError('Failed to get music queue: ' . $e->getMessage());
+        }
+    }
 }

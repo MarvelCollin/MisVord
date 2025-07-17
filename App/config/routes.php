@@ -1783,6 +1783,21 @@ Route::get('/api/bot/user/{username}', function($username) {
     $controller->getBotByUsername($username);
 });
 
+Route::post('/api/bot/command', function() {
+    $controller = new BotController();
+    $controller->handleCommand();
+});
+
+Route::get('/api/bot/status/{botId}', function($botId) {
+    $controller = new BotController();
+    $controller->getBotStatus($botId);
+});
+
+Route::get('/api/bot/music/queue', function() {
+    $controller = new BotController();
+    $controller->getMusicQueue();
+});
+
 
 Route::get('/debug', function() {
     if (session_status() === PHP_SESSION_NONE) {

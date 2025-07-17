@@ -9,6 +9,7 @@ class BotHandler extends EventEmitter {
     static processedMessages = new Set();
     static botEventEmitter = new EventEmitter();
     static botVoiceParticipants = new Map();
+    static musicQueues = new Map();
 
     static async registerBot(botId, username) {
         console.log(`🤖 [BOT-DEBUG] Registering bot:`, {
@@ -245,8 +246,8 @@ class BotHandler extends EventEmitter {
 
         let voiceChannelToJoin = null;
         
-        const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue', 'join'];
-        const leaveCommands = ['stop', 'leave'];
+        const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue', 'list'];
+        const leaveCommands = ['stop'];
         const commandKeyword = content.split(' ')[1] || '';
         const requiresVoice = voiceRequiredCommands.includes(commandKeyword);
         const requiresLeave = leaveCommands.includes(commandKeyword);
@@ -262,60 +263,31 @@ class BotHandler extends EventEmitter {
 
         if (content === '/titibot ping') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'ping');
-        } else if (content === '/titibot join') {
-
-            if (voiceChannelToJoin) {
-                await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
-                await this.sendBotResponse(io, data, messageType, botId, username, 'join_success');
-            } else {
-                await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice');
-            }
-        } else if (content === '/titibot leave') {
-
-            let channelIdForLeave = voiceChannelToJoin;
-            if (!channelIdForLeave) {
-
-                for (const key of this.botVoiceParticipants.keys()) {
-                    if (key.startsWith(`${botId}-`)) {
-                        channelIdForLeave = key.split('-')[1];
-                        break;
-                    }
-                }
-            }
-            if (channelIdForLeave) {
-                await this.leaveBotFromVoiceChannel(io, botId, channelIdForLeave);
-                await this.sendBotResponse(io, data, messageType, botId, username, 'leave_success');
-            } else {
-                await this.sendBotResponse(io, data, messageType, botId, username, 'not_in_voice_to_leave');
-            }
         } else if (content.startsWith('/titibot play ')) {
             const songName = content.substring('/titibot play '.length).trim();
 
             if (voiceChannelToJoin) {
                 await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
-                
-                const musicCommandData = {
-                    channel_id: voiceChannelToJoin,
-                    music_data: {
-                        action: 'play',
-                        query: songName
-                    },
-                    bot_id: botId,
-                    timestamp: Date.now()
-                };
-                
-                io.to(`voice_channel_${voiceChannelToJoin}`).emit('bot-music-command', musicCommandData);
-                io.to(`channel-${voiceChannelToJoin}`).emit('bot-music-command', musicCommandData);
-            } else {
-                console.warn(`⚠️ [BOT-DEBUG] No voice channel context for PLAY command - music will play without bot joining`);
             }
             
             await this.sendBotResponse(io, data, messageType, botId, username, 'play', songName);
         } else if (content === '/titibot stop') {
-
-
+            if (voiceChannelToJoin) {
+                await this.leaveBotFromVoiceChannel(io, botId, voiceChannelToJoin);
+            } else {
+                for (const key of this.botVoiceParticipants.keys()) {
+                    if (key.startsWith(`${botId}-`)) {
+                        const channelIdForLeave = key.split('-')[1];
+                        await this.leaveBotFromVoiceChannel(io, botId, channelIdForLeave);
+                        break;
+                    }
+                }
+            }
             await this.sendBotResponse(io, data, messageType, botId, username, 'stop');
         } else if (content === '/titibot next') {
+            if (voiceChannelToJoin) {
+                await this.joinBotToVoiceChannel(io, botId, username, voiceChannelToJoin);
+            }
             await this.sendBotResponse(io, data, messageType, botId, username, 'next');
         } else if (content === '/titibot prev') {
             await this.sendBotResponse(io, data, messageType, botId, username, 'prev');
@@ -324,6 +296,8 @@ class BotHandler extends EventEmitter {
             await this.sendBotResponse(io, data, messageType, botId, username, 'queue', songName);
         } else if (content.startsWith('/titibot help')) {
             await this.sendBotResponse(io, data, messageType, botId, username, 'help');
+        } else if (content === '/titibot list') {
+            await this.sendBotResponse(io, data, messageType, botId, username, 'list');
         }
     }
 
@@ -590,25 +564,12 @@ class BotHandler extends EventEmitter {
             case 'help':
                 responseContent = `🤖 **TitiBot Commands:**
 📻 **/titibot ping** - Cek apakah botnya aktif
-🎵 **/titibot join** - Join ke voice channel
-👋 **/titibot leave** - Leave dari voice channel
 🎵 **/titibot play [song]** - Nyanyi musig 
-⏹️ **/titibot stop** - Stop musig (tetap di voice channel)
+⏹️ **/titibot stop** - Stop musig dan keluar dari voice channel
 ⏭️ **/titibot next** - Nyanyi musig selanjutnya
 ⏮️ **/titibot prev** - Nyanyi musig sebelumnya
-➕ **/titibot queue [song]** - Tambahin ke list`;
-                break;
-
-            case 'join_success':
-                responseContent = '🎤 Haloo! Saya udah masuk ke voice channel nih, siap nyanyi!';
-                break;
-
-            case 'leave_success':
-                responseContent = '👋 Dah dah! Saya keluar dulu dari voice channel ya~';
-                break;
-
-            case 'not_in_voice_to_leave':
-                responseContent = '❌ Saya ga ada di voice channel manapun nih, gabisa keluar dong';
+➕ **/titibot queue [song]** - Tambahin ke list
+📋 **/titibot list** - Lihat daftar lagu dalam queue`;
                 break;
 
             case 'play':
@@ -623,6 +584,22 @@ class BotHandler extends EventEmitter {
                             query: parameter,
                             track: searchResult
                         };
+                        
+                        const playChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                        if (playChannelKey) {
+                            if (!this.musicQueues.has(playChannelKey)) {
+                                this.musicQueues.set(playChannelKey, []);
+                            }
+                            const queue = this.musicQueues.get(playChannelKey);
+                            queue.forEach(song => song.isCurrentlyPlaying = false);
+                            queue.unshift({
+                                title: searchResult.title,
+                                artist: searchResult.artist,
+                                previewUrl: searchResult.previewUrl,
+                                addedAt: new Date().toISOString(),
+                                isCurrentlyPlaying: true
+                            });
+                        }
                     } else {
                         responseContent = `❌ Sorry bang, ga nemu lagu "${parameter}" di iTunes. Coba judul lagu yang lain ya~`;
                     }
@@ -630,18 +607,81 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'stop':
-                responseContent = '⏹️ Musig dihentikan! Saya tetap di voice channel ya~';
+                const stopChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                if (stopChannelKey && this.musicQueues.has(stopChannelKey)) {
+                    const queueLength = this.musicQueues.get(stopChannelKey).length;
+                    this.musicQueues.delete(stopChannelKey);
+                    responseContent = `⏹️ Music stopped! Cleared ${queueLength} song(s) from queue. Saya keluar dari voice channel ya~`;
+                } else {
+                    responseContent = '⏹️ Music stopped! Saya keluar dari voice channel ya~';
+                }
                 musicData = { action: 'stop' };
                 break;
 
             case 'next':
-                responseContent = '⏭️ Mainin musig selanjutnya';
-                musicData = { action: 'next' };
+                const nextChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                if (nextChannelKey && this.musicQueues.has(nextChannelKey)) {
+                    const queue = this.musicQueues.get(nextChannelKey);
+                    if (queue.length > 1) {
+                        let currentPlayingIndex = queue.findIndex(song => song.isCurrentlyPlaying);
+                        if (currentPlayingIndex === -1) {
+                            currentPlayingIndex = 0;
+                            queue.forEach(song => song.isCurrentlyPlaying = false);
+                            queue[0].isCurrentlyPlaying = true;
+                        }
+                        if (currentPlayingIndex < queue.length - 1) {
+                            queue.forEach(song => song.isCurrentlyPlaying = false);
+                            queue[currentPlayingIndex + 1].isCurrentlyPlaying = true;
+                            const nextTrack = queue[currentPlayingIndex + 1];
+                            responseContent = `⏭️ Next song: **${nextTrack.title}** by **${nextTrack.artist}**`;
+                            musicData = { 
+                                action: 'next',
+                                track: nextTrack
+                            };
+                        } else {
+                            responseContent = '❌ Already at the last song in queue';
+                        }
+                    } else if (queue.length === 1) {
+                        responseContent = '❌ No next song in queue. Add more songs with `/titibot queue [song name]`';
+                    } else {
+                        responseContent = '❌ Queue is empty. Add songs first with `/titibot play [song name]` or `/titibot queue [song name]`';
+                    }
+                } else {
+                    responseContent = '❌ No music queue found for this channel';
+                }
                 break;
 
             case 'prev':
-                responseContent = '⏮️ Mainin musig sebelumnya';
-                musicData = { action: 'prev' };
+                const prevChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                if (prevChannelKey && this.musicQueues.has(prevChannelKey)) {
+                    const queue = this.musicQueues.get(prevChannelKey);
+                    if (queue.length > 1) {
+                        let currentPlayingIndex = queue.findIndex(song => song.isCurrentlyPlaying);
+                        if (currentPlayingIndex === -1) {
+                            currentPlayingIndex = 0;
+                            queue.forEach(song => song.isCurrentlyPlaying = false);
+                            queue[0].isCurrentlyPlaying = true;
+                        }
+                        if (currentPlayingIndex > 0) {
+                            queue.forEach(song => song.isCurrentlyPlaying = false);
+                            queue[currentPlayingIndex - 1].isCurrentlyPlaying = true;
+                            const prevTrack = queue[currentPlayingIndex - 1];
+                            responseContent = `⏮️ Previous song: **${prevTrack.title}** by **${prevTrack.artist}**`;
+                            musicData = { 
+                                action: 'prev',
+                                track: prevTrack
+                            };
+                        } else {
+                            responseContent = '❌ Already at the first song in queue';
+                        }
+                    } else if (queue.length === 1) {
+                        responseContent = '❌ No previous song in queue. Add more songs with `/titibot queue [song name]`';
+                    } else {
+                        responseContent = '❌ Queue is empty. Add songs first with `/titibot play [song name]` or `/titibot queue [song name]`';
+                    }
+                } else {
+                    responseContent = '❌ No music queue found for this channel';
+                }
                 break;
 
             case 'queue':
@@ -656,9 +696,48 @@ class BotHandler extends EventEmitter {
                             query: parameter,
                             track: searchResult
                         };
+                        
+                        const queueChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                        if (queueChannelKey) {
+                            if (!this.musicQueues.has(queueChannelKey)) {
+                                this.musicQueues.set(queueChannelKey, []);
+                            }
+                            this.musicQueues.get(queueChannelKey).push({
+                                title: searchResult.title,
+                                artist: searchResult.artist,
+                                previewUrl: searchResult.previewUrl,
+                                addedAt: new Date().toISOString()
+                            });
+                        }
                     } else {
                         responseContent = `❌ Sorry bang, ga nemu lagu "${parameter}" buat di queue. Coba judul lagu yang lain ya~`;
                     }
+                }
+                break;
+
+            case 'list':
+                const listChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                const queue = this.musicQueues.get(listChannelKey) || [];
+                
+                if (queue.length === 0) {
+                    responseContent = `📋 **Current Music Queue:**
+❌ Queue kosong nih bang, tambahin lagu dulu pake \`/titibot queue [nama lagu]\`
+
+🎵 **Contoh penggunaan:**
+• \`/titibot queue never gonna give you up\`
+• \`/titibot queue bohemian rhapsody\`
+• \`/titibot play despacito\``;
+                } else {
+                    responseContent = `📋 **Current Music Queue (${queue.length} songs):**\n\n`;
+                    queue.forEach((song, index) => {
+                        const status = song.isCurrentlyPlaying ? '🎵 **(Now Playing)**' : '';
+                        const number = `**${index + 1}.**`;
+                        responseContent += `${number} **${song.title}** by **${song.artist}** ${status}\n`;
+                    });
+                    responseContent += `\n🎮 **Commands:**
+• \`/titibot next\` - Skip to next song
+• \`/titibot prev\` - Go to previous song
+• \`/titibot stop\` - Stop music and clear queue`;
                 }
                 break;
 
