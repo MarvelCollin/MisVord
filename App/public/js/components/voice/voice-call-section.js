@@ -943,7 +943,7 @@ class VoiceCallSection {
         const count = grid.children.length;
         
         if (count === 0 || count === 1) {
-            grid.className = "w-full h-full grid gap-3 grid-cols-1 place-items-center";
+            grid.className = "w-full h-full grid gap-3 grid-cols-1 place-items-stretch";
         } else if (count === 2) {
             grid.className = "w-full h-full grid gap-3 grid-cols-2";
         } else if (count <= 4) {
