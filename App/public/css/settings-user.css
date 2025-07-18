@@ -1103,6 +1103,43 @@ button:hover::before {
     box-shadow: 0 4px 12px rgba(240, 71, 71, 0.4);
 }
 
+.mic-visualizer-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mic-visualizer {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 40px;
+    padding: 8px 12px;
+}
+
+.visualizer-bar {
+    width: 3px;
+    height: 4px;
+    background: #4e5058;
+    border-radius: 2px;
+    transition: all 0.1s ease;
+}
+
+.visualizer-bar.active {
+    background: #23a559;
+    height: 12px;
+}
+
+.visualizer-bar.medium {
+    background: #f0b232;
+    height: 20px;
+}
+
+.visualizer-bar.high {
+    background: #f23f43;
+    height: 28px;
+}
+
 
 #approve-username {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

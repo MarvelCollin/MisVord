@@ -356,7 +356,7 @@ class VoiceVideoSettings {
     startVisualizer() {
         const bufferLength = this.analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
-        const bars = document.querySelectorAll('.visualizer-bars .bar');
+        const bars = document.querySelectorAll('.visualizer-bar');
         
         let lastDataSum = 0;
         let unchangedCount = 0;
@@ -515,7 +515,7 @@ class VoiceVideoSettings {
                 this.analyser = null;
             }
             
-            const bars = document.querySelectorAll('.visualizer-bars .bar');
+            const bars = document.querySelectorAll('.visualizer-bar');
             bars.forEach(bar => {
                 bar.classList.remove('active', 'medium', 'high');
             });

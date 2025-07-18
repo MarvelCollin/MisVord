@@ -392,15 +392,18 @@ class UserProfileVoiceControls {
                 
                 window.voiceManager.meeting?.participants.forEach(participant => {
                     if (participant.id !== window.voiceManager.localParticipant?.id) {
-                        participant.streams.forEach(stream => {
-                            if (stream.kind === 'audio') {
-                                if (newDeafenedState) {
-                                    stream.pause();
-                                } else {
-                                    stream.resume();
+                        const participantData = window.voiceManager.participants.get(participant.id);
+                        if (participantData && participantData.streams) {
+                            participantData.streams.forEach((stream, kind) => {
+                                if (kind === 'audio' && stream.track) {
+                                    if (newDeafenedState) {
+                                        stream.track.enabled = false;
+                                    } else {
+                                        stream.track.enabled = true;
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
                 });
             }

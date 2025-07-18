@@ -347,27 +347,27 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <button id="mic-test-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
                                     Let's Check
                                 </button>
-                                <div class="flex-1 mic-visualizer">
-                                    <div class="visualizer-bars">
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
-                                        <div class="bar"></div>
+                                <div class="mic-visualizer-container">
+                                    <div class="mic-visualizer">
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
+                                        <div class="visualizer-bar"></div>
                                         <div class="bar"></div>
                                     </div>
                                 </div>

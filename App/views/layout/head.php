@@ -135,6 +135,7 @@ if ($isVPS && $vpsHost !== 'localhost') {
 <link rel="stylesheet" href="<?= asset('/css/user-detail.css') ?>">
 
 <link rel="stylesheet" href="<?= asset('/css/server-dropdown.css') ?>?v=<?php echo time(); ?>">
+<link rel="stylesheet" href="<?= asset('/css/voice-activity-indicators.css') ?>?v=<?php echo $cache_version; ?>">
 
 <?php if (isset($page_css)): ?>
     <?php if (is_array($page_css)): ?>
@@ -161,6 +162,7 @@ if ($isVPS && $vpsHost !== 'localhost') {
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" crossorigin="anonymous"></script>
     <script src="/public/js/debug/socket-diagnostics.js?v=<?php echo $cache_version; ?>"></script>
     <script src="/public/js/components/bot/music-player-system.js?v=<?php echo $cache_version; ?>"></script>
+    <script src="/public/js/components/voice/voice-activity-detector.js?v=<?php echo $cache_version; ?>"></script>
     
     <script>
     

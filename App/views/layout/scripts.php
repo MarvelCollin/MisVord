@@ -102,11 +102,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script src="<?php echo js('utils/lazy-loader'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('utils/debug-logging'); ?>?v=<?php echo time(); ?>" type="module"></script>
-<script type="module">
-    import { LocalStorageManager } from '<?php echo js('utils/local-storage-manager'); ?>?v=<?php echo time(); ?>';
-    window.localStorageManager = new LocalStorageManager();
-    console.log('LocalStorageManager initialized:', window.localStorageManager);
-</script>
+<script src="<?php echo js('utils/local-storage-manager'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script type="module" src="<?php echo asset('/js/utils/music-loader-static.js'); ?>"></script>
 <script src="<?php echo js('main'); ?>?v=<?php echo time(); ?>" type="module"></script>
 
 <?php if (isset($page_js)): ?>
@@ -133,7 +130,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 <script src="<?php echo asset('/js/components/voice/voice-events.js'); ?>"></script>
-<script type="module" src="<?php echo asset('/js/utils/music-loader-static.js'); ?>"></script>
 <script src="<?php echo asset('/js/components/voice/voice-manager.js'); ?>"></script>
 <?php endif; ?>
 

@@ -456,13 +456,16 @@ class VoiceManager {
                 this.meeting.participants.forEach(participant => {
                     if (participant.id !== this.localParticipant?.id) {
                         try {
-                            participant.streams.forEach(stream => {
-                                if (stream.kind === 'audio') {
-                                    stream.pause();
-                                }
-                            });
+                            const participantData = this.participants.get(participant.id);
+                            if (participantData && participantData.streams) {
+                                participantData.streams.forEach((stream, kind) => {
+                                    if (kind === 'audio' && stream.track) {
+                                        stream.track.enabled = false;
+                                    }
+                                });
+                            }
                         } catch (error) {
-                            console.warn('Could not pause audio stream during sync:', participant.id);
+                            console.warn('Could not disable audio track during sync:', participant.id);
                         }
                     }
                 });
@@ -683,13 +686,16 @@ class VoiceManager {
         if (this._deafened && participant.id !== this.localParticipant?.id) {
             setTimeout(() => {
                 try {
-                    participant.streams.forEach(stream => {
-                        if (stream.kind === 'audio') {
-                            stream.pause();
-                        }
-                    });
+                    const participantData = this.participants.get(participant.id);
+                    if (participantData && participantData.streams) {
+                        participantData.streams.forEach((stream, kind) => {
+                            if (kind === 'audio' && stream.track) {
+                                stream.track.enabled = false;
+                            }
+                        });
+                    }
                 } catch (error) {
-                    console.warn('Could not pause audio stream for new participant:', participant.id);
+                    console.warn('Could not disable audio track for new participant:', participant.id);
                 }
             }, 100);
         }
@@ -737,9 +743,11 @@ class VoiceManager {
             
             if (this._deafened && participant.id !== this.localParticipant?.id && stream.kind === 'audio') {
                 try {
-                    stream.pause();
+                    if (stream.track) {
+                        stream.track.enabled = false;
+                    }
                 } catch (error) {
-                    console.warn('Could not pause audio stream for participant:', participant.id);
+                    console.warn('Could not disable audio track for participant:', participant.id);
                 }
             }
             
@@ -961,21 +969,27 @@ class VoiceManager {
                 
                 this.meeting.participants.forEach(participant => {
                     if (participant.id !== this.localParticipant.id) {
-                        participant.streams.forEach(stream => {
-                            if (stream.kind === 'audio') {
-                                stream.pause();
-                            }
-                        });
+                        const participantData = this.participants.get(participant.id);
+                        if (participantData && participantData.streams) {
+                            participantData.streams.forEach((stream, kind) => {
+                                if (kind === 'audio' && stream.track) {
+                                    stream.track.enabled = false;
+                                }
+                            });
+                        }
                     }
                 });
             } else {
                 this.meeting.participants.forEach(participant => {
                     if (participant.id !== this.localParticipant.id) {
-                        participant.streams.forEach(stream => {
-                            if (stream.kind === 'audio') {
-                                stream.resume();
-                            }
-                        });
+                        const participantData = this.participants.get(participant.id);
+                        if (participantData && participantData.streams) {
+                            participantData.streams.forEach((stream, kind) => {
+                                if (kind === 'audio' && stream.track) {
+                                    stream.track.enabled = true;
+                                }
+                            });
+                        }
                     }
                 });
             }
