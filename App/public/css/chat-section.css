@@ -60,7 +60,7 @@
   padding: 0;
   background-color: #313338;
   position: relative;
-  scroll-behavior: smooth; 
+  scroll-behavior: auto !important;
 }
 
 
@@ -70,6 +70,7 @@
   flex-direction: column;
   will-change: transform; 
   backface-visibility: hidden; 
+  scroll-behavior: auto !important;
 }
 
 #chat-messages .messages-container.min-h-full {

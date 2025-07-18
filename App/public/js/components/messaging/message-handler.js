@@ -999,14 +999,7 @@ class MessageHandler {
                 }
                 
                 if (this.isFirstTimeLoad && this.chatSection) {
-                    if (this.chatSection.shouldAutoScroll()) {
-                        this.chatSection.scrollToBottom();
-                    } else {
-                        const messagesContainer = this.chatSection.getMessagesContainer();
-                        if (messagesContainer) {
-                            messagesContainer.scrollTop = 0;
-                        }
-                    }
+                    this.chatSection.scrollToBottom();
                 }
                 
                 this.isFirstTimeLoad = false;

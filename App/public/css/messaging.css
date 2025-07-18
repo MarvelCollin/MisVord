@@ -2,7 +2,7 @@
 
 
 #chat-messages {
-    scroll-behavior: smooth;
+    scroll-behavior: auto !important;
     scrollbar-width: thin;
     scrollbar-color: #202225 #2f3136;
 }
@@ -462,7 +462,7 @@
 
 
 #chat-messages {
-    scroll-behavior: smooth;
+    scroll-behavior: auto !important;
     scrollbar-width: thin;
     scrollbar-color: #202225 #2f3136;
 }

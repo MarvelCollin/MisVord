@@ -2362,19 +2362,10 @@ class ChatSection {
         }
         
         try {
-            this.isAutoScrolling = true;
-
-            this.chatMessages.style.scrollBehavior = 'smooth';
             this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
             this.userHasScrolled = false;
-            setTimeout(() => {
-                this.isAutoScrolling = false;
-
-                this.chatMessages.style.scrollBehavior = 'auto';
-            }, 300);
         } catch (error) {
             console.error('❌ [CHAT-SECTION] Failed to scroll to bottom:', error);
-            this.isAutoScrolling = false;
         }
     }
     
@@ -2386,7 +2377,12 @@ class ChatSection {
     scrollToBottomIfAppropriate(isChannelSwitch = false) {
         if (!this.chatMessages) return;
         
-        if (!this.isInitialized || isChannelSwitch) {
+        if (isChannelSwitch) {
+            this.scrollToBottom();
+            return;
+        }
+        
+        if (!this.isInitialized) {
             if (this.shouldAutoScroll()) {
                 this.scrollToBottom();
             } else {
@@ -2569,10 +2565,6 @@ class ChatSection {
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer && messagesContainer !== realContentContainer) {
             messagesContainer.innerHTML = '';
-        }
-        
-        if (this.chatMessages) {
-            this.chatMessages.scrollTop = 0;
         }
         
         this.userHasScrolled = false;
