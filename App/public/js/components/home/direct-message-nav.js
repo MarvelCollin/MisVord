@@ -50,7 +50,6 @@ class DirectMessageNavigation {
             
             if (this.dmSwitcher) {
                 this.dmSwitcher.highlightActiveDM(dmId);
-                this.dmSwitcher.updateMetaTags(dmId, 'dm');
             }
             
             if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {

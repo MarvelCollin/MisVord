@@ -50,7 +50,6 @@ class MusicPlayerSystem {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext && !this._audioContext) {
                 this._audioContext = new AudioContext();
-                console.log('🎵 [MUSIC-PLAYER] Created AudioContext, state:', this._audioContext.state);
             }
             
             this._audioInitialized = true;

@@ -1166,6 +1166,9 @@ class ChatSection {
                         requestAnimationFrame(() => {
                             const messagesContainer = this.getMessagesContainer();
                             if (messagesContainer && messagesContainer.children.length > 0) {
+                                if (options.isChannelSwitch) {
+                                    this.scrollToBottomIfAppropriate(true);
+                                }
                                 resolve();
                             } else {
                                 setTimeout(resolve, 100);
@@ -2375,12 +2378,16 @@ class ChatSection {
         }
     }
     
+    shouldAutoScroll() {
+        const messageCount = this.getTotalMessageCount();
+        return messageCount <= 6;
+    }
+    
     scrollToBottomIfAppropriate(isChannelSwitch = false) {
         if (!this.chatMessages) return;
         
         if (!this.isInitialized || isChannelSwitch) {
-            const messageCount = this.getTotalMessageCount();
-            if (messageCount === 0 || messageCount <= 6) {
+            if (this.shouldAutoScroll()) {
                 this.scrollToBottom();
             } else {
                 this.chatMessages.scrollTop = 0;
@@ -3237,9 +3244,7 @@ class ChatSection {
         if (!this.chatMessages) return;
         
         if (isOwnMessage) {
-            const totalMessageCount = this.getTotalMessageCount();
-            
-            if (totalMessageCount <= 6) {
+            if (this.shouldAutoScroll()) {
                 this.scrollToBottom();
                 return;
             }

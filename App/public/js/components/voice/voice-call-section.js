@@ -219,6 +219,11 @@ class VoiceCallSection {
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
         
+        document.addEventListener("visibilitychange", () => {
+            if (!document.hidden) {
+                this.syncButtonStates();
+            }
+        });
 
         if (window.globalSocketManager?.io) {
             this.setupSocketListeners();
@@ -240,6 +245,7 @@ class VoiceCallSection {
                     this.currentMeetingId = null;
                     this.updateConnectionStatus(false);
                 }
+                this.syncButtonStates();
             });
         }
     }
@@ -445,6 +451,7 @@ class VoiceCallSection {
         }
         
         this.updateLocalParticipantIndicators();
+        this.syncButtonStates();
     }
     
     syncWithExistingParticipants() {
@@ -503,6 +510,7 @@ class VoiceCallSection {
         if (determinedChannelId) {
             this.currentChannelId = determinedChannelId;
             this.currentChannelName = determinedChannelName;
+            this.syncButtonStates();
             return true;
         }
         

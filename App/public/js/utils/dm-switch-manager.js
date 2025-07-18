@@ -71,30 +71,9 @@ class SimpleDMSwitcher {
         
         if (dmMatch) {
             const dmId = dmMatch[1];
-            
-            
             this.currentDMId = dmId;
             this.highlightActiveDM(dmId);
             this.showChatSection();
-            this.updateMetaTags(dmId, 'dm');
-            
-            if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-                
-                window.chatSection.switchToDM(dmId, 'direct');
-            } else {
-                
-                const waitForChatSection = () => {
-                    if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-                        
-                        window.chatSection.switchToDM(dmId, 'direct');
-                    } else {
-                        requestAnimationFrame(waitForChatSection);
-                    }
-                };
-                waitForChatSection();
-            }
-        } else {
-            
         }
     }
     
@@ -107,20 +86,6 @@ class SimpleDMSwitcher {
             this.currentDMId = dmId;
             this.highlightActiveDM(dmId);
             this.showChatSection();
-            this.updateMetaTags(dmId, 'dm');
-            
-            if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-                window.chatSection.switchToDM(dmId, 'direct');
-            } else {
-                const waitForChatSection = () => {
-                    if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-                        window.chatSection.switchToDM(dmId, 'direct');
-                    } else {
-                        requestAnimationFrame(waitForChatSection);
-                    }
-                };
-                waitForChatSection();
-            }
         }
     }
     
@@ -128,27 +93,8 @@ class SimpleDMSwitcher {
         if (this.isLoading) return;
         
         this.isLoading = true;
-        this.currentDMId = dmId;
-        this.currentDMType = roomType;
         
-        this.highlightActiveDM(dmId);
-        this.showChatSection();
-        
-        if (window.chatSection && typeof window.chatSection.switchToDM === 'function') {
-            try {
-                await window.chatSection.switchToDM(dmId, roomType);
-                this.updateURL(dmId);
-                this.updateMetaTags(dmId, 'dm');
-                this.updatePageTitle(username, 'dm');
-            } catch (error) {
-                console.error('❌ [DM-SWITCH] Error switching to DM:', error);
-                window.location.href = `/home/channels/dm/${dmId}`;
-            }
-        } else {
-            window.location.href = `/home/channels/dm/${dmId}`;
-        }
-        
-        this.isLoading = false;
+        window.location.href = `/home/channels/dm/${dmId}`;
     }
     
     async switchToFriends() {
@@ -179,8 +125,6 @@ class SimpleDMSwitcher {
     }
     
     clearActiveDM() {
-
-        
         this.currentDMId = null;
         
         document.querySelectorAll('.dm-friend-item').forEach(item => {
@@ -190,64 +134,9 @@ class SimpleDMSwitcher {
         this.showChatSection();
     }
     
-    updateURL(dmId) {
-        const url = `/home/channels/dm/${dmId}`;
-        if (window.history && window.history.pushState) {
-            window.history.pushState({ dmId: dmId, type: 'dm' }, '', url);
-        }
-    }
-    
-    updateFriendsURL() {
-        const url = '/home/friends?tab=online';
-        if (window.history && window.history.pushState) {
-            window.history.pushState({ type: 'friends' }, '', url);
-        }
-    }
-    
-    updateMetaTags(dmId, type) {
-        let metaChatId = document.querySelector('meta[name="chat-id"]');
-        let metaChatType = document.querySelector('meta[name="chat-type"]');
-        let metaChannelId = document.querySelector('meta[name="channel-id"]');
-        
-        if (!metaChatId) {
-            metaChatId = document.createElement('meta');
-            metaChatId.name = 'chat-id';
-            document.head.appendChild(metaChatId);
-        }
-        
-        if (!metaChatType) {
-            metaChatType = document.createElement('meta');
-            metaChatType.name = 'chat-type';
-            document.head.appendChild(metaChatType);
-        }
-        
-        if (!metaChannelId) {
-            metaChannelId = document.createElement('meta');
-            metaChannelId.name = 'channel-id';
-            document.head.appendChild(metaChannelId);
-        }
-        
-        if (type === 'friends') {
-            metaChatId.content = '';
-            metaChatType.content = 'friends';
-            metaChannelId.content = '';
-        } else {
-            metaChatId.content = dmId;
-            metaChatType.content = 'direct';
-            metaChannelId.content = dmId;
-        }
-        
-        console.log('✅ [DM-SWITCH] Meta tags updated:', {
-            chatId: metaChatId.content,
-            chatType: metaChatType.content,
-            channelId: metaChannelId.content
-        });
-    }
-    
-    updatePageTitle(name, type) {
-        const title = type === 'friends' ? 'MisVord - Friends' : `MisVord - ${name}`;
-        document.title = title;
-
+    updateMetaTags() {
+        // No longer needed since we use page reloads
+        // This stub prevents errors from cached code
     }
     
     getCurrentDMId() {
