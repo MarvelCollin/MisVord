@@ -1358,6 +1358,29 @@ function getStatusDisplayName(status) {
 }
 
 function initVoiceVideoSection() {
+    const voiceTabs = document.querySelectorAll('.voice-tab');
+    const voiceContent = document.getElementById('voice-content');
+    const videoContent = document.getElementById('video-content');
+    
+    voiceTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            
+            voiceTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            
+            if (targetTab === 'voice') {
+                voiceContent.classList.remove('hidden');
+                videoContent.classList.add('hidden');
+            } else {
+                voiceContent.classList.add('hidden');
+                videoContent.classList.remove('hidden');
+            }
+        });
+    });
+
+    initVolumeControls();
+    
     import('/public/js/components/settings/mic-video-check.js')
         .then(module => {
             module.initVoiceVideoSettings();
@@ -1369,6 +1392,50 @@ function initVoiceVideoSection() {
         .catch(err => {
             console.error('Error loading voice video settings:', err);
         });
+}
+
+function initVolumeControls() {
+    const inputVolumeSlider = document.getElementById('input-volume');
+    const outputVolumeSlider = document.getElementById('output-volume');
+    
+    if (inputVolumeSlider) {
+        const inputCard = inputVolumeSlider.closest('.volume-card');
+        const volumeValue = inputCard?.querySelector('.volume-value');
+        
+        inputVolumeSlider.addEventListener('input', function() {
+            if (volumeValue) {
+                volumeValue.textContent = this.value + '%';
+            }
+            updateVolumeGradient(this);
+        });
+        
+        updateVolumeGradient(inputVolumeSlider);
+        if (volumeValue) {
+            volumeValue.textContent = inputVolumeSlider.value + '%';
+        }
+    }
+    
+    if (outputVolumeSlider) {
+        const outputCard = outputVolumeSlider.closest('.volume-card');
+        const volumeValue = outputCard?.querySelector('.volume-value');
+        
+        outputVolumeSlider.addEventListener('input', function() {
+            if (volumeValue) {
+                volumeValue.textContent = this.value + '%';
+            }
+            updateVolumeGradient(this);
+        });
+        
+        updateVolumeGradient(outputVolumeSlider);
+        if (volumeValue) {
+            volumeValue.textContent = outputVolumeSlider.value + '%';
+        }
+    }
+}
+
+function updateVolumeGradient(slider) {
+    const value = (slider.value - slider.min) / (slider.max - slider.min) * 100;
+    slider.style.background = `linear-gradient(to right, #5865f2 0%, #5865f2 ${value}%, rgba(79, 84, 92, 0.4) ${value}%, rgba(79, 84, 92, 0.4) 100%)`;
 }
 
 function initBioHandling() {

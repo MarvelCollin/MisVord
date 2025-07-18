@@ -272,132 +272,178 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="p-10">
                 <div class="max-w-[740px]">
                     <div class="mb-8">
-                        <h1>Voice & Video</h1>
-                        <p>Configure your audio and video settings for the best communication experience</p>
+                        <h1 class="text-3xl font-bold text-white mb-3">Voice & Video</h1>
+                        <p class="text-gray-400">Configure your audio and video settings for the best communication experience</p>
                     </div>
 
-                    <div class="voice-video-tabs mb-6">
-                        <button class="voice-tab active" data-tab="voice">
-                            <i class="fas fa-microphone mr-2"></i>
-                            Voice
-                        </button>
-                        <button class="voice-tab" data-tab="video">
-                            <i class="fas fa-video mr-2"></i>
-                            Video
-                        </button>
+                    <div class="voice-video-tabs mb-8">
+                        <div class="tab-buttons">
+                            <button class="voice-tab active" data-tab="voice">
+                                <div class="tab-icon">
+                                    <i class="fas fa-microphone"></i>
+                                </div>
+                                <span>Voice</span>
+                            </button>
+                            <button class="voice-tab" data-tab="video">
+                                <div class="tab-icon">
+                                    <i class="fas fa-video"></i>
+                                </div>
+                                <span>Video</span>
+                            </button>
+                        </div>
                     </div>
 
                     <div id="voice-content" class="tab-content">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div class="bg-discord-darker rounded-lg p-6">
-                                <h3 class="text-lg font-medium mb-4">Input Device</h3>
-                                <div class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
-                                    <div id="current-input-device" class="text-discord-lighter">
-                                        <i class="fas fa-microphone mr-2"></i>
-                                        <span>Detecting device...</span>
+                        <div class="voice-section-grid">
+                            <div class="device-card input-device">
+                                <div class="device-header">
+                                    <div class="device-icon input">
+                                        <i class="fas fa-microphone"></i>
+                                    </div>
+                                    <h3>Input Device</h3>
+                                </div>
+                                <div class="device-selector">
+                                    <div id="current-input-device" class="selected-device">
+                                        <span class="device-name">Detecting device...</span>
+                                        <div class="device-status">
+                                            <div class="status-dot"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div class="bg-discord-darker rounded-lg p-6">
-                                <h3 class="text-lg font-medium mb-4">Output Device</h3>
-                                <div class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
-                                    <div id="current-output-device" class="text-discord-lighter">
-                                        <i class="fas fa-headphones mr-2"></i>
-                                        <span>Detecting device...</span>
+                            <div class="device-card output-device">
+                                <div class="device-header">
+                                    <div class="device-icon output">
+                                        <i class="fas fa-headphones"></i>
+                                    </div>
+                                    <h3>Output Device</h3>
+                                </div>
+                                <div class="device-selector">
+                                    <div id="current-output-device" class="selected-device">
+                                        <span class="device-name">Detecting device...</span>
+                                        <div class="device-status">
+                                            <div class="status-dot"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div id="bluetooth-warning" class="bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4 mb-6 hidden">
-                            <div class="flex items-center">
-                                <i class="fas fa-exclamation-triangle text-yellow-400 mr-3"></i>
-                                <span class="text-yellow-200">Using the same Bluetooth device for both input and output can potentially degrade audio quality.</span>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div class="bg-discord-darker rounded-lg p-6">
-                                <h3 class="text-lg font-medium mb-4">Input Volume</h3>
+                            <div class="volume-card input-volume">
+                                <div class="volume-header">
+                                    <h3>Input Volume</h3>
+                                    <span class="volume-value">50%</span>
+                                </div>
                                 <div class="volume-control">
                                     <input type="range" id="input-volume" class="volume-slider" min="0" max="100" value="50">
-                                    <div class="volume-indicator">
-                                        <div id="input-level" class="volume-level"></div>
+                                    <div class="volume-track">
+                                        <div class="volume-fill"></div>
+                                        <div class="volume-thumb"></div>
                                     </div>
+                                </div>
+                                <div class="volume-level-indicator">
+                                    <div id="input-level" class="level-bar"></div>
                                 </div>
                             </div>
 
-                            <div class="bg-discord-darker rounded-lg p-6">
-                                <h3 class="text-lg font-medium mb-4">Output Volume</h3>
+                            <div class="volume-card output-volume">
+                                <div class="volume-header">
+                                    <h3>Output Volume</h3>
+                                    <span class="volume-value">75%</span>
+                                </div>
                                 <div class="volume-control">
                                     <input type="range" id="output-volume" class="volume-slider" min="0" max="100" value="75">
-                                    <div class="volume-indicator">
-                                        <div id="output-level" class="volume-level"></div>
+                                    <div class="volume-track">
+                                        <div class="volume-fill"></div>
+                                        <div class="volume-thumb"></div>
+                                    </div>
+                                </div>
+                                <div class="volume-level-indicator">
+                                    <div id="output-level" class="level-bar"></div>
+                                </div>
+                            </div>
+
+                            <div class="mic-test-card">
+                                <div class="test-header">
+                                    <h3>Microphone Test</h3>
+                                    <p>Test your microphone to ensure it's working properly</p>
+                                </div>
+                                <div class="test-controls">
+                                    <button id="mic-test-btn" class="test-button mic-test">
+                                        <div class="button-content">
+                                            <i class="fas fa-play"></i>
+                                            <span>Start Test</span>
+                                        </div>
+                                    </button>
+                                    <div class="mic-visualizer-container">
+                                        <div class="mic-visualizer">
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                            <div class="visualizer-bar"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="bg-discord-darker rounded-lg p-6">
-                            <h3 class="text-lg font-medium mb-4">Mic Test</h3>
-                            <p class="text-discord-lighter mb-4">Having mic issues? Start a test and say something fun—we'll play your voice back to you.</p>
-                            
-                            <div class="flex items-center gap-4">
-                                <button id="mic-test-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors">
-                                    Let's Check
-                                </button>
-                                <div class="mic-visualizer-container">
-                                    <div class="mic-visualizer">
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="visualizer-bar"></div>
-                                        <div class="bar"></div>
-                                    </div>
-                                </div>
+                        <div id="bluetooth-warning" class="warning-banner hidden">
+                            <div class="warning-content">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Using the same Bluetooth device for both input and output may affect audio quality</span>
                             </div>
-
-
                         </div>
                     </div>
 
                     <div id="video-content" class="tab-content hidden">
-                        <div class="bg-discord-darker rounded-lg p-6 mb-6">
-                            <h3 class="text-lg font-medium mb-4">Camera Device</h3>
-                            <div class="w-full bg-discord-dark border border-gray-600 rounded-md px-3 py-2 text-white">
-                                <div id="current-video-device" class="text-discord-lighter">
-                                    <i class="fas fa-video mr-2"></i>
-                                    <span>Detecting camera...</span>
+                        <div class="video-section">
+                            <div class="video-device-card">
+                                <div class="device-header">
+                                    <div class="device-icon video">
+                                        <i class="fas fa-video"></i>
+                                    </div>
+                                    <h3>Camera Device</h3>
+                                </div>
+                                <div class="device-selector">
+                                    <div id="current-video-device" class="selected-device">
+                                        <span class="device-name">Detecting camera...</span>
+                                        <div class="device-status">
+                                            <div class="status-dot"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="mt-4">
-                                <button id="video-test-btn" class="bg-discord-blurple hover:bg-discord-blurple-dark text-white font-medium py-2 px-4 rounded flex items-center">
-                                    <i class="fas fa-camera mr-2"></i>
-                                    Test Video
-                                </button>
-                            </div>
-                            <div id="video-preview" class="mt-4 w-full max-w-md mx-auto bg-discord-dark rounded-lg overflow-hidden hidden">
-                                <video id="video-preview-element" class="w-full" autoplay playsinline muted></video>
+
+                            <div class="video-preview-card">
+                                <div class="preview-header">
+                                    <h3>Camera Preview</h3>
+                                    <button id="video-test-btn" class="test-button video-test">
+                                        <div class="button-content">
+                                            <i class="fas fa-play"></i>
+                                            <span>Test Camera</span>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="video-preview-container">
+                                    <div id="video-preview" class="video-preview">
+                                        <video id="video-preview-element" class="video-element" autoplay playsinline muted></video>
+                                        <div class="video-placeholder">
+                                            <div class="placeholder-icon">
+                                                <i class="fas fa-video"></i>
+                                            </div>
+                                            <span>Click "Test Camera" to preview your video</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-
 
                 </div>
             </div>

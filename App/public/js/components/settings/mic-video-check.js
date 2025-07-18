@@ -111,17 +111,20 @@ class VoiceVideoSettings {
         const inputDisplay = document.getElementById('current-input-device');
         if (inputDisplay) {         
             const defaultInputDevice = this.devices.input[0];
-            if (defaultInputDevice) {
-                inputDisplay.innerHTML = `
-                    <i class="fas fa-microphone mr-2 text-green-400"></i>
-                    <span>${defaultInputDevice.label || 'Default Microphone'}</span>
-                `;
+            const deviceName = inputDisplay.querySelector('.device-name');
+            const statusDot = inputDisplay.querySelector('.status-dot');
+            
+            if (defaultInputDevice && deviceName) {
+                deviceName.textContent = defaultInputDevice.label || 'Default Microphone';
+                if (statusDot) {
+                    statusDot.style.background = '#23a559';
+                }
                 this.addDebugInfo(`Displaying input device: ${defaultInputDevice.label}`);
-            } else {
-                inputDisplay.innerHTML = `
-                    <i class="fas fa-microphone mr-2 text-red-400"></i>
-                    <span>No microphone detected</span>
-                `;
+            } else if (deviceName) {
+                deviceName.textContent = 'No microphone detected';
+                if (statusDot) {
+                    statusDot.style.background = '#f23f43';
+                }
             }
         }
     }
@@ -130,17 +133,20 @@ class VoiceVideoSettings {
         const outputDisplay = document.getElementById('current-output-device');
         if (outputDisplay) {
             const defaultOutputDevice = this.devices.output[0];
-            if (defaultOutputDevice) {
-                outputDisplay.innerHTML = `
-                    <i class="fas fa-headphones mr-2 text-blue-400"></i>
-                    <span>${defaultOutputDevice.label || 'Default Speakers'}</span>
-                `;
+            const deviceName = outputDisplay.querySelector('.device-name');
+            const statusDot = outputDisplay.querySelector('.status-dot');
+            
+            if (defaultOutputDevice && deviceName) {
+                deviceName.textContent = defaultOutputDevice.label || 'Default Speakers';
+                if (statusDot) {
+                    statusDot.style.background = '#23a559';
+                }
                 this.addDebugInfo(`Displaying output device: ${defaultOutputDevice.label}`);
-            } else {
-                outputDisplay.innerHTML = `
-                    <i class="fas fa-headphones mr-2 text-red-400"></i>
-                    <span>No speakers detected</span>
-                `;
+            } else if (deviceName) {
+                deviceName.textContent = 'No speakers detected';
+                if (statusDot) {
+                    statusDot.style.background = '#f23f43';
+                }
             }
         }
     }
@@ -149,17 +155,20 @@ class VoiceVideoSettings {
         const videoDisplay = document.getElementById('current-video-device');
         if (videoDisplay) {
             const defaultVideoDevice = this.devices.video[0];
-            if (defaultVideoDevice) {
-                videoDisplay.innerHTML = `
-                    <i class="fas fa-video mr-2 text-purple-400"></i>
-                    <span>${defaultVideoDevice.label || 'Default Camera'}</span>
-                `;
+            const deviceName = videoDisplay.querySelector('.device-name');
+            const statusDot = videoDisplay.querySelector('.status-dot');
+            
+            if (defaultVideoDevice && deviceName) {
+                deviceName.textContent = defaultVideoDevice.label || 'Default Camera';
+                if (statusDot) {
+                    statusDot.style.background = '#23a559';
+                }
                 this.addDebugInfo(`Displaying video device: ${defaultVideoDevice.label}`);
-            } else {
-                videoDisplay.innerHTML = `
-                    <i class="fas fa-video mr-2 text-red-400"></i>
-                    <span>No camera detected</span>
-                `;
+            } else if (deviceName) {
+                deviceName.textContent = 'No camera detected';
+                if (statusDot) {
+                    statusDot.style.background = '#f23f43';
+                }
             }
         }
     }
@@ -408,14 +417,19 @@ class VoiceVideoSettings {
 
     async toggleMicTest() {
         const btn = document.getElementById('mic-test-btn');
+        const buttonContent = btn.querySelector('.button-content');
+        const icon = buttonContent?.querySelector('i');
+        const text = buttonContent?.querySelector('span');
         
         if (!this.micTest.isActive) {
             await this.startRealTimeMonitoring();
-            btn.textContent = 'Stop Test';
+            if (icon) icon.className = 'fas fa-stop';
+            if (text) text.textContent = 'Stop Test';
             btn.classList.add('recording');
         } else {
             this.stopRealTimeMonitoring();
-            btn.textContent = "Let's Check";
+            if (icon) icon.className = 'fas fa-play';
+            if (text) text.textContent = 'Start Test';
             btn.classList.remove('recording');
         }
     }
@@ -526,14 +540,19 @@ class VoiceVideoSettings {
 
     async toggleVideoTest() {
         const btn = document.getElementById('video-test-btn');
+        const buttonContent = btn.querySelector('.button-content');
+        const icon = buttonContent?.querySelector('i');
+        const text = buttonContent?.querySelector('span');
         
         if (!this.videoTest.isActive) {
             await this.startVideoTest();
-            btn.textContent = 'Stop Camera';
+            if (icon) icon.className = 'fas fa-stop';
+            if (text) text.textContent = 'Stop Camera';
             btn.classList.add('recording');
         } else {
             this.stopVideoTest();
-            btn.textContent = 'Test Camera';
+            if (icon) icon.className = 'fas fa-play';
+            if (text) text.textContent = 'Test Camera';
             btn.classList.remove('recording');
         }
     }
@@ -546,9 +565,9 @@ class VoiceVideoSettings {
 
             const videoPreview = document.getElementById('video-preview');
             const videoElement = document.getElementById('video-preview-element');
-            const videoTestBtn = document.getElementById('video-test-btn');
+            const videoPlaceholder = videoPreview?.querySelector('.video-placeholder');
 
-            if (!videoElement || !videoTestBtn) {
+            if (!videoElement) {
                 this.addDebugInfo('Video elements not found');
                 return;
             }
@@ -559,10 +578,9 @@ class VoiceVideoSettings {
             });
 
             videoElement.srcObject = stream;
-            videoPreview.classList.remove('hidden');
-            videoTestBtn.innerHTML = '<i class="fas fa-stop mr-2"></i>Stop Test';
-            videoTestBtn.classList.add('bg-red-500', 'hover:bg-red-600');
-            videoTestBtn.classList.remove('bg-discord-blurple', 'hover:bg-discord-blurple-dark');
+            if (videoPlaceholder) {
+                videoPlaceholder.style.display = 'none';
+            }
 
             this.videoTest.isActive = true;
             this.videoTest.videoStream = stream;
@@ -571,12 +589,6 @@ class VoiceVideoSettings {
             this.addDebugInfo('Video test started successfully');
         } catch (error) {
             this.addDebugInfo(`Failed to start video test: ${error.message}`);
-            const videoTestBtn = document.getElementById('video-test-btn');
-            if (videoTestBtn) {
-                videoTestBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Test Video';
-                videoTestBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-                videoTestBtn.classList.add('bg-discord-blurple', 'hover:bg-discord-blurple-dark');
-            }
         }
     }
 
@@ -598,16 +610,10 @@ class VoiceVideoSettings {
         }
 
         const videoPreview = document.getElementById('video-preview');
-        const videoTestBtn = document.getElementById('video-test-btn');
+        const videoPlaceholder = videoPreview?.querySelector('.video-placeholder');
 
-        if (videoPreview) {
-            videoPreview.classList.add('hidden');
-        }
-
-        if (videoTestBtn) {
-            videoTestBtn.innerHTML = '<i class="fas fa-camera mr-2"></i>Test Video';
-            videoTestBtn.classList.remove('bg-red-500', 'hover:bg-red-600');
-            videoTestBtn.classList.add('bg-discord-blurple', 'hover:bg-discord-blurple-dark');
+        if (videoPlaceholder) {
+            videoPlaceholder.style.display = 'flex';
         }
 
         this.videoTest.isActive = false;
