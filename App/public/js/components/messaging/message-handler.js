@@ -122,9 +122,7 @@ class MessageHandler {
         
         const isOwnMessage = (messageData.user_id || messageData.userId) == this.chatSection.userId;
         
-        if (!this.isFirstTimeLoad || isTemporary || isOwnMessage) {
-            this.chatSection.handleNewMessageScroll(isOwnMessage);
-        }
+        this.chatSection.handleNewMessageScroll(isOwnMessage);
         
 
     }
@@ -983,6 +981,11 @@ class MessageHandler {
         
         messagesContainer.innerHTML = '';
         
+        messagesContainer.style.display = 'flex';
+        messagesContainer.style.flexDirection = 'column';
+        messagesContainer.style.justifyContent = 'flex-end';
+        messagesContainer.style.minHeight = '100%';
+        
         messageElements.forEach(element => {
             messagesContainer.appendChild(element);
         });
@@ -998,8 +1001,10 @@ class MessageHandler {
                     setTimeout(() => window.processMentionCandidates(), 100);
                 }
                 
-                if (this.isFirstTimeLoad && this.chatSection) {
-                    this.chatSection.scrollToBottom();
+                if (this.chatSection) {
+                    requestAnimationFrame(() => {
+                        this.chatSection.scrollToBottom();
+                    });
                 }
                 
                 this.isFirstTimeLoad = false;

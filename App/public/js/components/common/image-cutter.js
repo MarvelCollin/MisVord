@@ -683,87 +683,25 @@ class ImageCutter {
             const { x, y, width, height } = this.cropArea;
             
             try {
-                const svgData = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-                    <defs>
-                        <clipPath id="crop-path">
-                            <rect x="0" y="0" width="${width}" height="${height}"/>
-                        </clipPath>
-                    </defs>
-                    <image href="${this.image.src}" x="${-x}" y="${-y}" width="${this.image.width}" height="${this.image.height}" clip-path="url(#crop-path)" preserveAspectRatio="none"/>
-                </svg>`;
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
                 
-                const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
+                canvas.width = width;
+                canvas.height = height;
                 
-                const svgImage = new Image();
-                svgImage.crossOrigin = "anonymous";
+                ctx.drawImage(
+                    this.image,
+                    x, y, width, height,
+                    0, 0, width, height
+                );
                 
-                svgImage.onload = () => {
-                    URL.revokeObjectURL(url);
-                    
-                    const hiddenImg = document.createElement('img');
-                    hiddenImg.style.cssText = `
-                        position: absolute;
-                        left: -10000px;
-                        top: -10000px;
-                        width: ${width}px;
-                        height: ${height}px;
-                    `;
-                    hiddenImg.crossOrigin = "anonymous";
-                    
-                    hiddenImg.onload = () => {
-                        document.body.appendChild(hiddenImg);
-                        
-                        setTimeout(() => {
-                            try {
-                                const finalSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
-                                    <foreignObject width="100%" height="100%">
-                                        <div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;background:url('${this.image.src}') ${-x}px ${-y}px no-repeat;background-size:${this.image.width}px ${this.image.height}px;"></div>
-                                    </foreignObject>
-                                </svg>`;
-                                
-                                const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(finalSvg);
-                                
-                                document.body.removeChild(hiddenImg);
-                                
-                                resolve({
-                                    dataUrl: dataUrl,
-                                    width: width,
-                                    height: height
-                                });
-                            } catch (error) {
-                                console.error('Error generating final image:', error);
-                                document.body.removeChild(hiddenImg);
-                                resolve({
-                                    dataUrl: this.image.src,
-                                    width: this.image.width,
-                                    height: this.image.height
-                                });
-                            }
-                        }, 50);
-                    };
-                    
-                    hiddenImg.onerror = () => {
-                        resolve({
-                            dataUrl: this.image.src,
-                            width: this.image.width,
-                            height: this.image.height
-                        });
-                    };
-                    
-                    hiddenImg.src = url;
-                };
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
                 
-                svgImage.onerror = () => {
-                    URL.revokeObjectURL(url);
-                    resolve({
-                        dataUrl: this.image.src,
-                        width: this.image.width,
-                        height: this.image.height
-                    });
-                };
-                
-                svgImage.src = url;
+                resolve({
+                    dataUrl: dataUrl,
+                    width: width,
+                    height: height
+                });
                 
             } catch (error) {
                 console.error('Error in getCroppedImage:', error);
@@ -777,19 +715,29 @@ class ImageCutter {
     }
 
     getBlob(callback) {
-        this.getCroppedImage().then(result => {
-            fetch(result.dataUrl)
-                .then(res => res.blob())
-                .then(blob => {
-                    const pngBlob = new Blob([blob], { type: 'image/png' });
-                    callback(pngBlob);
-                })
-                .catch(error => {
-                    console.error('Error converting to blob:', error);
-                    const emptyBlob = new Blob([], { type: 'image/png' });
-                    callback(emptyBlob);
-                });
-        });
+        const { x, y, width, height } = this.cropArea;
+        
+        try {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            ctx.drawImage(
+                this.image,
+                x, y, width, height,
+                0, 0, width, height
+            );
+            
+            canvas.toBlob((blob) => {
+                callback(blob || new Blob([], { type: 'image/png' }));
+            }, 'image/png', 1.0);
+            
+        } catch (error) {
+            console.error('Error converting to blob:', error);
+            callback(new Blob([], { type: 'image/png' }));
+        }
     }
 
     applyCrop() {

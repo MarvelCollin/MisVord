@@ -209,6 +209,8 @@ class SendReceiveHandler {
         
         this.chatSection.messageHandler.addMessage(tempMessageData);
         
+        this.chatSection.scrollToBottom();
+        
         this.sendStopTypingEvent();
 
         const messageData = {
