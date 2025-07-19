@@ -1166,10 +1166,10 @@ class ChatSection {
                         requestAnimationFrame(() => {
                             const messagesContainer = this.getMessagesContainer();
                             if (messagesContainer && messagesContainer.children.length > 0) {
-                                requestAnimationFrame(() => {
-                                    this.scrollToBottom();
-                                    resolve();
-                                });
+                                if (options.isChannelSwitch) {
+                                    this.scrollToBottomIfAppropriate(true);
+                                }
+                                resolve();
                             } else {
                                 setTimeout(resolve, 100);
                             }
@@ -2369,6 +2369,17 @@ class ChatSection {
         }
     }
     
+    shouldAutoScroll() {
+        if (!this.chatMessages) return false;
+        
+        try {
+            const { scrollHeight, clientHeight } = this.chatMessages;
+            return scrollHeight > clientHeight;
+        } catch (error) {
+            return false;
+        }
+    }
+    
     scrollToBottomIfAppropriate(isChannelSwitch = false) {
         if (!this.chatMessages) return;
         
@@ -2378,11 +2389,13 @@ class ChatSection {
         }
         
         if (!this.isInitialized) {
-            this.scrollToBottom();
+            if (this.shouldAutoScroll()) {
+                this.scrollToBottom();
+            }
             return;
         }
         
-        if (!this.userHasScrolled) {
+        if (!this.userHasScrolled && this.shouldAutoScroll()) {
             this.scrollToBottom();
             return;
         }
@@ -2460,9 +2473,6 @@ class ChatSection {
         if (realMessagesContainer) {
             if (realMessagesContainer.style.display === 'none') {
                 realMessagesContainer.style.display = 'flex';
-                realMessagesContainer.style.flexDirection = 'column';
-                realMessagesContainer.style.justifyContent = 'flex-end';
-                realMessagesContainer.style.minHeight = '100%';
             }
             const skeletonContainer = document.getElementById('chat-skeleton-loading');
             if (skeletonContainer) {
@@ -3229,7 +3239,40 @@ class ChatSection {
     handleNewMessageScroll(isOwnMessage = false) {
         if (!this.chatMessages) return;
         
-        this.scrollToBottom();
+        if (isOwnMessage) {
+            if (!this.userHasScrolled) {
+                if (this.shouldAutoScroll()) {
+                    this.scrollToBottom();
+                }
+                return;
+            }
+            
+            const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+            const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; 
+            
+            if (isAtBottom) {
+                this.scrollToBottom();
+            } else {
+                this.showNewMessageIndicator();
+            }
+            return;
+        }
+        
+        if (!this.userHasScrolled) {
+            if (this.shouldAutoScroll()) {
+                this.scrollToBottom();
+            }
+            return;
+        }
+        
+        const { scrollTop, scrollHeight, clientHeight } = this.chatMessages;
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 50; 
+        
+        if (isAtBottom) {
+            this.scrollToBottom();
+        } else {
+            this.showNewMessageIndicator();
+        }
     }
     
     showNewMessageIndicator() {

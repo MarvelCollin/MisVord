@@ -68,11 +68,9 @@
   padding: 16px 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
   will-change: transform; 
   backface-visibility: hidden; 
   scroll-behavior: auto !important;
-  min-height: 100%;
 }
 
 #chat-messages .messages-container.min-h-full {
@@ -80,18 +78,13 @@
 }
 
 #chat-messages .messages-container:not(.min-h-full) {
-  min-height: 100%;
+  min-height: 0;
 }
 
 #chat-messages .messages-container.items-center.justify-center {
   justify-content: center;
   align-items: center;
   min-height: 100%;
-}
-
-#chat-messages .messages-container:empty {
-  justify-content: center;
-  align-items: center;
 }
 
 
@@ -1265,8 +1258,6 @@ button {
         transform: translateY(0);
     }
 }
-
-
 
 .load-more-status {
     transition: all 0.3s ease;

@@ -303,11 +303,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <h3>Input Device</h3>
                                 </div>
                                 <div class="device-selector">
-                                    <div id="current-input-device" class="selected-device">
-                                        <span class="device-name">Detecting device...</span>
-                                        <div class="device-status">
-                                            <div class="status-dot"></div>
-                                        </div>
+                                    <select id="input-device-select" class="device-dropdown">
+                                        <option value="">Detecting devices...</option>
+                                    </select>
+                                    <div class="device-status">
+                                        <div id="input-status-dot" class="status-dot"></div>
                                     </div>
                                 </div>
                             </div>
@@ -320,11 +320,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <h3>Output Device</h3>
                                 </div>
                                 <div class="device-selector">
-                                    <div id="current-output-device" class="selected-device">
-                                        <span class="device-name">Detecting device...</span>
-                                        <div class="device-status">
-                                            <div class="status-dot"></div>
-                                        </div>
+                                    <select id="output-device-select" class="device-dropdown">
+                                        <option value="">Detecting devices...</option>
+                                    </select>
+                                    <div class="device-status">
+                                        <div id="output-status-dot" class="status-dot"></div>
                                     </div>
                                 </div>
                             </div>
@@ -411,13 +411,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <h3>Camera Device</h3>
                                 </div>
                                 <div class="device-selector">
-                                    <div id="current-video-device" class="selected-device">
-                                        <span class="device-name">Detecting camera...</span>
-                                        <div class="device-status">
-                                            <div class="status-dot"></div>
-                                        </div>
+                                    <select id="video-device-select" class="device-dropdown">
+                                        <option value="">Detecting cameras...</option>
+                                    </select>
+                                    <div class="device-status">
+                                        <div id="video-status-dot" class="status-dot"></div>
                                     </div>
                                 </div>
+                            </div>
                             </div>
 
                             <div class="video-preview-card">
