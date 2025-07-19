@@ -71,14 +71,11 @@
   will-change: transform; 
   backface-visibility: hidden; 
   scroll-behavior: auto !important;
-}
-
-#chat-messages .messages-container.min-h-full {
-  min-height: 100%;
-}
-
-#chat-messages .messages-container:not(.min-h-full) {
   min-height: 0;
+}
+
+#chat-messages .messages-container.has-many-messages {
+  min-height: 100%;
 }
 
 #chat-messages .messages-container.items-center.justify-center {
@@ -1096,14 +1093,17 @@ button {
 }
 
 .chat-skeleton-container {
-    height: 100vh !important;
-    min-height: 100vh !important;
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
     padding: 16px;
     background-color: #313338;
     overflow: hidden;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .chat-skeleton-avatar {

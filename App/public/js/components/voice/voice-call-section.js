@@ -1460,7 +1460,7 @@ class VoiceCallSection {
             if (!voiceState.isConnected) {
                 window.localStorageManager.setUnifiedVoiceState({
                     ...voiceState,
-                    isMuted: false,
+                    isMuted: true,
                     isDeafened: false,
                     videoOn: false,
                     screenShareOn: false

@@ -1055,61 +1055,6 @@ button:active {
   align-items: center;
 }
 
-.device-dropdown {
-  width: 100%;
-  padding: var(--discord-spacing-sm) var(--discord-spacing-md);
-  background-color: var(--discord-bg-tertiary);
-  border: 1px solid rgba(79, 84, 92, 0.3);
-  border-radius: var(--discord-border-radius-secondary);
-  color: var(--discord-text-normal);
-  font-size: 14px;
-  font-family: var(--discord-font-primary);
-  cursor: pointer;
-  transition: all var(--discord-animation-default) ease;
-  min-height: 40px;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'%3E%3Cpath fill='%23b5bac1' d='m2 0-2 2h4zm0 5 2-2h-4z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 12px;
-  padding-right: 36px;
-}
-
-.device-dropdown:hover {
-  border-color: rgba(79, 84, 92, 0.5);
-  background-color: var(--discord-background-modifier-hover);
-}
-
-.device-dropdown:focus {
-  outline: none;
-  border-color: var(--discord-blurple);
-  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
-  background-color: var(--discord-bg-tertiary);
-}
-
-.device-dropdown option {
-  background-color: var(--discord-bg-secondary);
-  color: var(--discord-text-normal);
-  padding: var(--discord-spacing-sm);
-  border: none;
-}
-
-.device-dropdown option:hover {
-  background-color: var(--discord-background-modifier-hover);
-}
-
-.device-dropdown option:checked {
-  background-color: var(--discord-blurple);
-  color: white;
-}
-
-.device-selector {
-  display: flex;
-  align-items: center;
-  gap: var(--discord-spacing-sm);
-  margin-top: var(--discord-spacing-sm);
-}
-
 .status-dot {
   width: 8px;
   height: 8px;

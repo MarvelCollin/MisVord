@@ -50,6 +50,37 @@ ob_start();
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     document.body.classList.add('settings-page');
+    
+    function loadVolumeSettings() {
+        try {
+            const saved = localStorage.getItem('misvord_audio_settings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                const inputSlider = document.getElementById('input-volume');
+                const outputSlider = document.getElementById('output-volume');
+                const inputDisplay = document.getElementById('input-volume-display');
+                const outputDisplay = document.getElementById('output-volume-display');
+                
+                if (inputSlider && settings.inputVolume !== undefined) {
+                    inputSlider.value = settings.inputVolume;
+                    if (inputDisplay) {
+                        inputDisplay.textContent = settings.inputVolume + '%';
+                    }
+                }
+                
+                if (outputSlider && settings.outputVolume !== undefined) {
+                    outputSlider.value = settings.outputVolume;
+                    if (outputDisplay) {
+                        outputDisplay.textContent = settings.outputVolume + '%';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading volume settings:', error);
+        }
+    }
+    
+    loadVolumeSettings();
 });
 </script>
 
@@ -303,11 +334,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <h3>Input Device</h3>
                                 </div>
                                 <div class="device-selector">
-                                    <select id="input-device-select" class="device-dropdown">
-                                        <option value="">Detecting devices...</option>
-                                    </select>
-                                    <div class="device-status">
-                                        <div id="input-status-dot" class="status-dot"></div>
+                                    <div id="current-input-device" class="selected-device">
+                                        <span class="device-name">Detecting device...</span>
+                                        <div class="device-status">
+                                            <div class="status-dot"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -320,11 +351,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <h3>Output Device</h3>
                                 </div>
                                 <div class="device-selector">
-                                    <select id="output-device-select" class="device-dropdown">
-                                        <option value="">Detecting devices...</option>
-                                    </select>
-                                    <div class="device-status">
-                                        <div id="output-status-dot" class="status-dot"></div>
+                                    <div id="current-output-device" class="selected-device">
+                                        <span class="device-name">Detecting device...</span>
+                                        <div class="device-status">
+                                            <div class="status-dot"></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -332,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="volume-card input-volume">
                                 <div class="volume-header">
                                     <h3>Input Volume</h3>
-                                    <span class="volume-value">50%</span>
+                                    <span class="volume-value" id="input-volume-display">50%</span>
                                 </div>
                                 <div class="volume-control">
                                     <input type="range" id="input-volume" class="volume-slider" min="0" max="100" value="50">
@@ -349,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="volume-card output-volume">
                                 <div class="volume-header">
                                     <h3>Output Volume</h3>
-                                    <span class="volume-value">75%</span>
+                                    <span class="volume-value" id="output-volume-display">75%</span>
                                 </div>
                                 <div class="volume-control">
                                     <input type="range" id="output-volume" class="volume-slider" min="0" max="100" value="75">
@@ -411,14 +442,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <h3>Camera Device</h3>
                                 </div>
                                 <div class="device-selector">
-                                    <select id="video-device-select" class="device-dropdown">
-                                        <option value="">Detecting cameras...</option>
-                                    </select>
-                                    <div class="device-status">
-                                        <div id="video-status-dot" class="status-dot"></div>
+                                    <div id="current-video-device" class="selected-device">
+                                        <span class="device-name">Detecting camera...</span>
+                                        <div class="device-status">
+                                            <div class="status-dot"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
                             </div>
 
                             <div class="video-preview-card">

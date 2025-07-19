@@ -224,7 +224,7 @@ class LocalStorageManager {
 
     getUnifiedVoiceState() {
         return this.get(this.keys.UNIFIED_VOICE_STATE, {
-            isMuted: false,
+            isMuted: true,
             isDeafened: false,
             volume: 100,
             isConnected: false,

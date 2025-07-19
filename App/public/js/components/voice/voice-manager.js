@@ -291,7 +291,7 @@ class VoiceManager {
                 }
             });
             
-            this._micOn = true;
+            this._micOn = false;
             this._videoOn = false;
             this._screenShareOn = false;
             this._deafened = false;
@@ -559,8 +559,8 @@ class VoiceManager {
             this.isMeetingJoined = true;
             this.localParticipant = this.meeting.localParticipant;
             
-            this.localParticipant.enableMic();
-            this._micOn = true;
+            this.localParticipant.disableMic();
+            this._micOn = false;
             
             this.handleParticipantJoined(this.meeting.localParticipant);
             

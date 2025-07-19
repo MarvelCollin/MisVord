@@ -1158,9 +1158,19 @@ class ChatSection {
                     await this.messageHandler.prependMessages(messages);
                     this.currentOffset += messages.length;
                     this.hideLoadMoreProgress(true, `Loaded ${messages.length} older messages`);
+                    
+                    const messagesContainer = this.getMessagesContainer();
+                    if (messagesContainer) {
+                        this.updateContainerHeight(messagesContainer);
+                    }
                 } else {
                     await this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
+                    
+                    const messagesContainer = this.getMessagesContainer();
+                    if (messagesContainer) {
+                        this.updateContainerHeight(messagesContainer);
+                    }
                     
                     await new Promise(resolve => {
                         requestAnimationFrame(() => {
@@ -1354,6 +1364,8 @@ class ChatSection {
             return;
         }
         
+        messagesContainer.classList.add('items-center', 'justify-center');
+        messagesContainer.classList.remove('has-many-messages');
 
         
         if (!this.emptyStateContainer) {
@@ -1399,6 +1411,10 @@ class ChatSection {
             this.emptyStateContainer.style.visibility = 'hidden';
         }
         
+        const messagesContainer = this.getMessagesContainer();
+        if (messagesContainer) {
+            messagesContainer.classList.remove('items-center', 'justify-center');
+        }
 
         const emptyStateInDOM = document.getElementById('empty-state-container');
         if (emptyStateInDOM && emptyStateInDOM !== this.emptyStateContainer) {
@@ -2477,7 +2493,11 @@ class ChatSection {
             const skeletonContainer = document.getElementById('chat-skeleton-loading');
             if (skeletonContainer) {
                 skeletonContainer.style.display = 'none';
+                skeletonContainer.style.height = '0';
+                skeletonContainer.style.minHeight = '0';
+                skeletonContainer.style.position = 'static';
             }
+            this.updateContainerHeight(realMessagesContainer);
             return realMessagesContainer;
         }
         
@@ -2498,11 +2518,28 @@ class ChatSection {
             const skeletonContainer = document.getElementById('chat-skeleton-loading');
             if (skeletonContainer) {
                 skeletonContainer.style.display = 'none';
+                skeletonContainer.style.height = '0';
+                skeletonContainer.style.minHeight = '0';
+                skeletonContainer.style.position = 'static';
             }
+            this.updateContainerHeight(messagesContainer);
             return messagesContainer;
         }
         
         return this.chatMessages;
+    }
+    
+    updateContainerHeight(container) {
+        if (!container) return;
+        
+        const messageGroups = container.querySelectorAll('.bubble-message-group, .message-group');
+        const messageCount = messageGroups.length;
+        
+        container.classList.remove('has-many-messages');
+        
+        if (messageCount >= 3) {
+            container.classList.add('has-many-messages');
+        }
     }
     
     formatMessageContent(content) {
@@ -2555,6 +2592,10 @@ class ChatSection {
             }
         });
         
+        const messagesContainer = this.getMessagesContainer();
+        if (messagesContainer) {
+            this.updateContainerHeight(messagesContainer);
+        }
 
     }
     
@@ -2564,11 +2605,13 @@ class ChatSection {
         const realContentContainer = document.getElementById('chat-real-content');
         if (realContentContainer) {
             realContentContainer.innerHTML = '';
+            realContentContainer.classList.remove('has-many-messages', 'items-center', 'justify-center');
         }
         
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer && messagesContainer !== realContentContainer) {
             messagesContainer.innerHTML = '';
+            messagesContainer.classList.remove('has-many-messages', 'items-center', 'justify-center');
         }
         
         this.userHasScrolled = false;
@@ -3322,6 +3365,10 @@ class ChatSection {
                 skeletonContainer.style.display = 'none';
                 skeletonContainer.style.visibility = 'hidden';
                 skeletonContainer.style.opacity = '0';
+                skeletonContainer.style.position = 'static';
+                skeletonContainer.style.height = '0';
+                skeletonContainer.style.minHeight = '0';
+                skeletonContainer.style.overflow = 'hidden';
             }
             
             if (realContent) {
@@ -3381,6 +3428,8 @@ class ChatSection {
             skeletonContainer.style.right = '0';
             skeletonContainer.style.bottom = '0';
             skeletonContainer.style.zIndex = '10';
+            skeletonContainer.style.height = '';
+            skeletonContainer.style.minHeight = '';
             
         }
         
