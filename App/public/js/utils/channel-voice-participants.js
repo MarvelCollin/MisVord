@@ -328,6 +328,7 @@ class ChannelVoiceParticipants {
                 return;
             }
             
+            console.log(`🔊 [CHANNEL-VOICE-PARTICIPANTS] Processing voice state update for user ${data.user_id}: ${data.type} = ${data.state}`);
             this.updateParticipantVoiceState(data.user_id, data.channel_id, data.type, data.state);
         });
         
@@ -624,38 +625,51 @@ class ChannelVoiceParticipants {
         
         const indicatorsHTML = !isBot ? `
             <div class="flex space-x-1">
-                <div class="mute-indicator w-4 h-4 bg-red-600 rounded-full flex items-center justify-center hidden">
+                <div class="mute-indicator w-4 h-4 rounded-full flex items-center justify-center bg-red-500 hidden">
                     <i class="fas fa-microphone-slash text-white text-xs"></i>
                 </div>
-                <div class="deafen-indicator w-4 h-4 bg-red-600 rounded-full flex items-center justify-center hidden">
+                <div class="deafen-indicator w-4 h-4 rounded-full flex items-center justify-center bg-red-600 hidden">
                     <i class="fas fa-deaf text-white text-xs"></i>
                 </div>
             </div>` : '';
 
         div.innerHTML = avatarHTML + nameHTML + indicatorsHTML;
 
-        if (!isBot && currentUserId && (String(participant.user_id) === currentUserId || String(participant.id) === currentUserId)) {
+        if (!isBot) {
             setTimeout(() => {
-                if (window.voiceManager) {
-                    const micState = window.voiceManager.getMicState();
-                    const deafenState = window.voiceManager.getDeafenState();
-                    
-                    const muteIndicator = div.querySelector('.mute-indicator');
-                    const deafenIndicator = div.querySelector('.deafen-indicator');
-                    
-                    if (muteIndicator) {
-                        const isMuted = !micState;
-                        muteIndicator.classList.toggle('hidden', !isMuted);
-                    }
-                    
-                    if (deafenIndicator) {
-                        deafenIndicator.classList.toggle('hidden', !deafenState);
-                    }
-                }
+                this.updateParticipantIndicators(div, participant, isSelf);
             }, 100);
         }
 
         return div;
+    }
+    
+    updateParticipantIndicators(element, participant, isSelf) {
+        const muteIndicator = element.querySelector('.mute-indicator');
+        const deafenIndicator = element.querySelector('.deafen-indicator');
+        
+        if (isSelf && window.voiceManager) {
+            const micState = window.voiceManager.getMicState();
+            const deafenState = window.voiceManager.getDeafenState();
+            
+            if (muteIndicator) {
+                const isMuted = !micState;
+                muteIndicator.classList.toggle('hidden', !isMuted);
+            }
+            
+            if (deafenIndicator) {
+                deafenIndicator.classList.toggle('hidden', !deafenState);
+            }
+        } else if (!isSelf && window.voiceManager?.meeting) {
+            if (muteIndicator) {
+                const participantId = participant.id || participant.user_id;
+                const sdkParticipant = window.voiceManager.meeting.participants.get(participantId);
+                if (sdkParticipant) {
+                    const isMuted = !sdkParticipant.micOn;
+                    muteIndicator.classList.toggle('hidden', !isMuted);
+                }
+            }
+        }
     }
     
     updateChannelCount(channelId, count) {
@@ -896,12 +910,8 @@ class ChannelVoiceParticipants {
                 const isMuted = !state;
                 muteIndicator.classList.toggle('hidden', !isMuted);
                 
-                muteIndicator.classList.remove('bg-red-600', 'bg-green-600');
-                if (isMuted) {
-                    muteIndicator.classList.add('bg-red-600');
-                } else {
-                    muteIndicator.classList.add('bg-green-600');
-                }
+                muteIndicator.classList.remove('bg-red-500', 'bg-red-600', 'bg-green-600');
+                muteIndicator.classList.add('bg-red-500');
                 
                 console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
             } else {
@@ -913,11 +923,7 @@ class ChannelVoiceParticipants {
                 deafenIndicator.classList.toggle('hidden', !state);
                 
                 deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
-                if (state) {
-                    deafenIndicator.classList.add('bg-red-600');
-                } else {
-                    deafenIndicator.classList.add('bg-green-600');
-                }
+                deafenIndicator.classList.add('bg-red-600');
                 
                 console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
             } else {
@@ -946,11 +952,7 @@ class ChannelVoiceParticipants {
                         muteIndicator.classList.toggle('hidden', !isMuted);
                         
                         muteIndicator.classList.remove('bg-red-500', 'bg-green-500');
-                        if (isMuted) {
-                            muteIndicator.classList.add('bg-red-500');
-                        } else {
-                            muteIndicator.classList.add('bg-green-500');
-                        }
+                        muteIndicator.classList.add('bg-red-500');
                         
                         console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
                     }
@@ -960,11 +962,7 @@ class ChannelVoiceParticipants {
                         deafenIndicator.classList.toggle('hidden', !state);
                         
                         deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
-                        if (state) {
-                            deafenIndicator.classList.add('bg-red-600');
-                        } else {
-                            deafenIndicator.classList.add('bg-green-600');
-                        }
+                        deafenIndicator.classList.add('bg-red-600');
                         
                         console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
                     }

@@ -652,6 +652,51 @@ function setup(io) {
             io.to(`channel-${channel_id}`).emit('voice-state-update', stateData);
         });
         
+        client.on('get-voice-states', (data) => {
+            console.log(`🔊 [GET-VOICE-STATES] Voice states request from ${client.id}:`, {
+                channelId: data.channel_id,
+                userId: client.data?.user_id
+            });
+            
+            if (!client.data?.authenticated || !client.data?.user_id) {
+                console.warn('⚠️ [GET-VOICE-STATES] Unauthenticated request');
+                return;
+            }
+            
+            const { channel_id } = data;
+            if (!channel_id) {
+                console.warn('⚠️ [GET-VOICE-STATES] Missing channel_id');
+                return;
+            }
+            
+            const participants = VoiceConnectionTracker.getChannelParticipants(channel_id);
+            const voiceStates = {};
+            
+            participants.forEach(participant => {
+                if (participant.userId !== client.data.user_id.toString()) {
+                    const state = VoiceConnectionTracker.getParticipantState(participant.userId);
+                    voiceStates[participant.userId] = {
+                        user_id: participant.userId,
+                        username: participant.username,
+                        isMuted: state.isMuted,
+                        isDeafened: state.isDeafened,
+                        lastUpdated: state.lastUpdated
+                    };
+                }
+            });
+            
+            console.log(`📤 [GET-VOICE-STATES] Sending voice states:`, {
+                channelId: channel_id,
+                stateCount: Object.keys(voiceStates).length
+            });
+            
+            client.emit('voice-states-response', {
+                channel_id: channel_id,
+                voice_states: voiceStates,
+                timestamp: Date.now()
+            });
+        });
+        
         client.on('get-online-users', () => {
 
             handleGetOnlineUsers(io, client);

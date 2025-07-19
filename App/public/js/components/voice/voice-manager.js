@@ -16,6 +16,9 @@ class VoiceManager {
         this._screenShareOn = false;
         this._deafened = false;
         
+        this.micStateMonitoringInterval = null;
+        this.participantMicStates = null;
+        
         this.init();
     }
     
@@ -24,6 +27,7 @@ class VoiceManager {
         await this.fetchAuthToken();
         this.setupBeforeUnloadHandler();
         this.setupBotEventListeners();
+        this.setupSocketVoiceStateListener();
         
 
         if (window.localStorageManager) {
@@ -318,6 +322,12 @@ class VoiceManager {
             this.notifySocketServer('join', meetingId);
             this.loadExistingBotParticipants();
             
+            setTimeout(() => {
+                this.refreshAllParticipantIndicators();
+                this.requestVoiceStatesFromSocket();
+                this.globalVoiceStateSync();
+            }, 1000);
+            
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { channelId, channelName, meetingId, skipJoinSound }
             }));
@@ -501,6 +511,8 @@ class VoiceManager {
         this.botParticipants.clear();
         this.localParticipant = null;
         
+        this.stopParticipantMicStateMonitoring();
+        
         this._micOn = false;
         this._videoOn = false;
         this._screenShareOn = false;
@@ -566,10 +578,17 @@ class VoiceManager {
             
             this.checkAllParticipantsForExistingStreams();
             await this.restoreVideoStatesFromStorage();
+            
+            this.startParticipantMicStateMonitoring();
+            
+            setTimeout(() => {
+                this.refreshAllParticipantIndicators();
+            }, 1000);
         });
         
         this.meeting.on('meeting-left', () => {
             this.isMeetingJoined = false;
+            this.stopParticipantMicStateMonitoring();
         });
         
         this.meeting.on('participant-joined', (participant) => {
@@ -702,9 +721,17 @@ class VoiceManager {
         
         this.checkAndRestoreExistingStreams(participant);
         
+        if (this.participantMicStates && participant.id !== this.localParticipant?.id) {
+            this.participantMicStates.set(participant.id, participant.micOn);
+        }
+        
         window.dispatchEvent(new CustomEvent('participantJoined', {
             detail: { participant: participantKey, data: this.participants.get(participantKey) }
         }));
+        
+        setTimeout(() => {
+            this.globalVoiceStateSync();
+        }, 500);
         
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
             const instance = window.ChannelVoiceParticipants.getInstance();
@@ -720,6 +747,10 @@ class VoiceManager {
         
         if (this.participants.has(participantKey)) {
             this.participants.delete(participantKey);
+            
+            if (this.participantMicStates) {
+                this.participantMicStates.delete(participantKey);
+            }
             
             window.dispatchEvent(new CustomEvent('participantLeft', {
                 detail: { participant: participantKey }
@@ -773,6 +804,68 @@ class VoiceManager {
                 }
             }));
         });
+    }
+    
+    updateParticipantMicIndicator(userId, micOn) {
+        if (!this.currentChannelId) return;
+        
+        if (window.voiceCallSection) {
+            window.voiceCallSection.updateParticipantVoiceState(userId, 'mic', micOn);
+        }
+        
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            instance.updateParticipantVoiceState(userId, this.currentChannelId, 'mic', micOn);
+        }
+    }
+    
+    refreshAllParticipantIndicators() {
+        if (!this.meeting || !this.currentChannelId) return;
+        
+        this.meeting.participants.forEach((participant, participantId) => {
+            if (participantId === this.localParticipant?.id) return;
+            
+            const userData = this.participants.get(participantId);
+            if (userData && userData.user_id) {
+                this.updateParticipantMicIndicator(userData.user_id, participant.micOn);
+            }
+        });
+    }
+    
+    startParticipantMicStateMonitoring() {
+        if (this.micStateMonitoringInterval) {
+            clearInterval(this.micStateMonitoringInterval);
+        }
+        
+        this.participantMicStates = new Map();
+        
+        this.micStateMonitoringInterval = setInterval(() => {
+            if (!this.meeting || !this.currentChannelId) return;
+            
+            this.meeting.participants.forEach((participant, participantId) => {
+                if (participantId === this.localParticipant?.id) return;
+                
+                const currentMicState = participant.micOn;
+                const lastKnownState = this.participantMicStates.get(participantId);
+                
+                if (lastKnownState !== currentMicState) {
+                    this.participantMicStates.set(participantId, currentMicState);
+                    
+                    const userData = this.participants.get(participantId);
+                    if (userData && userData.user_id) {
+                        this.updateParticipantMicIndicator(userData.user_id, currentMicState);
+                    }
+                }
+            });
+        }, 500);
+    }
+    
+    stopParticipantMicStateMonitoring() {
+        if (this.micStateMonitoringInterval) {
+            clearInterval(this.micStateMonitoringInterval);
+            this.micStateMonitoringInterval = null;
+        }
+        this.participantMicStates = null;
     }
     
     checkAndRestoreExistingStreams(participant) {
@@ -916,6 +1009,8 @@ class VoiceManager {
             this.updateUnifiedVoiceState({
                 isMuted: !this._micOn
             });
+            
+            this.broadcastVoiceState('mic', this._micOn);
             
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: { type: 'mic', state: this._micOn }
@@ -1234,6 +1329,85 @@ class VoiceManager {
         console.log(`📡 [VOICE-MANAGER] Broadcasting voice state:`, stateData);
         
         window.globalSocketManager.io.emit('voice-state-change', stateData);
+    }
+    
+    requestVoiceStatesFromSocket() {
+        if (!window.globalSocketManager?.io || !this.currentChannelId) return;
+        
+        console.log(`📡 [VOICE-MANAGER] Requesting voice states for channel:`, this.currentChannelId);
+        
+        window.globalSocketManager.io.emit('get-voice-states', {
+            channel_id: this.currentChannelId
+        });
+    }
+    
+    setupSocketVoiceStateListener() {
+        if (!window.globalSocketManager?.io) {
+            setTimeout(() => this.setupSocketVoiceStateListener(), 1000);
+            return;
+        }
+        
+        window.globalSocketManager.io.on('voice-states-response', (data) => {
+            console.log(`📡 [VOICE-MANAGER] Received voice states:`, data);
+            
+            if (data.channel_id !== this.currentChannelId) return;
+            
+            Object.values(data.voice_states).forEach(userState => {
+                if (userState.user_id) {
+                    this.syncSocketVoiceState(userState.user_id, 'mic', !userState.isMuted);
+                    this.syncSocketVoiceState(userState.user_id, 'deafen', userState.isDeafened);
+                }
+            });
+        });
+    }
+    
+    globalVoiceStateSync() {
+        if (!this.currentChannelId) return;
+        
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        if (!currentUserId) return;
+        
+        this.broadcastVoiceState('mic', this._micOn);
+        if (this._deafened) {
+            this.broadcastVoiceState('deafen', this._deafened);
+        }
+        
+        this.requestVoiceStatesFromSocket();
+    }
+    
+    syncSocketVoiceState(userId, type, state) {
+        console.log(`🔄 [VOICE-MANAGER] Syncing socket voice state for user ${userId}: ${type} = ${state}`);
+        
+        if (window.voiceCallSection) {
+            window.voiceCallSection.updateParticipantVoiceState(userId, type, state);
+        }
+        
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            instance.updateParticipantVoiceState(userId, this.currentChannelId, type, state);
+        }
+        
+        this.debugVoiceIndicators(userId);
+    }
+    
+    debugVoiceIndicators(userId) {
+        setTimeout(() => {
+            const callSectionElement = document.querySelector(`[data-user-id="${userId}"].participant-card`);
+            const sidebarElement = document.querySelector(`.voice-participant-card[data-user-id="${userId}"]`);
+            
+            console.log(`🔍 [VOICE-MANAGER] Debug indicators for user ${userId}:`, {
+                callSection: {
+                    found: !!callSectionElement,
+                    muteIndicator: callSectionElement?.querySelector('.mute-indicator')?.classList.toString(),
+                    deafenIndicator: callSectionElement?.querySelector('.deafen-indicator')?.classList.toString()
+                },
+                sidebar: {
+                    found: !!sidebarElement,
+                    muteIndicator: sidebarElement?.querySelector('.mute-indicator')?.classList.toString(),
+                    deafenIndicator: sidebarElement?.querySelector('.deafen-indicator')?.classList.toString()
+                }
+            });
+        }, 100);
     }
 
     updateUnifiedVoiceState(state) {

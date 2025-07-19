@@ -276,6 +276,7 @@ class VoiceCallSection {
                 return;
             }
             
+            console.log(`🔊 [VOICE-CALL-SECTION] Processing voice state update for user ${data.user_id}: ${data.type} = ${data.state}`);
             this.updateParticipantVoiceState(data.user_id, data.type, data.state);
         });
     }
@@ -700,11 +701,7 @@ class VoiceCallSection {
             muteIndicator.classList.toggle('hidden', !isMuted);
             
             muteIndicator.classList.remove('bg-red-500', 'bg-green-500');
-            if (isMuted) {
-                muteIndicator.classList.add('bg-red-500');
-            } else {
-                muteIndicator.classList.add('bg-green-500');
-            }
+            muteIndicator.classList.add('bg-red-500');
         }
         
         if (deafenIndicator) {
@@ -712,11 +709,7 @@ class VoiceCallSection {
             deafenIndicator.classList.toggle('hidden', !isDeafened);
             
             deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
-            if (isDeafened) {
-                deafenIndicator.classList.add('bg-red-600');
-            } else {
-                deafenIndicator.classList.add('bg-green-600');
-            }
+            deafenIndicator.classList.add('bg-red-600');
         }
     }
     
@@ -749,11 +742,7 @@ class VoiceCallSection {
                 muteIndicator.classList.toggle('hidden', !isMuted);
                 
                 muteIndicator.classList.remove('bg-red-500', 'bg-green-500');
-                if (isMuted) {
-                    muteIndicator.classList.add('bg-red-500');
-                } else {
-                    muteIndicator.classList.add('bg-green-500');
-                }
+                muteIndicator.classList.add('bg-red-500');
                 
                 console.log(`🔇 [VOICE-CALL-SECTION] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
             }
@@ -763,11 +752,7 @@ class VoiceCallSection {
                 deafenIndicator.classList.toggle('hidden', !state);
                 
                 deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
-                if (state) {
-                    deafenIndicator.classList.add('bg-red-600');
-                } else {
-                    deafenIndicator.classList.add('bg-green-600');
-                }
+                deafenIndicator.classList.add('bg-red-600');
                 
                 console.log(`🔇 [VOICE-CALL-SECTION] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
             }
@@ -810,25 +795,14 @@ class VoiceCallSection {
                 </div>
             </div>
             
-            ${isLocal ? `
             <div class="voice-indicators absolute top-2 right-2 flex flex-col gap-1 z-30">
-                <div class="mute-indicator w-6 h-6 bg-red-500 rounded-full flex items-center justify-center ${!window.voiceManager?.getMicState() ? '' : 'hidden'}">
+                <div class="mute-indicator w-6 h-6 rounded-full flex items-center justify-center bg-red-500 ${this.getParticipantMicIndicatorVisibility(participantId, isLocal)}">
                     <i class="fas fa-microphone-slash text-white text-xs"></i>
                 </div>
-                <div class="deafen-indicator w-6 h-6 bg-red-600 rounded-full flex items-center justify-center ${window.voiceManager?.getDeafenState() ? '' : 'hidden'}">
+                <div class="deafen-indicator w-6 h-6 rounded-full flex items-center justify-center bg-red-600 ${this.getParticipantDeafenIndicatorVisibility(participantId, isLocal)}">
                     <i class="fas fa-deaf text-white text-xs"></i>
                 </div>
             </div>
-            ` : `
-            <div class="voice-indicators absolute top-2 right-2 flex flex-col gap-1 z-30">
-                <div class="mute-indicator w-6 h-6 bg-red-500 rounded-full flex items-center justify-center hidden">
-                    <i class="fas fa-microphone-slash text-white text-xs"></i>
-                </div>
-                <div class="deafen-indicator w-6 h-6 bg-red-600 rounded-full flex items-center justify-center hidden">
-                    <i class="fas fa-deaf text-white text-xs"></i>
-                </div>
-            </div>
-            `}
             
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
                 <div class="participant-avatar border-2 border-[#40444b] w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xl mb-3 relative overflow-hidden">
@@ -844,7 +818,59 @@ class VoiceCallSection {
             div.setAttribute("data-is-local", "true");
         }
         
+        setTimeout(() => {
+            this.updateParticipantIndicators(participantId, isLocal);
+        }, 100);
+        
         return div;
+    }
+    
+    updateParticipantIndicators(participantId, isLocal) {
+        const element = this.participantElements.get(participantId);
+        if (!element) return;
+        
+        const muteIndicator = element.querySelector('.mute-indicator');
+        const deafenIndicator = element.querySelector('.deafen-indicator');
+        
+        if (isLocal) {
+            if (muteIndicator && window.voiceManager) {
+                const isMuted = !window.voiceManager.getMicState();
+                muteIndicator.classList.toggle('hidden', !isMuted);
+            }
+            if (deafenIndicator && window.voiceManager) {
+                const isDeafened = window.voiceManager.getDeafenState();
+                deafenIndicator.classList.toggle('hidden', !isDeafened);
+            }
+        } else {
+            if (muteIndicator && window.voiceManager?.meeting) {
+                const participant = window.voiceManager.meeting.participants.get(participantId);
+                if (participant) {
+                    const isMuted = !participant.micOn;
+                    muteIndicator.classList.toggle('hidden', !isMuted);
+                }
+            }
+        }
+    }
+    
+    getParticipantMicIndicatorVisibility(participantId, isLocal) {
+        if (isLocal) {
+            return !window.voiceManager?.getMicState() ? '' : 'hidden';
+        }
+        
+        if (!window.voiceManager?.meeting) return 'hidden';
+        
+        const participant = window.voiceManager.meeting.participants.get(participantId);
+        if (!participant) return 'hidden';
+        
+        return !participant.micOn ? '' : 'hidden';
+    }
+    
+    getParticipantDeafenIndicatorVisibility(participantId, isLocal) {
+        if (isLocal) {
+            return window.voiceManager?.getDeafenState() ? '' : 'hidden';
+        }
+        
+        return 'hidden';
     }
     
     showParticipantVideo(element, stream) {

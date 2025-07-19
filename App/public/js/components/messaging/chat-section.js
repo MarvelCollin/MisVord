@@ -1480,7 +1480,7 @@ class ChatSection {
             const rateLimitTimer = setTimeout(() => {
                 this.isRateLimited = false;
                 this.updateSendButton();
-                this.showNotification('Rate limit cleared - you can send messages again!', 'success');
+                // this.showNotification('Rate limit cleared - you can send messages again!', 'success');
             }, timeUntilReset);
             
             this.rateLimitTimer = rateLimitTimer;
