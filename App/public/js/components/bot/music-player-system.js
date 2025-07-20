@@ -21,6 +21,7 @@ class MusicPlayerSystem {
         this.botParticipantId = '4';
         this._audioContext = null;
         this._audioSourceNode = null;
+        this._musicSourceNode = null;
         this._audioInitialized = false;
         this._musicStreamDestination = null;
         this._musicMediaStream = null;
@@ -1276,6 +1277,7 @@ class MusicPlayerSystem {
             this.showStatus('Music stopped');
             
             await this.restoreMicrophoneState();
+            this.cleanupAudioResources();
             
             return true;
         } catch (error) {
@@ -1415,6 +1417,12 @@ class MusicPlayerSystem {
             
             if (this._mixerContext) {
                 this._mixerContext.close();
+                this._mixerContext = null;
+            }
+            
+            if (this._musicSourceNode) {
+                this._musicSourceNode.disconnect();
+                this._musicSourceNode = null;
             }
             
             this._mixerContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1429,7 +1437,23 @@ class MusicPlayerSystem {
             })
                 .then(micStream => {
                     const micSource = this._mixerContext.createMediaStreamSource(micStream);
-                    const musicSource = this._mixerContext.createMediaElementSource(this.audio);
+                    
+                    try {
+                        this._musicSourceNode = this._mixerContext.createMediaElementSource(this.audio);
+                    } catch (error) {
+                        if (error.name === 'InvalidStateError') {
+                            console.log('🎵 [MUSIC-PLAYER] Audio element already connected, creating new audio element');
+                            const newAudio = new Audio();
+                            newAudio.src = this.audio.src;
+                            newAudio.currentTime = this.audio.currentTime;
+                            newAudio.volume = this.audio.volume;
+                            newAudio.crossOrigin = "anonymous";
+                            newAudio.play();
+                            this._musicSourceNode = this._mixerContext.createMediaElementSource(newAudio);
+                        } else {
+                            throw error;
+                        }
+                    }
                     
                     const mixerDestination = this._mixerContext.createMediaStreamDestination();
                     
@@ -1440,7 +1464,7 @@ class MusicPlayerSystem {
                     musicGain.gain.value = 0.6;
                     
                     micSource.connect(micGain);
-                    musicSource.connect(musicGain);
+                    this._musicSourceNode.connect(musicGain);
                     
                     micGain.connect(mixerDestination);
                     musicGain.connect(mixerDestination);
@@ -1469,6 +1493,10 @@ class MusicPlayerSystem {
                                 if (this._mixerContext) {
                                     this._mixerContext.close();
                                     this._mixerContext = null;
+                                }
+                                if (this._musicSourceNode) {
+                                    this._musicSourceNode.disconnect();
+                                    this._musicSourceNode = null;
                                 }
                             } catch (error) {
                                 console.error('🎵 [MUSIC-PLAYER] Error restoring microphone:', error);
@@ -1872,6 +1900,44 @@ class MusicPlayerSystem {
                 this.processedMessageIds.delete(messageArray[i]);
             }
             
+        }
+    }
+
+    cleanupAudioResources() {
+        try {
+            if (this._musicSourceNode) {
+                this._musicSourceNode.disconnect();
+                this._musicSourceNode = null;
+            }
+            
+            if (this._mixerContext) {
+                this._mixerContext.close();
+                this._mixerContext = null;
+            }
+            
+            if (this._originalMicStream) {
+                this._originalMicStream.getTracks().forEach(track => track.stop());
+                this._originalMicStream = null;
+            }
+            
+            if (this._mixedStream) {
+                this._mixedStream.getTracks().forEach(track => track.stop());
+                this._mixedStream = null;
+            }
+            
+            if (this._audioSourceNode) {
+                this._audioSourceNode.disconnect();
+                this._audioSourceNode = null;
+            }
+            
+            if (this._audioContext && this._audioContext.state !== 'closed') {
+                this._audioContext.close();
+                this._audioContext = null;
+            }
+            
+            console.log('🎵 [MUSIC-PLAYER] Audio resources cleaned up');
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error cleaning up audio resources:', error);
         }
     }
 }
