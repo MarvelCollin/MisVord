@@ -32,6 +32,10 @@ class MusicPlayerSystem {
         this._savedVolume = null;
         this._isDeafenMuted = false;
         
+        this.restoreMicrophoneState = () => {
+            console.log('🎵 [MUSIC-PLAYER] Default restore microphone state - no action needed');
+        };
+        
         this.initializeAudio();
         this.setupEventListeners();
         this.forceInitialize();
@@ -451,6 +455,22 @@ class MusicPlayerSystem {
             return;
         }
 
+        if (!data.channel_id) {
+            console.warn('⚠️ [MUSIC-PLAYER] No channel ID in music command:', data);
+            return;
+        }
+
+        const isInAnyVoiceChannel = this.isUserInAnyVoiceChannel();
+        if (!isInAnyVoiceChannel) {
+            console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring music command');
+            return;
+        }
+        
+        console.log('🎵 [MUSIC-PLAYER] User is in a voice channel, processing music command:', {
+            commandChannelId: data.channel_id,
+            action: data.music_data?.action
+        });
+
         if (data.channel_id) {
             this.channelId = data.channel_id;
         }
@@ -598,7 +618,15 @@ class MusicPlayerSystem {
     async handleMusicStateSync(data) {
         if (!data || !data.channel_id) return;
         
+        if (!this.isUserInAnyVoiceChannel()) {
+            console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring music state sync');
+            return;
+        }
         
+        console.log('🎵 [MUSIC-PLAYER] Processing music state sync:', {
+            action: data.action,
+            channelId: data.channel_id
+        });
         
         if (data.action === 'stop') {
             if (this.isPlaying) {
@@ -638,6 +666,13 @@ class MusicPlayerSystem {
     handleMusicStateRequest(data) {
         if (!data || !data.channel_id) return;
         
+        if (!this.isUserInAnyVoiceChannel()) {
+            console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring music state request');
+            return;
+        }
+        
+        console.log('🎵 [MUSIC-PLAYER] Processing music state request from channel:', data.channel_id);
+        
         if (this.isPlaying && this.currentSong && window.globalSocketManager?.io) {
             const musicCommandData = {
                 channel_id: data.channel_id,
@@ -667,7 +702,15 @@ class MusicPlayerSystem {
             return;
         }
         
+        if (!this.isUserInAnyVoiceChannel()) {
+            console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring sync music state');
+            return;
+        }
         
+        console.log('🎵 [MUSIC-PLAYER] Processing sync music state:', {
+            action: data.action,
+            channelId: data.channel_id
+        });
         
         try {
             switch (data.action) {
@@ -1289,28 +1332,7 @@ class MusicPlayerSystem {
         
     }
 
-    async restoreMicrophoneState() {
-        try {
-            
-            
-            if (window.voiceManager && window.voiceManager.meeting) {
-                window.voiceManager.meeting.muteMic();
-                
-                const originalStream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: true, 
-                    video: false 
-                });
-                
-                window.voiceManager.meeting.unmuteMic(originalStream);
-                
-            }
-            
-            return true;
-        } catch (error) {
-            console.error('🎵 [MUSIC-PLAYER] Error restoring microphone state:', error);
-            return false;
-        }
-    }
+
 
     setupAudioStreaming() {
         try {
@@ -1369,18 +1391,14 @@ class MusicPlayerSystem {
 
             this._audioSourceNode.connect(this._gainNode);
             this._gainNode.connect(this._musicStreamDestination);
-            this._gainNode.connect(this._audioContext.destination);
 
             this._musicMediaStream = this._musicStreamDestination.stream;
 
             const audioTrack = this._musicMediaStream.getAudioTracks()[0];
             if (audioTrack && window.voiceManager.meeting) {
-                window.voiceManager.meeting.muteMic();
+                console.log('🎵 [MUSIC-PLAYER] Music audio track created, mixing with voice...');
                 
-                const customMicStream = new MediaStream([audioTrack]);
-                window.voiceManager.meeting.unmuteMic(customMicStream);
-
-                
+                this.setupAudioMixer(audioTrack);
                 return true;
             }
 
@@ -1388,6 +1406,82 @@ class MusicPlayerSystem {
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error connecting audio to voice channel:', error);
             return false;
+        }
+    }
+
+    setupAudioMixer(musicAudioTrack) {
+        try {
+            console.log('🎵 [MUSIC-PLAYER] Setting up audio mixer...');
+            
+            if (this._mixerContext) {
+                this._mixerContext.close();
+            }
+            
+            this._mixerContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }, 
+                video: false 
+            })
+                .then(micStream => {
+                    const micSource = this._mixerContext.createMediaStreamSource(micStream);
+                    const musicSource = this._mixerContext.createMediaElementSource(this.audio);
+                    
+                    const mixerDestination = this._mixerContext.createMediaStreamDestination();
+                    
+                    const micGain = this._mixerContext.createGain();
+                    const musicGain = this._mixerContext.createGain();
+                    
+                    micGain.gain.value = 1.0;
+                    musicGain.gain.value = 0.6;
+                    
+                    micSource.connect(micGain);
+                    musicSource.connect(musicGain);
+                    
+                    micGain.connect(mixerDestination);
+                    musicGain.connect(mixerDestination);
+                    
+                    const mixedStream = mixerDestination.stream;
+                    
+                    if (window.voiceManager && window.voiceManager.meeting) {
+                        const mixedTrack = mixedStream.getAudioTracks()[0];
+                        if (mixedTrack) {
+                            window.voiceManager.meeting.changeMic(mixedTrack);
+                            console.log('🎵 [MUSIC-PLAYER] Audio mixer setup complete - voice and music combined');
+                        }
+                        
+                        this._originalMicStream = micStream;
+                        this._mixedStream = mixedStream;
+                        
+                        this.restoreMicrophoneState = () => {
+                            try {
+                                if (window.voiceManager && window.voiceManager.meeting && this._originalMicStream) {
+                                    const originalTrack = this._originalMicStream.getAudioTracks()[0];
+                                    if (originalTrack) {
+                                        window.voiceManager.meeting.changeMic(originalTrack);
+                                        console.log('🎵 [MUSIC-PLAYER] Restored original microphone stream');
+                                    }
+                                }
+                                if (this._mixerContext) {
+                                    this._mixerContext.close();
+                                    this._mixerContext = null;
+                                }
+                            } catch (error) {
+                                console.error('🎵 [MUSIC-PLAYER] Error restoring microphone:', error);
+                            }
+                        };
+                    }
+                })
+                .catch(error => {
+                    console.error('🎵 [MUSIC-PLAYER] Failed to get microphone stream for mixing:', error);
+                });
+                
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error setting up audio mixer:', error);
         }
     }
 
@@ -1578,6 +1672,47 @@ class MusicPlayerSystem {
         console.error('🎵 [MUSIC-PLAYER] Error:', message);
     }
 
+    isUserInAnyVoiceChannel() {
+        try {
+            if (window.voiceManager && window.voiceManager.isConnected) {
+                console.log('🎵 [MUSIC-PLAYER] User connected via voice manager');
+                return true;
+            }
+
+            if (window.localStorageManager) {
+                const voiceState = window.localStorageManager.getUnifiedVoiceState();
+                if (voiceState && voiceState.isConnected) {
+                    console.log('🎵 [MUSIC-PLAYER] User connected via storage state');
+                    return true;
+                }
+            }
+
+            if (window.voiceFacade) {
+                const currentState = window.voiceFacade.getCurrentState();
+                if (currentState && currentState.isConnected) {
+                    console.log('🎵 [MUSIC-PLAYER] User connected via voice facade');
+                    return true;
+                }
+            }
+
+            if (window.voiceCallSection && window.voiceCallSection.currentChannelId) {
+                console.log('🎵 [MUSIC-PLAYER] User connected via voice call section');
+                return true;
+            }
+
+            const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+            if (metaChannelId) {
+                console.log('🎵 [MUSIC-PLAYER] User in voice channel via meta tag');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error checking voice channel status:', error);
+            return true;
+        }
+    }
+
     isUserInTargetVoiceChannel(targetChannelId) {
         try {
             if (!targetChannelId) {
@@ -1585,11 +1720,14 @@ class MusicPlayerSystem {
                 return false;
             }
 
+            const targetChannelIdStr = String(targetChannelId);
+
             if (window.voiceManager && window.voiceManager.isConnected) {
-                const isInTargetChannel = window.voiceManager.currentChannelId === targetChannelId;
+                const currentChannelIdStr = String(window.voiceManager.currentChannelId || '');
+                const isInTargetChannel = currentChannelIdStr === targetChannelIdStr;
                 console.log('🎵 [MUSIC-PLAYER] Voice manager validation:', {
-                    currentChannelId: window.voiceManager.currentChannelId,
-                    targetChannelId,
+                    currentChannelId: currentChannelIdStr,
+                    targetChannelId: targetChannelIdStr,
                     isInTargetChannel
                 });
                 return isInTargetChannel;
@@ -1597,39 +1735,61 @@ class MusicPlayerSystem {
 
             if (window.localStorageManager) {
                 const voiceState = window.localStorageManager.getUnifiedVoiceState();
-                if (voiceState && voiceState.isConnected && voiceState.channelId === targetChannelId) {
-                    console.log('🎵 [MUSIC-PLAYER] Storage state validation successful:', {
-                        storedChannelId: voiceState.channelId,
-                        targetChannelId
-                    });
-                    return true;
+                if (voiceState && voiceState.isConnected) {
+                    const storedChannelIdStr = String(voiceState.channelId || '');
+                    if (storedChannelIdStr === targetChannelIdStr) {
+                        console.log('🎵 [MUSIC-PLAYER] Storage state validation successful:', {
+                            storedChannelId: storedChannelIdStr,
+                            targetChannelId: targetChannelIdStr
+                        });
+                        return true;
+                    }
                 }
             }
 
             if (window.voiceFacade) {
                 const currentState = window.voiceFacade.getCurrentState();
-                if (currentState && currentState.isConnected && currentState.channelId === targetChannelId) {
-                    console.log('🎵 [MUSIC-PLAYER] Voice facade validation successful:', {
-                        currentChannelId: currentState.channelId,
-                        targetChannelId
+                if (currentState && currentState.isConnected) {
+                    const currentChannelIdStr = String(currentState.channelId || '');
+                    if (currentChannelIdStr === targetChannelIdStr) {
+                        console.log('🎵 [MUSIC-PLAYER] Voice facade validation successful:', {
+                            currentChannelId: currentChannelIdStr,
+                            targetChannelId: targetChannelIdStr
+                        });
+                        return true;
+                    }
+                }
+            }
+
+            if (window.voiceCallSection && window.voiceCallSection.currentChannelId) {
+                const callSectionChannelIdStr = String(window.voiceCallSection.currentChannelId || '');
+                if (callSectionChannelIdStr === targetChannelIdStr) {
+                    console.log('🎵 [MUSIC-PLAYER] Voice call section validation successful:', {
+                        currentChannelId: callSectionChannelIdStr,
+                        targetChannelId: targetChannelIdStr
                     });
                     return true;
                 }
             }
 
-            if (window.voiceCallSection && window.voiceCallSection.currentChannelId === targetChannelId) {
-                console.log('🎵 [MUSIC-PLAYER] Voice call section validation successful:', {
-                    currentChannelId: window.voiceCallSection.currentChannelId,
-                    targetChannelId
-                });
-                return true;
+            const metaChannelId = document.querySelector('meta[name="channel-id"]')?.content;
+            if (metaChannelId) {
+                const metaChannelIdStr = String(metaChannelId);
+                if (metaChannelIdStr === targetChannelIdStr) {
+                    console.log('🎵 [MUSIC-PLAYER] Meta channel validation successful:', {
+                        metaChannelId: metaChannelIdStr,
+                        targetChannelId: targetChannelIdStr
+                    });
+                    return true;
+                }
             }
 
             console.log('🎵 [MUSIC-PLAYER] User not in target voice channel:', {
-                targetChannelId,
+                targetChannelId: targetChannelIdStr,
                 voiceManagerAvailable: !!window.voiceManager,
                 voiceManagerConnected: window.voiceManager?.isConnected,
-                currentChannelId: window.voiceManager?.currentChannelId
+                currentChannelId: String(window.voiceManager?.currentChannelId || ''),
+                metaChannelId: String(metaChannelId || '')
             });
             return false;
 

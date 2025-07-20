@@ -352,8 +352,8 @@ if (!function_exists('renderMessage')) {
     border: 1px solid #4f545c;
     border-radius: 8px;
     padding: 4px;
-    opacity: 1 !important;
-    visibility: visible !important;
+    opacity: 0;
+    visibility: hidden;
     transition: opacity 0.15s ease, visibility 0.15s ease;
     z-index: 10;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -1004,7 +1004,7 @@ function formatIndonesianTime() {
             if (ampm === "PM" && hour < 12) hour += 12;
             if (ampm === "AM" && hour === 12) hour = 0;
             
-            timestampElement.textContent = `Today at ${hour.toString().padStart(2, '0')}:${minutes}`;
+            timestampElement.textContent = `Today at ${hour.toString().padStart(2, '0')}.${minutes}`;
         } 
 
         else if (originalText.match(/Yesterday at \d{1,2}:\d{2} [AP]M/)) {
@@ -1016,7 +1016,7 @@ function formatIndonesianTime() {
             if (ampm === "PM" && hour < 12) hour += 12;
             if (ampm === "AM" && hour === 12) hour = 0;
             
-            timestampElement.textContent = `Yesterday at ${hour.toString().padStart(2, '0')}:${minutes}`;
+            timestampElement.textContent = `Yesterday at ${hour.toString().padStart(2, '0')}.${minutes}`;
         }
 
         else if (originalText.match(/[A-Za-z]+ \d{1,2}, \d{4} \d{1,2}:\d{2} [AP]M/)) {
@@ -1030,7 +1030,7 @@ function formatIndonesianTime() {
             if (ampm === "PM" && hour < 12) hour += 12;
             if (ampm === "AM" && hour === 12) hour = 0;
             
-            timestampElement.textContent = `${datePart} ${hour.toString().padStart(2, '0')}:${minutes}`;
+            timestampElement.textContent = `${datePart} ${hour.toString().padStart(2, '0')}.${minutes}`;
         }
     }
     

@@ -28,13 +28,12 @@ function renderChannel($channel, $activeChannelId) {
     echo '    <span class="channel-name text-sm truncate flex-1">' . htmlspecialchars($channel['name']) . '</span>';
     echo '  </div>';
     
-    // if ($type === 'voice') {
-    //     $countClass = $isActive ? 'text-white/80' : 'text-gray-400 group-hover:text-gray-300';
-    //     echo '  <div class="voice-user-count hidden items-center ml-2 text-xs ' . $countClass . '"></div>';
-    //     echo '</div>';
-    //     echo '<div class="voice-participants ml-4 hidden rounded-md overflow-hidden" data-channel-id="' . $channel['id'] . '"></div>';
-    // } else {
-    //     echo '</div>';
-    // }
-    echo '</div>';
+    if ($type === 'voice') {
+        $countClass = $isActive ? 'text-white/80' : 'text-gray-400 group-hover:text-gray-300';
+        // echo '  <div class="voice-user-count hidden items-center ml-2 text-xs ' . $countClass . '"></div>';
+        echo '</div>';
+        echo '<div class="voice-participants ml-4 hidden rounded-md overflow-hidden" data-channel-id="' . $channel['id'] . '"></div>';
+    } else {
+        echo '</div>';
+    }
 }

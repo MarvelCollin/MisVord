@@ -57,17 +57,21 @@ if (!function_exists('formatBubbleTimestamp')) {
             $isYesterday = ($date->format('Y-m-d') === $yesterdayDate->format('Y-m-d'));
             
             if ($sameDay) {
-
-                return 'Today at ' . $date->format('H:i');
+                $displayHour = $date->format('H');
+                $displayMinute = $date->format('i');
+                return 'Today at ' . sprintf('%02d.%02d', $displayHour, $displayMinute);
             } elseif ($isYesterday) {
-
-                return 'Yesterday at ' . $date->format('H:i');
+                $displayHour = $date->format('H');
+                $displayMinute = $date->format('i');
+                return 'Yesterday at ' . sprintf('%02d.%02d', $displayHour, $displayMinute);
             } elseif ($diffDays < 7) {
-
-                return $date->format('l') . ' at ' . $date->format('H:i');
+                $displayHour = $date->format('H');
+                $displayMinute = $date->format('i');
+                return $date->format('l') . ' at ' . sprintf('%02d.%02d', $displayHour, $displayMinute);
             } else {
-
-                return $date->format('M j, Y H:i');
+                $displayHour = $date->format('H');
+                $displayMinute = $date->format('i');
+                return $date->format('M j, Y') . ' ' . sprintf('%02d.%02d', $displayHour, $displayMinute);
             }
         } catch (Exception $e) {
             error_log("Error formatting timestamp: " . $e->getMessage());
@@ -603,12 +607,12 @@ if (!function_exists('isBubbleVideoFile')) {
                         <i class="fas fa-smile"></i>
                     </button>
                     <?php if ($isOwnMessage): ?>
-                        <button class="bubble-action-button" data-action="edit" data-message-id="<?= htmlspecialchars($messageId) ?>" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="bubble-action-button delete-button" data-action="delete" data-message-id="<?= htmlspecialchars($messageId) ?>" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <button class="bubble-action-button" data-action="edit" data-message-id="<?= htmlspecialchars($messageId) ?>" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="bubble-action-button delete-button" data-action="delete" data-message-id="<?= htmlspecialchars($messageId) ?>" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
                     <?php endif; ?>
                     <button class="bubble-action-button" data-action="more" data-message-id="<?= htmlspecialchars($messageId) ?>" title="More Actions">
                         <i class="fas fa-ellipsis-v"></i>

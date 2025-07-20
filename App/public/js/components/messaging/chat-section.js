@@ -2562,6 +2562,10 @@ class ChatSection {
             messagesContainer.classList.remove('has-many-messages', 'items-center', 'justify-center');
         }
         
+        if (this.messageHandler) {
+            this.messageHandler.lastMessageGroup = null;
+        }
+        
         this.userHasScrolled = false;
         this.lastScrollPosition = 0;
         this.sentMessageCount = 0;

@@ -186,7 +186,20 @@ class MessageHandler {
                 ${!shouldGroup ? `
                 <div class="bubble-header">
                     <span class="bubble-username">${username}</span>
-                    <span class="bubble-timestamp">${timestamp}</span>
+                    <span class="bubble-timestamp">${(() => {
+                        const date = new Date(sentAt);
+                        const displayHour = date.getHours();
+                        const displayMinute = date.getMinutes().toString().padStart(2, '0');
+                        const now = new Date();
+                        const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+                        if (diffDays === 0) {
+                            return `Today at ${displayHour.toString().padStart(2, '0')}.${displayMinute}`;
+                        } else if (diffDays === 1) {
+                            return `Yesterday at ${displayHour.toString().padStart(2, '0')}.${displayMinute}`;
+                        } else {
+                            return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) + ` ${displayHour.toString().padStart(2, '0')}.${displayMinute}`;
+                        }
+                    })()}</span>
                 </div>
                 ` : ''}
                 <div class="bubble-contents">
@@ -210,6 +223,9 @@ class MessageHandler {
                                 <i class="fas fa-trash"></i>
                             </button>
                             ` : ''}
+                            <button class="bubble-action-button" data-action="more" data-message-id="${messageId}" title="More Actions">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -241,12 +257,17 @@ class MessageHandler {
         const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
         
         if (diffDays === 0) {
-            return date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+            const displayHour = date.getHours();
+            const displayMinute = date.getMinutes().toString().padStart(2, '0');
+            return `Today at ${displayHour.toString().padStart(2, '0')}.${displayMinute}`;
         } else if (diffDays === 1) {
-            return 'Yesterday ' + date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+            const displayHour = date.getHours();
+            const displayMinute = date.getMinutes().toString().padStart(2, '0');
+            return `Yesterday at ${displayHour.toString().padStart(2, '0')}.${displayMinute}`;
         } else {
-            return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) + ' ' + 
-                   date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+            const displayHour = date.getHours();
+            const displayMinute = date.getMinutes().toString().padStart(2, '0');
+            return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) + ` ${displayHour.toString().padStart(2, '0')}.${displayMinute}`;
         }
     }
 
@@ -1072,6 +1093,7 @@ class MessageHandler {
                     fragment.appendChild(messageElement);
                     messageElements.push(messageElement);
                     this.processedMessageIds.add(message.id);
+                    this.lastMessageGroup = messageElement;
                 }
             } catch (error) {
                 console.error(`❌ [MESSAGE-HANDLER] Error processing message ${message.id}:`, error);
@@ -1081,11 +1103,13 @@ class MessageHandler {
                     fragment.appendChild(fallbackElement);
                     messageElements.push(fallbackElement);
                     this.processedMessageIds.add(message.id);
+                    this.lastMessageGroup = fallbackElement;
                 }
             }
         }
         
         messagesContainer.innerHTML = '';
+        this.lastMessageGroup = null;
         
         requestAnimationFrame(() => {
             messagesContainer.appendChild(fragment);
