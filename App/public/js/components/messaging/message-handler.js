@@ -1428,8 +1428,15 @@ class MessageHandler {
             return;
         }
         
+        const isOwnMessage = formattedMessage.user_id === this.chatSection.userId;
+        const isNewMessage = !formattedMessage.is_temporary && isOwnMessage;
+        
         messagesContainer.appendChild(messageElement);
         this.lastMessageGroup = messageElement;
+        
+        if (isNewMessage && this.chatSection.triggerNewMessageAnimation) {
+            this.chatSection.triggerNewMessageAnimation(messageElement);
+        }
         
         if (typeof window.processMentionCandidates === 'function') {
             setTimeout(() => window.processMentionCandidates(), 50);

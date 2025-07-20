@@ -1,0 +1,128 @@
+[2025-07-21 02:16:55] INFO [787b8a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:16:55"}
+[2025-07-21 02:16:55] DEBUG [787b8a] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:16:55] DEBUG [787b8a] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:02] ERROR [787b8a] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:02] INFO [ee058b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:02"}
+[2025-07-21 02:17:03] DEBUG [ee058b] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:03] DEBUG [ee058b] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:05] ERROR [ee058b] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:05] INFO [1b8bba] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:05"}
+[2025-07-21 02:17:05] INFO [1e6262] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:05"}
+[2025-07-21 02:17:06] INFO [224a41] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:06"}
+[2025-07-21 02:17:06] INFO [22b906] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:06"}
+[2025-07-21 02:17:06] DEBUG [22b906] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:06] DEBUG [22b906] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:08] ERROR [22b906] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:09] INFO [50128d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:09"}
+[2025-07-21 02:17:09] INFO [50bbe3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:09"}
+[2025-07-21 02:17:09] DEBUG [50bbe3] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:09] DEBUG [50bbe3] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:11] ERROR [50bbe3] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:11] INFO [7d262e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:11"}
+[2025-07-21 02:17:11] INFO [7efeb3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:11"}
+[2025-07-21 02:17:12] DEBUG [7efeb3] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:12] DEBUG [7efeb3] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:14] ERROR [7efeb3] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:14] INFO [aba698] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:14"}
+[2025-07-21 02:17:14] DEBUG [aba698] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:14] DEBUG [aba698] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:17] ERROR [aba698] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:17] INFO [d82523] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:17"}
+[2025-07-21 02:17:17] INFO [db4f56] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:17"}
+[2025-07-21 02:17:18] INFO [e60d9d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:18"}
+[2025-07-21 02:17:18] DEBUG [e60d9d] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:18] DEBUG [e60d9d] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:25] ERROR [e60d9d] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:25] INFO [5bad8a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:25"}
+[2025-07-21 02:17:25] DEBUG [5bad8a] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:25] DEBUG [5bad8a] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:28] ERROR [5bad8a] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:28] INFO [88cc3c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:28"}
+[2025-07-21 02:17:28] DEBUG [88cc3c] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:28] DEBUG [88cc3c] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:31] ERROR [88cc3c] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:31] INFO [b5fe71] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:31"}
+[2025-07-21 02:17:31] DEBUG [b5fe71] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:31] DEBUG [b5fe71] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:34] ERROR [b5fe71] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:34] INFO [e3353b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:34"}
+[2025-07-21 02:17:34] DEBUG [e3353b] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:34] DEBUG [e3353b] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:36] ERROR [e3353b] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:36] INFO [0ed7cb] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:36"}
+[2025-07-21 02:17:37] DEBUG [0ed7cb] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:37] DEBUG [0ed7cb] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:39] ERROR [0ed7cb] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:39] INFO [3ba80d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:39"}
+[2025-07-21 02:17:39] DEBUG [3ba80d] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:17:39] DEBUG [3ba80d] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:17:47] ERROR [3ba80d] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:17:47] INFO [b1f25d] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:47"}
+[2025-07-21 02:17:47] INFO [b3ae79] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:17:47"}
+[2025-07-21 02:18:19] INFO [bc5264] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:19"}
+[2025-07-21 02:18:19] DEBUG [bc5264] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:18:19] DEBUG [bc5264] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:18:27] ERROR [bc5264] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:18:27] INFO [328b04] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:27"}
+[2025-07-21 02:18:27] DEBUG [328b04] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:18:27] DEBUG [328b04] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:18:29] ERROR [328b04] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:18:29] INFO [5f18fc] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:29"}
+[2025-07-21 02:18:30] INFO [62b81a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:30"}
+[2025-07-21 02:18:41] INFO [1a8906] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:41"}
+[2025-07-21 02:18:41] DEBUG [1a8906] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:18:41] DEBUG [1a8906] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:18:49] ERROR [1a8906] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:18:49] INFO [90c59b] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:49"}
+[2025-07-21 02:18:49] DEBUG [90c59b] Controller instantiated - Context: {"controller":"UserController","request_uri":"/settings/user?section=delete-account","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:18:49] DEBUG [90c59b] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:18:51] ERROR [90c59b] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:18:51] INFO [bd3795] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:51"}
+[2025-07-21 02:18:52] INFO [c06b7c] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:52"}
+[2025-07-21 02:18:52] INFO [c0cc2a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:18:52"}
+[2025-07-21 02:20:04] INFO [47643f] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:20:04"}
+[2025-07-21 02:20:04] DEBUG [47643f] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:20:04] DEBUG [47643f] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:20:11] ERROR [47643f] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:20:11] INFO [bd6956] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:20:11"}
+[2025-07-21 02:20:11] DEBUG [bd6956] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:20:11] DEBUG [bd6956] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:20:14] ERROR [bd6956] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:20:14] INFO [eb1fc5] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:20:14"}
+[2025-07-21 02:20:14] INFO [ee3bed] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:20:14"}
+[2025-07-21 02:20:17] INFO [1df1df] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:20:17"}
+[2025-07-21 02:20:17] DEBUG [1df1df] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:20:17] DEBUG [1df1df] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:20:20] ERROR [1df1df] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:20:20] INFO [4b5335] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:20:20"}
+[2025-07-21 02:21:06] INFO [2835ad] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:06"}
+[2025-07-21 02:21:06] DEBUG [2835ad] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:21:06] DEBUG [2835ad] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:21:13] ERROR [2835ad] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:21:13] INFO [9e80aa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:13"}
+[2025-07-21 02:21:14] DEBUG [9e80aa] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:21:14] DEBUG [9e80aa] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:21:16] ERROR [9e80aa] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:21:16] INFO [cbda2a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:16"}
+[2025-07-21 02:21:16] INFO [ced219] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:16"}
+[2025-07-21 02:21:16] INFO [cf1331] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:16"}
+[2025-07-21 02:21:17] DEBUG [cf1331] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=13&type=voice","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:21:17] DEBUG [cf1331] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:21:19] ERROR [cf1331] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:21:19] INFO [fb9ec9] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:19"}
+[2025-07-21 02:21:19] INFO [fdafaa] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:19"}
+[2025-07-21 02:21:19] INFO [fdd77e] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:19"}
+[2025-07-21 02:21:19] DEBUG [fdd77e] Controller instantiated - Context: {"controller":"ServerController","request_uri":"/server/8?channel=9&type=text","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:21:19] DEBUG [fdd77e] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:21:22] ERROR [fdd77e] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:21:22] INFO [2a79af] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:22"}
+[2025-07-21 02:21:22] INFO [2c703a] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:22"}
+[2025-07-21 02:21:32] INFO [c0a2ca] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:32"}
+[2025-07-21 02:21:32] DEBUG [c0a2ca] Controller instantiated - Context: {"controller":"UserController","request_uri":"/settings/user?section=delete-account","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:21:32] DEBUG [c0a2ca] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:21:39] ERROR [c0a2ca] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:21:39] INFO [358cf3] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:39"}
+[2025-07-21 02:21:39] DEBUG [358cf3] Controller instantiated - Context: {"controller":"UserController","request_uri":"/settings/user?section=delete-account","request_method":"GET","is_ajax":"no"}
+[2025-07-21 02:21:39] DEBUG [358cf3] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-21 02:21:42] ERROR [358cf3] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-21 02:21:42] INFO [62a462] Application starting - Context: {"version":"1.0.0","environment":"development","timestamp":"2025-07-21 02:21:42"}

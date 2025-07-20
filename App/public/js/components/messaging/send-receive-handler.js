@@ -124,6 +124,10 @@ class SendReceiveHandler {
                 throw new Error('Potential SQL injection detected in the message content');
             }
             
+            if (this.chatSection.createMessageSendAnimation) {
+                this.chatSection.createMessageSendAnimation(content);
+            }
+            
             await this.sendDirectOrChannelMessage(content, options);
             
             if (this.chatSection.messageInput) {

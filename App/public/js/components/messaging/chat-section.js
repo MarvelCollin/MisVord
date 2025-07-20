@@ -1404,6 +1404,10 @@ class ChatSection {
         const hasFiles = this.fileUploadHandler && this.fileUploadHandler.hasFiles();
         const canSend = (hasContent || hasFiles) && !this.isSending && !this.isRateLimited;
         
+        if (this.messageForm) {
+            this.messageForm.classList.toggle('has-content', hasContent || hasFiles);
+        }
+        
         this.sendButton.disabled = !canSend;
         this.sendButton.classList.toggle('opacity-50', !canSend);
         this.sendButton.classList.toggle('cursor-not-allowed', !canSend);
@@ -1423,12 +1427,74 @@ class ChatSection {
         }
         
         if (canSend) {
-            this.sendButton.classList.add('hover:bg-[#5865f2]', 'text-[#dcddde]', 'hover:text-white');
+            this.sendButton.classList.add('hover:bg-[#5865f2]', 'text-[#dcddde]', 'hover:text-white', 'send-button-ready');
             this.sendButton.classList.remove('text-[#b9bbbe]');
         } else {
-            this.sendButton.classList.remove('hover:bg-[#5865f2]', 'text-[#dcddde]', 'hover:text-white');
+            this.sendButton.classList.remove('hover:bg-[#5865f2]', 'text-[#dcddde]', 'hover:text-white', 'send-button-ready');
             this.sendButton.classList.add('text-[#b9bbbe]');
         }
+    }
+    
+    createMessageSendAnimation(messageContent) {
+        if (!this.sendButton || !messageContent) return;
+        
+        this.sendButton.classList.add('send-button-pulse');
+        
+        try {
+            if (this.tts && typeof this.tts.playSound === 'function') {
+                this.tts.playSound('send');
+            }
+        } catch (error) {
+            console.log('🔊 [CHAT-SECTION] Sound not available:', error.message);
+        }
+        
+        const sendButtonRect = this.sendButton.getBoundingClientRect();
+        const messagesContainer = this.getMessagesContainer();
+        if (!messagesContainer) return;
+        
+        const messagesRect = messagesContainer.getBoundingClientRect();
+        
+        const animationElement = document.createElement('div');
+        animationElement.className = 'message-send-animation';
+        
+        const previewBubble = document.createElement('div');
+        previewBubble.className = 'message-preview-bubble';
+        previewBubble.textContent = messageContent.length > 30 ? messageContent.substring(0, 30) + '...' : messageContent;
+        
+        animationElement.appendChild(previewBubble);
+        
+        animationElement.style.position = 'fixed';
+        animationElement.style.left = sendButtonRect.left + 'px';
+        animationElement.style.top = sendButtonRect.top + 'px';
+        animationElement.style.zIndex = '1000';
+        
+        document.body.appendChild(animationElement);
+        
+        requestAnimationFrame(() => {
+            animationElement.classList.add('active');
+            
+            const targetX = messagesRect.right - 50;
+            const targetY = messagesRect.bottom - 50;
+            
+            animationElement.style.transform = `translate(${targetX - sendButtonRect.left}px, ${targetY - sendButtonRect.top}px) scale(0.5)`;
+        });
+        
+        setTimeout(() => {
+            if (animationElement && animationElement.parentNode) {
+                animationElement.remove();
+            }
+            this.sendButton.classList.remove('send-button-pulse');
+        }, 800);
+    }
+    
+    triggerNewMessageAnimation(messageElement) {
+        if (!messageElement) return;
+        
+        messageElement.classList.add('message-bubble-appear');
+        
+        setTimeout(() => {
+            messageElement.classList.remove('message-bubble-appear');
+        }, 500);
     }
     
     checkRateLimit() {
