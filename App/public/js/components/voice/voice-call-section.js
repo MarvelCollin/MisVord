@@ -383,6 +383,14 @@ class VoiceCallSection {
         this.updateConnectionStatus(true);
         
         setTimeout(() => {
+            if (window.globalSocketManager?.io && finalChannelId) {
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: finalChannelId 
+                });
+            }
+        }, 300);
+
+        setTimeout(() => {
             this.rebuildGridFromVideoSDK();
         }, 500);
         
@@ -425,11 +433,59 @@ class VoiceCallSection {
         } else if (data.action === 'leave' && data.user_id === this.getCurrentUserId()) {
             this.currentMeetingId = null;
             this.updateConnectionStatus(false);
+        } else if (data.action === 'join' && data.user_id !== this.getCurrentUserId()) {
+            if (!this.participantElements.has(data.user_id)) {
+                const participantData = {
+                    user_id: data.user_id,
+                    username: data.username,
+                    avatar_url: data.avatar_url,
+                    isBot: data.isBot || false
+                };
+                const element = this.createParticipantElement(data.user_id, participantData);
+                const grid = document.getElementById("participantGrid");
+                if (grid) {
+                    grid.appendChild(element);
+                    this.participantElements.set(data.user_id, element);
+                    this.updateGridLayout();
+                    this.updateParticipantCount();
+                }
+            }
+        } else if (data.action === 'leave' && data.user_id !== this.getCurrentUserId()) {
+            const element = this.participantElements.get(data.user_id);
+            if (element) {
+                element.remove();
+                this.participantElements.delete(data.user_id);
+                this.updateGridLayout();
+                this.updateParticipantCount();
+            }
+        } else if (data.action === 'already_registered') {
+            if (!this.participantElements.has(data.user_id)) {
+                const participantData = {
+                    user_id: data.user_id,
+                    username: data.username,
+                    avatar_url: data.avatar_url,
+                    isBot: data.isBot || false
+                };
+                const element = this.createParticipantElement(data.user_id, participantData);
+                const grid = document.getElementById("participantGrid");
+                if (grid) {
+                    grid.appendChild(element);
+                    this.participantElements.set(data.user_id, element);
+                    this.updateGridLayout();
+                    this.updateParticipantCount();
+                }
+            }
         }
     }
     
     handleVoiceMeetingStatus(data) {
-        
+        console.log(`📊 [VOICE-CALL-SECTION] Processing voice meeting status:`, {
+            hasParticipants: Array.isArray(data.participants),
+            participantCount: data.participants?.length,
+            hasMeeting: data.has_meeting,
+            meetingId: data.meeting_id,
+            currentChannelId: this.currentChannelId
+        });
 
         if (data.has_meeting && data.meeting_id) {
             this.currentMeetingId = data.meeting_id;
@@ -438,26 +494,48 @@ class VoiceCallSection {
         if (Array.isArray(data.participants)) {
             const grid = document.getElementById("participantGrid");
             if (grid) {
-                grid.innerHTML = "";
-                this.participantElements = new Map();
+                const currentUserId = this.getCurrentUserId();
+                const existingParticipants = new Set(this.participantElements.keys());
+                const incomingParticipants = new Set();
 
                 const uniqueParticipants = new Map();
                 data.participants.forEach((participant) => {
                     const userId = participant.user_id || participant.id;
                     if (userId && !uniqueParticipants.has(userId)) {
                         uniqueParticipants.set(userId, participant);
+                        incomingParticipants.add(userId);
+                    }
+                });
+
+                existingParticipants.forEach(participantId => {
+                    if (!incomingParticipants.has(participantId)) {
+                        const element = this.participantElements.get(participantId);
+                        if (element) {
+                            element.remove();
+                            this.participantElements.delete(participantId);
+                        }
                     }
                 });
 
                 uniqueParticipants.forEach((participant) => {
                     const participantId = participant.user_id || participant.id;
-                    const element = this.createParticipantElement(participantId, participant);
-                    grid.appendChild(element);
-                    this.participantElements.set(participantId, element);
+                    if (!this.participantElements.has(participantId)) {
+                        const element = this.createParticipantElement(participantId, participant);
+                        grid.appendChild(element);
+                        this.participantElements.set(participantId, element);
+                        
+                        console.log(`👤 [VOICE-CALL-SECTION] Added participant card:`, {
+                            participantId,
+                            username: participant.username,
+                            isBot: participant.isBot,
+                            isLocal: participantId === currentUserId
+                        });
+                    }
                 });
 
                 this.updateGridLayout();
                 this.updateParticipantCount();
+                this.updateLocalParticipantIndicators();
             }
         }
     }
@@ -516,6 +594,12 @@ class VoiceCallSection {
         this.updateGridLayout();
         this.updateParticipantCount();
         this.updateLocalParticipantIndicators();
+
+        if (this.currentChannelId && window.globalSocketManager?.io) {
+            window.globalSocketManager.io.emit('check-voice-meeting', { 
+                channel_id: this.currentChannelId 
+            });
+        }
     }
 
     ensureChannelSync() {

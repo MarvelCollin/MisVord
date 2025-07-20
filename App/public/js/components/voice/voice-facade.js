@@ -120,6 +120,14 @@ class VoiceFacade {
             }));
             this._isConnectEventDispatched = true;
         }
+
+        if (isConnected && channelId && window.globalSocketManager?.io) {
+            setTimeout(() => {
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: channelId 
+                });
+            }, 500);
+        }
     }
 }
 
