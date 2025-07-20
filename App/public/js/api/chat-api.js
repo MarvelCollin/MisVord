@@ -72,7 +72,7 @@ class ChatAPI {
             let userCount = 0;
             
             messages.forEach(msg => {
-                if (msg.user_status === 'bot' || msg.username === 'titibot') {
+                if (msg.user_status === 'bot') {
                     botCount++;
                 } else {
                     userCount++;

@@ -239,7 +239,7 @@ class NitroSection {
                 hexagon.classList.add('visible');
                 hexagon.style.animation = `hexagonAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`;
                 this.addHexagonSparkles(hexagon);
-            }, 1000 + delay);
+            }, 200 + delay);
         });
     }
     

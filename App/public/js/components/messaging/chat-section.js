@@ -1114,7 +1114,7 @@ class ChatSection {
                     let botCount = 0;
                     let userCount = 0;
                     messages.forEach(msg => {
-                        if (msg.user_status === 'bot' || msg.username === 'titibot') {
+                        if (msg.user_status === 'bot') {
                             botCount++;
                         } else {
                             userCount++;
@@ -3359,12 +3359,17 @@ class ChatSection {
                 skeletonContainer.style.height = '0';
                 skeletonContainer.style.minHeight = '0';
                 skeletonContainer.style.overflow = 'hidden';
+                skeletonContainer.style.zIndex = '-1';
+                skeletonContainer.setAttribute('hidden', 'true');
             }
             
             if (realContent) {
                 realContent.style.display = 'flex';
                 realContent.style.visibility = 'visible';
                 realContent.style.opacity = '1';
+                realContent.style.position = 'relative';
+                realContent.style.zIndex = '2';
+                realContent.removeAttribute('hidden');
                 
                 if (chatMessages && realContent.children.length > 0) {
                     const originalScrollBehavior = chatMessages.style.scrollBehavior;
@@ -3420,7 +3425,7 @@ class ChatSection {
             skeletonContainer.style.zIndex = '10';
             skeletonContainer.style.height = '';
             skeletonContainer.style.minHeight = '';
-            
+            skeletonContainer.removeAttribute('hidden');
         }
         
         if (realContent) {

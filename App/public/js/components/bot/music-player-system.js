@@ -236,13 +236,6 @@ class MusicPlayerSystem {
 
     setupImmediateListeners() {
         if (typeof window !== 'undefined' && !this._destroyed) {
-            const botMusicCommandHandler = (e) => {
-                if (this._destroyed) return;
-                this.processBotMusicCommand(e.detail);
-            };
-            window.addEventListener('bot-music-command', botMusicCommandHandler);
-            this._eventListeners.push({ element: window, event: 'bot-music-command', handler: botMusicCommandHandler });
-
             const autoUnlockEvents = ['click', 'touch', 'keydown', 'mousedown'];
             const autoUnlock = () => {
                 if (this._destroyed) return;
@@ -279,10 +272,6 @@ class MusicPlayerSystem {
     }
 
     setupEventListeners() {
-        window.addEventListener('bot-music-command', (e) => {
-            this.processBotMusicCommand(e.detail);
-        });
-
         window.addEventListener('voiceConnect', (e) => {
             if (e.detail && e.detail.channelId) {
                 this.channelId = e.detail.channelId;
@@ -421,14 +410,8 @@ class MusicPlayerSystem {
             
             const io = window.globalSocketManager.io;
 
-            io.off('bot-music-command');
             io.off('music-state-sync');
             io.off('music-state-request');
-            
-            io.on('bot-music-command', (data) => {
-                console.log('🎵 [MUSIC-PLAYER] Socket received bot-music-command:', data);
-                this.processBotMusicCommand(data);
-            });
             
             io.on('music-state-sync', (data) => {
                 this.handleMusicStateSync(data);

@@ -1081,6 +1081,22 @@ Route::get('/api/bots/check/([^/]+)', function($username) {
     $controller->check($username);
 });
 
+Route::get('/api/users/([^/]+)/check-bot', function($userId) {
+    header('Content-Type: application/json');
+    
+    try {
+        require_once __DIR__ . '/../controllers/BotController.php';
+        $controller = new BotController();
+        $controller->checkUserBot($userId);
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Internal server error'
+        ]);
+    }
+});
+
 Route::get('/api/bots/public-check/([^/]+)', function($username) {
     header('Content-Type: application/json');
     

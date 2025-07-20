@@ -841,6 +841,37 @@ function initializeBotDebugPanel() {
     setupMusicPlayerTracking();
 }
 
+window.botCache = new Map();
+
+async function checkIfUserIsBot(userId) {
+    if (!userId) return false;
+    
+    if (window.botCache.has(userId)) {
+        return window.botCache.get(userId);
+    }
+    
+    try {
+        const result = await window.BotAPI.isUserBot(userId);
+        window.botCache.set(userId, result);
+        return result;
+    } catch (error) {
+        console.warn('Failed to check if user is bot:', error);
+        window.botCache.set(userId, false);
+        return false;
+    }
+}
+
+async function initializeBotCache() {
+    try {
+        const titiBotResult = await window.BotAPI.getBotByUsername('titibot');
+        if (titiBotResult.success && titiBotResult.is_bot && titiBotResult.bot) {
+            window.botCache.set(titiBotResult.bot.id.toString(), true);
+        }
+    } catch (error) {
+        console.warn('Failed to initialize bot cache:', error);
+    }
+}
+
 function setupMusicPlayerTracking() {
     const musicPlayer = window.musicPlayer || window.musicPlayerSystem;
     if (!musicPlayer || !musicPlayer.audio) {
@@ -1325,7 +1356,7 @@ function getMusicPlaybackInfo() {
 
         result.listeners = participants.map(participant => {
 
-            const isBot = participant.isBot || participant.user_id === '4' || participant.username?.toLowerCase() === 'titibot';
+            const isBot = participant.isBot || window.botCache.get(participant.user_id) || false;
             
 
             const isInSameChannel = participant.channelId === result.voiceChannelId;
@@ -1712,6 +1743,16 @@ function testParticipantDeduplication() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    if (window.BotAPI) {
+        initializeBotCache();
+    } else {
+        setTimeout(() => {
+            if (window.BotAPI) {
+                initializeBotCache();
+            }
+        }, 1000);
+    }
+    
     if (window.addEventListener) {
         window.addEventListener('globalSocketReady', function(event) {
             if (event.detail?.manager?.io) {

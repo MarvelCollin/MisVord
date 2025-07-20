@@ -112,7 +112,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
 
 <script src="/public/js/components/bot/bot.js?v=<?php echo time(); ?>"></script>
 <script src="/public/js/components/messaging/chat-bot.js?v=<?php echo time(); ?>" type="module"></script>
-<script src="/public/js/components/bot/music-player-system.js?v=<?php echo time(); ?>"></script>
+
 <script src="/public/js/components/activity/tic-tac-toe.js?v=<?php echo time(); ?>"></script>
 <script src="/public/js/utils/music-loader-static.js?v=<?php echo time(); ?>" type="module"></script>
 <script src="/public/js/components/voice/voice-button-debug.js?v=<?php echo time(); ?>"></script>

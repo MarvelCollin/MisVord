@@ -154,6 +154,40 @@ class BotController extends BaseController
         return $this->success(['bot' => $bot], 'Bot "titibot" created successfully.');
     }
 
+    public function checkUserBot($userId)
+    {
+        if (!$userId) {
+            return $this->error('User ID is required', 400);
+        }
+
+        try {
+            $user = $this->userRepository->find($userId);
+
+            if (!$user) {
+                return $this->success([
+                    'exists' => false,
+                    'is_bot' => false,
+                    'message' => 'User does not exist'
+                ]);
+            }
+
+            $isBot = $user->status === 'bot';
+
+            return $this->success([
+                'exists' => true,
+                'is_bot' => $isBot,
+                'user' => [
+                    'id' => $user->id,
+                    'username' => $user->username,
+                    'status' => $user->status
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            return $this->serverError('An error occurred while checking user: ' . $e->getMessage());
+        }
+    }
+
     public function check($username)
     {
         $this->requireAuth();

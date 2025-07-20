@@ -10,32 +10,23 @@ class ChatBot {
     setupBotListeners() {
         if (window.globalSocketManager?.io) {
             const io = window.globalSocketManager.io;
-            
-            io.on('new-channel-message', (data) => {
+                if (!this.titiBotId) {
+            try {
+                const result = await window.BotAPI.getBotByUsername(titiBotUsername);
+                if (result.success && result.is_bot && result.bot && result.bot.id) {
+                    this.titiBotId = result.bot.id.toString();
+                }
+            } catch (e) {
+                console.error('❌ [CHAT-BOT] Failed to fetch titibot info:', e);
+            }
+        }        io.on('new-channel-message', (data) => {
                 if (data.is_bot && data.bot_id) {
 
                 }
             });
             
 
-            io.on('bot-music-command', (data) => {
-                console.log('🤖 [CHAT-BOT] Received bot-music-command:', {
-                    userId: window.globalSocketManager?.userId,
-                    data: data
-                });
 
-                if (!data || !data.music_data) {
-                    console.warn('⚠️ [CHAT-BOT] Invalid bot-music-command data:', data);
-                    return;
-                }
-
-                if (window.musicPlayer) {
-                    console.log('🤖 [CHAT-BOT] Forwarding to music player');
-                    window.musicPlayer.processBotMusicCommand(data);
-                } else {
-                    console.warn('⚠️ [CHAT-BOT] Music player not available');
-                }
-            });
             
 
         } else {
@@ -309,8 +300,9 @@ class ChatBot {
 
     updateBotParticipantStatus(statusText) {
         if (window.voiceCallSection && typeof window.voiceCallSection.updateBotParticipantStatus === 'function') {
-            const titiBotId = this.titiBotId || '4';
-            window.voiceCallSection.updateBotParticipantStatus(titiBotId, statusText);
+            if (this.titiBotId) {
+                window.voiceCallSection.updateBotParticipantStatus(this.titiBotId, statusText);
+            }
         }
     }
 
@@ -348,7 +340,12 @@ class ChatBot {
         }
 
 
-        const titiBotId = this.titiBotId || '4';
+        const titiBotId = this.titiBotId;
+        
+        if (!titiBotId) {
+            console.warn('❌ [CHAT-BOT] TitiBot ID not available');
+            return;
+        }
 
         if (!window.BotComponent.getBotStatus(titiBotId)) {
             window.globalSocketManager.io.emit('bot-init', {

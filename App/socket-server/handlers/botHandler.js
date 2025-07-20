@@ -481,10 +481,8 @@ class BotHandler extends EventEmitter {
         };
         
         const voiceChannelRoom = `voice_channel_${channelId}`;
-        const channelRoom = `channel-${channelId}`;
         
         io.to(voiceChannelRoom).emit('bot-music-command', musicStopData);
-        io.to(channelRoom).emit('bot-music-command', musicStopData);
 
         this.leaveBotFromVoiceChannel(io, botId, channelId);
     }
@@ -1057,41 +1055,19 @@ class BotHandler extends EventEmitter {
                         timestamp: Date.now()
                     };
                     
-                    console.log(`🎵 [BOT-DEBUG] Sending music command to all voice participants:`, {
-                        targetRoom,
+                    console.log(`🎵 [BOT-DEBUG] Sending music command to voice channel participants:`, {
                         channelId,
                         roomId,
                         action: musicData.action
                     });
                     
-                    io.to(targetRoom).emit('bot-music-command', musicCommandData);
-                    
                     if (channelId) {
                         const voiceChannelRoom = `voice_channel_${channelId}`;
-                        const channelRoom = `channel-${channelId}`;
                         
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
-                        io.to(channelRoom).emit('bot-music-command', musicCommandData);
-                        
-                        const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
-                        const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
-                        
-                        console.log(`🎵 [BOT-DEBUG] Found ${participants.length} participants in channel ${channelId}:`, 
-                            participants.map(p => ({ userId: p.userId, username: p.username, socketId: p.socket_id }))
-                        );
-                        
-                        participants.forEach(participant => {
-                            if (participant.userId && participant.userId !== botId.toString()) {
-                                console.log(`🎵 [BOT-DEBUG] Sending music command to participant ${participant.username} (${participant.userId})`);
-                                
-                                const userSockets = require('../services/roomManager').userSockets.get(participant.userId.toString());
-                                if (userSockets && userSockets.size > 0) {
-                                    userSockets.forEach(socketId => {
-                                        io.to(socketId).emit('bot-music-command', musicCommandData);
-                                    });
-                                }
-                            }
-                        });
+                    } else if (roomId) {
+                        const targetRoom = `dm-room-${roomId}`;
+                        io.to(targetRoom).emit('bot-music-command', musicCommandData);
                     }
                 }
             } else {
