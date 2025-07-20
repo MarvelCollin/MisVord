@@ -8,7 +8,7 @@ class MessageHandler {
         this.isFirstTimeLoad = true;
     }
     
-    async addMessage(messageData) {
+    addMessage(messageData) {
         if (!messageData || 
             !messageData.id || 
             messageData.id === '' || 
@@ -93,7 +93,7 @@ class MessageHandler {
             return;
         }
         
-        const messageElement = await this.createMessageElement(formattedMessage, isTemporary);
+        const messageElement = this.createMessageElementSync(formattedMessage, isTemporary);
         
         if (!messageElement) {
             console.error('❌ [MESSAGE-HANDLER] Failed to create message element');
@@ -129,59 +129,158 @@ class MessageHandler {
 
     }
     
-    async renderBubbleMessage(messageData) {
+    renderBubbleMessage(messageData) {
         try {
-
+            const messageId = messageData.id || '';
+            const userId = messageData.user_id || messageData.userId || 0;
+            const username = messageData.username || 'Unknown User';
+            const avatarUrl = messageData.avatar_url || '';
+            const content = messageData.content || '';
+            const sentAt = messageData.sent_at || '';
+            const editedAt = messageData.edited_at || null;
+            const attachments = messageData.attachments || [];
+            const reactions = messageData.reactions || [];
+            const replyData = messageData.reply_data || null;
+            const shouldGroup = messageData.shouldGroup || false;
+            const currentUserId = this.chatSection.userId;
+            const isOwnMessage = userId == currentUserId;
             
-            const response = await fetch('/api/messages/render-bubble', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message_data: messageData
-                })
+            const html = this.generateBubbleHTML({
+                messageId, userId, username, avatarUrl, content, sentAt, 
+                editedAt, attachments, reactions, replyData, shouldGroup, isOwnMessage
             });
             
-
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ [MESSAGE-HANDLER] HTTP error in bubble render:', response.status, response.statusText, errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}: ${errorText}`);
-            }
-            
-            const result = await response.json();
-            
-            const html = result.html || result.data?.html;
-            
-            console.log('📥 [MESSAGE-HANDLER] Bubble render response:', {
-                success: result.success,
-                hasHtml: !!html,
-                htmlLength: html ? html.length : 0,
-                error: result.error,
-                message: result.message,
-                dataKeys: result.data ? Object.keys(result.data) : [],
-                resultKeys: Object.keys(result)
-            });
-            
-            if (!result.success) {
-                console.error('❌ [MESSAGE-HANDLER] Bubble render failed:', result.error || result.message);
-                throw new Error(result.error || result.message || 'Failed to render bubble message');
-            }
-            
-            if (!html || typeof html !== 'string') {
-                console.error('❌ [MESSAGE-HANDLER] Invalid HTML in response:', result);
-                throw new Error('No valid HTML returned from bubble render API');
-            }
-            
-
             return html;
-            
         } catch (error) {
-            console.error('❌ [MESSAGE-HANDLER] Exception in renderBubbleMessage:', error);
-            throw error;
+            console.error('❌ [MESSAGE-HANDLER] Error in bubble render:', error);
+            return this.generateFallbackBubbleHTML(messageData);
         }
+    }
+
+    generateBubbleHTML(data) {
+        const {messageId, userId, username, avatarUrl, content, sentAt, 
+               editedAt, attachments, reactions, replyData, shouldGroup, isOwnMessage} = data;
+        
+        const timestamp = this.formatTimestamp(sentAt);
+        const formattedContent = this.formatContent(content);
+        const groupedClass = shouldGroup ? 'grouped' : '';
+        const timestampMs = new Date(sentAt).getTime();
+        
+        return `
+        <div class="bubble-message-group ${groupedClass}" data-user-id="${userId}" data-timestamp="${timestampMs}" data-should-group="${shouldGroup ? '1' : '0'}">
+            ${!shouldGroup ? `
+            <div class="bubble-avatar">
+                <img src="${avatarUrl || '/public/assets/images/default-avatar.png'}" alt="${username}" onerror="this.src='/public/assets/images/default-avatar.png'">
+            </div>
+            ` : ''}
+            <div class="bubble-content-wrapper" ${shouldGroup ? 'style="padding-left: 56px;"' : ''}>
+                ${!shouldGroup ? `
+                <div class="bubble-header">
+                    <span class="bubble-username">${username}</span>
+                    <span class="bubble-timestamp">${timestamp}</span>
+                </div>
+                ` : ''}
+                <div class="bubble-contents">
+                    ${replyData ? this.generateReplyHTML(replyData) : ''}
+                    <div class="bubble-message-content" data-message-id="${messageId}">
+                        ${content ? `<div class="bubble-message-text">${formattedContent}${editedAt ? '<span class="bubble-edited-badge">(edited)</span>' : ''}</div>` : ''}
+                        ${attachments.length > 0 ? this.generateAttachmentsHTML(attachments) : ''}
+                        ${reactions.length > 0 ? this.generateReactionsHTML(reactions, messageId) : ''}
+                        <div class="bubble-message-actions">
+                            <button class="bubble-action-button" data-action="reply" data-message-id="${messageId}" title="Reply">
+                                <i class="fas fa-reply"></i>
+                            </button>
+                            <button class="bubble-action-button" data-action="react" data-message-id="${messageId}" title="Add Reaction">
+                                <i class="fas fa-smile"></i>
+                            </button>
+                            ${isOwnMessage ? `
+                            <button class="bubble-action-button" data-action="edit" data-message-id="${messageId}" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="bubble-action-button delete-button" data-action="delete" data-message-id="${messageId}" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    generateFallbackBubbleHTML(messageData) {
+        return this.generateBubbleHTML({
+            messageId: messageData.id || '',
+            userId: messageData.user_id || 0,
+            username: messageData.username || 'Unknown',
+            avatarUrl: messageData.avatar_url || '',
+            content: messageData.content || '',
+            sentAt: messageData.sent_at || '',
+            editedAt: messageData.edited_at || null,
+            attachments: messageData.attachments || [],
+            reactions: messageData.reactions || [],
+            replyData: messageData.reply_data || null,
+            shouldGroup: false,
+            isOwnMessage: false
+        });
+    }
+
+    formatTimestamp(sentAt) {
+        if (!sentAt) return '';
+        const date = new Date(sentAt);
+        const now = new Date();
+        const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) {
+            return date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+        } else if (diffDays === 1) {
+            return 'Yesterday ' + date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+        } else {
+            return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) + ' ' + 
+                   date.toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit', hour12: false});
+        }
+    }
+
+    formatContent(content) {
+        if (!content) return '';
+        let formatted = content.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        formatted = formatted.replace(/~~(.*?)~~/, '<del>$1</del>');
+        formatted = formatted.replace(/`(.*?)`/g, '<code class="bg-[#2f3136] text-[#dcddde] px-1 py-0.5 rounded text-sm">$1</code>');
+        formatted = formatted.replace(/@all\b/g, '<span class="mention mention-all bubble-mention bubble-mention-all">@all</span>');
+        return formatted;
+    }
+
+    generateReplyHTML(replyData) {
+        return `<div class="bubble-reply-container">
+            <span class="bubble-reply-username">${replyData.username || 'Unknown'}</span>
+            <span class="bubble-reply-content">${(replyData.content || '').substring(0, 50)}${replyData.content && replyData.content.length > 50 ? '...' : ''}</span>
+        </div>`;
+    }
+
+    generateAttachmentsHTML(attachments) {
+        return `<div class="bubble-attachments">${attachments.map(att => 
+            `<div class="bubble-attachment"><a href="${att.url || att}" download="${att.name || 'attachment'}">${att.name || 'attachment'}</a></div>`
+        ).join('')}</div>`;
+    }
+
+    generateReactionsHTML(reactions, messageId) {
+        if (!reactions.length) return '';
+        const grouped = {};
+        reactions.forEach(r => {
+            if (!grouped[r.emoji]) grouped[r.emoji] = {count: 0, users: [], hasCurrentUser: false};
+            grouped[r.emoji].count++;
+            grouped[r.emoji].users.push(r.username);
+            if (r.user_id == this.chatSection.userId) grouped[r.emoji].hasCurrentUser = true;
+        });
+        
+        return `<div class="bubble-reactions">${Object.entries(grouped).map(([emoji, data]) => 
+            `<div class="bubble-reaction ${data.hasCurrentUser ? 'user-reacted' : ''}" data-emoji="${emoji}" data-message-id="${messageId}">
+                <span class="bubble-reaction-emoji">${emoji}</span>
+                <span class="bubble-reaction-count">${data.count}</span>
+            </div>`
+        ).join('')}</div>`;
     }
     
     ensureBubbleStyles(tempDiv) {
@@ -918,16 +1017,13 @@ class MessageHandler {
 
     }
     
-    async displayMessages(messages) {
-
-        
+    displayMessages(messages) {
         if (!Array.isArray(messages)) {
             console.error('❌ [MESSAGE-HANDLER] displayMessages called with non-array:', messages);
             return;
         }
         
         if (messages.length === 0) {
-
             return;
         }
         
@@ -938,19 +1034,9 @@ class MessageHandler {
         }
         
         this.chatSection.hideEmptyState();
-        this.ensureFallbackStyles();
-        
-
-        
-        const tempContainer = document.createElement('div');
-        tempContainer.style.visibility = 'hidden';
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.top = '-9999px';
-        tempContainer.className = 'messages-container';
-        document.body.appendChild(tempContainer);
         
         const messageElements = [];
-        let processedCount = 0;
+        const fragment = document.createDocumentFragment();
         
         for (const message of messages) {
             try {
@@ -961,55 +1047,145 @@ class MessageHandler {
                     continue;
                 }
                 
-                const messageElement = await this.createMessageElement(formattedMessage, false);
+                const messageElement = this.createMessageElementSync(formattedMessage, false);
+                
                 if (messageElement) {
-                    tempContainer.appendChild(messageElement);
+                    fragment.appendChild(messageElement);
                     messageElements.push(messageElement);
                     this.processedMessageIds.add(message.id);
-                    processedCount++;
-                    
-                    if (processedCount % 5 === 0) {
-                        await new Promise(resolve => setTimeout(resolve, 0));
-                    }
                 }
             } catch (error) {
-                console.error(`❌ [MESSAGE-HANDLER] Error creating message ${message.id}:`, error);
+                console.error(`❌ [MESSAGE-HANDLER] Error processing message ${message.id}:`, error);
+                const formattedMessage = this.formatMessageForBubble(message);
+                const fallbackElement = this.createFallbackMessageElement(formattedMessage, false);
+                if (fallbackElement) {
+                    fragment.appendChild(fallbackElement);
+                    messageElements.push(fallbackElement);
+                    this.processedMessageIds.add(message.id);
+                }
             }
         }
         
-
-        
-
-        
         messagesContainer.innerHTML = '';
+        messagesContainer.appendChild(fragment);
+        
+        this.applyGroupingToMessages(messagesContainer);
         
         messageElements.forEach(element => {
-            messagesContainer.appendChild(element);
+            const messageId = element.querySelector('[data-message-id]')?.dataset.messageId;
+            if (messageId) {
+                this.addMessageEventListeners(messageId);
+            }
         });
         
-        document.body.removeChild(tempContainer);
+        if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
+            this.chatSection.updateLoadMoreButton();
+        }
         
-        await new Promise(resolve => {
-            requestAnimationFrame(() => {
-                if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
-                    this.chatSection.updateLoadMoreButton();
-                }
-                if (typeof window.processMentionCandidates === 'function') {
-                    setTimeout(() => window.processMentionCandidates(), 100);
+        if (this.isFirstTimeLoad && this.chatSection) {
+            if (this.chatSection.shouldAutoScroll()) {
+                this.chatSection.scrollToBottom();
+            }
+        }
+        
+        this.isFirstTimeLoad = false;
+    }
+
+    createMessageElementSync(formattedMessage, isTemporary) {
+        try {
+            const bubbleHtml = this.renderBubbleMessage(formattedMessage);
+            
+            if (!bubbleHtml || typeof bubbleHtml !== 'string') {
+                console.error('❌ [MESSAGE-HANDLER] Invalid bubble HTML response:', bubbleHtml);
+                return this.createFallbackMessageElement(formattedMessage, isTemporary);
+            }
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = bubbleHtml.trim();
+            
+            const messageGroup = tempDiv.querySelector('.bubble-message-group');
+        
+            if (messageGroup) {
+                const messageElement = messageGroup.querySelector('[data-message-id]');
+                
+                if (isTemporary && messageElement) {
+                    this.markAsTemporary(messageElement);
                 }
                 
-                if (this.isFirstTimeLoad && this.chatSection) {
-                    if (this.chatSection.shouldAutoScroll()) {
-                        this.chatSection.scrollToBottom();
-                    }
+                return messageGroup;
+            } else {
+                const htmlPreview = bubbleHtml ? bubbleHtml.substring(0, 200) : 'undefined';
+                console.error('❌ [MESSAGE-HANDLER] No message group found in bubble HTML:', htmlPreview);
+                return this.createFallbackMessageElement(formattedMessage, isTemporary);
+            }
+        } catch (error) {
+            console.error('❌ [MESSAGE-HANDLER] Error in createMessageElementSync:', error);
+            return this.createFallbackMessageElement(formattedMessage, isTemporary);
+        }
+    }
+
+    createFallbackMessageElement(formattedMessage, isTemporary) {
+        try {
+            const messageGroup = this.createMessageGroup(formattedMessage);
+            
+            if (isTemporary && messageGroup) {
+                const messageElement = messageGroup.querySelector('[data-message-id]');
+                if (messageElement) {
+                    this.markAsTemporary(messageElement);
+                }
+            }
+            
+            return messageGroup;
+        } catch (error) {
+            console.error('❌ [MESSAGE-HANDLER] Error in fallback message creation:', error);
+            return null;
+        }
+    }
+
+    applyGroupingToMessages(container) {
+        const messages = container.querySelectorAll('.bubble-message-group');
+        let prevUserId = null;
+        let prevTimestamp = null;
+        
+        messages.forEach((message, index) => {
+            if (index === 0) {
+                prevUserId = message.getAttribute('data-user-id');
+                prevTimestamp = parseInt(message.getAttribute('data-timestamp'));
+                return;
+            }
+            
+            const currentUserId = message.getAttribute('data-user-id');
+            const currentTimestamp = parseInt(message.getAttribute('data-timestamp'));
+            
+            if (currentUserId === prevUserId && 
+                currentTimestamp - prevTimestamp <= 7200000) {
+                
+                message.classList.add('grouped');
+                message.style.marginTop = '0';
+                message.style.paddingTop = '0';
+                
+                const avatar = message.querySelector('.bubble-avatar');
+                const header = message.querySelector('.bubble-header');
+                
+                if (avatar) avatar.style.display = 'none';
+                if (header) header.style.display = 'none';
+                
+                const contentWrapper = message.querySelector('.bubble-content-wrapper');
+                if (contentWrapper) contentWrapper.style.paddingLeft = '56px';
+                
+                const messageContent = message.querySelector('.bubble-message-content');
+                if (messageContent) {
+                    messageContent.style.paddingTop = '0';
+                    messageContent.style.marginTop = '2px';
                 }
                 
-                this.isFirstTimeLoad = false;
-                resolve();
-            });
+                const actionsMenu = message.querySelector('.bubble-message-actions');
+                if (actionsMenu) actionsMenu.style.top = '-8px';
+            }
+            
+            prevUserId = currentUserId;
+            prevTimestamp = currentTimestamp;
         });
-        
-        
     }
     
     async prependMessagesProgressively(messages) {
@@ -1123,16 +1299,13 @@ class MessageHandler {
         return separator;
     }
     
-    async prependMessages(messages) {
-
-        
+    prependMessages(messages) {
         if (!Array.isArray(messages)) {
             console.error('❌ [MESSAGE-HANDLER] prependMessages called with non-array:', messages);
             return;
         }
         
         if (messages.length === 0) {
-
             return;
         }
         
@@ -1148,6 +1321,8 @@ class MessageHandler {
         const currentScrollHeight = messagesContainer.scrollHeight;
         const currentScrollTop = messagesContainer.scrollTop;
         
+        const fragment = document.createDocumentFragment();
+        
         for (const message of messages.reverse()) {
             try {
                 const formattedMessage = this.formatMessageForBubble(message);
@@ -1157,31 +1332,30 @@ class MessageHandler {
                     continue;
                 }
                 
-                const bubbleHtml = await this.renderBubbleMessage(formattedMessage);
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = bubbleHtml;
-                const messageGroup = tempDiv.querySelector('.bubble-message-group');
+                const messageElement = this.createMessageElementSync(formattedMessage, false);
                 
-                if (messageGroup) {
-                    this.ensureBubbleStyles(tempDiv);
-                    messagesContainer.insertBefore(messageGroup, firstChild);
+                if (messageElement) {
+                    fragment.appendChild(messageElement);
                     this.processedMessageIds.add(message.id);
-                } else {
-                    this.fallbackPrependMessage(formattedMessage, messagesContainer, firstChild);
                 }
             } catch (error) {
                 console.error(`❌ [MESSAGE-HANDLER] Error prepending message ${message.id}:`, error);
                 const formattedMessage = this.formatMessageForBubble(message);
-                this.fallbackPrependMessage(formattedMessage, messagesContainer, firstChild);
+                const fallbackElement = this.createFallbackMessageElement(formattedMessage, false);
+                if (fallbackElement) {
+                    fragment.appendChild(fallbackElement);
+                    this.processedMessageIds.add(message.id);
+                }
             }
         }
         
+        messagesContainer.insertBefore(fragment, firstChild);
+        
+        this.applyGroupingToMessages(messagesContainer);
+        
         const newScrollHeight = messagesContainer.scrollHeight;
         messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
-        
-        if (typeof window.processMentionCandidates === 'function') {
-            setTimeout(() => window.processMentionCandidates(), 100);
-        }
+    }
 
     }
     

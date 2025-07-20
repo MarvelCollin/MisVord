@@ -2,6 +2,11 @@ document.addEventListener("DOMContentLoaded", function () {
   initFeaturedCards();
   initCursorParticles();
   initCardTiltEffect();
+  
+  window.addEventListener('resize', debounce(() => {
+    initCardTiltEffect();
+    initCursorParticles();
+  }, 250));
 });
 
 document.addEventListener('featuredCardsVisible', function() {
@@ -75,6 +80,7 @@ function triggerCardAnimations() {
 
 function setupCardInteractions() {
   const cards = document.querySelectorAll('.featured-card');
+  const isMobile = window.innerWidth <= 768;
   
   cards.forEach(card => {
     card.style.opacity = '0';
@@ -98,9 +104,15 @@ function setupCardInteractions() {
       });
     }
     
-    card.addEventListener('mouseenter', () => {
-      createCardSparkles(card);
-    });
+    if (!isMobile) {
+      card.addEventListener('mouseenter', () => {
+        createCardSparkles(card);
+      });
+    } else {
+      card.addEventListener('touchstart', () => {
+        createCardSparkles(card);
+      }, { passive: true });
+    }
   });
 }
 
@@ -163,6 +175,11 @@ function createCardSparkles(card) {
 
 function initCardTiltEffect() {
   const cards = document.querySelectorAll('[data-tilt="true"]');
+  const isMobile = window.innerWidth <= 768;
+  
+  if (isMobile) {
+    return;
+  }
   
   cards.forEach(card => {
     card.addEventListener('mousemove', (e) => {
@@ -186,6 +203,9 @@ function initCardTiltEffect() {
 function initCursorParticles() {
   const particleContainer = document.querySelector('.cursor-particles');
   if (!particleContainer) return;
+  
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) return;
   
   let lastParticleTime = 0;
   const particleInterval = 100;

@@ -61,16 +61,13 @@
   background-color: #313338;
   position: relative;
   scroll-behavior: auto !important;
+  will-change: scroll-position;
 }
-
 
 #chat-messages .messages-container {
   padding: 16px 0;
   display: flex;
   flex-direction: column;
-  will-change: transform; 
-  backface-visibility: hidden; 
-  scroll-behavior: auto !important;
   min-height: 0;
 }
 
@@ -164,7 +161,6 @@
   padding: 4px;
   opacity: 0;
   visibility: hidden;
-  transition: opacity 0.15s ease, visibility 0.15s ease;
   z-index: 10;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
@@ -180,7 +176,6 @@
   border-radius: 4px;
   color: #b9bbbe;
   cursor: pointer;
-  transition: all 0.15s ease;
 }
 
 #chat-messages .bubble-action-button:hover {

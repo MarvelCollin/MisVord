@@ -1155,7 +1155,7 @@ class ChatSection {
 
             if (messages.length > 0) {
                 if (isLoadMore) {
-                    await this.messageHandler.prependMessages(messages);
+                    this.messageHandler.prependMessages(messages);
                     this.currentOffset += messages.length;
                     this.hideLoadMoreProgress(true, `Loaded ${messages.length} older messages`);
                     
@@ -1164,7 +1164,7 @@ class ChatSection {
                         this.updateContainerHeight(messagesContainer);
                     }
                 } else {
-                    await this.messageHandler.displayMessages(messages);
+                    this.messageHandler.displayMessages(messages);
                     this.currentOffset = messages.length;
                     
                     const messagesContainer = this.getMessagesContainer();
@@ -1172,19 +1172,9 @@ class ChatSection {
                         this.updateContainerHeight(messagesContainer);
                     }
                     
-                    await new Promise(resolve => {
-                        requestAnimationFrame(() => {
-                            const messagesContainer = this.getMessagesContainer();
-                            if (messagesContainer && messagesContainer.children.length > 0) {
-                                if (options.isChannelSwitch) {
-                                    this.scrollToBottomIfAppropriate(true);
-                                }
-                                resolve();
-                            } else {
-                                setTimeout(resolve, 100);
-                            }
-                        });
-                    });
+                    if (options.isChannelSwitch) {
+                        this.scrollToBottomIfAppropriate(true);
+                    }
                 }
                 
                 this.hideEmptyState();

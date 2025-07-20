@@ -530,6 +530,239 @@
 
 
 
+@media (max-width: 768px) {
+    .featured-cards-section {
+        padding: 1rem;
+        min-height: auto;
+    }
+
+    .cards-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        gap: 1rem;
+        transform: none;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .featured-card {
+        max-width: none;
+        height: auto;
+        min-height: 280px;
+    }
+
+    .featured-card:hover {
+        transform: translateY(-5px) scale(1.01);
+    }
+
+    .card-content {
+        padding: 1.5rem;
+    }
+
+    .app-icon {
+        width: 50px;
+        height: 50px;
+        margin-right: 1rem;
+    }
+
+    .app-icon i {
+        font-size: 1.5rem;
+    }
+
+    .app-name {
+        font-size: 1.3rem;
+    }
+
+    .app-description {
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+    }
+
+    .card-btn {
+        padding: 0.8rem 1.2rem;
+        font-size: 0.95rem;
+    }
+
+    .card-btn.secondary {
+        width: 32px;
+        height: 32px;
+    }
+
+    .nebula-1 {
+        width: 200px;
+        height: 200px;
+        top: 10%;
+        right: 10%;
+    }
+
+    .nebula-2 {
+        width: 250px;
+        height: 250px;
+        bottom: 5%;
+        left: 5%;
+    }
+
+    .nebula-3 {
+        width: 150px;
+        height: 150px;
+        top: 30%;
+        left: 20%;
+    }
+
+    .glow-1 {
+        width: 300px;
+        height: 300px;
+    }
+
+    .glow-2 {
+        width: 350px;
+        height: 350px;
+    }
+
+    .glow-3 {
+        width: 250px;
+        height: 250px;
+    }
+
+    .section-indicator {
+        display: none;
+    }
+
+    .star.large {
+        width: 2px;
+        height: 2px;
+    }
+
+    .star.medium {
+        width: 1.5px;
+        height: 1.5px;
+    }
+
+    .featured-cards-section .star {
+        animation: starTwinkle 4s infinite alternate, starMove 20s linear infinite;
+    }
+
+    .featured-cards-section .star.medium {
+        animation: starTwinkle 6s infinite alternate, starMove 25s linear infinite;
+    }
+
+    .featured-cards-section .star.large {
+        animation: starTwinkleBright 8s infinite alternate, starMove 30s linear infinite;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+    .featured-cards-section {
+        padding: 1.5rem;
+    }
+
+    .cards-container {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        gap: 1rem;
+        transform: none;
+        max-width: 700px;
+        margin: 0 auto;
+    }
+
+    .card-content {
+        padding: 1.8rem;
+    }
+
+    .app-name {
+        font-size: 1.4rem;
+    }
+
+    .app-description {
+        font-size: 1.1rem;
+    }
+
+    .nebula-1 {
+        width: 250px;
+        height: 250px;
+    }
+
+    .nebula-2 {
+        width: 300px;
+        height: 300px;
+    }
+
+    .nebula-3 {
+        width: 200px;
+        height: 200px;
+    }
+}
+
+@media (max-width: 480px) {
+    .featured-cards-section {
+        padding: 0.75rem;
+    }
+
+    .cards-container {
+        max-width: 100%;
+        gap: 0.8rem;
+    }
+
+    .card-content {
+        padding: 1.2rem;
+    }
+
+    .app-icon {
+        width: 45px;
+        height: 45px;
+        margin-right: 0.8rem;
+    }
+
+    .app-icon i {
+        font-size: 1.3rem;
+    }
+
+    .app-name {
+        font-size: 1.2rem;
+    }
+
+    .app-category {
+        font-size: 0.8rem;
+    }
+
+    .app-description {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .card-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .card-btn.primary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .card-btn.secondary {
+        width: 100%;
+        height: auto;
+        padding: 0.8rem;
+        justify-content: center;
+    }
+
+    .status-text {
+        font-size: 0.55rem;
+    }
+
+    .nebula {
+        filter: blur(40px);
+        opacity: 0.2;
+    }
+
+    .cosmic-glow {
+        filter: blur(60px);
+        opacity: 0.15;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .star,
     .nebula,

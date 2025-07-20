@@ -299,12 +299,12 @@ class UserProfileVoiceControls {
         this.deafenBtn.classList.remove('text-[#ed4245]', 'text-discord-lighter');
         
         if (state.isDeafened) {
-            deafenIcon.className = 'fas fa-volume-xmark text-lg';
-            this.deafenBtn.style.backgroundColor = '#ed4245';
+            deafenIcon.className = 'fas fa-deaf text-lg';
+            this.deafenBtn.style.backgroundColor = '#dc2626';
             this.deafenBtn.style.color = 'white';
         } else {
             deafenIcon.className = 'fas fa-headphones text-lg';
-            this.deafenBtn.style.backgroundColor = '#3ba55c';
+            this.deafenBtn.style.backgroundColor = '#16a34a';
             this.deafenBtn.style.color = 'white';
         }
         this.deafenBtn.style.borderRadius = '4px';
@@ -357,60 +357,35 @@ class UserProfileVoiceControls {
     
     handleDeafenClick() {
         try {
-            if (!window.localStorageManager) {
-                console.warn('LocalStorageManager not available');
+            if (!window.voiceManager) {
+                console.warn('VoiceManager not available');
                 return;
             }
             
-            const currentState = window.localStorageManager.getUnifiedVoiceState();
-            const wasPreviouslyDeafened = currentState.isDeafened;
+            if (!window.voiceManager.isConnected) {
+                console.warn('Not connected to voice call');
+                return;
+            }
             
-            const newDeafenedState = !wasPreviouslyDeafened;
-            const newMutedState = newDeafenedState ? true : currentState.isMuted;
-            
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
-                isDeafened: newDeafenedState,
-                isMuted: newMutedState
-            });
+            const wasDeafened = window.voiceManager.getDeafenState();
             
             if (window.MusicLoaderStatic) {
-                if (wasPreviouslyDeafened) {
+                if (wasDeafened) {
                     window.MusicLoaderStatic.playDiscordUnmuteSound();
                 } else {
                     window.MusicLoaderStatic.playDiscordMuteSound();
                 }
             }
             
-            if (window.voiceManager && window.voiceManager.isConnected) {
-                window.voiceManager._deafened = newDeafenedState;
-                
-                if (newDeafenedState && window.voiceManager._micOn) {
-                    window.voiceManager.localParticipant?.disableMic();
-                    window.voiceManager._micOn = false;
-                }
-                
-                window.voiceManager.meeting?.participants.forEach(participant => {
-                    if (participant.id !== window.voiceManager.localParticipant?.id) {
-                        const participantData = window.voiceManager.participants.get(participant.id);
-                        if (participantData && participantData.streams) {
-                            participantData.streams.forEach((stream, kind) => {
-                                if (kind === 'audio' && stream.track) {
-                                    if (newDeafenedState) {
-                                        stream.track.enabled = false;
-                                    } else {
-                                        stream.track.enabled = true;
-                                    }
-                                }
-                            });
-                        }
-                    }
-                });
+            window.voiceManager.toggleDeafen();
+            
+            if (window.voiceCallSection && window.voiceCallSection.updateAllAudioElementsMute) {
+                window.voiceCallSection.updateAllAudioElementsMute(!wasDeafened);
             }
             
             this.updateControls();
             
-            console.log('UserProfile: Deafen toggled via localStorage');
+            console.log('UserProfile: Deafen toggled via voiceManager');
             
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);
