@@ -1980,6 +1980,12 @@ function initDeleteAccount() {
     
     const username = document.querySelector('meta[name="username"]')?.getAttribute('content') || '';
     
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
     function openModal() {
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -2005,6 +2011,9 @@ function initDeleteAccount() {
     }
     
     function showError(message) {
+        if (typeof message !== 'string') {
+            message = String(message);
+        }
         errorDiv.textContent = message;
         errorDiv.classList.remove('hidden');
     }
@@ -2058,7 +2067,8 @@ function initDeleteAccount() {
                 
                 const serversList = document.getElementById('owned-servers-list');
                 servers.forEach(server => {
-                    
+                    const escapedServerName = escapeHtml(server.name);
+                    const serverFirstChar = escapeHtml(server.name.charAt(0));
                     
                     const serverElement = document.createElement('div');
                     serverElement.className = 'p-4 bg-discord-bg-secondary rounded-md border border-gray-700 h-full';
@@ -2070,12 +2080,12 @@ function initDeleteAccount() {
                             <div class="flex items-center mb-3">
                                 <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
                                     ${server.icon_url ? 
-                                        `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
-                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
+                                        `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
+                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
                                     }
                                 </div>
                                 <div>
-                                    <div class="font-medium text-white text-lg">${server.name}</div>
+                                    <div class="font-medium text-white text-lg">${escapedServerName}</div>
                                     <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
                                 </div>
                             </div>
@@ -2093,12 +2103,12 @@ function initDeleteAccount() {
                             <div class="flex items-center mb-3">
                                 <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
                                     ${server.icon_url ? 
-                                        `<img src="${server.icon_url}" alt="${server.name}" class="w-full h-full object-cover">` : 
-                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${server.name.charAt(0)}</div>`
+                                        `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
+                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
                                     }
                                 </div>
                                 <div>
-                                    <div class="font-medium text-white text-lg">${server.name}</div>
+                                    <div class="font-medium text-white text-lg">${escapedServerName}</div>
                                     <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
                                 </div>
                             </div>
@@ -2266,22 +2276,25 @@ function initDeleteAccount() {
             
             const roleColor = getRoleColor(member.role);
             const roleDisplayName = getRoleDisplayName(member.role);
+            const escapedUsername = escapeHtml(member.username);
+            const escapedDisplayName = escapeHtml(member.display_name || member.username);
+            const usernameFirstChar = escapeHtml(member.username.charAt(0));
             
             memberElement.innerHTML = `
                 <div class="flex items-center">
                     <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
                         ${member.avatar_url ? 
-                            `<img src="${member.avatar_url}" alt="${member.username}" class="w-full h-full object-cover">` : 
-                            `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${member.username.charAt(0)}</div>`
+                            `<img src="${escapeHtml(member.avatar_url)}" alt="${escapedUsername}" class="w-full h-full object-cover">` : 
+                            `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${usernameFirstChar}</div>`
                         }
                     </div>
                     <div>
-                        <div class="text-sm font-medium text-white">${member.display_name || member.username}</div>
-                        <div class="text-xs text-discord-interactive-normal">${member.username}</div>
+                        <div class="text-sm font-medium text-white">${escapedDisplayName}</div>
+                        <div class="text-xs text-discord-interactive-normal">${escapedUsername}</div>
                     </div>
                 </div>
                 <div class="flex items-center">
-                    <span class="text-xs px-2 py-1 rounded ${roleColor}">${roleDisplayName}</span>
+                    <span class="text-xs px-2 py-1 rounded ${roleColor}">${escapeHtml(roleDisplayName)}</span>
                 </div>
             `;
             
@@ -2334,19 +2347,22 @@ function initDeleteAccount() {
         
         const roleColor = getRoleColor(member.role);
         const roleDisplayName = getRoleDisplayName(member.role);
+        const escapedUsername = escapeHtml(member.username);
+        const escapedDisplayName = escapeHtml(member.display_name || member.username);
+        const usernameFirstChar = escapeHtml(member.username.charAt(0));
         
         selectedMemberName.innerHTML = `
-            <div class="text-sm font-medium text-white">${member.display_name || member.username}</div>
+            <div class="text-sm font-medium text-white">${escapedDisplayName}</div>
             <div class="text-xs text-discord-interactive-normal flex items-center gap-2">
-                <span>${member.username}</span>
-                <span class="text-xs px-2 py-0.5 rounded ${roleColor}">${roleDisplayName}</span>
+                <span>${escapedUsername}</span>
+                <span class="text-xs px-2 py-0.5 rounded ${roleColor}">${escapeHtml(roleDisplayName)}</span>
             </div>
         `;
         
         if (member.avatar_url) {
-            selectedMemberAvatar.innerHTML = `<img src="${member.avatar_url}" alt="${member.username}" class="w-full h-full object-cover">`;
+            selectedMemberAvatar.innerHTML = `<img src="${escapeHtml(member.avatar_url)}" alt="${escapedUsername}" class="w-full h-full object-cover">`;
         } else {
-            selectedMemberAvatar.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${member.username.charAt(0)}</div>`;
+            selectedMemberAvatar.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${usernameFirstChar}</div>`;
         }
         
         const serverId = serverElement.getAttribute('data-server-id');

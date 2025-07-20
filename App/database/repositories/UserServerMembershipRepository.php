@@ -183,17 +183,17 @@ class UserServerMembershipRepository extends Repository {
     
     public function transferOwnership($serverId, $currentOwnerId, $newOwnerId) {
         try {
-            error_log("Transferring ownership of server $serverId from user $currentOwnerId to user $newOwnerId");
+            error_log("Starting ownership transfer: server_id=$serverId, current_owner=$currentOwnerId, new_owner=$newOwnerId");
             
             $existingNewOwnerMembership = $this->findByUserAndServer($newOwnerId, $serverId);
             if (!$existingNewOwnerMembership) {
-                error_log("New owner user $newOwnerId is not a member of server $serverId");
+                error_log("Transfer failed: New owner user $newOwnerId is not a member of server $serverId");
                 return false;
             }
             
             $existingCurrentOwnerMembership = $this->findByUserAndServer($currentOwnerId, $serverId);
             if (!$existingCurrentOwnerMembership || $existingCurrentOwnerMembership->role !== 'owner') {
-                error_log("Current user $currentOwnerId is not the owner of server $serverId");
+                error_log("Transfer failed: Current user $currentOwnerId is not the owner of server $serverId (current role: " . ($existingCurrentOwnerMembership ? $existingCurrentOwnerMembership->role : 'not found') . ")");
                 return false;
             }
             
@@ -210,7 +210,7 @@ class UserServerMembershipRepository extends Repository {
             error_log("Update new owner result: " . ($updateNewOwner !== false ? "success ($updateNewOwner rows)" : 'failed'));
 
             if ($updateNewOwner === false) {
-                error_log("Failed to update new owner role");
+                error_log("Failed to update new owner role - rolling back");
                 $query->rollback();
                 return false;
             }
@@ -223,7 +223,7 @@ class UserServerMembershipRepository extends Repository {
             error_log("Update current owner to admin result: " . ($updateCurrentOwner !== false ? "success ($updateCurrentOwner rows)" : 'failed'));
 
             if ($updateCurrentOwner === false) {
-                error_log("Failed to update current owner role to admin");
+                error_log("Failed to update current owner role to admin - rolling back");
                 $query->rollback();
                 return false;
             }
@@ -233,10 +233,10 @@ class UserServerMembershipRepository extends Repository {
                 ->where('role', 'owner')
                 ->get();
                 
-            error_log("Found " . count($allOwners) . " owners after transfer: " . json_encode($allOwners));
+            error_log("Found " . count($allOwners) . " owners after transfer");
             
             if (count($allOwners) > 1) {
-                error_log("Multiple owners detected - cleaning up");
+                error_log("Multiple owners detected - cleaning up extra owners");
                 $cleanupResult = $query->table('user_server_memberships')
                     ->where('server_id', $serverId)
                     ->where('role', 'owner')
@@ -271,7 +271,7 @@ class UserServerMembershipRepository extends Repository {
                 return false;
             }
             
-            error_log("Complete ownership transfer verified successfully");
+            error_log("Complete ownership transfer verified successfully: server_id=$serverId, old_owner=$currentOwnerId, new_owner=$newOwnerId");
             return true;
         } catch (Exception $e) {
             error_log("Exception in transferOwnership: " . $e->getMessage());

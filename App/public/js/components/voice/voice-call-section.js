@@ -387,6 +387,9 @@ class VoiceCallSection {
                 window.globalSocketManager.io.emit('check-voice-meeting', { 
                     channel_id: finalChannelId 
                 });
+                window.globalSocketManager.io.emit('request-music-state', { 
+                    channel_id: finalChannelId 
+                });
             }
         }, 300);
 
@@ -448,6 +451,10 @@ class VoiceCallSection {
                     this.participantElements.set(data.user_id, element);
                     this.updateGridLayout();
                     this.updateParticipantCount();
+                }
+
+                if (!participantData.isBot && window.musicPlayer) {
+                    window.musicPlayer.shareCurrentMusicStateWithParticipant(data.user_id);
                 }
             }
         } else if (data.action === 'leave' && data.user_id !== this.getCurrentUserId()) {

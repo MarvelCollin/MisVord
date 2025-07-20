@@ -1183,7 +1183,7 @@ class UserController extends BaseController
                 echo json_encode([
                     'success' => false,
                     'error' => 'Username confirmation is required'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -1194,7 +1194,7 @@ class UserController extends BaseController
                 echo json_encode([
                     'success' => false,
                     'error' => 'User not found'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -1203,7 +1203,7 @@ class UserController extends BaseController
                 echo json_encode([
                     'success' => false,
                     'error' => 'Username confirmation does not match'
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -1236,12 +1236,13 @@ class UserController extends BaseController
                     
                     $transferResult = $membershipRepository->transferOwnership($serverId, $userId, $newOwnerId);
                     if (!$transferResult) {
-                        error_log("Failed to transfer ownership of server $serverId");
+                        error_log("Failed to transfer ownership of server $serverId to user $newOwnerId");
+                        $serverName = isset($server->name) ? htmlspecialchars($server->name, ENT_QUOTES, 'UTF-8') : "Server ID: $serverId";
                         http_response_code(400);
                         echo json_encode([
                             'success' => false,
-                            'error' => "Failed to transfer ownership of server {$server->name}"
-                        ]);
+                            'error' => "Failed to transfer ownership of server: " . $serverName
+                        ], JSON_UNESCAPED_UNICODE);
                         exit;
                     }
                     
@@ -1266,7 +1267,7 @@ class UserController extends BaseController
             if (count($ownedServersAfterRemoval) > 0) {
                 error_log("ERROR: User still owns servers after transfers and membership removal!");
                 foreach ($ownedServersAfterRemoval as $server) {
-                    error_log("Still owns server: {$server['id']} - {$server['name']}");
+                    error_log("Still owns server: {$server['id']} - " . (isset($server['name']) ? $server['name'] : 'Unknown'));
                 }
                 http_response_code(500);
                 echo json_encode([
@@ -1277,7 +1278,7 @@ class UserController extends BaseController
                         'remaining_owned_servers' => count($ownedServersAfterRemoval),
                         'ownership_transfers_processed' => !empty($ownershipTransfers)
                     ]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
             
@@ -1329,7 +1330,7 @@ class UserController extends BaseController
                         'remaining_ownerships' => count($remainingOwnerships),
                         'ownership_transfers_processed' => !empty($ownershipTransfers)
                     ]
-                ]);
+                ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -1344,7 +1345,7 @@ class UserController extends BaseController
             echo json_encode([
                 'success' => true,
                 'message' => 'Account deleted successfully'
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             exit;
 
         } catch (Exception $e) {
@@ -1352,7 +1353,7 @@ class UserController extends BaseController
             echo json_encode([
                 'success' => false,
                 'error' => 'An error occurred while deleting account: ' . $e->getMessage()
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -1408,7 +1409,7 @@ class UserController extends BaseController
             echo json_encode([
                 'success' => false,
                 'error' => 'Failed to retrieve owned servers: ' . $e->getMessage()
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }
@@ -1444,7 +1445,7 @@ class UserController extends BaseController
                     'owned_servers' => $serverData,
                     'total_count' => count($ownedServers)
                 ]
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             exit;
 
         } catch (Exception $e) {
@@ -1452,7 +1453,7 @@ class UserController extends BaseController
             echo json_encode([
                 'success' => false,
                 'error' => 'Failed to check server ownership: ' . $e->getMessage()
-            ]);
+            ], JSON_UNESCAPED_UNICODE);
             exit;
         }
     }

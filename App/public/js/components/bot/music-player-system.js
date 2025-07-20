@@ -138,14 +138,8 @@ class MusicPlayerSystem {
             
             this.isPlaying = false;
             
-            if (this.queue.length > 1 && this.currentIndex < this.queue.length - 1) {
-                
-                this.playNext();
-            } else {
-                
-                this.hideNowPlaying();
-                this.showStatus('Playback finished');
-            }
+            this.hideNowPlaying();
+            this.showStatus('Playback finished');
         });
         
         this.audio.addEventListener('playing', () => {
@@ -245,17 +239,7 @@ class MusicPlayerSystem {
             });
             
             if (window.globalSocketManager?.io) {
-                const socketMusicCommandHandler = (data) => {
-                    if (this._destroyed) return;
-                    this.processBotMusicCommand(data);
-                };
-                window.globalSocketManager.io.on('bot-music-command', socketMusicCommandHandler);
-                window.globalSocketManager.io.on('music-state-sync', (data) => {
-                    this.handleMusicStateSync(data);
-                });
-                window.globalSocketManager.io.on('music-state-request', (data) => {
-                    this.handleMusicStateRequest(data);
-                });
+                
             } else {
                 setTimeout(() => this.setupImmediateListeners(), 1000);
             }
@@ -263,10 +247,6 @@ class MusicPlayerSystem {
     }
 
     setupEventListeners() {
-        window.addEventListener('bot-music-command', (e) => {
-            this.processBotMusicCommand(e.detail);
-        });
-
         window.addEventListener('voiceConnect', (e) => {
             if (e.detail && e.detail.channelId) {
                 this.channelId = e.detail.channelId;
@@ -299,6 +279,17 @@ class MusicPlayerSystem {
                 if (humanParticipants.size === 0) {
                     await this.stop();
                     this.showStatus('Music stopped - no participants in voice channel');
+                }
+            }
+        });
+
+        window.addEventListener('participantJoined', (e) => {
+            if (this.isPlaying && e.detail && e.detail.participant) {
+                const participantId = e.detail.participant;
+                const participantData = e.detail.data;
+                
+                if (participantData && !participantData.isBot && this.channelId) {
+                    this.shareCurrentMusicStateWithParticipant(participantId);
                 }
             }
         });
@@ -434,27 +425,29 @@ class MusicPlayerSystem {
         }
         this._lastCommandTime = now;
 
+        const commandId = `${data.channel_id}-${data.music_data?.action}-${data.music_data?.query || data.music_data?.track?.title || ''}-${data.timestamp || now}`;
+        if (this.processedMessageIds.has(commandId)) {
+            console.log('🎵 [MUSIC-PLAYER] Duplicate command ignored:', commandId);
+            return;
+        }
+        this.processedMessageIds.add(commandId);
+
+        if (this.processedMessageIds.size > 50) {
+            const oldestCommand = Array.from(this.processedMessageIds)[0];
+            this.processedMessageIds.delete(oldestCommand);
+        }
+
         console.log('🎵 [MUSIC-PLAYER] Received bot music command:', {
             userId: window.globalSocketManager?.userId,
             username: window.globalSocketManager?.username,
             commandChannelId: data.channel_id,
             action: data.music_data?.action,
             query: data.music_data?.query,
-            isInVoiceChannel: this.isUserInTargetVoiceChannel(data.channel_id),
             fullData: data
         });
 
         if (!data || !data.music_data) {
             console.warn('⚠️ [MUSIC-PLAYER] Invalid bot music command data:', data);
-            return;
-        }
-
-        const isUserInChannel = this.isUserInTargetVoiceChannel(data.channel_id);
-        const hasVoiceParticipants = window.ChannelVoiceParticipants && 
-                                   window.ChannelVoiceParticipants.getInstance().externalParticipants.has(data.channel_id);
-        
-        if (!isUserInChannel && !hasVoiceParticipants) {
-            console.log('🎵 [MUSIC-PLAYER] User not in channel and no voice participants, skipping command');
             return;
         }
 
@@ -481,10 +474,15 @@ class MusicPlayerSystem {
                         this.currentSong = track;
                         this.currentTrack = track;
                         
-                        this.queue.unshift(track);
+                        this.queue = [track];
                         this.currentIndex = 0;
                         
                         await this.playTrack(track);
+                        
+                        if (data.current_time && data.current_time > 0 && this.audio) {
+                            this.audio.currentTime = data.current_time;
+                        }
+                        
                         this.showNowPlaying(track);
                         this.isPlaying = true;
                         
@@ -510,7 +508,7 @@ class MusicPlayerSystem {
                                 this.currentSong = searchResult;
                                 this.currentTrack = searchResult;
                                 
-                                this.queue.unshift(searchResult);
+                                this.queue = [searchResult];
                                 this.currentIndex = 0;
                                 
                                 const playSuccess = await this.playTrack(searchResult);
@@ -546,11 +544,8 @@ class MusicPlayerSystem {
                         await this.stop();
                         this.currentSong = track;
                         this.currentTrack = track;
-                        this.currentIndex = this.queue.findIndex(t => t.title === track.title && t.artist === track.artist);
-                        if (this.currentIndex === -1) {
-                            this.currentIndex = this.queue.length;
-                            this.queue.push(track);
-                        }
+                        this.queue = [track];
+                        this.currentIndex = 0;
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.isPlaying = true;
@@ -566,11 +561,8 @@ class MusicPlayerSystem {
                         await this.stop();
                         this.currentSong = track;
                         this.currentTrack = track;
-                        this.currentIndex = this.queue.findIndex(t => t.title === track.title && t.artist === track.artist);
-                        if (this.currentIndex === -1) {
-                            this.currentIndex = 0;
-                            this.queue.unshift(track);
-                        }
+                        this.queue = [track];
+                        this.currentIndex = 0;
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.isPlaying = true;
@@ -617,10 +609,34 @@ class MusicPlayerSystem {
         }
     }
 
+    shareCurrentMusicStateWithParticipant(participantId) {
+        if (!this.isPlaying || !this.currentSong || !this.channelId || !window.globalSocketManager?.io) {
+            return;
+        }
+
+        const musicCommandData = {
+            channel_id: this.channelId,
+            music_data: {
+                action: 'play',
+                track: this.currentSong
+            },
+            current_time: this.audio ? this.audio.currentTime : 0,
+            is_playing: this.isPlaying,
+            timestamp: Date.now(),
+            target_participant: participantId
+        };
+        
+        console.log('🎵 [MUSIC-PLAYER] Sharing current music state with new participant:', {
+            participantId,
+            currentSong: this.currentSong?.title,
+            currentTime: musicCommandData.current_time
+        });
+        
+        window.globalSocketManager.io.emit('bot-music-command', musicCommandData);
+    }
+
     handleMusicStateRequest(data) {
         if (!data || !data.channel_id) return;
-        
-        if (!this.isUserInTargetVoiceChannel(data.channel_id)) return;
         
         if (this.isPlaying && this.currentSong && window.globalSocketManager?.io) {
             const musicCommandData = {
@@ -645,11 +661,6 @@ class MusicPlayerSystem {
 
     async handleSyncMusicState(data) {
         if (!data || !data.channel_id) return;
-        
-        if (!this.isUserInTargetVoiceChannel(data.channel_id)) {
-            
-            return;
-        }
         
         if (data.broadcaster_id === window.globalSocketManager?.userId) {
             
@@ -1145,6 +1156,12 @@ class MusicPlayerSystem {
         }
 
         try {
+            if (this.isPlaying && this.audio) {
+                this.audio.pause();
+                this.audio.currentTime = 0;
+                this.isPlaying = false;
+            }
+            
             if (!this._audioInitialized) {
                 this.initializeAudio();
             }

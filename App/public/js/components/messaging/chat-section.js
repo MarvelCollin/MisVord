@@ -1166,6 +1166,7 @@ class ChatSection {
                 this.isInitialized = true;
             } else {
                 if (!isLoadMore) {
+                    this.hideChatSkeleton();
                     this.showEmptyState();
                 }
             }

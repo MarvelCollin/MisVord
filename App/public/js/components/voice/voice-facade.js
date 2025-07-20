@@ -126,6 +126,9 @@ class VoiceFacade {
                 window.globalSocketManager.io.emit('check-voice-meeting', { 
                     channel_id: channelId 
                 });
+                window.globalSocketManager.io.emit('request-music-state', { 
+                    channel_id: channelId 
+                });
             }, 500);
         }
     }
