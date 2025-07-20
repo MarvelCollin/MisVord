@@ -986,7 +986,6 @@ $content = ob_get_clean();
 
     <script src="<?php echo js('utils/fallback-image'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/scramble-text'); ?>?v=<?php echo time(); ?>"></script>
-    <script src="<?php echo js('sections/parallax-scroll'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/horizontal-navigation'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/featured-cards'); ?>?v=<?php echo time(); ?>"></script>
     <script src="<?php echo js('sections/carousel-section'); ?>?v=<?php echo time(); ?>"></script>

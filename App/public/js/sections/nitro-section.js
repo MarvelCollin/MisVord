@@ -233,13 +233,13 @@ class NitroSection {
     
     animateHexagons() {
         this.hexagons.forEach((hexagon, index) => {
-            const delay = parseInt(hexagon.dataset.delay) || index * 100;
+            const delay = parseInt(hexagon.dataset.delay) || index * 50;
             
             setTimeout(() => {
                 hexagon.classList.add('visible');
                 hexagon.style.animation = `hexagonAppear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards`;
                 this.addHexagonSparkles(hexagon);
-            }, 200 + delay);
+            }, 100 + delay);
         });
     }
     

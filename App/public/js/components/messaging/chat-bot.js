@@ -2,24 +2,27 @@ class ChatBot {
     constructor() {
         this.chatSection = null;
         this.botActive = false;
+        this.titiBotUsername = 'titibot';
         this.setupBotListeners();
         this.ensureBotActive();
-
     }
 
-    setupBotListeners() {
+    async setupBotListeners() {
         if (window.globalSocketManager?.io) {
             const io = window.globalSocketManager.io;
-                if (!this.titiBotId) {
-            try {
-                const result = await window.BotAPI.getBotByUsername(titiBotUsername);
-                if (result.success && result.is_bot && result.bot && result.bot.id) {
-                    this.titiBotId = result.bot.id.toString();
+            
+            if (!this.titiBotId) {
+                try {
+                    const result = await window.BotAPI.getBotByUsername(this.titiBotUsername);
+                    if (result.success && result.is_bot && result.bot && result.bot.id) {
+                        this.titiBotId = result.bot.id.toString();
+                    }
+                } catch (e) {
+                    console.error('❌ [CHAT-BOT] Failed to fetch titibot info:', e);
                 }
-            } catch (e) {
-                console.error('❌ [CHAT-BOT] Failed to fetch titibot info:', e);
             }
-        }        io.on('new-channel-message', (data) => {
+            
+            io.on('new-channel-message', (data) => {
                 if (data.is_bot && data.bot_id) {
 
                 }
@@ -325,11 +328,8 @@ class ChatBot {
             window.BotComponent.init();
         }
 
-        const titiBotUsername = 'titibot';
-
-
         if (!this.titiBotId) {
-            fetch(`/api/bots/public-check/${titiBotUsername}`)
+            fetch(`/api/bots/public-check/${this.titiBotUsername}`)
                 .then(res => res.ok ? res.json() : null)
                 .then(json => {
                     if (json && json.success && json.is_bot && json.bot && json.bot.id) {
@@ -350,7 +350,7 @@ class ChatBot {
         if (!window.BotComponent.getBotStatus(titiBotId)) {
             window.globalSocketManager.io.emit('bot-init', {
                 bot_id: titiBotId,
-                username: titiBotUsername
+                username: this.titiBotUsername
             });
         }
 

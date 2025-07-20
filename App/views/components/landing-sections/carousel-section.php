@@ -20,7 +20,7 @@ if (!function_exists('asset')) {
     <div class="container mx-auto px-4 relative z-10">
         <div class="simple-book">
             <div class="book-content" id="bookContent">
-                <div class="page book-cover active" data-page="cover">
+                <div class="page book-cover" data-page="cover">
                     <div class="cover-decoration"></div>
                     <h3>📖 Success Stories</h3>
                     <p>Discover how communities thrive and grow together on MisVord platform</p>

@@ -100,14 +100,6 @@ class MusicPlayerSystem {
                     this._audioContext = new AudioContext();
                     console.log('🎵 [MUSIC-PLAYER] Force created AudioContext, state:', this._audioContext.state);
                     
-                    if (this.audio && !this._audioSourceNode) {
-                        try {
-                            this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-                            console.log('🎵 [MUSIC-PLAYER] Connected audio source to context');
-                        } catch (e) {
-                            console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
-                        }
-                    }
                 }
             } catch (e) {
                 console.warn('🎵 [MUSIC-PLAYER] Could not initialize AudioContext on force init:', e);
@@ -727,6 +719,22 @@ class MusicPlayerSystem {
             this.audio.pause();
             this.audio = null;
         }
+        
+        if (this._audioSourceNode) {
+            this._audioSourceNode.disconnect();
+            this._audioSourceNode = null;
+        }
+        
+        if (this._musicStreamDestination) {
+            this._musicStreamDestination.disconnect();
+            this._musicStreamDestination = null;
+        }
+
+        if (this._musicMediaStream) {
+            this._musicMediaStream.getTracks().forEach(track => track.stop());
+            this._musicMediaStream = null;
+        }
+        
         this.isPlaying = false;
         this.currentSong = null;
         this.hideNowPlaying();
@@ -1149,18 +1157,21 @@ class MusicPlayerSystem {
             
             this.currentTrack = track;
             
-            if (!this.audio) {
-                this.audio = new Audio();
-                this.audio.volume = this._isDeafenMuted ? 0 : this.volume;
-                this.audio.crossOrigin = "anonymous";
-                this.setupAudioEventListeners();
+        if (!this.audio) {
+            this.audio = new Audio();
+            this.audio.volume = this._isDeafenMuted ? 0 : this.volume;
+            this.audio.crossOrigin = "anonymous";
+            this.setupAudioEventListeners();
+            
+            if (this._audioSourceNode) {
+                this._audioSourceNode.disconnect();
+                this._audioSourceNode = null;
             }
-            
-            this.audio.pause();
-            this.audio.src = track.previewUrl;
-            this.audio.load();
-            
-            await new Promise((resolve, reject) => {
+        }
+        
+        this.audio.pause();
+        this.audio.src = track.previewUrl;
+        this.audio.load();            await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Audio load timeout after 10 seconds'));
                 }, 10000);
@@ -1208,6 +1219,21 @@ class MusicPlayerSystem {
             if (this.audio) {
                 this.audio.pause();
                 this.audio.currentTime = 0;
+            }
+            
+            if (this._audioSourceNode) {
+                this._audioSourceNode.disconnect();
+                this._audioSourceNode = null;
+            }
+            
+            if (this._musicStreamDestination) {
+                this._musicStreamDestination.disconnect();
+                this._musicStreamDestination = null;
+            }
+
+            if (this._musicMediaStream) {
+                this._musicMediaStream.getTracks().forEach(track => track.stop());
+                this._musicMediaStream = null;
             }
             
             this.hideNowPlaying();
@@ -1327,26 +1353,27 @@ class MusicPlayerSystem {
                 return false;
             }
 
-            if (this._musicStreamDestination) {
-                this._musicStreamDestination.disconnect();
-                this._musicStreamDestination = null;
-            }
+        if (this._musicStreamDestination) {
+            this._musicStreamDestination.disconnect();
+            this._musicStreamDestination = null;
+        }
 
-            if (this._musicMediaStream) {
-                this._musicMediaStream.getTracks().forEach(track => track.stop());
-                this._musicMediaStream = null;
-            }
+        if (this._musicMediaStream) {
+            this._musicMediaStream.getTracks().forEach(track => track.stop());
+            this._musicMediaStream = null;
+        }
 
-            if (!this._audioSourceNode) {
-                this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-            }
+        if (this._audioSourceNode) {
+            this._audioSourceNode.disconnect();
+            this._audioSourceNode = null;
+        }
 
-            if (!this._gainNode) {
-                this._gainNode = this._audioContext.createGain();
-                this._gainNode.gain.value = 0.7;
-            }
+        this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
 
-            this._musicStreamDestination = this._audioContext.createMediaStreamDestination();
+        if (!this._gainNode) {
+            this._gainNode = this._audioContext.createGain();
+            this._gainNode.gain.value = 0.7;
+        }            this._musicStreamDestination = this._audioContext.createMediaStreamDestination();
 
             this._audioSourceNode.connect(this._gainNode);
             this._gainNode.connect(this._musicStreamDestination);

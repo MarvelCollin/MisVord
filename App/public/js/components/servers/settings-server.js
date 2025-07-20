@@ -455,15 +455,15 @@ function initMemberManagementTab() {
         
         if (filterType !== 'all') {
             if (filterType === 'bot') {
-                filteredMembers = filteredMembers.filter(member => member.username.toLowerCase() === 'titibot');
+                filteredMembers = filteredMembers.filter(member => member.status === 'bot');
             } else {
-                filteredMembers = filteredMembers.filter(member => member.role === filterType && member.username.toLowerCase() !== 'titibot');
+                filteredMembers = filteredMembers.filter(member => member.role === filterType && member.status !== 'bot');
             }
         }
         
         filteredMembers.sort((a, b) => {
-            const isABot = a.username.toLowerCase() === 'titibot';
-            const isBBot = b.username.toLowerCase() === 'titibot';
+            const isABot = a.status === 'bot';
+            const isBBot = b.status === 'bot';
             
 
             if (isABot && !isBBot) return 1;
@@ -541,7 +541,7 @@ function initMemberManagementTab() {
         members.forEach(member => {
             const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
             
-            const isBot = member.username.toLowerCase() === 'titibot';
+            const isBot = member.status === 'bot';
             
             const avatarImg = memberElement.querySelector('.member-avatar img');
             if (avatarImg && member.avatar_url) {
@@ -873,7 +873,7 @@ function initMemberManagementTab() {
                     break;
                     
                 case 'kick':
-                    const isBot = member.username.toLowerCase() === 'titibot';
+                    const isBot = member.status === 'bot';
                     if (modalIcon) modalIcon.className = 'fas fa-user-times';
                     if (modalTitle) modalTitle.textContent = isBot ? 'Remove Bot' : 'Kick Member';
                     
@@ -1008,7 +1008,7 @@ function initMemberManagementTab() {
             const serverId = document.querySelector('meta[name="server-id"]')?.content;
             if (!serverId) throw new Error("Server ID not found");
             
-            const isBot = member.username.toLowerCase() === 'titibot';
+            const isBot = member.status === 'bot';
             
 
             showToast(isBot ? `Removing ${member.display_name || member.username}...` : `Kicking ${member.display_name || member.username}...`, 'info', 2000);
@@ -1025,7 +1025,7 @@ function initMemberManagementTab() {
             }
         } catch (error) {
             console.error('Error kicking member:', error);
-            const isBot = member.username.toLowerCase() === 'titibot';
+            const isBot = member.status === 'bot';
             const errorTitle = isBot ? 'Bot Removal Failed' : 'Kick Failed';
             showToast(error.message || `Failed to ${isBot ? 'remove bot' : 'kick member'}`, 'error', 5000, errorTitle);
         }
@@ -1074,7 +1074,7 @@ function initMemberManagementTab() {
             }
             
             const filteredMembers = allMembers.filter(member => {
-                const isBot = member.username.toLowerCase() === 'titibot';
+                const isBot = member.status === 'bot';
                 const roleToSearch = isBot ? 'bot' : member.role;
                 
                 return (
@@ -1759,7 +1759,6 @@ function initDeleteServerTab() {
                     if (member.role === 'owner') return false;
                     
 
-                    if (member.username.toLowerCase() === 'titibot') return false;
                     if (member.status === 'bot') return false;
                     
                     return true;
@@ -1768,7 +1767,6 @@ function initDeleteServerTab() {
 
                 allMembers = response.members.filter(member => {
                     if (member.role === 'owner') return false;
-                    if (member.username.toLowerCase() === 'titibot') return false;
                     if (member.status === 'bot') return false;
                     return true;
                 });

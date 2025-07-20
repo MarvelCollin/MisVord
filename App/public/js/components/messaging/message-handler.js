@@ -1356,12 +1356,8 @@ class MessageHandler {
         const newScrollHeight = messagesContainer.scrollHeight;
         messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
     }
-
-    }
     
     fallbackPrependMessage(formattedMessage, messagesContainer, firstChild) {
-
-        
         this.ensureFallbackStyles();
         
         const messageGroup = this.createMessageGroup(formattedMessage);
@@ -1487,6 +1483,39 @@ class MessageHandler {
         }
         
         return messageGroup;
+    }
+
+    addMessageEventListeners(messageId) {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (!messageElement) {
+            return;
+        }
+
+        const actionButtons = messageElement.querySelectorAll('.bubble-action-button, .message-action-button');
+        actionButtons.forEach(button => {
+            if (!button.dataset.listenerAdded) {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (this.chatSection && typeof this.chatSection.handleMessageActions === 'function') {
+                        this.chatSection.handleMessageActions(e);
+                    }
+                });
+                button.dataset.listenerAdded = 'true';
+            }
+        });
+
+        const reactionButtons = messageElement.querySelectorAll('.reaction-button, .emoji-button');
+        reactionButtons.forEach(button => {
+            if (!button.dataset.listenerAdded) {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (window.emojiReactions && typeof window.emojiReactions.handleReactionClick === 'function') {
+                        window.emojiReactions.handleReactionClick(e);
+                    }
+                });
+                button.dataset.listenerAdded = 'true';
+            }
+        });
     }
 }
 

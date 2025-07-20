@@ -47,7 +47,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
                         
-                        <div class="hexagon-feature" data-delay="100" style="--rotation: 60deg">
+                        <div class="hexagon-feature" data-delay="50" style="--rotation: 60deg">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-file-upload"></i>
@@ -57,7 +57,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="200" style="--rotation: 120deg">
+                        <div class="hexagon-feature" data-delay="100" style="--rotation: 120deg">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <img src="/public/assets/common/nitro.webp" alt="Premium Badge" class="w-6 h-6">
@@ -67,7 +67,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="300" style="--rotation: 180deg">
+                        <div class="hexagon-feature" data-delay="150" style="--rotation: 180deg">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-magic"></i>
@@ -77,7 +77,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="400" style="--rotation: 240deg">
+                        <div class="hexagon-feature" data-delay="200" style="--rotation: 240deg">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-headset"></i>
@@ -87,7 +87,7 @@ if (!function_exists('asset')) {
                             <div class="hexagon-border"></div>
                         </div>
 
-                        <div class="hexagon-feature" data-delay="500" style="--rotation: 300deg">
+                        <div class="hexagon-feature" data-delay="250" style="--rotation: 300deg">
                             <div class="hexagon-content">
                                 <div class="feature-icon">
                                     <i class="fas fa-bolt"></i>

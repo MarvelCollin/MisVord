@@ -128,6 +128,7 @@
     margin: 0 auto;
     filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.3));
     transform-style: preserve-3d;
+    will-change: transform;
 }
 
 .book-content {
@@ -143,6 +144,7 @@
     visibility: visible;
     perspective: 1200px;
     transform-style: preserve-3d;
+    will-change: transform;
 }
 
 .page {
@@ -169,13 +171,15 @@
     box-sizing: border-box;
     transform-origin: left center;
     transform-style: preserve-3d;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    z-index: 10;
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
+    z-index: 1;
     overflow: hidden;
     backface-visibility: visible;
-    opacity: 1;
+    opacity: 0;
     visibility: visible;
     cursor: pointer;
+    will-change: transform;
+    pointer-events: none;
 }
 
 .page .page-decoration {
@@ -236,6 +240,13 @@
     transform: rotateY(-180deg);
     opacity: 1;
     transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: auto;
+}
+
+.page.active {
+    z-index: 10;
+    opacity: 1;
+    pointer-events: auto;
 }
 
 .page.behind:hover {
@@ -388,6 +399,7 @@
     .simple-book {
         width: 350px;
         height: 280px;
+        will-change: transform;
     }
     
     .book-cover h3 {
@@ -400,6 +412,7 @@
     
     .page {
         padding: 2rem;
+        transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     
     .page h4 {
@@ -412,6 +425,14 @@
     
     .section-indicator {
         display: none;
+    }
+    
+    .page.flipping-forward {
+        animation: pageFlipForward 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    .page.flipping-backward {
+        animation: pageFlipBackward 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
     }
 }
 
@@ -524,9 +545,45 @@
 }
 
 .page.flipping-forward {
-    animation: pageFlipForward 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: pageFlipForward 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
 .page.flipping-backward {
-    animation: pageFlipBackward 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: pageFlipBackward 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes pageFlipForward {
+    0% {
+        transform: rotateY(0deg);
+        z-index: 25;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+    50% {
+        transform: rotateY(-90deg);
+        z-index: 25;
+        box-shadow: 0 25px 45px rgba(0, 0, 0, 0.6);
+    }
+    100% {
+        transform: rotateY(-180deg);
+        z-index: 5;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+}
+
+@keyframes pageFlipBackward {
+    0% {
+        transform: rotateY(-180deg);
+        z-index: 25;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    50% {
+        transform: rotateY(-90deg);
+        z-index: 25;
+        box-shadow: 0 25px 45px rgba(0, 0, 0, 0.6);
+    }
+    100% {
+        transform: rotateY(0deg);
+        z-index: 10;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
 }

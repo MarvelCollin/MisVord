@@ -1042,6 +1042,10 @@ class ChatSection {
 
         this.isLoading = true;
         
+        if (!isLoadMore) {
+            this.showChatSkeleton();
+        }
+        
         let offset = this.currentOffset || 0;
         
         if (forceFresh || options.isChannelSwitch) {

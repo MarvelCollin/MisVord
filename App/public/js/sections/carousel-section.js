@@ -3,8 +3,11 @@ class CarouselSection {
         this.currentPage = -1;
         this.totalPages = 3;
         this.isAnimating = false;
+        this.isMobile = window.innerWidth <= 768;
         
         this.init();
+        this.handleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResize);
     }
     
     init() {
@@ -94,18 +97,32 @@ class CarouselSection {
         const currentPageEl = this.getPageByNumber(this.currentPage);
         const targetPageEl = this.getPageByNumber(targetPage);
         const direction = targetPage > this.currentPage ? 'forward' : 'backward';
+        const animationDuration = this.isMobile ? 400 : 600;
+        
         if (direction === 'forward' && currentPageEl) {
             currentPageEl.style.zIndex = '25';
+            currentPageEl.style.willChange = 'transform';
             currentPageEl.classList.add('flipping-forward');
         } else if (direction === 'backward' && targetPageEl) {
             targetPageEl.style.zIndex = '25';
+            targetPageEl.style.willChange = 'transform';
+            targetPageEl.style.opacity = '1';
+            targetPageEl.style.pointerEvents = 'auto';
             targetPageEl.classList.add('flipping-backward');
         }
+        
+        if (direction === 'forward' && targetPageEl) {
+            targetPageEl.style.opacity = '1';
+            targetPageEl.style.pointerEvents = 'auto';
+        }
+        
         setTimeout(() => {
             this.currentPage = targetPage;
             this.updatePageStates();
+            if (currentPageEl) currentPageEl.style.willChange = '';
+            if (targetPageEl) targetPageEl.style.willChange = '';
             this.isAnimating = false;
-        }, 800);
+        }, animationDuration);
     }
     
     updatePageStates() {
@@ -117,17 +134,37 @@ class CarouselSection {
             if (pageNumber === this.currentPage) {
                 page.classList.add('active');
                 page.style.zIndex = '10';
+                page.style.transform = 'rotateY(0deg)';
             } else if (pageNumber < this.currentPage) {
                 page.classList.add('behind');
                 page.style.zIndex = '5';
+                page.style.transform = 'rotateY(-180deg)';
             } else {
-                page.style.zIndex = '3';
+                page.style.zIndex = '1';
+                page.style.transform = 'rotateY(0deg)';
+                page.style.opacity = '0';
+                page.style.pointerEvents = 'none';
             }
         });
+        
+        const activePage = this.getPageByNumber(this.currentPage);
+        if (activePage) {
+            activePage.style.opacity = '1';
+            activePage.style.pointerEvents = 'auto';
+        }
     }
     
     onSectionVisible() {
         
+    }
+    
+    handleResize() {
+        const wasMobile = this.isMobile;
+        this.isMobile = window.innerWidth <= 768;
+        
+        if (wasMobile !== this.isMobile) {
+            this.updatePageStates();
+        }
     }
 }
 
