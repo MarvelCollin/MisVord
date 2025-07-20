@@ -1172,12 +1172,12 @@ class ChannelVoiceParticipants {
             return;
         }
         
-        const avatarElement = userElement.querySelector('.participant-avatar');
-        if (avatarElement) {
+        const avatarContainer = userElement.querySelector('.relative');
+        if (avatarContainer) {
             if (isSpeaking) {
-                avatarElement.classList.add('speaking-indicator');
+                avatarContainer.classList.add('speaking-indicator');
             } else {
-                avatarElement.classList.remove('speaking-indicator');
+                avatarContainer.classList.remove('speaking-indicator');
             }
             console.log(`🎤 [CHANNEL-VOICE-PARTICIPANTS] Speaking indicator ${isSpeaking ? 'added' : 'removed'} for user ${userId}`);
         }

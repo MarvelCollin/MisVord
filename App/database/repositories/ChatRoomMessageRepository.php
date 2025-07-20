@@ -70,6 +70,8 @@ class ChatRoomMessageRepository extends Repository {
             }
             $row['attachments'] = $this->parseAttachments($row['attachment_url']);
             unset($row['attachment_url']);
+            
+            $row['reactions'] = $this->getMessageReactions($row['id']);
         }
         
         error_log("[BOT-DEBUG] DM room $roomId message breakdown: $botMessageCount bot messages, $userMessageCount user messages");
@@ -137,5 +139,28 @@ class ChatRoomMessageRepository extends Repository {
         }
         
         return [$attachmentUrl];
+    }
+    
+    private function getMessageReactions($messageId) {
+        $query = new Query();
+        
+        $sql = "
+            SELECT mr.emoji, mr.user_id, u.username, u.avatar_url
+            FROM message_reactions mr
+            INNER JOIN users u ON mr.user_id = u.id
+            WHERE mr.message_id = ?
+            ORDER BY mr.created_at ASC
+        ";
+        
+        $reactions = $query->query($sql, [$messageId]);
+        
+        return array_map(function($reaction) {
+            return [
+                'emoji' => $reaction['emoji'],
+                'user_id' => $reaction['user_id'],
+                'username' => $reaction['username'],
+                'avatar_url' => $reaction['avatar_url'] ?: '/public/assets/common/default-profile-picture.png'
+            ];
+        }, $reactions);
     }
 } 

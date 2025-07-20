@@ -3,15 +3,15 @@ class VoiceActivityDetector {
         this.audioContext = null;
         this.analyserNodes = new Map();
         this.speakingStates = new Map();
-        this.speakingThreshold = 100;
-        this.speakingDuration = 200;
-        this.silenceDuration = 800;
+        this.speakingThreshold = 30;
+        this.speakingDuration = 50;
+        this.silenceDuration = 100;
         this.speakingTimers = new Map();
         this.silenceTimers = new Map();
         this.animationFrameId = null;
         this.isActive = false;
         this.noiseFloor = new Map();
-        this.noiseCalibrationFrames = 30;
+        this.noiseCalibrationFrames = 10;
         this.init();
     }
 
@@ -250,35 +250,29 @@ class VoiceActivityDetector {
             const voiceFrequencyRange = nodeData.dataArray.slice(4, 40);
             const voiceAverage = voiceFrequencyRange.reduce((sum, value) => sum + value, 0) / voiceFrequencyRange.length;
             
-            if (nodeData.calibrationFrames < 30) {
+            if (nodeData.calibrationFrames < 10) {
                 nodeData.noiseFloorSamples.push(average);
                 nodeData.calibrationFrames++;
                 return;
             }
             
-            if (!this.noiseFloor.has(participantId) && nodeData.noiseFloorSamples.length >= 30) {
+            if (!this.noiseFloor.has(participantId) && nodeData.noiseFloorSamples.length >= 10) {
                 const noiseFloor = nodeData.noiseFloorSamples.reduce((sum, val) => sum + val, 0) / nodeData.noiseFloorSamples.length;
-                this.noiseFloor.set(participantId, noiseFloor + 20);
+                this.noiseFloor.set(participantId, noiseFloor + 5);
             }
             
-            const threshold = Math.max(100, this.noiseFloor.get(participantId) || 100);
-            const isSpeaking = voiceAverage > threshold && average > 50;
+            const threshold = Math.max(25, this.noiseFloor.get(participantId) || 25);
+            const isSpeaking = voiceAverage > threshold || average > 30;
             const currentlySpeaking = this.speakingStates.get(participantId);
 
-            if (isSpeaking && !currentlySpeaking && !this.speakingTimers.has(participantId)) {
+            if (isSpeaking && !currentlySpeaking) {
                 this.clearTimers(participantId);
-                this.speakingTimers.set(participantId, setTimeout(() => {
-                    this.speakingStates.set(participantId, true);
-                    this.updateSpeakingIndicator(participantId, true);
-                    this.speakingTimers.delete(participantId);
-                }, this.speakingDuration));
-            } else if (!isSpeaking && currentlySpeaking && !this.silenceTimers.has(participantId)) {
+                this.speakingStates.set(participantId, true);
+                this.updateSpeakingIndicator(participantId, true);
+            } else if (!isSpeaking && currentlySpeaking) {
                 this.clearTimers(participantId);
-                this.silenceTimers.set(participantId, setTimeout(() => {
-                    this.speakingStates.set(participantId, false);
-                    this.updateSpeakingIndicator(participantId, false);
-                    this.silenceTimers.delete(participantId);
-                }, this.silenceDuration));
+                this.speakingStates.set(participantId, false);
+                this.updateSpeakingIndicator(participantId, false);
             }
         });
 
@@ -384,13 +378,13 @@ class VoiceActivityDetector {
         const participantCard = document.querySelector(`[data-user-id="${userId}"].voice-participant-card`);
         if (!participantCard) return;
 
-        const avatar = participantCard.querySelector('.relative');
-        if (!avatar) return;
+        const avatarContainer = participantCard.querySelector('.relative');
+        if (!avatarContainer) return;
 
         if (isSpeaking) {
-            avatar.classList.add('speaking-indicator');
+            avatarContainer.classList.add('speaking-indicator');
         } else {
-            avatar.classList.remove('speaking-indicator');
+            avatarContainer.classList.remove('speaking-indicator');
         }
     }
 
@@ -398,13 +392,13 @@ class VoiceActivityDetector {
         const participantCard = document.querySelector(`[data-user-id="${userId}"].participant-card`);
         if (!participantCard) return;
 
-        const avatar = participantCard.querySelector('.participant-avatar');
-        if (!avatar) return;
+        const avatarContainer = participantCard.querySelector('.participant-avatar');
+        if (!avatarContainer) return;
 
         if (isSpeaking) {
-            avatar.classList.add('speaking-indicator');
+            avatarContainer.classList.add('speaking-indicator');
         } else {
-            avatar.classList.remove('speaking-indicator');
+            avatarContainer.classList.remove('speaking-indicator');
         }
     }
 

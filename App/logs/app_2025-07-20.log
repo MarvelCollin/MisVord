@@ -1,0 +1,2 @@
+[2025-07-20 10:29:53] DEBUG [1be862] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-20 10:30:01] ERROR [1be862] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}

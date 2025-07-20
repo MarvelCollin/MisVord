@@ -516,6 +516,10 @@
     box-sizing: border-box !important;
 }
 
+.participant-avatar.speaking-indicator {
+    border: 3px solid #23A555 !important;
+}
+
 .participant-video {
     position: absolute !important;
     top: 0 !important;

@@ -168,34 +168,39 @@ class EmojiReactions {
             const messageId = message.dataset.messageId;
             if (!messageId) return;
             
-            const reactionElements = message.querySelectorAll('.bubble-reaction');
-            const reactions = [];
-            
-            reactionElements.forEach(reaction => {
-                const emoji = reaction.dataset.emoji;
-                const count = parseInt(reaction.querySelector('.bubble-reaction-count')?.textContent || '0');
-                const hasCurrentUser = reaction.classList.contains('user-reacted');
-                const title = reaction.title || '';
-                const usernames = title.includes(' by ') ? 
-                    title.split(' by ')[1].split(', ').map(name => name.trim()) : 
-                    [];
+            const existingReactions = message.querySelector('.bubble-reactions');
+            if (existingReactions && existingReactions.children.length > 0) {
+                this.loadedMessageIds.add(messageId);
                 
-                for (let i = 0; i < count; i++) {
-                    reactions.push({
-                        emoji,
-                        user_id: hasCurrentUser && i === 0 ? document.querySelector('meta[name="user-id"]')?.content : `user_${i}`,
-                        username: usernames[i] || 'Unknown User',
-                        display_name: usernames[i] || 'Unknown User',
-                        avatar_url: '/public/assets/common/default-profile-picture.png'
-                    });
+                const reactions = [];
+                const reactionElements = existingReactions.querySelectorAll('.bubble-reaction');
+                
+                reactionElements.forEach(reaction => {
+                    const emoji = reaction.dataset.emoji;
+                    const count = parseInt(reaction.querySelector('.bubble-reaction-count')?.textContent || '0');
+                    const hasCurrentUser = reaction.classList.contains('user-reacted');
+                    const title = reaction.title || '';
+                    const usernames = title.includes(' by ') ? 
+                        title.split(' by ')[1].split(', ').map(name => name.trim()) : 
+                        [];
+                    
+                    for (let i = 0; i < count; i++) {
+                        reactions.push({
+                            emoji,
+                            user_id: hasCurrentUser && i === 0 ? document.querySelector('meta[name="user-id"]')?.content : `user_${i}`,
+                            username: usernames[i] || 'Unknown User',
+                            display_name: usernames[i] || 'Unknown User',
+                            avatar_url: '/public/assets/common/default-profile-picture.png'
+                        });
+                    }
+                });
+                
+                if (reactions.length > 0) {
+                    this.currentReactions[messageId] = reactions;
                 }
-            });
-            
-            if (reactions.length > 0) {
-                this.currentReactions[messageId] = reactions;
+            } else {
+                this.loadMessageReactions(messageId);
             }
-            
-            this.loadMessageReactions(messageId);
         });
     }
 
@@ -928,6 +933,15 @@ class EmojiReactions {
         if (this.loadedMessageIds.has(messageId)) return;
         
         if (this.loadingReactions.has(messageId)) return;
+        
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            const existingReactions = messageElement.querySelector('.bubble-reactions, .message-reactions-container');
+            if (existingReactions && existingReactions.children.length > 0) {
+                this.loadedMessageIds.add(messageId);
+                return;
+            }
+        }
         
         if (this.debounceTimers.has(messageId)) {
             clearTimeout(this.debounceTimers.get(messageId));

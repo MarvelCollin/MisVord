@@ -772,6 +772,36 @@ class VoiceCallSection {
         }
     }
 
+    updateSpeakingIndicator(userId, isSpeaking) {
+        const participantElement = this.participantElements.get(userId);
+        if (!participantElement) {
+            for (const [participantId, element] of this.participantElements.entries()) {
+                const elementUserId = element.getAttribute('data-user-id');
+                if (elementUserId === String(userId)) {
+                    const avatarContainer = element.querySelector('.participant-avatar');
+                    if (avatarContainer) {
+                        if (isSpeaking) {
+                            avatarContainer.classList.add('speaking-indicator');
+                        } else {
+                            avatarContainer.classList.remove('speaking-indicator');
+                        }
+                    }
+                    return;
+                }
+            }
+            return;
+        }
+
+        const avatarContainer = participantElement.querySelector('.participant-avatar');
+        if (avatarContainer) {
+            if (isSpeaking) {
+                avatarContainer.classList.add('speaking-indicator');
+            } else {
+                avatarContainer.classList.remove('speaking-indicator');
+            }
+        }
+    }
+
     createParticipantElement(participantId, data) {
         const div = document.createElement("div");
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
