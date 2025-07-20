@@ -641,6 +641,8 @@ class VoiceCallSection {
         
         if (kind === 'video' || kind === 'webcam') {
             this.showParticipantVideo(element, stream);
+        } else if (kind === 'audio') {
+            this.attachParticipantAudio(element, stream, participantId);
         } else if (kind === 'share') {
             this.createScreenShareCard(participantId, stream);
         }
@@ -652,6 +654,8 @@ class VoiceCallSection {
         
         if (kind === 'video' || kind === 'webcam') {
             if (element) this.hideParticipantVideo(element);
+        } else if (kind === 'audio') {
+            if (element) this.detachParticipantAudio(element);
         } else if (kind === 'share') {
             this.removeScreenShareCard(participantId);
         }
@@ -838,6 +842,8 @@ class VoiceCallSection {
                 </div>
             </div>
             
+            <audio autoplay playsinline ${isLocal ? 'muted' : ''}></audio>
+            
             <div class="voice-indicators absolute top-2 right-2 flex flex-col gap-1 z-30">
                 <div class="mute-indicator w-6 h-6 rounded-full flex items-center justify-center bg-red-500 ${this.getParticipantMicIndicatorVisibility(participantId, isLocal)}">
                     <i class="fas fa-microphone-slash text-white text-xs"></i>
@@ -952,6 +958,39 @@ class VoiceCallSection {
         
         if (videoOverlay) videoOverlay.classList.add("hidden");
         if (defaultView) defaultView.classList.remove("hidden");
+    }
+    
+    attachParticipantAudio(element, stream, participantId) {
+        const audio = element.querySelector("audio");
+        
+        if (audio && stream) {
+            let mediaStream;
+            if (stream instanceof MediaStream) {
+                mediaStream = stream;
+            } else if (stream.track) {
+                mediaStream = new MediaStream([stream.track]);
+            } else if (stream.stream) {
+                mediaStream = stream.stream;
+            }
+            
+            if (mediaStream) {
+                audio.srcObject = mediaStream;
+                audio.play().catch(() => {});
+                
+                if (window.voiceManager && window.voiceManager._deafened) {
+                    audio.muted = true;
+                }
+            }
+        }
+    }
+    
+    detachParticipantAudio(element) {
+        const audio = element.querySelector("audio");
+        
+        if (audio) {
+            audio.srcObject = null;
+            audio.pause();
+        }
     }
     
     createScreenShareCard(participantId, stream) {
@@ -1133,6 +1172,9 @@ class VoiceCallSection {
             if (kind === 'video' || kind === 'webcam') {
                 
                 this.showParticipantVideo(element, stream);
+            } else if (kind === 'audio') {
+                
+                this.attachParticipantAudio(element, stream, participantId);
             } else if (kind === 'share') {
                 
                 this.createScreenShareCard(participantId, stream);
@@ -1274,6 +1316,17 @@ class VoiceCallSection {
             this.deafenBtn.style.backgroundColor = "#16a34a";
         }
         this.deafenBtn.style.color = "white";
+        
+        this.updateAllAudioElementsMute(isOn);
+    }
+    
+    updateAllAudioElementsMute(shouldMute) {
+        this.participantElements.forEach((element, participantId) => {
+            const audio = element.querySelector("audio");
+            if (audio && !element.hasAttribute("data-is-local")) {
+                audio.muted = shouldMute;
+            }
+        });
     }
     
     updateScreenButton(isOn) {
