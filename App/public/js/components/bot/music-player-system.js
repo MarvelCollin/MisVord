@@ -449,22 +449,16 @@ class MusicPlayerSystem {
             return;
         }
 
-        const isInTargetChannel = this.isUserInTargetVoiceChannel(data.channel_id);
-        if (!isInTargetChannel) {
-            
-            
-            const hasVoiceParticipants = window.ChannelVoiceParticipants && 
-                                       window.ChannelVoiceParticipants.getInstance().externalParticipants.has(data.channel_id);
-            
-            if (!hasVoiceParticipants) {
-                
-                return;
-            } else {
-                
-            }
+        const isUserInChannel = this.isUserInTargetVoiceChannel(data.channel_id);
+        const hasVoiceParticipants = window.ChannelVoiceParticipants && 
+                                   window.ChannelVoiceParticipants.getInstance().externalParticipants.has(data.channel_id);
+        
+        if (!isUserInChannel && !hasVoiceParticipants) {
+            console.log('🎵 [MUSIC-PLAYER] User not in channel and no voice participants, skipping command');
+            return;
         }
 
-        if (data.channel_id && !this.channelId) {
+        if (data.channel_id) {
             this.channelId = data.channel_id;
         }
         
@@ -500,6 +494,7 @@ class MusicPlayerSystem {
                         if (this._audioContext && this._audioContext.state === 'suspended') {
                             try {
                                 await this._audioContext.resume();
+                                console.log('🎵 [MUSIC-PLAYER] Audio context resumed successfully');
                             } catch (e) {
                                 console.warn('🎵 [MUSIC-PLAYER] Failed to resume audio context:', e);
                             }
@@ -518,12 +513,18 @@ class MusicPlayerSystem {
                                 this.queue.unshift(searchResult);
                                 this.currentIndex = 0;
                                 
-                                await this.playTrack(searchResult);
-                                this.showNowPlaying(searchResult);
-                                this.showStatus(`Now playing: ${searchResult.title}`);
-                                this.isPlaying = true;
+                                const playSuccess = await this.playTrack(searchResult);
+                                if (playSuccess) {
+                                    this.showNowPlaying(searchResult);
+                                    this.showStatus(`Now playing: ${searchResult.title}`);
+                                    this.isPlaying = true;
+                                    console.log('🎵 [MUSIC-PLAYER] Successfully started playing:', searchResult.title);
+                                } else {
+                                    this.showError(`Failed to start playback: ${searchResult.title}`);
+                                }
                                 
                             } catch (playError) {
+                                console.error('🎵 [MUSIC-PLAYER] Play error:', playError);
                                 this.showError(`Failed to play: ${searchResult.title}`);
                             }
                         } else {
@@ -1597,6 +1598,14 @@ class MusicPlayerSystem {
                     });
                     return true;
                 }
+            }
+
+            if (window.voiceCallSection && window.voiceCallSection.currentChannelId === targetChannelId) {
+                console.log('🎵 [MUSIC-PLAYER] Voice call section validation successful:', {
+                    currentChannelId: window.voiceCallSection.currentChannelId,
+                    targetChannelId
+                });
+                return true;
             }
 
             console.log('🎵 [MUSIC-PLAYER] User not in target voice channel:', {

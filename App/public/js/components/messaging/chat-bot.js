@@ -21,6 +21,12 @@ class ChatBot {
             io.on('bot-music-command', (data) => {
                 if (!data || !data.music_data) return;
 
+                console.log('🤖 [CHAT-BOT] Received bot-music-command:', {
+                    action: data.music_data.action,
+                    query: data.music_data.query,
+                    channel_id: data.channel_id
+                });
+
                 if (window.musicPlayer) {
                     window.musicPlayer.processBotMusicCommand(data);
                 }
