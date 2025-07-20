@@ -5,26 +5,10 @@ const { buildApiUrl } = require('../config/env');
 
 class MessageHandler {
     static forwardMessage(io, client, eventName, data) {
-
-        
         const validation = eventValidator.validateAndLog(eventName, data, 'in forwardMessage');
         if (!validation.valid) {
-            console.error(`❌ [MESSAGE-FORWARD] Validation failed for ${eventName}:`, validation.errors);
             return;
         }
-        
-        console.log(`📨 [MESSAGE-FORWARD] Valid ${eventName} received:`, {
-            messageId: data.id || data.message_id,
-            userId: data.user_id,
-            username: data.username,
-            targetType: data.target_type,
-            targetId: data.target_id,
-            channelId: data.channel_id,
-            roomId: data.room_id,
-            content: data.content
-        });
-        
-
         
         let targetRoom;
         if (eventName === 'new-channel-message' && data.channel_id) {
@@ -42,7 +26,6 @@ class MessageHandler {
 
             }
         }
-        
         const broadcastData = {
             id: data.id || data.message_id,
             message_id: data.message_id || data.id,
@@ -62,51 +45,26 @@ class MessageHandler {
             source: data.source || 'server-originated'
         };
         
-        console.log(`📤 [MESSAGE-FORWARD] Broadcast data prepared:`, {
-            event: eventName,
-            room: targetRoom,
-            messageId: broadcastData.message_id,
-            userId: broadcastData.user_id,
-            content: broadcastData.content,
-            timestamp: broadcastData.timestamp,
-            source: broadcastData.source
-        });
-        
-
-        
         let broadcastSuccess = false;
         
         if (targetRoom) {
-
-            
             if (!client.rooms.has(targetRoom)) {
-
                 client.join(targetRoom);
             }
         
             io.to(targetRoom).emit(eventName, broadcastData);
-
         
             const roomClients = io.sockets.adapter.rooms.get(targetRoom);
             if (roomClients) {
-
                 broadcastSuccess = roomClients.size > 0;
             } else {
-                console.warn(`⚠️ [MESSAGE-FORWARD] No clients found in room ${targetRoom}`);
                 broadcastSuccess = false;
             }
         } else {
-            console.warn(`⚠️ [MESSAGE-FORWARD] No target room found for ${eventName}:`, {
-                channelId: data.channel_id,
-                roomId: data.room_id,
-                targetType: data.target_type,
-                targetId: data.target_id
-            });
             broadcastSuccess = false;
         }
         
         if (!broadcastSuccess) {
-
             const authenticatedClients = Array.from(io.sockets.sockets.values())
                 .filter(socket => socket.data?.authenticated && socket.data?.user_id);
             
@@ -498,17 +456,6 @@ class MessageHandler {
             
 
             if (targetRoom) {
-                console.log(`📡 [SAVE-AND-SEND] About to emit bot-message-intercept with data:`, JSON.stringify({
-                    id: broadcastData.id,
-                    user_id: broadcastData.user_id,
-                    username: broadcastData.username,
-                    content: broadcastData.content,
-                    target_type: broadcastData.target_type,
-                    target_id: broadcastData.target_id,
-                    channel_id: broadcastData.channel_id,
-                    room_id: broadcastData.room_id
-                }, null, 2));
-                
                 const BotHandler = require('./botHandler');
                 const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
                 
@@ -518,7 +465,6 @@ class MessageHandler {
                 if (isTitiBotCommand) {
                     if (data.voice_context) {
                         voiceChannelData = data.voice_context;
-
                         
                         if (voiceChannelData.user_in_voice && voiceChannelData.voice_channel_id) {
                             VoiceConnectionTracker.addUserToVoice(
@@ -529,7 +475,6 @@ class MessageHandler {
                                 client.data?.avatar_url,
                                 client.id
                             );
-
                         }
                     } else {
                         const userVoiceConnection = VoiceConnectionTracker.getUserVoiceConnection(broadcastData.user_id);
@@ -539,9 +484,7 @@ class MessageHandler {
                                 meeting_id: userVoiceConnection.meetingId,
                                 user_in_voice: true
                             };
-
                         } else {
-
                             voiceChannelData = {
                                 voice_channel_id: null,
                                 meeting_id: null,
@@ -553,46 +496,17 @@ class MessageHandler {
                     broadcastData.voice_context = voiceChannelData;
                 }
                 
-
-                console.log(`🤖 [SAVE-AND-SEND] Emitting bot-message-intercept for bot processing:`, {
-                    messageId: broadcastData.id,
-                    content: broadcastData.content?.substring(0, 50) + '...',
-                    userId: broadcastData.user_id,
-                    username: broadcastData.username,
-                    channelId: broadcastData.channel_id,
-                    voiceChannelId: voiceChannelData?.voice_channel_id,
-                    isTitiBotCommand: isTitiBotCommand
-                });
                 BotHandler.emitBotMessageIntercept(broadcastData);
                 
 
             if (targetRoom) {
-
                 this.handleMentionNotifications(io, client, broadcastData, targetRoom);
                 
                 client.to(targetRoom).emit(eventName, broadcastData);
-                console.log(`✅ [SAVE-AND-SEND] Message sent to room ${targetRoom}`, {
-                    messageId: broadcastData.id,
-                    hasReplyData: !!broadcastData.reply_data,
-                    replyMessageId: broadcastData.reply_message_id
-                });
             } else {
-                console.log(`⚠️ [SAVE-AND-SEND] No room found for message, broadcasting to all`, {
-                    messageId: broadcastData.id,
-                    content: broadcastData.content?.substring(0, 50) + '...',
-                    userId: broadcastData.user_id,
-                    username: broadcastData.username
-                });
-
-                
                 this.handleMentionNotifications(io, client, broadcastData, null);
                 
                 io.emit(eventName, broadcastData);
-                console.log(`⚠️ [SAVE-AND-SEND] No room found, broadcasted to all clients`, {
-                    messageId: broadcastData.id,
-                    hasReplyData: !!broadcastData.reply_data,
-                    replyMessageId: broadcastData.reply_message_id
-                });
             }
             
             } 

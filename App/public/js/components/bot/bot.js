@@ -23,7 +23,7 @@ class BotComponent {
                     this.setupSocketListeners();
                 }
             };
-            setTimeout(retryHandler, 1000);
+            setTimeout(retryHandler, 500);
             return;
         }
 

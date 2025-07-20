@@ -19,28 +19,16 @@ class ChatBot {
             
 
             io.on('bot-music-command', (data) => {
-                console.log('🤖 [CHAT-BOT] Received bot-music-command:', {
-                    userId: window.globalSocketManager?.userId,
-                    data: data
-                });
-
-                if (!data || !data.music_data) {
-                    console.warn('⚠️ [CHAT-BOT] Invalid bot-music-command data:', data);
-                    return;
-                }
+                if (!data || !data.music_data) return;
 
                 if (window.musicPlayer) {
-                    
                     window.musicPlayer.processBotMusicCommand(data);
-                } else {
-                    console.warn('⚠️ [CHAT-BOT] Music player not available');
                 }
             });
             
 
         } else {
-
-            setTimeout(() => this.setupBotListeners(), 1000);
+            setTimeout(() => this.setupBotListeners(), 500);
         }
     }
 
@@ -206,11 +194,7 @@ class ChatBot {
     }
 
     async executeMusicCommand(musicData) {
-
-        
-
         if (window.musicPlayer) {
-
             try {
                 await this.processWithMusicPlayer(musicData);
                 return;
@@ -221,7 +205,6 @@ class ChatBot {
         
 
         if (window.voiceCallSection && window.voiceCallSection.musicPlayer) {
-
             try {
                 await window.voiceCallSection.musicPlayer.executeMusicCommand?.(musicData);
                 return;
@@ -230,7 +213,6 @@ class ChatBot {
             }
         }
         
-        console.error('❌ [CHAT-BOT] No music player available');
         this.updateBotParticipantStatus('❌ Music player not available');
     }
 
@@ -240,69 +222,53 @@ class ChatBot {
         switch (action) {
             case 'play':
                 if (query && query.trim()) {
-
                     const searchResult = await window.musicPlayer.searchMusic(query.trim());
                     if (searchResult && searchResult.previewUrl) {
                         const result = await window.musicPlayer.playTrack(searchResult);
-
-                        
                         window.musicPlayer.showNowPlaying(searchResult);
                         this.updateBotParticipantStatus('🎵 Playing: ' + searchResult.title);
                     } else {
-                        console.warn('⚠️ [CHAT-BOT] No playable track found for:', query);
                         this.updateBotParticipantStatus('❌ Track not found');
                     }
                 } else if (track && track.previewUrl) {
-
                     const result = await window.musicPlayer.playTrack(track);
-
-                    
                     window.musicPlayer.showNowPlaying(track);
                     this.updateBotParticipantStatus('🎵 Playing: ' + track.title);
                 } else {
-                    console.warn('⚠️ [CHAT-BOT] Play command missing query or track parameter');
                     this.updateBotParticipantStatus('❌ Invalid play command');
                 }
                 break;
 
             case 'queue':
                 if (query && query.trim()) {
-
                     const result = await window.musicPlayer.addToQueue(query.trim());
-
                     this.updateBotParticipantStatus('➕ Added to queue');
                 } else {
-                    console.warn('⚠️ [CHAT-BOT] Queue command missing query parameter');
                     this.updateBotParticipantStatus('❌ Invalid queue command');
                 }
                 break;
 
             case 'stop':
-
                 await window.musicPlayer.stop();
                 window.musicPlayer.hideNowPlaying();
                 this.updateBotParticipantStatus('⏹️ Music stopped');
                 break;
 
             case 'next':
-
                 await window.musicPlayer.playNext();
                 this.updateBotParticipantStatus('⏭️ Next track');
                 break;
 
             case 'prev':
-
                 await window.musicPlayer.playPrevious();
                 this.updateBotParticipantStatus('⏮️ Previous track');
                 break;
 
             case 'list':
-
                 this.updateBotParticipantStatus('📋 Queue list displayed in chat');
                 break;
 
             default:
-                console.warn('⚠️ [CHAT-BOT] Unknown music action:', action);
                 this.updateBotParticipantStatus('❌ Unknown command');
         }
     }
@@ -325,7 +291,7 @@ class ChatBot {
         if (this.botReady) return;
 
         if (!window.globalSocketManager?.isReady()) {
-            setTimeout(() => this.ensureBotActive(), 500);
+            setTimeout(() => this.ensureBotActive(), 250);
             return;
         }
 
@@ -335,7 +301,6 @@ class ChatBot {
 
         const titiBotUsername = 'titibot';
 
-
         if (!this.titiBotId) {
             fetch(`/api/bots/public-check/${titiBotUsername}`)
                 .then(res => res.ok ? res.json() : null)
@@ -344,9 +309,8 @@ class ChatBot {
                         this.titiBotId = json.bot.id.toString();
                     }
                 })
-                .catch(e => console.error('❌ [CHAT-BOT] Failed to fetch titibot info:', e));
+                .catch(e => {});
         }
-
 
         const titiBotId = this.titiBotId || '4';
 

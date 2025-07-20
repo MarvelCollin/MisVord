@@ -36,9 +36,10 @@ class FriendListRepository extends Repository {
         $relationship = $this->findRelationship($fromUserId, $toUserId);
         
         if ($relationship) {
-            if ($relationship->status === 'pending') {
+            $status = $relationship->__get('status');
+            if ($status === 'pending') {
                 return $relationship;
-            } elseif ($relationship->status === 'accepted') {
+            } elseif ($status === 'accepted') {
                 return false;
             }
         }

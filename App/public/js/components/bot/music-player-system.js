@@ -66,21 +66,6 @@ class MusicPlayerSystem {
         if (typeof window !== 'undefined') {
             window.musicPlayer = this;
             window.MusicPlayerSystem = MusicPlayerSystem;
-            window.debugMusicStream = () => this.debugForceStream();
-            window.debugAudioState = () => this.debugAudioState();
-            window.testVoiceStreaming = () => this.connectAudioToVoiceChannel();
-            window.testStreamingPipeline = () => this.testStreamingPipeline();
-            window.debugAudioConnections = () => this.debugAudioConnections();
-            window.testPlaySampleTrack = () => this.testPlaySampleTrack();
-            window.testPlaySpotifyPreview = () => this.testPlaySpotifyPreview();
-            window.testBasicAudioPlayback = () => this.testBasicAudioPlayback();
-            window.testSearchAndPlay = (query) => this.testSearchAndPlay(query);
-            window.checkSystemReadiness = () => this.checkSystemReadiness();
-            window.playTestTrack = () => this.playTestTrack();
-            window.playLocalTestTrack = () => this.playLocalTestTrack();
-            window.forcePlayAnyTrack = () => this.forcePlayAnyTrack();
-            window.quickAudioTest = () => this.quickAudioTest();
-            window.checkMusicPlayerState = () => this.checkMusicPlayerState();
         }
         
         this.setupImmediateListeners();
@@ -99,26 +84,25 @@ class MusicPlayerSystem {
                 if (AudioContext) {
                     this._audioContext = new AudioContext();
                     
-                    
                     if (this.audio && !this._audioSourceNode) {
                         try {
                             this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-                            
                         } catch (e) {
                             console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
                         }
                     }
                 }
             } catch (e) {
-                console.warn('🎵 [MUSIC-PLAYER] Could not initialize AudioContext on force init:', e);
+                console.error('🎵 [MUSIC-PLAYER] Failed to create AudioContext:', e);
             }
         }
+    }
         
+    setupEventListeners() {
         const userInteractionEvents = ['click', 'touchstart', 'keydown'];
         const resumeAudioContext = () => {
             if (this._audioContext && this._audioContext.state === 'suspended') {
                 this._audioContext.resume().then(() => {
-                    
                     userInteractionEvents.forEach(event => {
                         document.removeEventListener(event, resumeAudioContext);
                     });

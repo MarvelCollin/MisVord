@@ -12,11 +12,11 @@ class BotHandler extends EventEmitter {
     static musicQueues = new Map();
 
     static async registerBot(botId, username) {
-        console.log(`🤖 [BOT-DEBUG] Registering bot:`, {
-            botId,
-            username,
-            currentBots: Array.from(this.bots.keys())
-        });
+        if (this.bots.has(botId)) {
+            const existingBot = this.bots.get(botId);
+            existingBot.lastActivity = Date.now();
+            return;
+        }
         
         this.bots.set(botId, {
             id: botId,
@@ -35,11 +35,9 @@ class BotHandler extends EventEmitter {
     }
 
     static connectBot(io, botId, username) {
-        console.log(`🤖 [BOT-DEBUG] Connecting bot:`, {
-            botId,
-            username,
-            existingBot: this.bots.has(botId)
-        });
+        if (this.activeConnections.has(botId)) {
+            return this.activeConnections.get(botId);
+        }
         
         const bot = this.bots.get(botId);
         if (!bot) {
@@ -67,56 +65,25 @@ class BotHandler extends EventEmitter {
         
         this.setupBotListeners(io, botId, username);
         
-        console.log(`✅ [BOT-DEBUG] Bot connected successfully:`, {
-            botId,
-            username,
-            totalActiveConnections: this.activeConnections.size
-        });
-        
         return botClient;
     }
 
     static setupBotListeners(io, botId, username) {
-        console.log(`🎧 [BOT-DEBUG] Setting up listeners for bot:`, {
-            botId,
-            username,
-            existingListeners: this.botEventEmitter.listenerCount('bot-message-intercept')
-        });
-        
-        this.botEventEmitter.removeAllListeners('bot-message-intercept');
+        if (this.botEventEmitter.listenerCount('bot-message-intercept') > 0) {
+            return;
+        }
 
         const messageHandler = async (data) => {
-            console.log(`🎯 [BOT-DEBUG] Message intercepted by listener:`, {
-                messageId: data.id,
-                userId: data.user_id,
-                content: data.content?.substring(0, 30) + '...',
-                channelId: data.channel_id,
-                roomId: data.room_id,
-                targetType: data.target_type,
-                targetId: data.target_id
-            });
-            
             const channelId = data.channel_id || (data.target_type === 'channel' ? data.target_id : null);
             const roomId = data.room_id || (data.target_type === 'dm' ? data.target_id : null);
             
             const messageType = channelId ? 'channel' : 'dm';
             
             const titiBotId = this.getTitiBotId();
-            if (!titiBotId) {
-                console.warn('⚠️ [BOT-DEBUG] TitiBot not found, skipping message processing');
-                return;
-            }
+            if (!titiBotId) return;
             
             const titiBotData = this.bots.get(titiBotId);
-            if (!titiBotData) {
-                console.warn('⚠️ [BOT-DEBUG] TitiBot data not found, skipping message processing');
-                return;
-            }
-            
-            console.log(`🤖 [BOT-DEBUG] Calling handleMessage with TitiBot:`, {
-                titiBotId,
-                titiBotUsername: titiBotData.username
-            });
+            if (!titiBotData) return;
             
             await BotHandler.handleMessage(io, data, messageType, titiBotId, titiBotData.username);
         };
@@ -125,38 +92,13 @@ class BotHandler extends EventEmitter {
     }
 
     static emitBotMessageIntercept(data) {
-        console.log(`📢 [BOT-DEBUG] Emitting bot message intercept:`, {
-            messageId: data.id,
-            userId: data.user_id,
-            content: data.content?.substring(0, 30) + '...',
-            listenerCount: this.botEventEmitter.listenerCount('bot-message-intercept'),
-            hasListeners: this.botEventEmitter.listenerCount('bot-message-intercept') > 0
-        });
-        
         this.botEventEmitter.emit('bot-message-intercept', data);
     }
 
     static async handleMessage(io, data, messageType, botId, username) {
-        console.log(`🤖 [BOT-DEBUG] Starting message handling:`, {
-            content: data.content?.substring(0, 50) + '...',
-            messageType,
-            botId,
-            username,
-            userId: data.user_id,
-            channelId: data.channel_id,
-            roomId: data.room_id,
-            tempMessageId: data.id
-        });
-        
         const messageId = data.id || `${data.user_id}-${data.channel_id || data.room_id}-${data.content}`;
         
-        if (this.processedMessages.has(messageId)) {
-            console.log(`⚠️ [BOT-DEBUG] Message already processed:`, {
-                messageId,
-                content: data.content?.substring(0, 30) + '...'
-            });
-            return;
-        }
+        if (this.processedMessages.has(messageId)) return;
         
         this.processedMessages.add(messageId);
         
@@ -166,37 +108,16 @@ class BotHandler extends EventEmitter {
         }
 
         const bot = this.bots.get(botId);
+        if (!bot) return;
         
-        if (!bot) {
-            console.warn(`❌ [BOT-DEBUG] Bot not found with ID: ${botId}`);
-            return;
-        }
-        
-        if (String(data.user_id) === String(botId)) {
-            console.log(`🤖 [BOT-DEBUG] Ignoring bot's own message to prevent recursion:`, {
-                messageUserId: data.user_id,
-                botId: botId,
-                content: data.content?.substring(0, 30) + '...'
-            });
-            return;
-        }
+        if (String(data.user_id) === String(botId)) return;
 
         const content = data.content?.toLowerCase().trim();
-        
-        let voiceChannelToJoin = null;
-
-        if (!content) {
-            return;
-        }
+        if (!content) return;
 
         const isTitiBotCommand = content.startsWith('/titibot');
         
         if (isTitiBotCommand) {
-            console.log(`🤖 [BOT-DEBUG] TitiBot command detected, waiting for message to be saved to database:`, {
-                tempMessageId: data.id,
-                command: content
-            });
-            
             this.waitForMessageSaved(io, data, messageType, botId, username, content);
             return;
         }
@@ -205,23 +126,13 @@ class BotHandler extends EventEmitter {
     static waitForMessageSaved(io, originalData, messageType, botId, username, content) {
         const tempMessageId = originalData.id;
         const timeout = setTimeout(() => {
-            console.warn(`⚠️ [BOT-DEBUG] Timeout waiting for message to be saved, proceeding anyway:`, {
-                tempMessageId,
-                command: content
-            });
             this.processBotCommand(io, originalData, messageType, botId, username, content, null);
-        }, 5000);
+        }, 2000);
 
         const messageUpdatedHandler = (updateData) => {
             if (updateData.temp_message_id === tempMessageId) {
                 clearTimeout(timeout);
                 io.off('message_id_updated', messageUpdatedHandler);
-                
-                console.log(`✅ [BOT-DEBUG] Original message saved, proceeding with bot response:`, {
-                    tempId: tempMessageId,
-                    realId: updateData.real_message_id,
-                    command: content
-                });
                 
                 const updatedData = {
                     ...originalData,
@@ -237,13 +148,6 @@ class BotHandler extends EventEmitter {
     }
 
     static async processBotCommand(io, data, messageType, botId, username, content, realMessageId) {
-        console.log(`🤖 [BOT-DEBUG] Processing bot command:`, {
-            command: content,
-            realMessageId,
-            botId,
-            username
-        });
-
         let voiceChannelToJoin = null;
         
         const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue', 'list'];

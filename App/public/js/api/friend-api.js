@@ -75,9 +75,19 @@ class FriendAPI {
     }
 
     async sendFriendRequest(username) {
+        if (!username || username.trim().length < 2) {
+            throw new Error('Username must be at least 2 characters long');
+        }
+
+        const trimmedUsername = username.trim();
+        const validation = this.validateUsername(trimmedUsername);
+        if (!validation.valid) {
+            throw new Error(validation.message);
+        }
+
         const data = await this.makeRequest(this.baseURL, {
             method: 'POST',
-            body: JSON.stringify({ username })
+            body: JSON.stringify({ username: trimmedUsername })
         });
         
         return data;
