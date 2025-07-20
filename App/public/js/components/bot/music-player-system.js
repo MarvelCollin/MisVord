@@ -856,27 +856,20 @@ class MusicPlayerSystem {
 
     async searchMultiple(query) {
         try {
-            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=10`;
+            const apiUrl = `/api/media/music/search?query=${encodeURIComponent(query)}&limit=10`;
             const response = await fetch(apiUrl);
             const data = await response.json();
             
-            if (data.results && data.results.length > 0) {
-                return data.results
-                    .filter(track => track.previewUrl)
-                    .map(track => ({
-                        title: track.trackName,
-                        artist: track.artistName,
-                        album: track.collectionName,
-                        previewUrl: track.previewUrl,
-                        artworkUrl: track.artworkUrl100,
-                        duration: track.trackTimeMillis,
-                        id: track.trackId,
-                        price: track.trackPrice,
-                        releaseDate: track.releaseDate
-                    }));
+            console.log('🎵 [MUSIC-PLAYER] Search API response:', data);
+            
+            if (data.success && data.data && data.data.results && data.data.results.length > 0) {
+                console.log('🎵 [MUSIC-PLAYER] Found', data.data.results.length, 'tracks');
+                return data.data.results;
             }
+            console.log('🎵 [MUSIC-PLAYER] No results found or invalid response structure');
             return [];
         } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Search error:', error);
             return [];
         }
     }
@@ -1117,29 +1110,26 @@ class MusicPlayerSystem {
 
     async searchMusic(query) {
         try {
-            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=5&country=us`;
+            const apiUrl = `/api/media/music/search?query=${encodeURIComponent(query)}&limit=5`;
             const response = await fetch(apiUrl);
             const data = await response.json();
             
-            if (data.results && data.results.length > 0) {
-                const track = data.results.find(t => t.previewUrl);
+            console.log('🎵 [MUSIC-PLAYER] Single search API response:', data);
+            
+            if (data.success && data.data && data.data.results && data.data.results.length > 0) {
+                const track = data.data.results.find(t => t.previewUrl);
                 
                 if (!track) {
+                    console.log('🎵 [MUSIC-PLAYER] No track with preview URL found');
                     return null;
                 }
                 
-                return {
-                    title: track.trackName,
-                    artist: track.artistName,
-                    album: track.collectionName,
-                    previewUrl: track.previewUrl,
-                    artworkUrl: track.artworkUrl100,
-                    duration: track.trackTimeMillis,
-                    id: track.trackId
-                };
+                console.log('🎵 [MUSIC-PLAYER] Found track:', track.title, 'by', track.artist);
+                return track;
             }
             return null;
         } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Search error:', error);
             return null;
         }
     }
@@ -1368,7 +1358,27 @@ class MusicPlayerSystem {
             this._audioSourceNode = null;
         }
 
+        if (this.audio && this.audio._mediaElementSource) {
+            console.log('🎵 [MUSIC-PLAYER] Audio element already has source, recreating audio element');
+            const currentSrc = this.audio.src;
+            const currentTime = this.audio.currentTime;
+            const wasPlaying = !this.audio.paused;
+            
+            this.audio.pause();
+            this.audio = new Audio();
+            this.audio.crossOrigin = 'anonymous';
+            this.audio.src = currentSrc;
+            this.audio.currentTime = currentTime;
+            
+            if (wasPlaying) {
+                this.audio.play().catch(e => console.warn('Failed to resume playback:', e));
+            }
+            
+            this.setupAudioEventListeners();
+        }
+
         this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
+        this.audio._mediaElementSource = this._audioSourceNode;
 
         if (!this._gainNode) {
             this._gainNode = this._audioContext.createGain();

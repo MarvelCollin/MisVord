@@ -101,10 +101,6 @@ class MessageHandler {
         
         this.insertMessageIntoDOM(messageElement, messagesContainer, formattedMessage);
         
-        if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
-            this.chatSection.hideChatSkeleton();
-        }
-        
         this.processedMessageIds.add(messageData.id);
         
         if (isTemporary) {
@@ -1075,24 +1071,27 @@ class MessageHandler {
         }
         
         messagesContainer.innerHTML = '';
-        messagesContainer.appendChild(fragment);
         
-        if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
-            this.chatSection.hideChatSkeleton();
-        }
-        
-        this.applyGroupingToMessages(messagesContainer);
-        
-        messageElements.forEach(element => {
-            const messageId = element.querySelector('[data-message-id]')?.dataset.messageId;
-            if (messageId) {
-                this.addMessageEventListeners(messageId);
+        requestAnimationFrame(() => {
+            messagesContainer.appendChild(fragment);
+            
+            this.applyGroupingToMessages(messagesContainer);
+            
+            messageElements.forEach(element => {
+                const messageId = element.querySelector('[data-message-id]')?.dataset.messageId;
+                if (messageId) {
+                    this.addMessageEventListeners(messageId);
+                }
+            });
+            
+            if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
+                this.chatSection.updateLoadMoreButton();
+            }
+            
+            if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
+                this.chatSection.hideChatSkeleton();
             }
         });
-        
-        if (this.chatSection && typeof this.chatSection.updateLoadMoreButton === 'function') {
-            this.chatSection.updateLoadMoreButton();
-        }
         
         if (this.isFirstTimeLoad && this.chatSection) {
             if (this.chatSection.shouldAutoScroll()) {

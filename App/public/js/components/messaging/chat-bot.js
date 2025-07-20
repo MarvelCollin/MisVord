@@ -24,12 +24,9 @@ class ChatBot {
             
             io.on('new-channel-message', (data) => {
                 if (data.is_bot && data.bot_id) {
-
+                    this.handleBotMessage(data);
                 }
             });
-            
-
-
             
 
         } else {

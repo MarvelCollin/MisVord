@@ -200,7 +200,7 @@ class UserServerMembershipRepository extends Repository {
             $query = new Query();
             $query->beginTransaction();
             
-            error_log("Starting transaction for ownership transfer");
+            error_log("Starting atomic transaction for ownership transfer");
             
             $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
@@ -246,8 +246,20 @@ class UserServerMembershipRepository extends Repository {
                 error_log("Cleanup completed - demoted extra owners to admin: $cleanupResult rows affected");
             }
 
+            $updateServerOwner = $query->table('servers')
+                ->where('id', $serverId)
+                ->update(['owner_id' => $newOwnerId, 'updated_at' => date('Y-m-d H:i:s')]);
+
+            error_log("Update server owner_id result: " . ($updateServerOwner !== false ? "success ($updateServerOwner rows)" : 'failed'));
+
+            if ($updateServerOwner === false) {
+                error_log("Failed to update server owner_id");
+                $query->rollback();
+                return false;
+            }
+
             $query->commit();
-            error_log("Transaction committed successfully");
+            error_log("Atomic transaction committed successfully");
             
             $verifyNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
@@ -270,8 +282,18 @@ class UserServerMembershipRepository extends Repository {
                 error_log("Ownership transfer verification failed - current owner not found as admin");
                 return false;
             }
+
+            $verifyServerOwner = $query->table('servers')
+                ->where('id', $serverId)
+                ->where('owner_id', $newOwnerId)
+                ->first();
+                
+            if (!$verifyServerOwner) {
+                error_log("Server ownership verification failed - server owner_id not updated");
+                return false;
+            }
             
-            error_log("Ownership transfer verified successfully");
+            error_log("Complete ownership transfer verified successfully");
             return true;
         } catch (Exception $e) {
             error_log("Exception in transferOwnership: " . $e->getMessage());
@@ -307,6 +329,8 @@ class UserServerMembershipRepository extends Repository {
             $query = new Query();
             $query->beginTransaction();
             
+            error_log("Starting atomic transaction for ownership transfer and removal");
+            
             $updateNewOwner = $query->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
                 ->where('server_id', $serverId)
@@ -333,8 +357,20 @@ class UserServerMembershipRepository extends Repository {
                 return false;
             }
 
+            $updateServerOwner = $query->table('servers')
+                ->where('id', $serverId)
+                ->update(['owner_id' => $newOwnerId, 'updated_at' => date('Y-m-d H:i:s')]);
+
+            error_log("Update server owner_id result: " . ($updateServerOwner !== false ? "success ($updateServerOwner rows)" : 'failed'));
+
+            if ($updateServerOwner === false) {
+                error_log("Failed to update server owner_id");
+                $query->rollback();
+                return false;
+            }
+
             $query->commit();
-            error_log("Ownership transfer and old owner removal completed successfully");
+            error_log("Atomic ownership transfer and old owner removal completed successfully");
             
             $verifyQuery = new Query();
             $verifyNewOwner = $verifyQuery->table('user_server_memberships')
@@ -357,8 +393,18 @@ class UserServerMembershipRepository extends Repository {
                 error_log("Old owner removal verification failed - old owner still found in server");
                 return false;
             }
+
+            $verifyServerOwner = $verifyQuery->table('servers')
+                ->where('id', $serverId)
+                ->where('owner_id', $newOwnerId)
+                ->first();
+                
+            if (!$verifyServerOwner) {
+                error_log("Server ownership verification failed - server owner_id not updated");
+                return false;
+            }
             
-            error_log("Ownership transfer and removal verified successfully");
+            error_log("Complete ownership transfer and removal verified successfully");
             return true;
         } catch (Exception $e) {
             if (isset($query)) {

@@ -229,4 +229,68 @@ class MediaController extends BaseController
             ]);
         }
     }
+
+    public function searchMusic()
+    {
+        try {
+            $query = $_GET['query'] ?? '';
+            $limit = $_GET['limit'] ?? 10;
+            
+            if (empty($query)) {
+                return $this->error('Query parameter is required', 400);
+            }
+
+            $apiUrl = 'https://itunes.apple.com/search?' . http_build_query([
+                'term' => $query,
+                'media' => 'music',
+                'limit' => $limit,
+                'country' => 'us'
+            ]);
+
+            $context = stream_context_create([
+                'http' => [
+                    'timeout' => 10,
+                    'user_agent' => 'MisVord/1.0'
+                ]
+            ]);
+
+            $response = file_get_contents($apiUrl, false, $context);
+            
+            if ($response === false) {
+                return $this->error('Failed to fetch music data', 500);
+            }
+
+            $data = json_decode($response, true);
+            
+            if (!$data || !isset($data['results'])) {
+                return $this->error('Invalid response from music API', 500);
+            }
+
+            $filteredResults = array_filter($data['results'], function($track) {
+                return isset($track['previewUrl']) && !empty($track['previewUrl']);
+            });
+
+            $formattedResults = array_map(function($track) {
+                return [
+                    'title' => $track['trackName'] ?? '',
+                    'artist' => $track['artistName'] ?? '',
+                    'album' => $track['collectionName'] ?? '',
+                    'previewUrl' => $track['previewUrl'] ?? '',
+                    'artworkUrl' => $track['artworkUrl100'] ?? '',
+                    'duration' => $track['trackTimeMillis'] ?? 0,
+                    'id' => $track['trackId'] ?? 0,
+                    'price' => $track['trackPrice'] ?? 0,
+                    'releaseDate' => $track['releaseDate'] ?? ''
+                ];
+            }, $filteredResults);
+
+            return $this->success([
+                'results' => array_values($formattedResults)
+            ]);
+
+        } catch (Exception $e) {
+            error_log("Music search error: " . $e->getMessage());
+            return $this->error('Music search failed', 500);
+        }
+    }
 }

@@ -1290,6 +1290,11 @@ Route::get('/api/media/gifs', function() {
     $controller->getGifs();
 });
 
+Route::get('/api/media/music/search', function() {
+    $controller = new MediaController();
+    $controller->searchMusic();
+});
+
 Route::get('/storage/(.+)', function($filename) {
     if (getenv('IS_DOCKER') === 'true') {
         $filePath = "/tmp/storage/{$filename}";

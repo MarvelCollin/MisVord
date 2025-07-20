@@ -198,7 +198,10 @@ class EmojiReactions {
                 if (reactions.length > 0) {
                     this.currentReactions[messageId] = reactions;
                 }
-            } else {
+                return;
+            }
+            
+            if (/^\d+$/.test(String(messageId)) && !this.loadedMessageIds.has(messageId)) {
                 this.loadMessageReactions(messageId);
             }
         });
@@ -315,6 +318,51 @@ class EmojiReactions {
                 font-weight: 600;
             }
             
+            .reaction-fade-in {
+                opacity: 0;
+                transform: scale(0.8);
+                transition: opacity 0.3s ease, transform 0.3s ease;
+            }
+            
+            .reaction-appear {
+                opacity: 1;
+                transform: scale(1);
+            }
+            
+            .reaction-pop {
+                animation: reactionPop 0.6s ease;
+            }
+            
+            @keyframes reactionPop {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.2); }
+                100% { transform: scale(1); }
+            }
+            
+            .reaction-temporary {
+                opacity: 0.7;
+                background: rgba(255, 193, 7, 0.15);
+                border-color: rgba(255, 193, 7, 0.4);
+            }
+            
+            .reaction-confirmed {
+                animation: reactionConfirm 2s ease;
+            }
+            
+            @keyframes reactionConfirm {
+                0% { background: rgba(40, 167, 69, 0.15); border-color: rgba(40, 167, 69, 0.4); }
+                100% { background: initial; border-color: initial; }
+            }
+            
+            .reaction-failed {
+                animation: reactionFail 3s ease;
+            }
+            
+            @keyframes reactionFail {
+                0% { background: rgba(220, 53, 69, 0.15); border-color: rgba(220, 53, 69, 0.4); }
+                100% { background: initial; border-color: initial; }
+            }
+            
             .message-reaction-pill.reaction-temporary {
                 opacity: 0.7;
                 border-style: dashed;
@@ -420,13 +468,17 @@ class EmojiReactions {
                 if (messageElement) {
                     this.updateReactionButtonState(messageElement, messageId);
                     
+                    const existingReactions = messageElement.querySelector('.bubble-reactions');
+                    if (existingReactions && existingReactions.children.length > 0) {
+                        this.loadedMessageIds.add(messageId);
+                        return;
+                    }
 
                     const messageGroup = messageElement.closest('.bubble-message-group, .message-group');
                     if (messageGroup && messageGroup.dataset.messageReactions) {
                         try {
                             const reactionsData = JSON.parse(messageGroup.dataset.messageReactions);
                             if (reactionsData && reactionsData.length > 0) {
-
                                 this.updateReactionsDisplay(messageId, reactionsData);
                                 this.loadedMessageIds.add(messageId);
                                 return;
@@ -436,8 +488,7 @@ class EmojiReactions {
                         }
                     }
                     
-
-                    if (/^\d+$/.test(String(messageId))) {
+                    if (/^\d+$/.test(String(messageId)) && !this.loadedMessageIds.has(messageId)) {
                         this.loadMessageReactions(messageId);
                     }
                 }
@@ -455,13 +506,17 @@ class EmojiReactions {
             if (messageId && !this.loadedMessageIds.has(messageId)) {
                 this.updateReactionButtonState(message, messageId);
                 
+                const existingReactions = message.querySelector('.bubble-reactions');
+                if (existingReactions && existingReactions.children.length > 0) {
+                    this.loadedMessageIds.add(messageId);
+                    return;
+                }
 
                 const messageGroup = message.closest('.bubble-message-group, .message-group');
                 if (messageGroup && messageGroup.dataset.messageReactions) {
                     try {
                         const reactionsData = JSON.parse(messageGroup.dataset.messageReactions);
                         if (reactionsData && reactionsData.length > 0) {
-
                             this.updateReactionsDisplay(messageId, reactionsData);
                             this.loadedMessageIds.add(messageId);
                             return;
@@ -471,8 +526,7 @@ class EmojiReactions {
                     }
                 }
                 
-
-                if (/^\d+$/.test(String(messageId))) {
+                if (/^\d+$/.test(String(messageId)) && !this.loadedMessageIds.has(messageId)) {
                     this.loadMessageReactions(messageId);
                 }
             }
@@ -951,7 +1005,9 @@ class EmojiReactions {
         
         try {
             const reactions = await window.ChatAPI.getMessageReactions(messageId);
-            this.updateReactionsDisplay(messageId, reactions || []);
+            if (reactions && reactions.length > 0) {
+                this.updateReactionsDisplay(messageId, reactions);
+            }
             this.loadedMessageIds.add(messageId);
         } catch (error) {
             console.error(`Error loading reactions for message ${messageId}:`, error);
@@ -1009,7 +1065,16 @@ class EmojiReactions {
             }
         }
 
-        reactionsContainer.innerHTML = '';
+        const currentReactionElements = Array.from(reactionsContainer.children);
+        const existingReactions = new Map();
+        
+        currentReactionElements.forEach(element => {
+            const emoji = element.dataset.emoji;
+            const count = parseInt(element.querySelector('.bubble-reaction-count, .reaction-count')?.textContent || '0');
+            if (emoji) {
+                existingReactions.set(emoji, { element, count });
+            }
+        });
 
         const emojiCounts = {};
         const emojiUsers = {};
@@ -1035,7 +1100,33 @@ class EmojiReactions {
             }
         });
 
+        const emojisToRemove = new Set(existingReactions.keys());
+        Object.keys(emojiCounts).forEach(emoji => emojisToRemove.delete(emoji));
+        
+        emojisToRemove.forEach(emoji => {
+            const existing = existingReactions.get(emoji);
+            if (existing && existing.element) {
+                existing.element.remove();
+            }
+        });
+
         Object.entries(emojiCounts).forEach(([emoji, count]) => {
+            const existing = existingReactions.get(emoji);
+            
+            if (existing && existing.count === count) {
+                const hasUserReacted = userReactions.has(emoji);
+                const currentlyReacted = existing.element.classList.contains('user-reacted');
+                
+                if (hasUserReacted !== currentlyReacted) {
+                    existing.element.classList.toggle('user-reacted', hasUserReacted);
+                }
+                return;
+            }
+            
+            if (existing) {
+                existing.element.remove();
+            }
+            
             const reactionPill = document.createElement('div');
             reactionPill.className = isBubbleMessage ? 'bubble-reaction' : 'message-reaction-pill';
             reactionPill.dataset.emoji = emoji;
@@ -1566,8 +1657,21 @@ class EmojiReactions {
     }
     
     clearReactionCache() {
-        this.loadedMessageIds.clear();
-
+        const messagesToKeep = new Set();
+        document.querySelectorAll('[data-message-id]').forEach(element => {
+            const messageId = element.dataset.messageId;
+            if (messageId && this.currentReactions[messageId] && this.currentReactions[messageId].length > 0) {
+                messagesToKeep.add(messageId);
+            }
+        });
+        
+        const newLoadedIds = new Set();
+        messagesToKeep.forEach(id => {
+            if (this.loadedMessageIds.has(id)) {
+                newLoadedIds.add(id);
+            }
+        });
+        this.loadedMessageIds = newLoadedIds;
     }
     
     getCurrentChannelContext() {

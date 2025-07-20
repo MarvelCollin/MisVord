@@ -489,11 +489,20 @@ class BotHandler extends EventEmitter {
 
     static async searchMusic(query) {
         try {
-            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=5&country=us`;
-            const https = require('https');
+            const apiUrl = `http://localhost:1001/api/media/music/search?query=${encodeURIComponent(query)}&limit=5`;
+            const http = require('http');
+            const url = require('url');
             
             return new Promise((resolve, reject) => {
-                const req = https.get(apiUrl, (res) => {
+                const urlObj = url.parse(apiUrl);
+                const options = {
+                    hostname: urlObj.hostname,
+                    port: urlObj.port,
+                    path: urlObj.path,
+                    method: 'GET'
+                };
+
+                const req = http.request(options, (res) => {
                     let data = '';
                     
                     res.on('data', (chunk) => {
@@ -503,18 +512,10 @@ class BotHandler extends EventEmitter {
                     res.on('end', () => {
                         try {
                             const result = JSON.parse(data);
-                            if (result.results && result.results.length > 0) {
-                                const track = result.results.find(t => t.previewUrl);
+                            if (result.success && result.data && result.data.results && result.data.results.length > 0) {
+                                const track = result.data.results.find(t => t.previewUrl);
                                 if (track) {
-                                    resolve({
-                                        title: track.trackName,
-                                        artist: track.artistName,
-                                        album: track.collectionName,
-                                        previewUrl: track.previewUrl,
-                                        artworkUrl: track.artworkUrl100,
-                                        duration: track.trackTimeMillis,
-                                        id: track.trackId
-                                    });
+                                    resolve(track);
                                 } else {
                                     resolve(null);
                                 }
@@ -532,9 +533,11 @@ class BotHandler extends EventEmitter {
                 });
                 
                 req.setTimeout(5000, () => {
-                    req.abort();
+                    req.destroy();
                     resolve(null);
                 });
+                
+                req.end();
             });
         } catch (error) {
             return null;

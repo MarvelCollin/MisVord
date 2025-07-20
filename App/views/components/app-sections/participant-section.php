@@ -341,7 +341,7 @@ function getStatusClass(status, activityDetails) {
 function getActivityText(activityDetails, status) {
 
     if (status === 'bot') {
-        return 'Active';
+        return 'Online';
     }
     
     if (status === 'offline' || status === 'invisible') {

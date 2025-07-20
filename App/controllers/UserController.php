@@ -1240,9 +1240,6 @@ class UserController extends BaseController
                         exit;
                     }
                     
-                    $updateResult = $serverRepository->update($serverId, ['owner_id' => $newOwnerId]);
-                    error_log("Server table update result for $serverId: " . ($updateResult ? 'success' : 'failed'));
-                    
                     $updatedServer = $serverRepository->find($serverId);
                     error_log("After transfer - Server {$serverId} owner_id: " . ($updatedServer ? $updatedServer->owner_id : 'not found'));
                     

@@ -1024,6 +1024,7 @@ class ChatSection {
         
         if (!isLoadMore) {
             this.showChatSkeleton();
+            await new Promise(resolve => setTimeout(resolve, 50));
         }
         
         let offset = this.currentOffset || 0;
@@ -2455,16 +2456,6 @@ class ChatSection {
     getMessagesContainer() {
         const realMessagesContainer = document.getElementById('chat-real-content');
         if (realMessagesContainer) {
-            if (realMessagesContainer.style.display === 'none') {
-                realMessagesContainer.style.display = 'flex';
-            }
-            const skeletonContainer = document.getElementById('chat-skeleton-loading');
-            if (skeletonContainer) {
-                skeletonContainer.style.display = 'none';
-                skeletonContainer.style.height = '0';
-                skeletonContainer.style.minHeight = '0';
-                skeletonContainer.style.position = 'static';
-            }
             this.updateContainerHeight(realMessagesContainer);
             return realMessagesContainer;
         }
@@ -2480,16 +2471,6 @@ class ChatSection {
                                 this.chatMessages.querySelector('.messages-container');
         
         if (messagesContainer) {
-            if (messagesContainer.style.display === 'none') {
-                messagesContainer.style.display = 'flex';
-            }
-            const skeletonContainer = document.getElementById('chat-skeleton-loading');
-            if (skeletonContainer) {
-                skeletonContainer.style.display = 'none';
-                skeletonContainer.style.height = '0';
-                skeletonContainer.style.minHeight = '0';
-                skeletonContainer.style.position = 'static';
-            }
             this.updateContainerHeight(messagesContainer);
             return messagesContainer;
         }
@@ -2902,6 +2883,7 @@ class ChatSection {
         
         this.forceStopAllOperations();
         this.clearChatMessages();
+        this.showChatSkeleton();
         this.hideEmptyState();
         this.hideLoadingIndicator();
         
@@ -3307,12 +3289,15 @@ class ChatSection {
     }
 
     initializeChatSkeleton() {
+        if (this.skeletonInitialized) {
+            return;
+        }
+        
         this.skeletonStartTime = Date.now();
         this.minSkeletonTime = 300;
         this.skeletonHidden = false;
         this.messagesLoaded = false;
-        
-        
+        this.skeletonInitialized = true;
     }
     
     hideChatSkeleton() {
@@ -3322,18 +3307,12 @@ class ChatSection {
         
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
         const realContent = document.getElementById('chat-real-content');
-        const chatMessages = document.getElementById('chat-messages');
         
         const hideSkeletonNow = () => {
             if (skeletonContainer) {
                 skeletonContainer.style.display = 'none';
                 skeletonContainer.style.visibility = 'hidden';
                 skeletonContainer.style.opacity = '0';
-                skeletonContainer.style.position = 'static';
-                skeletonContainer.style.height = '0';
-                skeletonContainer.style.minHeight = '0';
-                skeletonContainer.style.overflow = 'hidden';
-                skeletonContainer.style.zIndex = '-1';
                 skeletonContainer.setAttribute('hidden', 'true');
             }
             
@@ -3341,10 +3320,9 @@ class ChatSection {
                 realContent.style.display = 'flex';
                 realContent.style.visibility = 'visible';
                 realContent.style.opacity = '1';
-                realContent.style.position = 'relative';
-                realContent.style.zIndex = '2';
                 realContent.removeAttribute('hidden');
                 
+                const chatMessages = document.getElementById('chat-messages');
                 if (chatMessages && realContent.children.length > 0) {
                     const originalScrollBehavior = chatMessages.style.scrollBehavior;
                     chatMessages.style.scrollBehavior = 'auto';
@@ -3361,14 +3339,12 @@ class ChatSection {
             
             this.skeletonHidden = true;
             this.messagesLoaded = true;
-            
+            this.skeletonInitialized = false;
         };
 
         if (this.skeletonStartTime) {
             const elapsedTime = Date.now() - this.skeletonStartTime;
             const remainingTime = Math.max(0, this.minSkeletonTime - elapsedTime);
-            
-            
             
             if (remainingTime > 0) {
                 setTimeout(hideSkeletonNow, remainingTime);
@@ -3385,31 +3361,16 @@ class ChatSection {
         
         const skeletonContainer = document.getElementById('chat-skeleton-loading');
         const realContent = document.getElementById('chat-real-content');
-        const chatMessages = document.getElementById('chat-messages');
+        
+        if (realContent) {
+            realContent.style.display = 'none';
+        }
         
         if (skeletonContainer) {
             skeletonContainer.style.display = 'flex';
             skeletonContainer.style.visibility = 'visible';
             skeletonContainer.style.opacity = '1';
-            skeletonContainer.style.position = 'absolute';
-            skeletonContainer.style.top = '0';
-            skeletonContainer.style.left = '0';
-            skeletonContainer.style.right = '0';
-            skeletonContainer.style.bottom = '0';
-            skeletonContainer.style.zIndex = '100';
-            skeletonContainer.style.height = '';
-            skeletonContainer.style.minHeight = '';
             skeletonContainer.removeAttribute('hidden');
-        }
-        
-        if (realContent) {
-            realContent.style.display = 'none';
-            realContent.style.visibility = 'hidden';
-            realContent.style.opacity = '0';
-        }
-        
-        if (chatMessages) {
-            chatMessages.style.position = 'relative';
         }
     }
 

@@ -70,7 +70,12 @@
   flex-direction: column;
   min-height: 0;
   position: relative;
-  z-index: 2;
+}
+
+#chat-real-content {
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 #chat-messages .messages-container.has-many-messages {
@@ -1090,9 +1095,9 @@ button {
 }
 
 .chat-skeleton-container {
-    display: flex !important;
+    display: none !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     padding: 16px;
     background-color: #313338;
     overflow: hidden;
@@ -1101,17 +1106,16 @@ button {
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 1;
+    z-index: 10;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease;
 }
 
-.chat-skeleton-container[hidden] {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    position: static !important;
-    height: 0 !important;
-    min-height: 0 !important;
-    z-index: -1 !important;
+.chat-skeleton-container:not([hidden]) {
+    display: flex !important;
+    opacity: 1;
+    visibility: visible;
 }
 
 .chat-skeleton-avatar {

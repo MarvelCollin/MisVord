@@ -130,10 +130,6 @@ class CarouselSection {
                         pageEl.classList.add('flipping-backward');
                     }, index * 100);
                 });
-                if (currentPageEl) {
-                    currentPageEl.style.opacity = '1';
-                    currentPageEl.style.pointerEvents = 'auto';
-                }
             } else if (targetPageEl) {
                 targetPageEl.style.zIndex = '25';
                 targetPageEl.style.willChange = 'transform';
