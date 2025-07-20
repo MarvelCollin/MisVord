@@ -332,8 +332,8 @@ try {
                         <div class="text-green-500 text-xs mt-1 hidden" id="passwordsMatch">Passwords match <i class="fa-solid fa-check"></i></div>
                     </div>
 
-                    <button type="button" id="next-step-btn" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">
-                        Next Step
+                    <button type="button" id="next-step-btn" class="w-full h-11 sm:h-12 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all text-sm sm:text-base flex items-center justify-center">
+                        Next Step<i class="fa-solid fa-arrow-right ml-2"></i>
                     </button>
                 </div>
 

@@ -2,29 +2,38 @@ class ChatBot {
     constructor() {
         this.chatSection = null;
         this.botActive = false;
-        this.titiBotUsername = 'titibot';
         this.setupBotListeners();
         this.ensureBotActive();
+
     }
 
-    async setupBotListeners() {
+    setupBotListeners() {
         if (window.globalSocketManager?.io) {
             const io = window.globalSocketManager.io;
             
-            if (!this.titiBotId) {
-                try {
-                    const result = await window.BotAPI.getBotByUsername(this.titiBotUsername);
-                    if (result.success && result.is_bot && result.bot && result.bot.id) {
-                        this.titiBotId = result.bot.id.toString();
-                    }
-                } catch (e) {
-                    console.error('❌ [CHAT-BOT] Failed to fetch titibot info:', e);
-                }
-            }
-            
             io.on('new-channel-message', (data) => {
                 if (data.is_bot && data.bot_id) {
-                    this.handleBotMessage(data);
+
+                }
+            });
+            
+
+            io.on('bot-music-command', (data) => {
+                console.log('🤖 [CHAT-BOT] Received bot-music-command:', {
+                    userId: window.globalSocketManager?.userId,
+                    data: data
+                });
+
+                if (!data || !data.music_data) {
+                    console.warn('⚠️ [CHAT-BOT] Invalid bot-music-command data:', data);
+                    return;
+                }
+
+                if (window.musicPlayer) {
+                    console.log('🤖 [CHAT-BOT] Forwarding to music player');
+                    window.musicPlayer.processBotMusicCommand(data);
+                } else {
+                    console.warn('⚠️ [CHAT-BOT] Music player not available');
                 }
             });
             
@@ -300,9 +309,8 @@ class ChatBot {
 
     updateBotParticipantStatus(statusText) {
         if (window.voiceCallSection && typeof window.voiceCallSection.updateBotParticipantStatus === 'function') {
-            if (this.titiBotId) {
-                window.voiceCallSection.updateBotParticipantStatus(this.titiBotId, statusText);
-            }
+            const titiBotId = this.titiBotId || '4';
+            window.voiceCallSection.updateBotParticipantStatus(titiBotId, statusText);
         }
     }
 
@@ -325,8 +333,11 @@ class ChatBot {
             window.BotComponent.init();
         }
 
+        const titiBotUsername = 'titibot';
+
+
         if (!this.titiBotId) {
-            fetch(`/api/bots/public-check/${this.titiBotUsername}`)
+            fetch(`/api/bots/public-check/${titiBotUsername}`)
                 .then(res => res.ok ? res.json() : null)
                 .then(json => {
                     if (json && json.success && json.is_bot && json.bot && json.bot.id) {
@@ -337,17 +348,12 @@ class ChatBot {
         }
 
 
-        const titiBotId = this.titiBotId;
-        
-        if (!titiBotId) {
-            console.warn('❌ [CHAT-BOT] TitiBot ID not available');
-            return;
-        }
+        const titiBotId = this.titiBotId || '4';
 
         if (!window.BotComponent.getBotStatus(titiBotId)) {
             window.globalSocketManager.io.emit('bot-init', {
                 bot_id: titiBotId,
-                username: this.titiBotUsername
+                username: titiBotUsername
             });
         }
 

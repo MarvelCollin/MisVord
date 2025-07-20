@@ -1,51 +1,6 @@
 class BotAPI {
     static BASE_URL = '/api';
 
-    static async getBotByUsername(username) {
-        const endpoint = `${this.BASE_URL}/bots/public-check/${username}`;
-        
-        try {
-            const response = await fetch(endpoint, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Failed to get bot by username:', error);
-            throw error;
-        }
-    }
-
-    static async isUserBot(userId) {
-        try {
-            const response = await fetch(`${this.BASE_URL}/users/${userId}/check-bot`, {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
-            
-            if (!response.ok) {
-                return false;
-            }
-            
-            const result = await response.json();
-            return result.is_bot || false;
-        } catch (error) {
-            console.error('Failed to check if user is bot:', error);
-            return false;
-        }
-    }
-
     static async sendBotCommand(channelId, roomId, command, parameter = null) {
         const endpoint = `${this.BASE_URL}/bot/command`;
         

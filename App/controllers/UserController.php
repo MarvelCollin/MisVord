@@ -1222,12 +1222,17 @@ class UserController extends BaseController
                     error_log("Transferring server $serverId to user $newOwnerId");
                     
                     $server = $serverRepository->find($serverId);
-                    if (!$server || $server->owner_id != $userId) {
-                        error_log("Skipping transfer: Server $serverId not found or not owned by user");
+                    if (!$server) {
+                        error_log("Skipping transfer: Server $serverId not found");
                         continue;
                     }
                     
-                    error_log("Before transfer - Server {$serverId} owner_id: {$server->owner_id}");
+                    if (!$membershipRepository->isOwner($userId, $serverId)) {
+                        error_log("Skipping transfer: User $userId is not owner of server $serverId");
+                        continue;
+                    }
+                    
+                    error_log("Before transfer - Server {$serverId} current owner: {$userId}");
                     
                     $transferResult = $membershipRepository->transferOwnership($serverId, $userId, $newOwnerId);
                     if (!$transferResult) {
@@ -1240,8 +1245,7 @@ class UserController extends BaseController
                         exit;
                     }
                     
-                    $updatedServer = $serverRepository->find($serverId);
-                    error_log("After transfer - Server {$serverId} owner_id: " . ($updatedServer ? $updatedServer->owner_id : 'not found'));
+                    error_log("After transfer - Server {$serverId} new owner: {$newOwnerId}");
                     
                     error_log("Successfully transferred server $serverId ownership to user $newOwnerId");
                 }

@@ -152,6 +152,14 @@ class VoiceCallSection {
                     } else {
                         MusicLoaderStatic.playDiscordMuteSound();
                     }
+                    
+                    if (window.localStorageManager) {
+                        const currentState = window.localStorageManager.getUnifiedVoiceState();
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...currentState,
+                            isMuted: !newState
+                        });
+                    }
                 }
             });
         }
@@ -178,6 +186,15 @@ class VoiceCallSection {
                         } else {
                             window.MusicLoaderStatic.playDiscordMuteSound();
                         }
+                    }
+                    
+                    if (window.localStorageManager) {
+                        const currentState = window.localStorageManager.getUnifiedVoiceState();
+                        window.localStorageManager.setUnifiedVoiceState({
+                            ...currentState,
+                            isDeafened: state,
+                            isMuted: state ? true : currentState.isMuted
+                        });
                     }
                 }
             });

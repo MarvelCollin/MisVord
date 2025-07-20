@@ -357,35 +357,87 @@ class UserProfileVoiceControls {
     
     handleDeafenClick() {
         try {
-            if (!window.voiceManager) {
-                console.warn('VoiceManager not available');
+            if (!window.localStorageManager) {
+                console.warn('LocalStorageManager not available');
                 return;
             }
             
-            if (!window.voiceManager.isConnected) {
-                console.warn('Not connected to voice call');
-                return;
-            }
+            const currentState = window.localStorageManager.getUnifiedVoiceState();
+            const wasPreviouslyDeafened = currentState.isDeafened;
             
-            const wasDeafened = window.voiceManager.getDeafenState();
+            const newDeafenedState = !wasPreviouslyDeafened;
+            
+            window.localStorageManager.setUnifiedVoiceState({
+                ...currentState,
+                isDeafened: newDeafenedState,
+                isMuted: newDeafenedState ? true : currentState.isMuted
+            });
             
             if (window.MusicLoaderStatic) {
-                if (wasDeafened) {
+                if (wasPreviouslyDeafened) {
                     window.MusicLoaderStatic.playDiscordUnmuteSound();
                 } else {
                     window.MusicLoaderStatic.playDiscordMuteSound();
                 }
             }
             
-            window.voiceManager.toggleDeafen();
+            if (window.voiceManager && window.voiceManager.isConnected) {
+                window.voiceManager._deafened = newDeafenedState;
+                
+                if (newDeafenedState) {
+                    window.voiceManager.meeting.participants.forEach(participant => {
+                        if (participant.id !== window.voiceManager.localParticipant.id) {
+                            const participantData = window.voiceManager.participants.get(participant.id);
+                            if (participantData && participantData.streams) {
+                                participantData.streams.forEach((stream, kind) => {
+                                    if (kind === 'audio' && stream.track) {
+                                        stream.track.enabled = false;
+                                    }
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    window.voiceManager.meeting.participants.forEach(participant => {
+                        if (participant.id !== window.voiceManager.localParticipant.id) {
+                            const participantData = window.voiceManager.participants.get(participant.id);
+                            if (participantData && participantData.streams) {
+                                participantData.streams.forEach((stream, kind) => {
+                                    if (kind === 'audio' && stream.track) {
+                                        stream.track.enabled = true;
+                                    }
+                                });
+                            }
+                        }
+                    });
+                }
+                
+                window.voiceManager.broadcastVoiceState('deafen', newDeafenedState);
+                
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+                if (currentUserId) {
+                    window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                        detail: {
+                            userId: currentUserId,
+                            channelId: window.voiceManager.currentChannelId,
+                            type: 'deafen',
+                            state: newDeafenedState
+                        }
+                    }));
+                }
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'deafen', state: newDeafenedState }
+                }));
+            }
             
             if (window.voiceCallSection && window.voiceCallSection.updateAllAudioElementsMute) {
-                window.voiceCallSection.updateAllAudioElementsMute(!wasDeafened);
+                window.voiceCallSection.updateAllAudioElementsMute(newDeafenedState);
             }
             
             this.updateControls();
             
-            console.log('UserProfile: Deafen toggled via voiceManager');
+            console.log('UserProfile: Deafen toggled via localStorage');
             
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);

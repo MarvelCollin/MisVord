@@ -405,7 +405,8 @@ input:focus ~ .input-focus-effect {
 }
 
 button[type="submit"],
-.btn-google {
+.btn-google,
+#next-step-btn {
   position: relative;
   overflow: hidden;
   border: none;
@@ -423,7 +424,8 @@ button[type="submit"],
 
 @media (max-width: 640px) {
   button[type="submit"],
-  .btn-google {
+  .btn-google,
+  #next-step-btn {
     padding: 0.875rem 1.5rem;
     font-size: 1rem;
   }
@@ -431,7 +433,8 @@ button[type="submit"],
 
 @media (max-width: 480px) {
   button[type="submit"],
-  .btn-google {
+  .btn-google,
+  #next-step-btn {
     padding: 0.75rem 1.25rem;
     font-size: 0.875rem;
   }
@@ -439,14 +442,16 @@ button[type="submit"],
 
 @media (max-width: 360px) {
   button[type="submit"],
-  .btn-google {
+  .btn-google,
+  #next-step-btn {
     padding: 0.625rem 1rem;
     font-size: 0.875rem;
   }
 }
 
 button[type="submit"]::before,
-.btn-google::before {
+.btn-google::before,
+#next-step-btn::before {
   content: '';
   position: absolute;
   top: 0;
@@ -458,11 +463,13 @@ button[type="submit"]::before,
 }
 
 button[type="submit"]:hover::before,
-.btn-google:hover::before {
+.btn-google:hover::before,
+#next-step-btn:hover::before {
   left: 100%;
 }
 
-button[type="submit"] {
+button[type="submit"],
+#next-step-btn {
   background: linear-gradient(135deg, #5865f2 0%, #4f46e5 100%);
   color: white;
   border-radius: 8px;
@@ -474,7 +481,8 @@ button[type="submit"] {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-button[type="submit"]::before {
+button[type="submit"]::before,
+#next-step-btn::before {
   content: '';
   position: absolute;
   top: 0;
@@ -485,7 +493,8 @@ button[type="submit"]::before {
   transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-button[type="submit"]::after {
+button[type="submit"]::after,
+#next-step-btn::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -499,41 +508,48 @@ button[type="submit"]::after {
 }
 
 @media (max-width: 480px) {
-  button[type="submit"] {
+  button[type="submit"],
+  #next-step-btn {
     padding: 10px 20px;
     border-radius: 6px;
   }
 }
 
-button[type="submit"]:hover {
+button[type="submit"]:hover,
+#next-step-btn:hover {
   background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
   transform: translateY(-3px) translateZ(0) scale(1.03);
   box-shadow: 0 12px 30px rgba(88, 101, 242, 0.5);
   animation: buttonPulse 2s infinite;
 }
 
-button[type="submit"]:hover::before {
+button[type="submit"]:hover::before,
+#next-step-btn:hover::before {
   left: 100%;
 }
 
-button[type="submit"]:hover::after {
+button[type="submit"]:hover::after,
+#next-step-btn:hover::after {
   width: 300px;
   height: 300px;
   opacity: 0;
 }
 
-button[type="submit"]:active {
+button[type="submit"]:active,
+#next-step-btn:active {
   transform: translateY(-1px) translateZ(0) scale(0.98);
   box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3);
   transition: all 0.1s ease;
 }
 
-button[type="submit"]:focus {
+button[type="submit"]:focus,
+#next-step-btn:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.3), 0 8px 25px rgba(88, 101, 242, 0.4);
 }
 
-button[type="submit"]:disabled {
+button[type="submit"]:disabled,
+#next-step-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
   transform: none !important;
@@ -542,7 +558,8 @@ button[type="submit"]:disabled {
   animation: none;
 }
 
-button[type="submit"]:disabled:hover {
+button[type="submit"]:disabled:hover,
+#next-step-btn:disabled:hover {
   transform: none !important;
   background: linear-gradient(135deg, #72767d 0%, #5c6068 100%);
   box-shadow: none;
@@ -658,12 +675,14 @@ button[type="submit"]:disabled:hover {
 }
 
 button[type="submit"]:focus,
-.btn-google:focus {
+.btn-google:focus,
+#next-step-btn:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(88, 101, 242, 0.2);
 }
 
-button[type="submit"]:focus {
+button[type="submit"]:focus,
+#next-step-btn:focus {
   box-shadow: 0 4px 16px rgba(88, 101, 242, 0.3), 0 0 0 3px rgba(88, 101, 242, 0.2);
 }
 

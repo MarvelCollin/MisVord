@@ -246,18 +246,6 @@ class UserServerMembershipRepository extends Repository {
                 error_log("Cleanup completed - demoted extra owners to admin: $cleanupResult rows affected");
             }
 
-            $updateServerOwner = $query->table('servers')
-                ->where('id', $serverId)
-                ->update(['owner_id' => $newOwnerId, 'updated_at' => date('Y-m-d H:i:s')]);
-
-            error_log("Update server owner_id result: " . ($updateServerOwner !== false ? "success ($updateServerOwner rows)" : 'failed'));
-
-            if ($updateServerOwner === false) {
-                error_log("Failed to update server owner_id");
-                $query->rollback();
-                return false;
-            }
-
             $query->commit();
             error_log("Atomic transaction committed successfully");
             
@@ -280,16 +268,6 @@ class UserServerMembershipRepository extends Repository {
                 
             if (!$verifyCurrentOwnerAsAdmin) {
                 error_log("Ownership transfer verification failed - current owner not found as admin");
-                return false;
-            }
-
-            $verifyServerOwner = $query->table('servers')
-                ->where('id', $serverId)
-                ->where('owner_id', $newOwnerId)
-                ->first();
-                
-            if (!$verifyServerOwner) {
-                error_log("Server ownership verification failed - server owner_id not updated");
                 return false;
             }
             
@@ -357,18 +335,6 @@ class UserServerMembershipRepository extends Repository {
                 return false;
             }
 
-            $updateServerOwner = $query->table('servers')
-                ->where('id', $serverId)
-                ->update(['owner_id' => $newOwnerId, 'updated_at' => date('Y-m-d H:i:s')]);
-
-            error_log("Update server owner_id result: " . ($updateServerOwner !== false ? "success ($updateServerOwner rows)" : 'failed'));
-
-            if ($updateServerOwner === false) {
-                error_log("Failed to update server owner_id");
-                $query->rollback();
-                return false;
-            }
-
             $query->commit();
             error_log("Atomic ownership transfer and old owner removal completed successfully");
             
@@ -391,16 +357,6 @@ class UserServerMembershipRepository extends Repository {
                 
             if ($verifyOldOwnerRemoved) {
                 error_log("Old owner removal verification failed - old owner still found in server");
-                return false;
-            }
-
-            $verifyServerOwner = $verifyQuery->table('servers')
-                ->where('id', $serverId)
-                ->where('owner_id', $newOwnerId)
-                ->first();
-                
-            if (!$verifyServerOwner) {
-                error_log("Server ownership verification failed - server owner_id not updated");
                 return false;
             }
             

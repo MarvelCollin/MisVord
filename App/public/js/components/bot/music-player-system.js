@@ -100,6 +100,14 @@ class MusicPlayerSystem {
                     this._audioContext = new AudioContext();
                     console.log('🎵 [MUSIC-PLAYER] Force created AudioContext, state:', this._audioContext.state);
                     
+                    if (this.audio && !this._audioSourceNode) {
+                        try {
+                            this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
+                            console.log('🎵 [MUSIC-PLAYER] Connected audio source to context');
+                        } catch (e) {
+                            console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
+                        }
+                    }
                 }
             } catch (e) {
                 console.warn('🎵 [MUSIC-PLAYER] Could not initialize AudioContext on force init:', e);
@@ -228,6 +236,13 @@ class MusicPlayerSystem {
 
     setupImmediateListeners() {
         if (typeof window !== 'undefined' && !this._destroyed) {
+            const botMusicCommandHandler = (e) => {
+                if (this._destroyed) return;
+                this.processBotMusicCommand(e.detail);
+            };
+            window.addEventListener('bot-music-command', botMusicCommandHandler);
+            this._eventListeners.push({ element: window, event: 'bot-music-command', handler: botMusicCommandHandler });
+
             const autoUnlockEvents = ['click', 'touch', 'keydown', 'mousedown'];
             const autoUnlock = () => {
                 if (this._destroyed) return;
@@ -264,6 +279,10 @@ class MusicPlayerSystem {
     }
 
     setupEventListeners() {
+        window.addEventListener('bot-music-command', (e) => {
+            this.processBotMusicCommand(e.detail);
+        });
+
         window.addEventListener('voiceConnect', (e) => {
             if (e.detail && e.detail.channelId) {
                 this.channelId = e.detail.channelId;
@@ -402,8 +421,14 @@ class MusicPlayerSystem {
             
             const io = window.globalSocketManager.io;
 
+            io.off('bot-music-command');
             io.off('music-state-sync');
             io.off('music-state-request');
+            
+            io.on('bot-music-command', (data) => {
+                console.log('🎵 [MUSIC-PLAYER] Socket received bot-music-command:', data);
+                this.processBotMusicCommand(data);
+            });
             
             io.on('music-state-sync', (data) => {
                 this.handleMusicStateSync(data);
@@ -719,22 +744,6 @@ class MusicPlayerSystem {
             this.audio.pause();
             this.audio = null;
         }
-        
-        if (this._audioSourceNode) {
-            this._audioSourceNode.disconnect();
-            this._audioSourceNode = null;
-        }
-        
-        if (this._musicStreamDestination) {
-            this._musicStreamDestination.disconnect();
-            this._musicStreamDestination = null;
-        }
-
-        if (this._musicMediaStream) {
-            this._musicMediaStream.getTracks().forEach(track => track.stop());
-            this._musicMediaStream = null;
-        }
-        
         this.isPlaying = false;
         this.currentSong = null;
         this.hideNowPlaying();
@@ -856,20 +865,27 @@ class MusicPlayerSystem {
 
     async searchMultiple(query) {
         try {
-            const apiUrl = `/api/media/music/search?query=${encodeURIComponent(query)}&limit=10`;
+            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=10`;
             const response = await fetch(apiUrl);
             const data = await response.json();
             
-            console.log('🎵 [MUSIC-PLAYER] Search API response:', data);
-            
-            if (data.success && data.data && data.data.results && data.data.results.length > 0) {
-                console.log('🎵 [MUSIC-PLAYER] Found', data.data.results.length, 'tracks');
-                return data.data.results;
+            if (data.results && data.results.length > 0) {
+                return data.results
+                    .filter(track => track.previewUrl)
+                    .map(track => ({
+                        title: track.trackName,
+                        artist: track.artistName,
+                        album: track.collectionName,
+                        previewUrl: track.previewUrl,
+                        artworkUrl: track.artworkUrl100,
+                        duration: track.trackTimeMillis,
+                        id: track.trackId,
+                        price: track.trackPrice,
+                        releaseDate: track.releaseDate
+                    }));
             }
-            console.log('🎵 [MUSIC-PLAYER] No results found or invalid response structure');
             return [];
         } catch (error) {
-            console.error('🎵 [MUSIC-PLAYER] Search error:', error);
             return [];
         }
     }
@@ -1110,26 +1126,29 @@ class MusicPlayerSystem {
 
     async searchMusic(query) {
         try {
-            const apiUrl = `/api/media/music/search?query=${encodeURIComponent(query)}&limit=5`;
+            const apiUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&limit=5&country=us`;
             const response = await fetch(apiUrl);
             const data = await response.json();
             
-            console.log('🎵 [MUSIC-PLAYER] Single search API response:', data);
-            
-            if (data.success && data.data && data.data.results && data.data.results.length > 0) {
-                const track = data.data.results.find(t => t.previewUrl);
+            if (data.results && data.results.length > 0) {
+                const track = data.results.find(t => t.previewUrl);
                 
                 if (!track) {
-                    console.log('🎵 [MUSIC-PLAYER] No track with preview URL found');
                     return null;
                 }
                 
-                console.log('🎵 [MUSIC-PLAYER] Found track:', track.title, 'by', track.artist);
-                return track;
+                return {
+                    title: track.trackName,
+                    artist: track.artistName,
+                    album: track.collectionName,
+                    previewUrl: track.previewUrl,
+                    artworkUrl: track.artworkUrl100,
+                    duration: track.trackTimeMillis,
+                    id: track.trackId
+                };
             }
             return null;
         } catch (error) {
-            console.error('🎵 [MUSIC-PLAYER] Search error:', error);
             return null;
         }
     }
@@ -1147,21 +1166,18 @@ class MusicPlayerSystem {
             
             this.currentTrack = track;
             
-        if (!this.audio) {
-            this.audio = new Audio();
-            this.audio.volume = this._isDeafenMuted ? 0 : this.volume;
-            this.audio.crossOrigin = "anonymous";
-            this.setupAudioEventListeners();
-            
-            if (this._audioSourceNode) {
-                this._audioSourceNode.disconnect();
-                this._audioSourceNode = null;
+            if (!this.audio) {
+                this.audio = new Audio();
+                this.audio.volume = this._isDeafenMuted ? 0 : this.volume;
+                this.audio.crossOrigin = "anonymous";
+                this.setupAudioEventListeners();
             }
-        }
-        
-        this.audio.pause();
-        this.audio.src = track.previewUrl;
-        this.audio.load();            await new Promise((resolve, reject) => {
+            
+            this.audio.pause();
+            this.audio.src = track.previewUrl;
+            this.audio.load();
+            
+            await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('Audio load timeout after 10 seconds'));
                 }, 10000);
@@ -1209,21 +1225,6 @@ class MusicPlayerSystem {
             if (this.audio) {
                 this.audio.pause();
                 this.audio.currentTime = 0;
-            }
-            
-            if (this._audioSourceNode) {
-                this._audioSourceNode.disconnect();
-                this._audioSourceNode = null;
-            }
-            
-            if (this._musicStreamDestination) {
-                this._musicStreamDestination.disconnect();
-                this._musicStreamDestination = null;
-            }
-
-            if (this._musicMediaStream) {
-                this._musicMediaStream.getTracks().forEach(track => track.stop());
-                this._musicMediaStream = null;
             }
             
             this.hideNowPlaying();
@@ -1343,47 +1344,26 @@ class MusicPlayerSystem {
                 return false;
             }
 
-        if (this._musicStreamDestination) {
-            this._musicStreamDestination.disconnect();
-            this._musicStreamDestination = null;
-        }
-
-        if (this._musicMediaStream) {
-            this._musicMediaStream.getTracks().forEach(track => track.stop());
-            this._musicMediaStream = null;
-        }
-
-        if (this._audioSourceNode) {
-            this._audioSourceNode.disconnect();
-            this._audioSourceNode = null;
-        }
-
-        if (this.audio && this.audio._mediaElementSource) {
-            console.log('🎵 [MUSIC-PLAYER] Audio element already has source, recreating audio element');
-            const currentSrc = this.audio.src;
-            const currentTime = this.audio.currentTime;
-            const wasPlaying = !this.audio.paused;
-            
-            this.audio.pause();
-            this.audio = new Audio();
-            this.audio.crossOrigin = 'anonymous';
-            this.audio.src = currentSrc;
-            this.audio.currentTime = currentTime;
-            
-            if (wasPlaying) {
-                this.audio.play().catch(e => console.warn('Failed to resume playback:', e));
+            if (this._musicStreamDestination) {
+                this._musicStreamDestination.disconnect();
+                this._musicStreamDestination = null;
             }
-            
-            this.setupAudioEventListeners();
-        }
 
-        this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-        this.audio._mediaElementSource = this._audioSourceNode;
+            if (this._musicMediaStream) {
+                this._musicMediaStream.getTracks().forEach(track => track.stop());
+                this._musicMediaStream = null;
+            }
 
-        if (!this._gainNode) {
-            this._gainNode = this._audioContext.createGain();
-            this._gainNode.gain.value = 0.7;
-        }            this._musicStreamDestination = this._audioContext.createMediaStreamDestination();
+            if (!this._audioSourceNode) {
+                this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
+            }
+
+            if (!this._gainNode) {
+                this._gainNode = this._audioContext.createGain();
+                this._gainNode.gain.value = 0.7;
+            }
+
+            this._musicStreamDestination = this._audioContext.createMediaStreamDestination();
 
             this._audioSourceNode.connect(this._gainNode);
             this._gainNode.connect(this._musicStreamDestination);
