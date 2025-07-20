@@ -697,6 +697,49 @@ function setup(io) {
             });
         });
         
+        client.on('voice-activity-change', (data) => {
+            console.log(`🎤 [VOICE-ACTIVITY] Voice activity change from ${client.id}:`, {
+                userId: client.data?.user_id,
+                username: client.data?.username,
+                channelId: data.channel_id,
+                isSpeaking: data.is_speaking
+            });
+            
+            if (!client.data?.authenticated || !client.data?.user_id) {
+                console.warn('⚠️ [VOICE-ACTIVITY] Unauthenticated voice activity change attempt');
+                return;
+            }
+            
+            const { channel_id, is_speaking } = data;
+            const userId = client.data.user_id;
+            const username = client.data.username;
+            
+            if (!channel_id || typeof is_speaking !== 'boolean') {
+                console.warn('⚠️ [VOICE-ACTIVITY] Invalid voice activity data');
+                return;
+            }
+            
+            const activityData = {
+                user_id: userId,
+                username: username,
+                channel_id: channel_id,
+                is_speaking: is_speaking,
+                timestamp: Date.now()
+            };
+            
+            const voiceChannelRoom = `voice_channel_${channel_id}`;
+            
+            console.log(`📢 [VOICE-ACTIVITY] Broadcasting voice activity:`, {
+                channelId: channel_id,
+                userId,
+                isSpeaking: is_speaking,
+                toRoom: voiceChannelRoom
+            });
+            
+            io.to(voiceChannelRoom).emit('voice-activity-update', activityData);
+            io.to(`channel-${channel_id}`).emit('voice-activity-update', activityData);
+        });
+        
         client.on('get-online-users', () => {
 
             handleGetOnlineUsers(io, client);

@@ -331,6 +331,17 @@ class ChannelVoiceParticipants {
             console.log(`🔊 [CHANNEL-VOICE-PARTICIPANTS] Processing voice state update for user ${data.user_id}: ${data.type} = ${data.state}`);
             this.updateParticipantVoiceState(data.user_id, data.channel_id, data.type, data.state);
         });
+
+        socket.on('voice-activity-update', (data) => {
+            console.log(`🎤 [CHANNEL-VOICE-PARTICIPANTS] Voice activity update received:`, data);
+            
+            if (!data.user_id || !data.channel_id) return;
+            
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (data.user_id === currentUserId) return;
+            
+            this.updateSpeakingIndicator(data.user_id, data.channel_id, data.is_speaking);
+        });
         
         socket.on('voice-meeting-status', (data) => {
             if (!data || !data.channel_id) return;
@@ -1143,6 +1154,32 @@ class ChannelVoiceParticipants {
         
         if (newParticipantsAdded > 0) {
             
+        }
+    }
+
+    updateSpeakingIndicator(userId, channelId, isSpeaking) {
+        console.log(`🎤 [CHANNEL-VOICE-PARTICIPANTS] Updating speaking indicator for user ${userId} in channel ${channelId}: ${isSpeaking ? 'speaking' : 'not speaking'}`);
+        
+        const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
+        if (!container) {
+            console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No container found for channel ${channelId}`);
+            return;
+        }
+        
+        const userElement = container.querySelector(`[data-user-id="${userId}"]`);
+        if (!userElement) {
+            console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No participant element found for user ${userId} in channel ${channelId}`);
+            return;
+        }
+        
+        const avatarElement = userElement.querySelector('.participant-avatar');
+        if (avatarElement) {
+            if (isSpeaking) {
+                avatarElement.classList.add('speaking-indicator');
+            } else {
+                avatarElement.classList.remove('speaking-indicator');
+            }
+            console.log(`🎤 [CHANNEL-VOICE-PARTICIPANTS] Speaking indicator ${isSpeaking ? 'added' : 'removed'} for user ${userId}`);
         }
     }
 }

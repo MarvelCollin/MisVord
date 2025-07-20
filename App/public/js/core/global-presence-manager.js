@@ -45,8 +45,12 @@ class GlobalPresenceManager {
 
         
         window.addEventListener('voiceConnect', (event) => {
-
-            this.updateActiveNow();
+            setTimeout(() => {
+                this.updateActiveNow();
+                if (window.updateParticipantDisplay) {
+                    window.updateParticipantDisplay();
+                }
+            }, 100);
         });
         
         window.addEventListener('voiceDisconnect', (event) => {
@@ -75,15 +79,18 @@ class GlobalPresenceManager {
         const isPresenceInVoice = currentActivity.startsWith('In Voice');
         
         if (!isVideoSDKConnected && isPresenceInVoice) {
-
             this.forcePresenceToActive();
         }
     }
 
     handleVoiceDisconnect() {
-
         this.forcePresenceToActive();
         this.updateActiveNow();
+        setTimeout(() => {
+            if (window.updateParticipantDisplay) {
+                window.updateParticipantDisplay();
+            }
+        }, 100);
     }
 
     handlePresenceForceReset(detail) {

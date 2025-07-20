@@ -211,7 +211,6 @@ function validateOwnPresence() {
     const isPresenceInVoice = currentActivity.startsWith('In Voice');
     
     if (!isVideoSDKConnected && isPresenceInVoice) {
-
         scheduleUpdate();
     }
 }
@@ -324,6 +323,7 @@ function getStatusClass(status, activityDetails) {
     }
     
     switch (status) {
+        case 'bot':
         case 'online':
         case 'appear':
             return 'bg-discord-green';
@@ -340,6 +340,10 @@ function getStatusClass(status, activityDetails) {
 
 function getActivityText(activityDetails, status) {
 
+    if (status === 'bot') {
+        return 'Active';
+    }
+    
     if (status === 'offline' || status === 'invisible') {
         return '';
     }
@@ -388,36 +392,24 @@ function updateParticipantDisplay() {
             const isVideoSDKConnected = window.videoSDKManager?.isConnected && 
                                        window.videoSDKManager?.isMeetingJoined;
             
-            let correctedActivityDetails = currentActivityDetails;
-            
-            if (!isVideoSDKConnected && currentActivityDetails?.type?.startsWith('In Voice')) {
-                correctedActivityDetails = { type: 'active' };
-                
-                if (window.globalSocketManager) {
-                    setTimeout(() => {
-                        window.globalSocketManager.updatePresence('online', { type: 'active' }, 'participant-section-correction');
-                    }, 100);
-                }
-            }
-            
             userData = {
                 user_id: currentUserId,
                 username: window.globalSocketManager?.username || member.username,
                 status: currentUserStatus,
-                activity_details: correctedActivityDetails
+                activity_details: currentActivityDetails
             };
         }
 
         member._correctedUserData = userData;
         
-        const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
+        const isOnline = isBot || (userData && (userData.status === 'online' || userData.status === 'afk'));
         const isInVoice = userData?.activity_details?.type && 
                           (userData.activity_details.type === 'In Voice Call' || 
                            userData.activity_details.type.startsWith('In Voice'));
-        const isActuallyOffline = userData?.status === 'offline' || userData?.status === 'invisible';
+        const isActuallyOffline = !isBot && (userData?.status === 'offline' || userData?.status === 'invisible');
 
-        const wouldHaveGreyBubble = !isOnline && !isInVoice;
-        const shouldShowAsOffline = (isActuallyOffline || wouldHaveGreyBubble) && !isInVoice;
+        const wouldHaveGreyBubble = !isBot && !isOnline && !isInVoice;
+        const shouldShowAsOffline = !isBot && (isActuallyOffline || wouldHaveGreyBubble) && !isInVoice;
         
         if (isBot) {
             roleGroups['bot'].push(member);
@@ -478,9 +470,10 @@ function updateParticipantDisplay() {
         
         roleMembers.forEach(member => {
             const userData = member._correctedUserData || onlineUsers[member.id];
-            const status = userData?.status || 'offline';
-            const isOnline = userData && (userData.status === 'online' || userData.status === 'afk');
-            const isOffline = role === 'offline' || !isOnline;
+            const isBot = member.status === 'bot';
+            const status = isBot ? 'bot' : (userData?.status || 'offline');
+            const isOnline = isBot || (userData && (userData.status === 'online' || userData.status === 'afk'));
+            const isOffline = role === 'offline' || (!isBot && !isOnline);
             
             const activityDetails = userData?.activity_details;
             const statusColor = getStatusClass(status, activityDetails);

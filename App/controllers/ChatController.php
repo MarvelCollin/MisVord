@@ -1472,6 +1472,7 @@ class ChatController extends BaseController
                     'user_id' => $reaction->user_id,
                     'emoji' => $reaction->emoji,
                     'username' => $user ? $user->username : 'Unknown User',
+                    'avatar_url' => $user ? $user->avatar_url : null,
                     'created_at' => $reaction->created_at
                 ];
             }

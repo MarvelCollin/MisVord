@@ -78,9 +78,9 @@ class VoiceCallSection {
 
         btn.addEventListener('mouseenter', () => {
             const hoverColors = {
-                'micBtn': '#dc2626',
+                'micBtn': this._micOn ? '#dc2626' : '#16a34a',
                 'videoBtn': '#dc2626',
-                'deafenBtn': '#dc2626', 
+                'deafenBtn': this._deafened ? '#16a34a' : '#dc2626', 
                 'screenBtn': '#dc2626',
                 'ticTacToeBtn': '#8b5cf6',
                 'disconnectBtn': '#da373c'
@@ -279,6 +279,19 @@ class VoiceCallSection {
             console.log(`🔊 [VOICE-CALL-SECTION] Processing voice state update for user ${data.user_id}: ${data.type} = ${data.state}`);
             this.updateParticipantVoiceState(data.user_id, data.type, data.state);
         });
+
+        if (window.socket) {
+            window.socket.on('voice-activity-update', (data) => {
+                console.log(`🎤 [VOICE-CALL-SECTION] Voice activity update received:`, data);
+                
+                if (!data.user_id || !data.channel_id) return;
+                
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+                if (data.user_id === currentUserId) return;
+                
+                this.updateSpeakingIndicator(data.user_id, data.is_speaking);
+            });
+        }
     }
     
     handleUnifiedVoiceStateChanged(event) {

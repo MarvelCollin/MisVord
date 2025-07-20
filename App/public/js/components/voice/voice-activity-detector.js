@@ -18,7 +18,29 @@ class VoiceActivityDetector {
     init() {
         this.setupAudioContext();
         this.setupEventListeners();
+        this.setupSocketListeners();
         console.log('🎤 [VOICE-ACTIVITY] Voice activity detector initialized');
+    }
+    
+    setupSocketListeners() {
+        if (!window.globalSocketManager?.io) {
+            setTimeout(() => this.setupSocketListeners(), 1000);
+            return;
+        }
+        
+        window.globalSocketManager.io.on('voice-activity-update', (data) => {
+            console.log(`📡 [VOICE-ACTIVITY] Received speaking state update:`, data);
+            
+            if (!data.user_id || !data.channel_id) return;
+            
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (data.user_id === currentUserId) return;
+            
+            if (window.voiceManager?.currentChannelId === data.channel_id) {
+                this.updateSidebarSpeakingIndicator(data.user_id, data.is_speaking);
+                this.updateCallSectionSpeakingIndicator(data.user_id, data.is_speaking);
+            }
+        });
     }
 
     setupAudioContext() {
@@ -313,6 +335,8 @@ class VoiceActivityDetector {
         this.updateSidebarSpeakingIndicator(userId, isSpeaking);
         this.updateCallSectionSpeakingIndicator(userId, isSpeaking);
         
+        this.broadcastSpeakingState(userId, isSpeaking);
+        
         window.dispatchEvent(new CustomEvent('voiceActivityChanged', {
             detail: {
                 participantId,
@@ -320,6 +344,24 @@ class VoiceActivityDetector {
                 isSpeaking
             }
         }));
+    }
+    
+    broadcastSpeakingState(userId, isSpeaking) {
+        if (!window.globalSocketManager?.io || !window.voiceManager?.currentChannelId) return;
+        
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        if (userId !== currentUserId) return;
+        
+        const speakingData = {
+            channel_id: window.voiceManager.currentChannelId,
+            user_id: userId,
+            is_speaking: isSpeaking,
+            timestamp: Date.now()
+        };
+        
+        console.log(`📡 [VOICE-ACTIVITY] Broadcasting speaking state:`, speakingData);
+        
+        window.globalSocketManager.io.emit('voice-activity-change', speakingData);
     }
 
     getUserId(participantId) {

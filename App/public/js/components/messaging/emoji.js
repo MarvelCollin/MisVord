@@ -647,7 +647,7 @@ class EmojiReactions {
             .map(reaction => ({
                 user_id: reaction.user_id,
                 username: reaction.display_name || reaction.username || 'Unknown User',
-                avatar_url: reaction.avatar_url || '/public/assets/common/default-profile-picture.png'
+                avatar_url: reaction.avatar_url
             }));
     }
 
@@ -801,7 +801,7 @@ class EmojiReactions {
             }
             
             const tempReactionId = `temp-reaction-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            
+            const userAvatar = window.globalSocketManager?.avatar_url;
 
             this.handleReactionAdded({
                 message_id: messageId,
@@ -810,7 +810,7 @@ class EmojiReactions {
                 username: currentUsername,
                 temp_reaction_id: tempReactionId,
                 is_temporary: true,
-                avatar_url: null
+                avatar_url: userAvatar
             });
             
             const tempSocketData = {
@@ -818,7 +818,7 @@ class EmojiReactions {
                 emoji: emoji,
                 user_id: currentUserId,
                 username: currentUsername,
-                avatar_url: window.globalSocketManager?.avatar_url || '/public/assets/common/default-profile-picture.png',
+                avatar_url: userAvatar,
                 target_type: targetType,
                 target_id: targetId,
                 action: 'added',
@@ -877,14 +877,14 @@ class EmojiReactions {
             }
             
             const tempReactionId = `temp-reaction-remove-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-            
+            const userAvatar = window.globalSocketManager?.avatar_url;
 
             this.handleReactionRemoved({
                 message_id: messageId,
                 emoji: emoji,
                 user_id: currentUserId,
                 temp_reaction_id: tempReactionId,
-                avatar_url: window.globalSocketManager?.avatar_url || '/public/assets/common/default-profile-picture.png'
+                avatar_url: userAvatar
             });
             
             const tempSocketData = {
@@ -892,7 +892,7 @@ class EmojiReactions {
                 emoji: emoji,
                 user_id: currentUserId,
                 username: currentUsername,
-                avatar_url: window.globalSocketManager?.avatar_url || '/public/assets/common/default-profile-picture.png',
+                avatar_url: userAvatar,
                 target_type: targetType,
                 target_id: targetId,
                 action: 'removed',
@@ -1013,7 +1013,7 @@ class EmojiReactions {
             emojiUsers[emoji].push({
                 user_id: reaction.user_id,
                 username: reaction.display_name || reaction.username || 'Unknown User',
-                avatar_url: reaction.avatar_url || '/public/assets/common/default-profile-picture.png'
+                avatar_url: reaction.avatar_url
             });
             
             if (String(reaction.user_id) === String(currentUserId)) {
@@ -1203,7 +1203,7 @@ class EmojiReactions {
 
                 const existingUser = this.currentReactions[message_id].find(r => 
                     String(r.user_id) === String(user_id));
-                finalAvatarUrl = existingUser?.avatar_url || '/public/assets/common/default-profile-picture.png';
+                finalAvatarUrl = existingUser?.avatar_url;
             }
             
             this.currentReactions[message_id].push({
@@ -1293,7 +1293,7 @@ class EmojiReactions {
 
                     const existingUser = this.currentReactions[message_id].find(r => 
                         String(r.user_id) === String(user_id));
-                    finalAvatarUrl = existingUser?.avatar_url || '/public/assets/common/default-profile-picture.png';
+                    finalAvatarUrl = existingUser?.avatar_url;
                 }
                 
                 this.currentReactions[message_id].push({

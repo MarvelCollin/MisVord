@@ -295,7 +295,7 @@ class VoiceManager {
                 }
             });
             
-            this._micOn = false;
+            this._micOn = true;
             this._videoOn = false;
             this._screenShareOn = false;
             this._deafened = false;
@@ -326,11 +326,21 @@ class VoiceManager {
                 this.refreshAllParticipantIndicators();
                 this.requestVoiceStatesFromSocket();
                 this.globalVoiceStateSync();
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'mic', state: this._micOn }
+                }));
             }, 1000);
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { channelId, channelName, meetingId, skipJoinSound }
             }));
+            
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'mic', state: this._micOn }
+                }));
+            }, 200);
             
             if (currentUserId) {
                 window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
@@ -460,6 +470,13 @@ class VoiceManager {
             
             if (voiceState.isMuted !== undefined) {
                 this._micOn = !voiceState.isMuted;
+                if (this.localParticipant) {
+                    if (this._micOn && !this.localParticipant.micOn) {
+                        this.localParticipant.enableMic();
+                    } else if (!this._micOn && this.localParticipant.micOn) {
+                        this.localParticipant.disableMic();
+                    }
+                }
             }
             
             if (this._deafened && this.meeting) {
@@ -571,9 +588,6 @@ class VoiceManager {
             this.isMeetingJoined = true;
             this.localParticipant = this.meeting.localParticipant;
             
-            this.localParticipant.disableMic();
-            this._micOn = false;
-            
             this.handleParticipantJoined(this.meeting.localParticipant);
             
             this.checkAllParticipantsForExistingStreams();
@@ -584,6 +598,16 @@ class VoiceManager {
             setTimeout(() => {
                 this.refreshAllParticipantIndicators();
             }, 1000);
+            
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'mic', state: this._micOn }
+                }));
+                
+                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+                    detail: { type: 'deafen', state: this._deafened }
+                }));
+            }, 500);
         });
         
         this.meeting.on('meeting-left', () => {
@@ -782,6 +806,10 @@ class VoiceManager {
                 }
             }
             
+            if (stream.kind === 'audio' && participant.id !== this.localParticipant?.id) {
+                console.log(`🎤 [VOICE-MANAGER] Audio stream enabled for participant ${participant.id}`);
+            }
+            
             window.dispatchEvent(new CustomEvent('streamEnabled', {
                 detail: { 
                     participantId: participant.id,
@@ -918,11 +946,28 @@ class VoiceManager {
             }
             
             if (participant.micOn && participant.micStream) {
-                
                 const participantData = this.participants.get(participant.id);
-                if (participantData) {
+                if (participantData && participantData.streams) {
                     participantData.streams.set('audio', participant.micStream);
+                    
+                    if (this._deafened && participant.id !== this.localParticipant?.id) {
+                        try {
+                            if (participant.micStream && participant.micStream.track) {
+                                participant.micStream.track.enabled = false;
+                            }
+                        } catch (error) {
+                            console.warn('Could not disable newly enabled audio stream:', participant.id);
+                        }
+                    }
                 }
+                
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: participant.id,
+                        kind: 'audio',
+                        stream: participant.micStream
+                    }
+                }));
             }
             
             if (participant.videoStream) {
@@ -1012,6 +1057,18 @@ class VoiceManager {
             
             this.broadcastVoiceState('mic', this._micOn);
             
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (currentUserId) {
+                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                    detail: {
+                        userId: currentUserId,
+                        channelId: this.currentChannelId,
+                        type: 'mic',
+                        state: this._micOn
+                    }
+                }));
+            }
+            
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: { type: 'mic', state: this._micOn }
             }));
@@ -1057,11 +1114,6 @@ class VoiceManager {
             this._deafened = !this._deafened;
             
             if (this._deafened) {
-                if (this._micOn) {
-                    this.localParticipant.disableMic();
-                    this._micOn = false;
-                }
-                
                 this.meeting.participants.forEach(participant => {
                     if (participant.id !== this.localParticipant.id) {
                         const participantData = this.participants.get(participant.id);
@@ -1111,12 +1163,6 @@ class VoiceManager {
             window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                 detail: { type: 'deafen', state: this._deafened }
             }));
-            
-            if (this._deafened && !this._micOn) {
-                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: { type: 'mic', state: this._micOn }
-                }));
-            }
             
             return this._deafened;
         } catch (error) {
