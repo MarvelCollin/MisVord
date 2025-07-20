@@ -2032,16 +2032,16 @@ function initDeleteAccount() {
             
             serverSection.innerHTML = '<div class="text-center py-4"><i class="fas fa-spinner fa-spin text-discord-blurple"></i> Loading your servers...</div>';
             
-            console.log('Fetching owned servers...');
+            
             
             const response = await fetch('/api/users/owned-servers');
             const data = await response.json();
             
-            console.log('Owned servers API response:', data);
+            
             
             if (data.success && data.data && data.data.servers) {
                 const servers = data.data.servers;
-                console.log('Processing servers:', servers);
+                
                 
                 if (servers.length === 0) {
                     serverSection.innerHTML = '<div class="text-center py-4 text-discord-lighter">You do not own any servers.</div>';
@@ -2058,14 +2058,14 @@ function initDeleteAccount() {
                 
                 const serversList = document.getElementById('owned-servers-list');
                 servers.forEach(server => {
-                    console.log(`Processing server: ${server.name} (ID: ${server.id}), can_be_deleted: ${server.can_be_deleted}, member_count: ${server.member_count}`);
+                    
                     
                     const serverElement = document.createElement('div');
                     serverElement.className = 'p-4 bg-discord-bg-secondary rounded-md border border-gray-700 h-full';
                     serverElement.setAttribute('data-server-id', server.id);
                     
                     if (server.can_be_deleted) {
-                        console.log(`Server ${server.name} marked as can_be_deleted=true`);
+                        
                         serverElement.innerHTML = `
                             <div class="flex items-center mb-3">
                                 <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
@@ -2088,7 +2088,7 @@ function initDeleteAccount() {
                         `;
                         serverElement.classList.add('server-can-delete');
                     } else {
-                        console.log(`Server ${server.name} marked as can_be_deleted=false, requires transfer`);
+                        
                         serverElement.innerHTML = `
                             <div class="flex items-center mb-3">
                                 <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
@@ -2226,7 +2226,7 @@ function initDeleteAccount() {
                 serverElement.dataset.members = JSON.stringify(members);
                 
                 if (members.length === 1) {
-                    console.log(`Server has only 1 eligible member, auto-selecting: ${members[0].username}`);
+                    
                     selectMember(serverElement, members[0]);
                     dropdown.innerHTML = '<div class="text-center py-3 bg-discord-bg-secondary text-sm text-green-400">Only one eligible member - automatically selected</div>';
                 } else {
@@ -2400,7 +2400,7 @@ function initDeleteAccount() {
         
         const ownedServersSection = document.getElementById('owned-servers-section');
         if (!ownedServersSection || ownedServersSection.innerHTML.includes('Loading your servers...')) {
-            console.log('Servers still loading, waiting...');
+            
             showError('Server data is still loading. Please wait and try again.');
             return;
         }
@@ -2418,9 +2418,9 @@ function initDeleteAccount() {
             }
         });
         
-        console.log('Total servers found:', serverElements.length);
-        console.log('Servers requiring transfer:', serversRequiringTransfer.length);
-        console.log('Selected owners:', selectedOwners);
+        
+        
+        
         
         if (serversRequiringTransfer.length > 0) {
             showError('Please select new owners for all servers that require transfer');
@@ -2430,18 +2430,18 @@ function initDeleteAccount() {
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
         
-        console.log('About to call delete account API...');
-        console.log('Username confirmation:', inputValue);
+        
+        
         
         try {
             const result = await window.userAPI.deleteAccount(inputValue, selectedOwners);
-            console.log('Delete account result:', result);
+            
             if (result.success) {
                 showToast('Account deleted successfully. Redirecting...', 'success');
                 window.location.href = '/';
             } else {
                 console.error('Delete account failed:', result);
-                console.log('Debug info:', result.debug_info);
+                
                 showError(result.error || 'Failed to delete account');
                 confirmBtn.disabled = false;
                 confirmBtn.innerHTML = '<i class="fas fa-trash-alt mr-2"></i>Delete Account';

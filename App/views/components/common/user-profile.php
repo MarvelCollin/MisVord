@@ -228,7 +228,7 @@ class UserProfileVoiceControls {
             window.localStorageManager.addVoiceStateListener(() => {
                 this.updateControls();
             });
-            console.log('UserProfile: Connected to localStorageManager voice state listener');
+            
         }
         
         window.addEventListener('storage', (e) => {
@@ -249,7 +249,7 @@ class UserProfileVoiceControls {
             
             if (window.localStorageManager) {
                 state = window.localStorageManager.getUnifiedVoiceState();
-                console.log('UserProfile: Retrieved localStorage state:', state);
+                
             }
             
             if (!state) {
@@ -348,7 +348,7 @@ class UserProfileVoiceControls {
             
             this.updateControls();
             
-            console.log('UserProfile: Mic toggled via localStorage');
+            
             
         } catch (error) {
             console.error('Error in user profile mic click handler:', error);
@@ -437,7 +437,7 @@ class UserProfileVoiceControls {
             
             this.updateControls();
             
-            console.log('UserProfile: Deafen toggled via localStorage');
+            
             
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);

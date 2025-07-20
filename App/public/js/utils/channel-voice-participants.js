@@ -319,7 +319,7 @@ class ChannelVoiceParticipants {
         });
         
         socket.on('voice-state-update', (data) => {
-            console.log(`🔊 [CHANNEL-VOICE-PARTICIPANTS] Voice state update received:`, data);
+            
             
             if (!data.user_id || !data.channel_id || !data.type) return;
             
@@ -328,12 +328,12 @@ class ChannelVoiceParticipants {
                 return;
             }
             
-            console.log(`🔊 [CHANNEL-VOICE-PARTICIPANTS] Processing voice state update for user ${data.user_id}: ${data.type} = ${data.state}`);
+            
             this.updateParticipantVoiceState(data.user_id, data.channel_id, data.type, data.state);
         });
 
         socket.on('voice-activity-update', (data) => {
-            console.log(`🎤 [CHANNEL-VOICE-PARTICIPANTS] Voice activity update received:`, data);
+            
             
             if (!data.user_id || !data.channel_id) return;
             
@@ -924,7 +924,7 @@ class ChannelVoiceParticipants {
                 muteIndicator.classList.remove('bg-red-500', 'bg-red-600', 'bg-green-600');
                 muteIndicator.classList.add('bg-red-500');
                 
-                console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
+                
             } else {
                 console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No mute indicator found for user ${userId}`);
             }
@@ -936,7 +936,7 @@ class ChannelVoiceParticipants {
                 deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
                 deafenIndicator.classList.add('bg-red-600');
                 
-                console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
+                
             } else {
                 console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No deafen indicator found for user ${userId}`);
             }
@@ -965,7 +965,7 @@ class ChannelVoiceParticipants {
                         muteIndicator.classList.remove('bg-red-500', 'bg-green-500');
                         muteIndicator.classList.add('bg-red-500');
                         
-                        console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
+                        
                     }
                 } else if (type === 'deafen') {
                     const deafenIndicator = participantElement.querySelector('.deafen-indicator');
@@ -975,7 +975,7 @@ class ChannelVoiceParticipants {
                         deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
                         deafenIndicator.classList.add('bg-red-600');
                         
-                        console.log(`🔇 [CHANNEL-VOICE-PARTICIPANTS] Updated call section deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
+                        
                     }
                 }
             }
@@ -1158,7 +1158,7 @@ class ChannelVoiceParticipants {
     }
 
     updateSpeakingIndicator(userId, channelId, isSpeaking) {
-        console.log(`🎤 [CHANNEL-VOICE-PARTICIPANTS] Updating speaking indicator for user ${userId} in channel ${channelId}: ${isSpeaking ? 'speaking' : 'not speaking'}`);
+        
         
         const container = document.querySelector(`.voice-participants[data-channel-id="${channelId}"]`);
         if (!container) {
@@ -1179,7 +1179,7 @@ class ChannelVoiceParticipants {
             } else {
                 avatarContainer.classList.remove('speaking-indicator');
             }
-            console.log(`🎤 [CHANNEL-VOICE-PARTICIPANTS] Speaking indicator ${isSpeaking ? 'added' : 'removed'} for user ${userId}`);
+            
         }
     }
 }

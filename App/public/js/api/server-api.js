@@ -446,7 +446,7 @@ const serverAPI = {
             return Promise.reject(new Error('Server ID and new owner ID are required'));
         }
         
-        console.log(`Transferring ownership of server ${serverId} to user ${newOwnerId}`);
+        
         
         return fetch(`/api/servers/${serverId}/transfer-ownership`, {
             method: 'POST',
@@ -460,7 +460,7 @@ const serverAPI = {
             })
         })
         .then(async response => {
-            console.log(`Transfer ownership response status: ${response.status}`);
+            
             
             if (!response.ok) {
                 let errorMessage = `HTTP error! Status: ${response.status}`;

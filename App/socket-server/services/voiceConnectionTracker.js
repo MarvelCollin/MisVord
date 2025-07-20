@@ -49,7 +49,7 @@ class VoiceConnectionTracker {
         
         currentState.lastUpdated = Date.now();
         
-        console.log(`🔊 [VOICE-TRACKER] Updated participant state for ${userKey}:`, currentState);
+        
     }
     
     static getParticipantState(userId) {

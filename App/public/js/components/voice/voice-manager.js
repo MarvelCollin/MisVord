@@ -37,7 +37,7 @@ class VoiceManager {
             window.localStorageManager.addVoiceStateListener(() => {
                 this.syncChannelWithUnifiedState();
             });
-            console.log('VoiceManager: LocalStorageManager detected and connected');
+            
         } else {
             console.warn('VoiceManager: LocalStorageManager not available during initialization');
         }
@@ -807,7 +807,7 @@ class VoiceManager {
             }
             
             if (stream.kind === 'audio' && participant.id !== this.localParticipant?.id) {
-                console.log(`🎤 [VOICE-MANAGER] Audio stream enabled for participant ${participant.id}`);
+                
             }
             
             window.dispatchEvent(new CustomEvent('streamEnabled', {
@@ -1372,7 +1372,7 @@ class VoiceManager {
             state: state
         };
         
-        console.log(`📡 [VOICE-MANAGER] Broadcasting voice state:`, stateData);
+        
         
         window.globalSocketManager.io.emit('voice-state-change', stateData);
     }
@@ -1380,7 +1380,7 @@ class VoiceManager {
     requestVoiceStatesFromSocket() {
         if (!window.globalSocketManager?.io || !this.currentChannelId) return;
         
-        console.log(`📡 [VOICE-MANAGER] Requesting voice states for channel:`, this.currentChannelId);
+        
         
         window.globalSocketManager.io.emit('get-voice-states', {
             channel_id: this.currentChannelId
@@ -1394,7 +1394,7 @@ class VoiceManager {
         }
         
         window.globalSocketManager.io.on('voice-states-response', (data) => {
-            console.log(`📡 [VOICE-MANAGER] Received voice states:`, data);
+            
             
             if (data.channel_id !== this.currentChannelId) return;
             
@@ -1422,7 +1422,7 @@ class VoiceManager {
     }
     
     syncSocketVoiceState(userId, type, state) {
-        console.log(`🔄 [VOICE-MANAGER] Syncing socket voice state for user ${userId}: ${type} = ${state}`);
+        
         
         if (window.voiceCallSection) {
             window.voiceCallSection.updateParticipantVoiceState(userId, type, state);

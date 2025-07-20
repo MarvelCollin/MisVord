@@ -402,14 +402,14 @@ function handleJoinServer(serverId, button) {
     })
     .then(response => response.json())
     .then(data => {
-        console.log('Join server response:', data);
+        
         
         if (data.success) {
             const redirectUrl = data.redirect;
-            console.log('Redirect URL:', redirectUrl);
+            
             
             if (redirectUrl) {
-                console.log('Redirecting to:', redirectUrl);
+                
                 window.location.href = redirectUrl;
                 return;
             }

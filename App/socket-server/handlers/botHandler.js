@@ -1082,7 +1082,7 @@ class BotHandler extends EventEmitter {
                         
                         participants.forEach(participant => {
                             if (participant.userId && participant.userId !== botId.toString()) {
-                                console.log(`🎵 [BOT-DEBUG] Sending music command to participant ${participant.username} (${participant.userId})`);
+                                
                                 
                                 const userSockets = require('../services/roomManager').userSockets.get(participant.userId.toString());
                                 if (userSockets && userSockets.size > 0) {

@@ -284,7 +284,7 @@ class VoiceCallSection {
         });
         
         socket.on('voice-state-update', (data) => {
-            console.log(`🔊 [VOICE-CALL-SECTION] Voice state update received:`, data);
+            
             
             if (!data.user_id || !data.channel_id || !data.type) return;
             
@@ -293,13 +293,13 @@ class VoiceCallSection {
                 return;
             }
             
-            console.log(`🔊 [VOICE-CALL-SECTION] Processing voice state update for user ${data.user_id}: ${data.type} = ${data.state}`);
+            
             this.updateParticipantVoiceState(data.user_id, data.type, data.state);
         });
 
         if (window.socket) {
             window.socket.on('voice-activity-update', (data) => {
-                console.log(`🎤 [VOICE-CALL-SECTION] Voice activity update received:`, data);
+                
                 
                 if (!data.user_id || !data.channel_id) return;
                 
@@ -488,7 +488,7 @@ class VoiceCallSection {
     syncWithExistingParticipants() {
         if (!window.voiceManager || !window.voiceManager.participants) return;
         
-        console.log('🔄 [VOICE-CALL-SECTION] Syncing with existing participants after visibility change');
+        
         
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
@@ -765,7 +765,7 @@ class VoiceCallSection {
         }
         
         if (!participantElement) {
-            console.log(`🔊 [VOICE-CALL-SECTION] Participant element not found for user ${userId}`);
+            
             return;
         }
         
@@ -778,7 +778,7 @@ class VoiceCallSection {
                 muteIndicator.classList.remove('bg-red-500', 'bg-green-500');
                 muteIndicator.classList.add('bg-red-500');
                 
-                console.log(`🔇 [VOICE-CALL-SECTION] Updated mute indicator for user ${userId}: ${isMuted ? 'muted' : 'unmuted'}`);
+                
             }
         } else if (type === 'deafen') {
             const deafenIndicator = participantElement.querySelector('.deafen-indicator');
@@ -788,7 +788,7 @@ class VoiceCallSection {
                 deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
                 deafenIndicator.classList.add('bg-red-600');
                 
-                console.log(`🔇 [VOICE-CALL-SECTION] Updated deafen indicator for user ${userId}: ${state ? 'deafened' : 'undeafened'}`);
+                
             }
         }
     }

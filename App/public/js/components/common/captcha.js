@@ -14,7 +14,7 @@ export class TextCaptcha {
             bypassCaptcha: options.bypassCaptcha !== undefined ? options.bypassCaptcha : (window.BYPASS_CAPTCHA || false),
         };
 
-        console.log('Captcha initialized with options:', this.options);
+        
 
         this.code = '';
         this.init();
@@ -127,7 +127,7 @@ export class TextCaptcha {
         }
         
         this.code = code;
-        console.log('Generated captcha code:', code);
+        
         this.displayCode(code);
     }
 
@@ -201,7 +201,7 @@ export class TextCaptcha {
         });
         
         if (this.options.bypassCaptcha) {
-            console.log('Captcha bypassed');
+            
             return true;
         }
         

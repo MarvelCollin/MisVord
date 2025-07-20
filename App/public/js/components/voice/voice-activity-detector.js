@@ -19,7 +19,7 @@ class VoiceActivityDetector {
         this.setupAudioContext();
         this.setupEventListeners();
         this.setupSocketListeners();
-        console.log('🎤 [VOICE-ACTIVITY] Voice activity detector initialized');
+        
     }
     
     setupSocketListeners() {
@@ -29,7 +29,7 @@ class VoiceActivityDetector {
         }
         
         window.globalSocketManager.io.on('voice-activity-update', (data) => {
-            console.log(`📡 [VOICE-ACTIVITY] Received speaking state update:`, data);
+            
             
             if (!data.user_id || !data.channel_id) return;
             
@@ -52,7 +52,7 @@ class VoiceActivityDetector {
             if (this.audioContext.state === 'suspended') {
                 const resumeAudioContext = () => {
                     this.audioContext.resume().then(() => {
-                        console.log('🎤 [VOICE-ACTIVITY] AudioContext resumed');
+                        
                     }).catch(error => {
                         console.warn('🎤 [VOICE-ACTIVITY] Failed to resume AudioContext:', error);
                     });
@@ -65,7 +65,7 @@ class VoiceActivityDetector {
                 document.addEventListener('touchstart', resumeAudioContext);
             }
             
-            console.log('🎤 [VOICE-ACTIVITY] AudioContext created');
+            
         } catch (error) {
             console.error('🎤 [VOICE-ACTIVITY] Failed to create AudioContext:', error);
         }
@@ -149,7 +149,7 @@ class VoiceActivityDetector {
         if (!this.audioContext || !stream || !stream.track) return;
 
         if (this.analyserNodes.has(participantId)) {
-            console.log(`🎤 [VOICE-ACTIVITY] Already analyzing participant ${participantId}`);
+            
             return;
         }
 
@@ -182,7 +182,7 @@ class VoiceActivityDetector {
                 this.startDetection();
             }
 
-            console.log(`🎤 [VOICE-ACTIVITY] Started analyzing participant ${participantId}`);
+            
         } catch (error) {
             console.error(`🎤 [VOICE-ACTIVITY] Failed to analyze participant ${participantId}:`, error);
         }
@@ -208,7 +208,7 @@ class VoiceActivityDetector {
             this.stopDetection();
         }
 
-        console.log(`🎤 [VOICE-ACTIVITY] Stopped analyzing participant ${participantId}`);
+        
     }
 
     startDetection() {
@@ -216,7 +216,7 @@ class VoiceActivityDetector {
         
         this.isActive = true;
         this.analyzeLoop();
-        console.log('🎤 [VOICE-ACTIVITY] Voice activity detection started');
+        
     }
 
     stopDetection() {
@@ -227,7 +227,7 @@ class VoiceActivityDetector {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
-        console.log('🎤 [VOICE-ACTIVITY] Voice activity detection stopped');
+        
     }
 
     analyzeLoop() {
@@ -353,7 +353,7 @@ class VoiceActivityDetector {
             timestamp: Date.now()
         };
         
-        console.log(`📡 [VOICE-ACTIVITY] Broadcasting speaking state:`, speakingData);
+        
         
         window.globalSocketManager.io.emit('voice-activity-change', speakingData);
     }
@@ -428,7 +428,7 @@ class VoiceActivityDetector {
             this.audioContext = null;
         }
 
-        console.log('🎤 [VOICE-ACTIVITY] Voice activity detector cleaned up');
+        
     }
 }
 

@@ -1,5 +1,5 @@
 if (typeof window !== 'undefined' && window.MusicPlayerSystem) {
-    console.log('🎵 [MUSIC-PLAYER] MusicPlayerSystem already exists, skipping redefinition');
+    
 } else {
 
 class MusicPlayerSystem {
@@ -98,12 +98,12 @@ class MusicPlayerSystem {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
                 if (AudioContext) {
                     this._audioContext = new AudioContext();
-                    console.log('🎵 [MUSIC-PLAYER] Force created AudioContext, state:', this._audioContext.state);
+                    
                     
                     if (this.audio && !this._audioSourceNode) {
                         try {
                             this._audioSourceNode = this._audioContext.createMediaElementSource(this.audio);
-                            console.log('🎵 [MUSIC-PLAYER] Connected audio source to context');
+                            
                         } catch (e) {
                             console.warn('🎵 [MUSIC-PLAYER] Could not connect audio to context on force init:', e);
                         }
@@ -118,7 +118,7 @@ class MusicPlayerSystem {
         const resumeAudioContext = () => {
             if (this._audioContext && this._audioContext.state === 'suspended') {
                 this._audioContext.resume().then(() => {
-                    console.log('🎵 [MUSIC-PLAYER] AudioContext resumed after user interaction');
+                    
                     userInteractionEvents.forEach(event => {
                         document.removeEventListener(event, resumeAudioContext);
                     });
@@ -151,14 +151,14 @@ class MusicPlayerSystem {
         });
 
         this.audio.addEventListener('ended', () => {
-            console.log('🎵 [MUSIC-PLAYER] Song ended - checking queue for next song');
+            
             this.isPlaying = false;
             
             if (this.queue.length > 1 && this.currentIndex < this.queue.length - 1) {
-                console.log('🎵 [MUSIC-PLAYER] Auto-playing next song in queue');
+                
                 this.playNext();
             } else {
-                console.log('🎵 [MUSIC-PLAYER] Reached end of queue or single song - stopping playback');
+                
                 this.hideNowPlaying();
                 this.showStatus('Playback finished');
             }
@@ -288,7 +288,7 @@ class MusicPlayerSystem {
                 this.channelId = e.detail.channelId;
                 
                 if (this.isPlaying && this.audio) {
-                    console.log('🎵 [MUSIC-PLAYER] User joined voice while music playing, setting up streaming');
+                    
                     this.setupAudioStreaming();
                 }
             }
@@ -320,14 +320,14 @@ class MusicPlayerSystem {
         });
 
         window.addEventListener('localVoiceStateChanged', (e) => {
-            console.log('🎵 [MUSIC-PLAYER] localVoiceStateChanged event received:', e.detail);
+            
             if (e.detail && e.detail.type === 'deafen') {
                 this.handleDeafenStateChange(e.detail.state);
             }
         });
 
         window.addEventListener('voiceStateChanged', (e) => {
-            console.log('🎵 [MUSIC-PLAYER] voiceStateChanged event received:', e.detail);
+            
             if (e.detail && e.detail.type === 'deafen') {
                 this.handleDeafenStateChange(e.detail.state);
             }
@@ -426,7 +426,7 @@ class MusicPlayerSystem {
             io.off('music-state-request');
             
             io.on('bot-music-command', (data) => {
-                console.log('🎵 [MUSIC-PLAYER] Socket received bot-music-command:', data);
+                
                 this.processBotMusicCommand(data);
             });
             
@@ -445,7 +445,7 @@ class MusicPlayerSystem {
     async processBotMusicCommand(data) {
         const now = Date.now();
         if (now - this._lastCommandTime < this._commandDebounce) {
-            console.log('🎵 [MUSIC-PLAYER] Command debounced, ignoring rapid requests');
+            
             return;
         }
         this._lastCommandTime = now;
@@ -467,16 +467,16 @@ class MusicPlayerSystem {
 
         const isInTargetChannel = this.isUserInTargetVoiceChannel(data.channel_id);
         if (!isInTargetChannel) {
-            console.log('🎵 [MUSIC-PLAYER] User not in target voice channel but checking if in voice participants...');
+            
             
             const hasVoiceParticipants = window.ChannelVoiceParticipants && 
                                        window.ChannelVoiceParticipants.getInstance().externalParticipants.has(data.channel_id);
             
             if (!hasVoiceParticipants) {
-                console.log('🎵 [MUSIC-PLAYER] User not in voice participants either, ignoring music command');
+                
                 return;
             } else {
-                console.log('🎵 [MUSIC-PLAYER] User found in voice participants, proceeding with music command');
+                
             }
         }
 
@@ -621,7 +621,7 @@ class MusicPlayerSystem {
     async handleMusicStateSync(data) {
         if (!data || !data.channel_id) return;
         
-        console.log('🔄 [MUSIC-PLAYER] Syncing music state:', data);
+        
         
         if (data.action === 'stop') {
             if (this.isPlaying) {
@@ -662,16 +662,16 @@ class MusicPlayerSystem {
         if (!data || !data.channel_id) return;
         
         if (!this.isUserInTargetVoiceChannel(data.channel_id)) {
-            console.log('🎵 [MUSIC-PLAYER] Ignoring sync command - not in target voice channel');
+            
             return;
         }
         
         if (data.broadcaster_id === window.globalSocketManager?.userId) {
-            console.log('🎵 [MUSIC-PLAYER] Ignoring own broadcast');
+            
             return;
         }
         
-        console.log('🎵 [MUSIC-PLAYER] Handling synchronized music state:', data);
+        
         
         try {
             switch (data.action) {
@@ -724,7 +724,7 @@ class MusicPlayerSystem {
         if (this.audio && !this.audio.paused) {
             this.audio.pause();
             this.isPlaying = false;
-            console.log('🎵 [MUSIC-PLAYER] Synchronized pause');
+            
         }
     }
 
@@ -735,7 +735,7 @@ class MusicPlayerSystem {
             }
             this.audio.play();
             this.isPlaying = true;
-            console.log('🎵 [MUSIC-PLAYER] Synchronized resume');
+            
         }
     }
 
@@ -747,7 +747,7 @@ class MusicPlayerSystem {
         this.isPlaying = false;
         this.currentSong = null;
         this.hideNowPlaying();
-        console.log('🎵 [MUSIC-PLAYER] Synchronized stop');
+        
     }
 
     showSearchModal() {
@@ -1240,7 +1240,7 @@ class MusicPlayerSystem {
     }
 
     handleDeafenStateChange(isDeafened) {
-        console.log('🎵 [MUSIC-PLAYER] Deafen state change received:', { isDeafened, hasAudio: !!this.audio, currentVolume: this.audio?.volume });
+        
         
         if (!this.audio) return;
 
@@ -1249,26 +1249,26 @@ class MusicPlayerSystem {
                 this._savedVolume = this.audio.volume;
                 this.audio.volume = 0;
                 this._isDeafenMuted = true;
-                console.log('🎵 [MUSIC-PLAYER] Music muted due to deafen state, saved volume:', this._savedVolume);
+                
             }
         } else {
             if (this._isDeafenMuted) {
                 this.audio.volume = this._savedVolume !== null ? this._savedVolume : this.volume;
                 this._isDeafenMuted = false;
                 this._savedVolume = null;
-                console.log('🎵 [MUSIC-PLAYER] Music unmuted, deafen state removed, restored volume:', this.audio.volume);
+                
             }
         }
     }
 
     checkInitialDeafenState() {
-        console.log('🎵 [MUSIC-PLAYER] Checking initial deafen state...');
+        
         
         if (window.localStorageManager) {
             const voiceState = window.localStorageManager.getUnifiedVoiceState();
-            console.log('🎵 [MUSIC-PLAYER] Voice state from localStorage:', voiceState);
+            
             if (voiceState && voiceState.isDeafened) {
-                console.log('🎵 [MUSIC-PLAYER] Initial deafen state: true (from localStorage)');
+                
                 this.handleDeafenStateChange(true);
                 return;
             }
@@ -1276,20 +1276,20 @@ class MusicPlayerSystem {
         
         if (window.voiceManager && window.voiceManager.getDeafenState) {
             const isDeafened = window.voiceManager.getDeafenState();
-            console.log('🎵 [MUSIC-PLAYER] Voice state from voiceManager:', isDeafened);
+            
             if (isDeafened) {
-                console.log('🎵 [MUSIC-PLAYER] Initial deafen state: true (from voiceManager)');
+                
                 this.handleDeafenStateChange(true);
                 return;
             }
         }
         
-        console.log('🎵 [MUSIC-PLAYER] Initial deafen state: false');
+        
     }
 
     async restoreMicrophoneState() {
         try {
-            console.log('🎵 [MUSIC-PLAYER] Restoring microphone state');
+            
             
             if (window.voiceManager && window.voiceManager.meeting) {
                 window.voiceManager.meeting.muteMic();
@@ -1300,7 +1300,7 @@ class MusicPlayerSystem {
                 });
                 
                 window.voiceManager.meeting.unmuteMic(originalStream);
-                console.log('🎵 [MUSIC-PLAYER] Microphone restored to original state');
+                
             }
             
             return true;
@@ -1312,7 +1312,7 @@ class MusicPlayerSystem {
 
     setupAudioStreaming() {
         try {
-            console.log('🎵 [MUSIC-PLAYER] Setting up audio streaming');
+            
             
             if (!this.audio || !this.isPlaying) {
                 return false;
@@ -1378,7 +1378,7 @@ class MusicPlayerSystem {
                 const customMicStream = new MediaStream([audioTrack]);
                 window.voiceManager.meeting.unmuteMic(customMicStream);
 
-                console.log('🎵 [MUSIC-PLAYER] Successfully connected music to voice channel');
+                
                 return true;
             }
 
@@ -1415,7 +1415,7 @@ class MusicPlayerSystem {
 
     disconnectFromVoiceChannel() {
         try {
-            console.log('🎵 [MUSIC-PLAYER] Disconnecting from voice channel');
+            
             this.channelId = null;
             
             if (this._musicStreamDestination) {
@@ -1437,13 +1437,13 @@ class MusicPlayerSystem {
     async playNext() {
         try {
             if (this.queue.length === 0) {
-                console.log('🎵 [MUSIC-PLAYER] Queue is empty, cannot play next');
+                
                 this.showStatus('Queue is empty');
                 return false;
             }
 
             if (this.currentIndex >= this.queue.length - 1) {
-                console.log('🎵 [MUSIC-PLAYER] Reached end of queue, stopping playback');
+                
                 await this.stop();
                 this.showStatus('Reached end of queue');
                 return false;
@@ -1452,7 +1452,7 @@ class MusicPlayerSystem {
             this.currentIndex = this.currentIndex + 1;
             const nextTrack = this.queue[this.currentIndex];
             
-            console.log('🎵 [MUSIC-PLAYER] Playing next track:', nextTrack.title);
+            
             await this.playTrack(nextTrack);
             this.showNowPlaying(nextTrack);
             this.currentSong = nextTrack;
@@ -1467,13 +1467,13 @@ class MusicPlayerSystem {
     async playPrevious() {
         try {
             if (this.queue.length === 0) {
-                console.log('🎵 [MUSIC-PLAYER] Queue is empty, cannot play previous');
+                
                 this.showStatus('Queue is empty');
                 return false;
             }
 
             if (this.currentIndex <= 0) {
-                console.log('🎵 [MUSIC-PLAYER] Already at first song in queue');
+                
                 this.showStatus('Already at first song');
                 return false;
             }
@@ -1481,7 +1481,7 @@ class MusicPlayerSystem {
             this.currentIndex = this.currentIndex - 1;
             const prevTrack = this.queue[this.currentIndex];
             
-            console.log('🎵 [MUSIC-PLAYER] Playing previous track:', prevTrack.title);
+            
             await this.playTrack(prevTrack);
             this.showNowPlaying(prevTrack);
             this.currentSong = prevTrack;
@@ -1495,13 +1495,13 @@ class MusicPlayerSystem {
 
     async addToQueue(songName) {
         try {
-            console.log('🎵 [MUSIC-PLAYER] Adding to queue:', songName);
+            
             
             const searchResult = await this.searchMusic(songName);
             if (searchResult && searchResult.previewUrl) {
                 this.queue.push(searchResult);
                 this.showStatus(`Added to queue: ${searchResult.title}`);
-                console.log('🎵 [MUSIC-PLAYER] Successfully added to queue:', searchResult.title);
+                
                 return `Added to queue: ${searchResult.title}`;
             } else {
                 this.showError(`Could not find: ${songName}`);
@@ -1569,7 +1569,7 @@ class MusicPlayerSystem {
     }
 
     showStatus(message) {
-        console.log('🎵 [MUSIC-PLAYER] Status:', message);
+        
     }
 
     showError(message) {
@@ -1701,7 +1701,7 @@ class MusicPlayerSystem {
             for (let i = 0; i < messagesToRemove; i++) {
                 this.processedMessageIds.delete(messageArray[i]);
             }
-            console.log('🎵 [MUSIC-PLAYER] Cleaned up old processed message IDs');
+            
         }
     }
 }
@@ -1710,7 +1710,7 @@ if (typeof window !== 'undefined' && !window.musicPlayer) {
     window.MusicPlayerSystem = MusicPlayerSystem;
     window.musicPlayer = new MusicPlayerSystem();
     
-    console.log('🎵 [MUSIC-PLAYER] Global music player initialized');
+    
     
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {

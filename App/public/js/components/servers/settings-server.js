@@ -561,9 +561,9 @@ function initMemberManagementTab() {
                 const isCurrentUser = String(member.id) === String(currentUserId);
                 const displayName = member.display_name || member.username;
                 
-                console.log('Debug - Member:', displayName, 'ID:', member.id, 'Type:', typeof member.id);
-                console.log('Debug - Current User ID:', currentUserId, 'Type:', typeof currentUserId);
-                console.log('Debug - Is Current User:', isCurrentUser);
+                
+                
+                
                 
                 let usernameText = displayName;
                 if (isCurrentUser) {
@@ -1039,13 +1039,13 @@ function initMemberManagementTab() {
             if (!member || !member.id) throw new Error("Invalid member data");
             
             const memberName = member.display_name || member.username || 'Unknown User';
-            console.log(`Attempting to transfer ownership to ${memberName} (ID: ${member.id})`);
+            
             
             showToast(`Transferring ownership to ${memberName}...`, 'info', 2000);
             
             const response = await window.serverAPI.transferOwnership(serverId, member.id);
             
-            console.log('Transfer ownership response:', response);
+            
             
             if (response && response.success) {
                 document.querySelector('meta[name="user-role"]')?.setAttribute('content', 'admin');

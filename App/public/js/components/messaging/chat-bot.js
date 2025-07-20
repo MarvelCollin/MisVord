@@ -30,7 +30,7 @@ class ChatBot {
                 }
 
                 if (window.musicPlayer) {
-                    console.log('🤖 [CHAT-BOT] Forwarding to music player');
+                    
                     window.musicPlayer.processBotMusicCommand(data);
                 } else {
                     console.warn('⚠️ [CHAT-BOT] Music player not available');

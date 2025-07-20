@@ -113,27 +113,27 @@ window.debugVoiceButtons = function () {
   );
 
   if (voiceCssLink) {
-    console.log("voice-call-section.css found");
+    
   } else {
     issues.push("voice-call-section.css not found");
   }
 
   if (issues.length === 0) {
-    console.log("All voice buttons are working correctly");
+    
   } else {
-    console.log("Issues found with voice buttons:");
+    
     issues.forEach((issue, index) => {
-      console.log(`${index + 1}. ${issue}`);
+      
     });
 
     if (issues.some((i) => i.includes("Tailwind"))) {
-      console.log("Suggestion: Check if Tailwind CSS is properly loaded");
+      
     }
     if (issues.some((i) => i.includes("FontAwesome"))) {
-      console.log("Suggestion: Check if FontAwesome is properly loaded");
+      
     }
     if (issues.some((i) => i.includes("not visible"))) {
-      console.log("Suggestion: Check CSS display and visibility properties");
+      
     }
   }
 
@@ -150,7 +150,7 @@ window.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     const results = window.debugVoiceButtons();
     if (results.issuesFound > 0) {
-      console.log("Voice button debugging completed with issues found");
+      
       if (window.fixVoiceButtons) {
         window.fixVoiceButtons();
       }

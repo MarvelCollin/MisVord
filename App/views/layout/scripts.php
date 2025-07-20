@@ -188,7 +188,7 @@ window.addEventListener('beforeunload', function() {
       if (typeof window !== 'undefined' && !window.musicPlayer && typeof MusicPlayerSystem !== 'undefined') {
           try {
               window.musicPlayer = new MusicPlayerSystem();
-              console.log('✅ MusicPlayerSystem initialized successfully');
+              
           } catch (error) {
               console.error('❌ Failed to initialize MusicPlayerSystem:', error);
           }
