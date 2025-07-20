@@ -698,7 +698,7 @@ if (!function_exists('renderMessage')) {
             </div>
         </div>
         
-        <div id="chat-skeleton-loading" class="chat-skeleton-container" style="z-index: 1;" hidden>
+        <div id="chat-skeleton-loading" class="chat-skeleton-container" style="z-index: 1; display: none;">
             <div class="chat-skeleton-message">
                 <div class="chat-skeleton-avatar"></div>
                 <div class="chat-skeleton-content">
@@ -859,7 +859,7 @@ if (!function_exists('renderMessage')) {
             </div>
         </div>
         
-        <div class="messages-container flex flex-col" id="chat-real-content" style="display: none; position: relative; z-index: 2;">
+        <div class="messages-container flex flex-col" id="chat-real-content" style="display: flex; position: relative; z-index: 2;">
             <?php if (!empty($messages)): ?>
                 <?php
                 $i = 0;

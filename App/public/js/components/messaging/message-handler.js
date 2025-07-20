@@ -84,7 +84,6 @@ class MessageHandler {
         }
         
         this.chatSection.hideEmptyState();
-        this.chatSection.hideChatSkeleton();
         
         const formattedMessage = this.formatMessageForBubble(messageData);
         
@@ -101,6 +100,10 @@ class MessageHandler {
         }
         
         this.insertMessageIntoDOM(messageElement, messagesContainer, formattedMessage);
+        
+        if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
+            this.chatSection.hideChatSkeleton();
+        }
         
         this.processedMessageIds.add(messageData.id);
         
@@ -321,6 +324,11 @@ class MessageHandler {
         
             messagesContainer.appendChild(messageGroup);
             this.lastMessageGroup = messageGroup;
+            
+            if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
+                this.chatSection.hideChatSkeleton();
+            }
+            
         const messageElement = messageGroup.querySelector('[data-message-id]');
         
             if (isTemporary) {
@@ -1069,6 +1077,10 @@ class MessageHandler {
         messagesContainer.innerHTML = '';
         messagesContainer.appendChild(fragment);
         
+        if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
+            this.chatSection.hideChatSkeleton();
+        }
+        
         this.applyGroupingToMessages(messagesContainer);
         
         messageElements.forEach(element => {
@@ -1276,7 +1288,9 @@ class MessageHandler {
         const newScrollHeight = messagesContainer.scrollHeight;
         messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
         
-
+        if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
+            this.chatSection.hideChatSkeleton();
+        }
     }
     
     createMessageBatches(messages, batchSize) {
@@ -1350,6 +1364,10 @@ class MessageHandler {
         }
         
         messagesContainer.insertBefore(fragment, firstChild);
+        
+        if (this.chatSection && typeof this.chatSection.hideChatSkeleton === 'function') {
+            this.chatSection.hideChatSkeleton();
+        }
         
         this.applyGroupingToMessages(messagesContainer);
         

@@ -556,28 +556,10 @@ class ChatSection {
                     messagesContainer.innerHTML = '';
                 }
                 
-
-                this.showChatSkeleton();
-                
-                const loadStartTime = Date.now();
-                const skeletonTimeout = setTimeout(() => {
-                    if (!this.skeletonHidden) {
-                        console.warn('⚠️ [CHAT-SECTION] Skeleton timeout - forcing hide after 5 seconds');
-                        this.hideChatSkeleton();
-                    }
-                }, 5000);
-                
                 try {
                     await this.loadMessages();
-                    
-                    const loadTime = Date.now() - loadStartTime;
-                    
-                    
-                    clearTimeout(skeletonTimeout);
-                    
                 } catch (error) {
                     console.error('❌ [CHAT-SECTION] Error loading messages:', error);
-                    clearTimeout(skeletonTimeout);
                 }
                 
                 this.initializeExistingMessages();
@@ -589,9 +571,7 @@ class ChatSection {
                     chatType: this.chatType,
                     url: window.location.href
                 });
-                setTimeout(() => {
-                    this.hideChatSkeleton();
-                }, 500);
+                this.hideChatSkeleton();
             }
             
             this.addTopReloadButtonStyles();
@@ -1183,13 +1163,7 @@ class ChatSection {
                 
                 this.hideEmptyState();
                 this.isInitialized = true;
-                
-                if (!isLoadMore) {
-                    this.hideChatSkeleton();
-                }
             } else {
-                this.hideChatSkeleton();
-                
                 if (!isLoadMore) {
                     this.showEmptyState();
                 }
@@ -2804,10 +2778,8 @@ class ChatSection {
 
     async switchToChannel(channelId, channelType = 'text', forceFresh = false) {
 
-        
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
-
         }
         
         this.forceStopAllOperations();
@@ -2850,10 +2822,8 @@ class ChatSection {
 
     async switchToDM(dmId, roomType = 'direct', forceFresh = false) {
 
-        
         if (this.loadMoreContainer) {
             this.loadMoreContainer.classList.add('hidden');
-
         }
         
         this.forceStopAllOperations();
@@ -3426,7 +3396,7 @@ class ChatSection {
             skeletonContainer.style.left = '0';
             skeletonContainer.style.right = '0';
             skeletonContainer.style.bottom = '0';
-            skeletonContainer.style.zIndex = '10';
+            skeletonContainer.style.zIndex = '100';
             skeletonContainer.style.height = '';
             skeletonContainer.style.minHeight = '';
             skeletonContainer.removeAttribute('hidden');

@@ -59,8 +59,12 @@ class CarouselSection {
                 
                 if (leftSide && this.currentPage > -1) {
                     this.flipPageTo(this.currentPage - 1);
-                } else if (!leftSide && this.currentPage < this.totalPages - 1) {
-                    this.flipPageTo(this.currentPage + 1);
+                } else if (!leftSide) {
+                    if (this.currentPage < this.totalPages - 1) {
+                        this.flipPageTo(this.currentPage + 1);
+                    } else if (this.currentPage === this.totalPages - 1) {
+                        this.flipPageTo(-1);
+                    }
                 }
             });
         });
@@ -87,8 +91,12 @@ class CarouselSection {
     }
     
     nextPage() {
-        if (this.isAnimating || this.currentPage >= this.totalPages - 1) return;
-        this.flipPageTo(this.currentPage + 1);
+        if (this.isAnimating) return;
+        if (this.currentPage < this.totalPages - 1) {
+            this.flipPageTo(this.currentPage + 1);
+        } else if (this.currentPage === this.totalPages - 1) {
+            this.flipPageTo(-1);
+        }
     }
     
     flipPageTo(targetPage) {
@@ -98,17 +106,41 @@ class CarouselSection {
         const targetPageEl = this.getPageByNumber(targetPage);
         const direction = targetPage > this.currentPage ? 'forward' : 'backward';
         const animationDuration = this.isMobile ? 400 : 600;
+        const isClosingBook = this.currentPage === this.totalPages - 1 && targetPage === -1;
         
         if (direction === 'forward' && currentPageEl) {
             currentPageEl.style.zIndex = '25';
             currentPageEl.style.willChange = 'transform';
             currentPageEl.classList.add('flipping-forward');
-        } else if (direction === 'backward' && targetPageEl) {
-            targetPageEl.style.zIndex = '25';
-            targetPageEl.style.willChange = 'transform';
-            targetPageEl.style.opacity = '1';
-            targetPageEl.style.pointerEvents = 'auto';
-            targetPageEl.classList.add('flipping-backward');
+        } else if (direction === 'backward') {
+            if (isClosingBook) {
+                const allPagesBetween = [];
+                for (let i = this.totalPages - 1; i >= 0; i--) {
+                    const pageEl = this.getPageByNumber(i);
+                    if (pageEl) {
+                        allPagesBetween.push(pageEl);
+                        pageEl.style.opacity = '1';
+                        pageEl.style.pointerEvents = 'auto';
+                    }
+                }
+                allPagesBetween.forEach((pageEl, index) => {
+                    setTimeout(() => {
+                        pageEl.style.zIndex = '25';
+                        pageEl.style.willChange = 'transform';
+                        pageEl.classList.add('flipping-backward');
+                    }, index * 100);
+                });
+                if (currentPageEl) {
+                    currentPageEl.style.opacity = '1';
+                    currentPageEl.style.pointerEvents = 'auto';
+                }
+            } else if (targetPageEl) {
+                targetPageEl.style.zIndex = '25';
+                targetPageEl.style.willChange = 'transform';
+                targetPageEl.style.opacity = '1';
+                targetPageEl.style.pointerEvents = 'auto';
+                targetPageEl.classList.add('flipping-backward');
+            }
         }
         
         if (direction === 'forward' && targetPageEl) {
@@ -121,8 +153,9 @@ class CarouselSection {
             this.updatePageStates();
             if (currentPageEl) currentPageEl.style.willChange = '';
             if (targetPageEl) targetPageEl.style.willChange = '';
+            this.pages.forEach(page => page.style.willChange = '');
             this.isAnimating = false;
-        }, animationDuration);
+        }, isClosingBook ? animationDuration + 200 : animationDuration);
     }
     
     updatePageStates() {
@@ -135,10 +168,19 @@ class CarouselSection {
                 page.classList.add('active');
                 page.style.zIndex = '10';
                 page.style.transform = 'rotateY(0deg)';
+                page.style.opacity = '1';
+                page.style.pointerEvents = 'auto';
             } else if (pageNumber < this.currentPage) {
                 page.classList.add('behind');
                 page.style.zIndex = '5';
                 page.style.transform = 'rotateY(-180deg)';
+                page.style.opacity = '1';
+                page.style.pointerEvents = 'auto';
+            } else if (pageNumber === this.currentPage + 1) {
+                page.style.zIndex = '9';
+                page.style.transform = 'rotateY(0deg)';
+                page.style.opacity = '1';
+                page.style.pointerEvents = 'none';
             } else {
                 page.style.zIndex = '1';
                 page.style.transform = 'rotateY(0deg)';
@@ -146,12 +188,6 @@ class CarouselSection {
                 page.style.pointerEvents = 'none';
             }
         });
-        
-        const activePage = this.getPageByNumber(this.currentPage);
-        if (activePage) {
-            activePage.style.opacity = '1';
-            activePage.style.pointerEvents = 'auto';
-        }
     }
     
     onSectionVisible() {
