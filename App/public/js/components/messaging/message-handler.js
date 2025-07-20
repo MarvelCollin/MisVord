@@ -3,7 +3,7 @@ class MessageHandler {
         this.chatSection = chatSection;
         this.processedMessageIds = new Set();
         this.lastMessageGroup = null;
-        this.messageGroupTimeThreshold = 5 * 60 * 1000; 
+        this.messageGroupTimeThreshold = 7200000; 
         this.temporaryMessages = new Map();
         this.isFirstTimeLoad = true;
     }
@@ -92,6 +92,8 @@ class MessageHandler {
             return;
         }
         
+        formattedMessage.shouldGroup = this.shouldGroupWithPreviousMessage(formattedMessage);
+        
         const messageElement = this.createMessageElementSync(formattedMessage, isTemporary);
         
         if (!messageElement) {
@@ -163,7 +165,15 @@ class MessageHandler {
         const timestamp = this.formatTimestamp(sentAt);
         const formattedContent = this.formatContent(content);
         const groupedClass = shouldGroup ? 'grouped' : '';
-        const timestampMs = new Date(sentAt).getTime();
+        
+        let timestampMs;
+        if (typeof sentAt === 'number') {
+            timestampMs = sentAt;
+        } else if (typeof sentAt === 'string') {
+            timestampMs = new Date(sentAt).getTime();
+        } else {
+            timestampMs = Date.now();
+        }
         
         return `
         <div class="bubble-message-group ${groupedClass}" data-user-id="${userId}" data-timestamp="${timestampMs}" data-should-group="${shouldGroup ? '1' : '0'}">
@@ -874,6 +884,15 @@ class MessageHandler {
     }
     
     formatMessageForBubble(messageData) {
+        let timestamp;
+        if (messageData.timestamp && typeof messageData.timestamp === 'number') {
+            timestamp = messageData.timestamp;
+        } else if (messageData.sent_at) {
+            timestamp = new Date(messageData.sent_at).getTime();
+        } else {
+            timestamp = Date.now();
+        }
+        
         return {
             id: messageData.id,
             user_id: messageData.user_id || messageData.userId,
@@ -887,7 +906,7 @@ class MessageHandler {
             reply_message_id: messageData.reply_message_id || messageData.replyMessageId,
             reply_data: messageData.reply_data || messageData.replyData,
             reactions: messageData.reactions || [],
-            timestamp: messageData.timestamp || Date.now()
+            timestamp: timestamp
         };
     }
     
@@ -907,10 +926,6 @@ class MessageHandler {
         const lastMessageUserId = this.lastMessageGroup.dataset.userId;
         const lastMessageTimestamp = parseInt(this.lastMessageGroup.dataset.timestamp);
         const currentMessageTimestamp = messageData.timestamp ? parseInt(messageData.timestamp) : Date.now();
-        
-
-
-
 
         return (
             lastMessageUserId === (messageData.user_id || messageData.userId).toString() &&
@@ -1169,7 +1184,7 @@ class MessageHandler {
             const currentTimestamp = parseInt(message.getAttribute('data-timestamp'));
             
             if (currentUserId === prevUserId && 
-                currentTimestamp - prevTimestamp <= 7200000) {
+                prevTimestamp - currentTimestamp <= 7200000) {
                 
                 message.classList.add('grouped');
                 message.style.marginTop = '0';
@@ -1428,15 +1443,8 @@ class MessageHandler {
             return;
         }
         
-        const isOwnMessage = formattedMessage.user_id === this.chatSection.userId;
-        const isNewMessage = !formattedMessage.is_temporary && isOwnMessage;
-        
         messagesContainer.appendChild(messageElement);
         this.lastMessageGroup = messageElement;
-        
-        if (isNewMessage && this.chatSection.triggerNewMessageAnimation) {
-            this.chatSection.triggerNewMessageAnimation(messageElement);
-        }
         
         if (typeof window.processMentionCandidates === 'function') {
             setTimeout(() => window.processMentionCandidates(), 50);

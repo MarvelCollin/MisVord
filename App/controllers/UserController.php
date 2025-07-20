@@ -1173,11 +1173,11 @@ class UserController extends BaseController
 
     public function deleteAccount()
     {
-        $this->requireAuth();
-        $userId = $this->getCurrentUserId();
-        $input = $this->getInput();
-
         try {
+            $this->requireAuth();
+            $userId = $this->getCurrentUserId();
+            $input = $this->getInput();
+
             if (!isset($input['username_confirmation']) || empty($input['username_confirmation'])) {
                 http_response_code(400);
                 echo json_encode([
@@ -1186,7 +1186,7 @@ class UserController extends BaseController
                 ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
-
+            
             $user = $this->userRepository->find($userId);
 
             if (!$user) {
@@ -1219,6 +1219,9 @@ class UserController extends BaseController
                 error_log("Processing ownership transfers before account deletion: " . json_encode($ownershipTransfers));
                 
                 foreach ($ownershipTransfers as $serverId => $newOwnerId) {
+                    $serverId = intval($serverId);
+                    $newOwnerId = intval($newOwnerId);
+                    
                     error_log("Transferring server $serverId to user $newOwnerId");
                     
                     $server = $serverRepository->find($serverId);
@@ -1234,7 +1237,7 @@ class UserController extends BaseController
                     
                     error_log("Before transfer - Server {$serverId} current owner: {$userId}");
                     
-                    $transferResult = $membershipRepository->transferOwnership($serverId, $userId, $newOwnerId);
+                    $transferResult = $membershipRepository->transferOwnershipAndRemoveOldOwner($serverId, $userId, $newOwnerId);
                     if (!$transferResult) {
                         error_log("Failed to transfer ownership of server $serverId to user $newOwnerId");
                         $serverName = isset($server->name) ? htmlspecialchars($server->name, ENT_QUOTES, 'UTF-8') : "Server ID: $serverId";
@@ -1246,27 +1249,26 @@ class UserController extends BaseController
                         exit;
                     }
                     
-                    error_log("After transfer - Server {$serverId} new owner: {$newOwnerId}");
-                    
-                    error_log("Successfully transferred server $serverId ownership to user $newOwnerId");
+                    error_log("After transfer - Server {$serverId} new owner: {$newOwnerId}, old owner removed");
+                    error_log("Successfully transferred server $serverId ownership to user $newOwnerId and removed old owner");
                 }
                 
                 error_log("All ownership transfers completed successfully");
             }
             
-            error_log("Removing user from all servers before deletion");
-            $userServers = $membershipRepository->getServersForUser($userId);
-            foreach ($userServers as $server) {
+            error_log("Removing user from remaining servers after ownership transfers");
+            $remainingMemberships = $membershipRepository->getServersForUser($userId);
+            foreach ($remainingMemberships as $server) {
                 $removeResult = $membershipRepository->removeMembership($userId, $server['id']);
                 error_log("Removed user $userId from server {$server['id']}: " . ($removeResult ? 'success' : 'failed'));
             }
             
-            $ownedServersAfterRemoval = $serverRepository->getServersByOwnerId($userId);
-            error_log("Delete account: User $userId owns " . count($ownedServersAfterRemoval) . " servers after membership removal");
+            $ownedServersAfterTransfers = $serverRepository->getServersByOwnerId($userId);
+            error_log("Delete account: User $userId owns " . count($ownedServersAfterTransfers) . " servers after ownership transfers");
             
-            if (count($ownedServersAfterRemoval) > 0) {
-                error_log("ERROR: User still owns servers after transfers and membership removal!");
-                foreach ($ownedServersAfterRemoval as $server) {
+            if (count($ownedServersAfterTransfers) > 0) {
+                error_log("ERROR: User still owns servers after transfers!");
+                foreach ($ownedServersAfterTransfers as $server) {
                     error_log("Still owns server: {$server['id']} - " . (isset($server['name']) ? $server['name'] : 'Unknown'));
                 }
                 http_response_code(500);
@@ -1275,37 +1277,26 @@ class UserController extends BaseController
                     'error' => 'Cannot delete account - user still owns servers after ownership transfers',
                     'debug_info' => [
                         'user_id' => $userId,
-                        'remaining_owned_servers' => count($ownedServersAfterRemoval),
+                        'remaining_owned_servers' => count($ownedServersAfterTransfers),
                         'ownership_transfers_processed' => !empty($ownershipTransfers)
                     ]
                 ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
             
-            $ownedServers = $ownedServersAfterRemoval;
-            
-            error_log("Delete account: User $userId owns " . count($ownedServers) . " servers after transfers");
+            $ownedServers = $ownedServersAfterTransfers;
             
             foreach ($ownedServers as $server) {
-                $memberCount = $membershipRepository->getMemberCount($server['id']);
-                $memberCountExcludingUser = $memberCount - 1;
+                error_log("Server {$server['id']} ({$server['name']}) will be deleted as it was empty or became empty");
                 
-                error_log("Server {$server['id']} ({$server['name']}) has $memberCount total members, $memberCountExcludingUser excluding user");
+                $this->logActivity('server_deleted_with_user', [
+                    'server_id' => $server['id'],
+                    'server_name' => $server['name'],
+                    'user_id' => $userId
+                ]);
                 
-                if ($memberCountExcludingUser <= 0) {
-                    error_log("Server {$server['id']} will be empty after user deletion, scheduling for deletion");
-                    
-                    $this->logActivity('server_deleted_with_user', [
-                        'server_id' => $server['id'],
-                        'server_name' => $server['name'],
-                        'user_id' => $userId
-                    ]);
-                    
-                    $deleteResult = $serverRepository->deleteServerCompletely($server['id']);
-                    error_log("Server deletion result for {$server['id']}: " . ($deleteResult ? 'success' : 'failed'));
-                } else {
-                    error_log("Server {$server['id']} still has members, should not be deleted");
-                }
+                $deleteResult = $serverRepository->deleteServerCompletely($server['id']);
+                error_log("Server deletion result for {$server['id']}: " . ($deleteResult ? 'success' : 'failed'));
             }
 
             error_log("Proceeding to delete user $userId");

@@ -352,14 +352,14 @@ if (!function_exists('renderMessage')) {
     border: 1px solid #4f545c;
     border-radius: 8px;
     padding: 4px;
-    opacity: 0;
-    visibility: hidden;
+    opacity: 1 !important;
+    visibility: visible !important;
     transition: opacity 0.15s ease, visibility 0.15s ease;
     z-index: 10;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.bubble-message-content:hover .bubble-message-actions {
+.bubble-message-group:hover .bubble-message-actions {
     opacity: 1;
     visibility: visible;
 }

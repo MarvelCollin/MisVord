@@ -391,7 +391,7 @@ if (!function_exists('isBubbleVideoFile')) {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
-.bubble-message-content:hover .bubble-message-actions {
+.bubble-message-group:hover .bubble-message-actions {
     opacity: 1;
     visibility: visible;
 }

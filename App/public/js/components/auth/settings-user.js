@@ -2366,7 +2366,7 @@ function initDeleteAccount() {
         }
         
         const serverId = serverElement.getAttribute('data-server-id');
-        selectedOwners[serverId] = member.id;
+        selectedOwners[serverId] = member.id.toString();
         
         dropdown.classList.add('hidden');
         searchInput.value = member.display_name || member.username;
@@ -2425,7 +2425,7 @@ function initDeleteAccount() {
         const serversRequiringTransfer = [];
         
         serverElements.forEach(serverElement => {
-            const serverId = serverElement.getAttribute('data-server-id');  
+            const serverId = serverElement.getAttribute('data-server-id');
             const canDelete = serverElement.classList.contains('server-can-delete');
             const hasSelectedOwner = selectedOwners[serverId];
             
@@ -2433,10 +2433,6 @@ function initDeleteAccount() {
                 serversRequiringTransfer.push(serverElement);
             }
         });
-        
-        
-        
-        
         
         if (serversRequiringTransfer.length > 0) {
             showError('Please select new owners for all servers that require transfer');
@@ -2446,10 +2442,12 @@ function initDeleteAccount() {
         confirmBtn.disabled = true;
         confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Deleting...';
         
-        
-        
-        
         try {
+            console.log('Sending delete account request with:', {
+                username: inputValue,
+                ownershipTransfers: selectedOwners
+            });
+            
             const result = await window.userAPI.deleteAccount(inputValue, selectedOwners);
             
             if (result.success) {
