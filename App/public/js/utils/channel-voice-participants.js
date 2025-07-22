@@ -19,7 +19,7 @@ class ChannelVoiceParticipants {
             this.cleanupStaleParticipants();
         }, 30000);
         
-        document.addEventListener('visibilitychange', () => {
+        setTimeout(() => {
             if (!document.hidden && window.globalSocketManager?.isAuthenticated) {
                 this.requestAllChannelStatusImmediate();
                 const voiceState = window.localStorageManager?.getUnifiedVoiceState();
@@ -46,7 +46,7 @@ class ChannelVoiceParticipants {
                     }
                 }
             }
-        });
+        }, 500);
     }
     
     setupEventListeners() {
