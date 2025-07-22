@@ -14,8 +14,8 @@ class Database {
                 file_exists('/.dockerenv')
             );
 
-            $host = 'localhost';
-            $port = EnvLoader::get('DB_PORT', '3306');
+            $host = $isDocker ? EnvLoader::get('DB_HOST', 'db') : EnvLoader::get('DB_HOST', 'localhost');
+            $port = EnvLoader::get('DB_PORT', $isDocker ? '1003' : '3306');
             $dbname = EnvLoader::get('DB_NAME', 'misvord');
             $username = EnvLoader::get('DB_USER', 'root');
             $password = EnvLoader::get('DB_PASS', '');

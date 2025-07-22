@@ -3,6 +3,7 @@ define('APP_ROOT', __DIR__);
 define('MIGRATIONS_PATH', __DIR__ . '/database/migrations');
 
 require_once __DIR__ . '/config/helpers.php';
+require_once __DIR__ . '/config/env.php';
 
 if (file_exists(__DIR__ . '/.env')) {
     $envFile = file_get_contents(__DIR__ . '/.env');
@@ -18,15 +19,37 @@ if (file_exists(__DIR__ . '/.env')) {
     }
 }
 
-putenv("DB_HOST=db");
-$dbPort = getenv("DB_PORT") ?: "1003";
-putenv("DB_PORT=" . $dbPort);
+$isDocker = (
+    getenv('IS_DOCKER') === 'true' || 
+    isset($_SERVER['IS_DOCKER']) || 
+    getenv('CONTAINER') !== false ||
+    isset($_SERVER['CONTAINER']) ||
+    file_exists('/.dockerenv')
+);
+
+$hasDockerDb = (getenv('DB_HOST') === 'db');
+
+if ($hasDockerDb && !file_exists('/.dockerenv')) {
+    putenv("DB_HOST=localhost");
+    $_ENV['DB_HOST'] = 'localhost';
+    $_SERVER['DB_HOST'] = 'localhost';
+    $dbPort = getenv("DB_PORT") ?: "1003";
+    putenv("DB_PORT=" . $dbPort);
+} elseif ($isDocker) {
+    putenv("DB_HOST=db");
+    $dbPort = getenv("DB_PORT") ?: "1003";
+    putenv("DB_PORT=" . $dbPort);
+} else {
+    putenv("DB_HOST=localhost");
+    $dbPort = getenv("DB_PORT") ?: "3306";
+    putenv("DB_PORT=" . $dbPort);
+}
+
 $dbPass = getenv("DB_PASS");
 if ($dbPass) {
     putenv("DB_PASS=" . $dbPass);
 }
 
-require_once __DIR__ . '/config/env.php';
 require_once __DIR__ . '/config/db.php';
 
 function get_db_connection() {
