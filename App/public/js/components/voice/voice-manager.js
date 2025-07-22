@@ -308,39 +308,55 @@ class VoiceManager {
             
             this.syncChannelWithUnifiedState();
             
-            this.updateUnifiedVoiceState({
-                isConnected: true,
-                channelId: channelId,
-                channelName: channelName,
-                meetingId: meetingId,
-                connectionTime: Date.now(),
-                isMuted: !this._micOn,
-                isDeafened: this._deafened
-            });
-            
-            this.updatePresence();
-            this.notifySocketServer('join', meetingId);
-            this.loadExistingBotParticipants();
-            
-            setTimeout(() => {
-                this.refreshAllParticipantIndicators();
-                this.requestVoiceStatesFromSocket();
-                this.globalVoiceStateSync();
+        this.updateUnifiedVoiceState({
+            isConnected: true,
+            channelId: channelId,
+            channelName: channelName,
+            meetingId: meetingId,
+            connectionTime: Date.now(),
+            isMuted: !this._micOn,
+            isDeafened: this._deafened
+        });
+        
+        this.updatePresence();
+        this.notifySocketServer('join', meetingId);
+        this.loadExistingBotParticipants();
+        
+        this.streamSyncInterval = setInterval(() => {
+            this.forceStreamSync();
+        }, 3000);
+        
+        setTimeout(() => {
+            this.refreshAllParticipantIndicators();
+            this.requestVoiceStatesFromSocket();
+            this.globalVoiceStateSync();                if (typeof this.checkAllParticipantsForExistingStreams === 'function') {
+                    this.checkAllParticipantsForExistingStreams();
+                }
                 
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'mic', state: this._micOn }
                 }));
-            }, 1000);
+            }, 500);
             
             window.dispatchEvent(new CustomEvent('voiceConnect', {
                 detail: { channelId, channelName, meetingId, skipJoinSound }
             }));
             
+            this.forceStreamSync();
+            
             setTimeout(() => {
+                this.forceStreamSync();
+                if (typeof this.checkAllParticipantsForExistingStreams === 'function') {
+                    this.checkAllParticipantsForExistingStreams();
+                }
+            }, 200);
+            
+            setTimeout(() => {
+                this.forceStreamSync();
                 window.dispatchEvent(new CustomEvent('voiceStateChanged', {
                     detail: { type: 'mic', state: this._micOn }
                 }));
-            }, 200);
+            }, 300);
             
             if (currentUserId) {
                 window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
@@ -516,6 +532,11 @@ class VoiceManager {
         if (shouldPreserveStates && window.localStorageManager) {
             videoState = this._videoOn;
             screenShareState = this._screenShareOn;
+        }
+        
+        if (this.streamSyncInterval) {
+            clearInterval(this.streamSyncInterval);
+            this.streamSyncInterval = null;
         }
         
         this.meeting = null;
@@ -726,6 +747,8 @@ class VoiceManager {
         
         this.setupStreamHandlers(participant);
         
+        this.forceParticipantStreamSync(participant);
+        
         if (this._deafened && participant.id !== this.localParticipant?.id) {
             setTimeout(() => {
                 try {
@@ -744,6 +767,16 @@ class VoiceManager {
         }
         
         this.checkAndRestoreExistingStreams(participant);
+        
+        setTimeout(() => {
+            this.forceParticipantStreamSync(participant);
+            this.ensureParticipantStreamsSynced(participant.id);
+        }, 100);
+        
+        setTimeout(() => {
+            this.forceParticipantStreamSync(participant);
+            this.checkAndRestoreExistingStreams(participant);
+        }, 300);
         
         if (this.participantMicStates && participant.id !== this.localParticipant?.id) {
             this.participantMicStates.set(participant.id, participant.micOn);
@@ -817,6 +850,13 @@ class VoiceManager {
                     stream: stream
                 }
             }));
+            
+            this.forceParticipantStreamSync(participant);
+            
+            setTimeout(() => {
+                this.forceParticipantStreamSync(participant);
+                this.ensureParticipantStreamsSynced(participant.id);
+            }, 50);
         });
         
         participant.on('stream-disabled', (stream) => {
@@ -899,134 +939,129 @@ class VoiceManager {
     checkAndRestoreExistingStreams(participant) {
         if (!participant) return;
         
+        const participantData = this.participants.get(participant.id);
+        if (!participantData) return;
         
-        console.log(`🔍 [VOICE-MANAGER] Participant object:`, {
-            id: participant.id,
-            webcamOn: participant.webcamOn,
-            screenShareOn: participant.screenShareOn,
-            micOn: participant.micOn,
-            hasWebcamStream: !!participant.webcamStream,
-            hasScreenShareStream: !!participant.screenShareStream,
-            hasMicStream: !!participant.micStream,
-            hasVideoStream: !!participant.videoStream,
-            hasStreamsObject: !!participant.streams
+        const restoreStream = (streamType, stream, kind) => {
+            if (stream) {
+                participantData.streams.set(kind, stream);
+                
+                if (kind === 'audio' && this._deafened && participant.id !== this.localParticipant?.id) {
+                    try {
+                        if (stream.track) {
+                            stream.track.enabled = false;
+                        }
+                    } catch (error) {
+                        console.warn('Could not disable audio stream:', participant.id);
+                    }
+                }
+                
+                window.dispatchEvent(new CustomEvent('streamEnabled', {
+                    detail: { 
+                        participantId: participant.id,
+                        kind: kind,
+                        stream: stream
+                    }
+                }));
+                return true;
+            }
+            return false;
+        };
+        
+        let hasStreams = false;
+        
+        if (participant.webcamOn && participant.webcamStream) {
+            hasStreams = restoreStream('webcam', participant.webcamStream, 'video') || hasStreams;
+        }
+        
+        if (participant.screenShareOn && participant.screenShareStream) {
+            hasStreams = restoreStream('screenshare', participant.screenShareStream, 'share') || hasStreams;
+        }
+        
+        if (participant.micOn && participant.micStream) {
+            hasStreams = restoreStream('mic', participant.micStream, 'audio') || hasStreams;
+        }
+        
+        if (participant.videoStream) {
+            hasStreams = restoreStream('video', participant.videoStream, 'video') || hasStreams;
+        }
+        
+        if (participant.streams) {
+            if (participant.streams.video) {
+                hasStreams = restoreStream('streams.video', participant.streams.video, 'video') || hasStreams;
+            }
+            if (participant.streams.share) {
+                hasStreams = restoreStream('streams.share', participant.streams.share, 'share') || hasStreams;
+            }
+            if (participant.streams.audio) {
+                hasStreams = restoreStream('streams.audio', participant.streams.audio, 'audio') || hasStreams;
+            }
+        }
+        
+        if (hasStreams) {
+            setTimeout(() => {
+                this.ensureParticipantStreamsSynced(participant.id);
+            }, 500);
+        }
+    }
+    
+    
+    forceStreamSync() {
+        if (!this.meeting || !this.meeting.participants) return;
+        
+        this.meeting.participants.forEach((participant) => {
+            if (participant && participant.id) {
+                this.forceParticipantStreamSync(participant);
+            }
         });
         
-        setTimeout(() => {
-            if (participant.webcamOn && participant.webcamStream) {
-                
-                const participantData = this.participants.get(participant.id);
-                if (participantData) {
-                    participantData.streams.set('video', participant.webcamStream);
+        if (this.meeting.localParticipant) {
+            this.forceParticipantStreamSync(this.meeting.localParticipant);
+        }
+    }
+    
+    forceParticipantStreamSync(participant) {
+        if (!participant) return;
+        
+        const participantData = this.participants.get(participant.id);
+        if (!participantData) return;
+        
+        if (participant.webcamOn && participant.webcamStream) {
+            participantData.streams.set('video', participant.webcamStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participant.id,
+                    kind: 'video',
+                    stream: participant.webcamStream
                 }
-                
-                window.dispatchEvent(new CustomEvent('streamEnabled', {
-                    detail: { 
-                        participantId: participant.id,
-                        kind: 'video',
-                        stream: participant.webcamStream
-                    }
-                }));
-            }
-            
-            if (participant.screenShareOn && participant.screenShareStream) {
-                
-                const participantData = this.participants.get(participant.id);
-                if (participantData) {
-                    participantData.streams.set('share', participant.screenShareStream);
+            }));
+        }
+        
+        if (participant.screenShareOn && participant.screenShareStream) {
+            participantData.streams.set('share', participant.screenShareStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participant.id,
+                    kind: 'share',
+                    stream: participant.screenShareStream
                 }
-                
-                window.dispatchEvent(new CustomEvent('streamEnabled', {
-                    detail: { 
-                        participantId: participant.id,
-                        kind: 'share',
-                        stream: participant.screenShareStream
-                    }
-                }));
-            }
-            
-            if (participant.micOn && participant.micStream) {
-                const participantData = this.participants.get(participant.id);
-                if (participantData && participantData.streams) {
-                    participantData.streams.set('audio', participant.micStream);
-                    
-                    if (this._deafened && participant.id !== this.localParticipant?.id) {
-                        try {
-                            if (participant.micStream && participant.micStream.track) {
-                                participant.micStream.track.enabled = false;
-                            }
-                        } catch (error) {
-                            console.warn('Could not disable newly enabled audio stream:', participant.id);
-                        }
-                    }
+            }));
+        }
+        
+        if (participant.micOn && participant.micStream) {
+            participantData.streams.set('audio', participant.micStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participant.id,
+                    kind: 'audio',
+                    stream: participant.micStream
                 }
-                
-                window.dispatchEvent(new CustomEvent('streamEnabled', {
-                    detail: { 
-                        participantId: participant.id,
-                        kind: 'audio',
-                        stream: participant.micStream
-                    }
-                }));
-            }
-            
-            if (participant.videoStream) {
-                const participantData = this.participants.get(participant.id);
-                if (participantData) {
-                    participantData.streams.set('video', participant.videoStream);
-                }
-                
-                window.dispatchEvent(new CustomEvent('streamEnabled', {
-                    detail: { 
-                        participantId: participant.id,
-                        kind: 'video',
-                        stream: participant.videoStream
-                    }
-                }));
-            }
-            
-            if (participant.streams) {
-                
-                
-                if (participant.streams.video) {
-                    
-                    const participantData = this.participants.get(participant.id);
-                    if (participantData) {
-                        participantData.streams.set('video', participant.streams.video);
-                    }
-                    
-                    window.dispatchEvent(new CustomEvent('streamEnabled', {
-                        detail: { 
-                            participantId: participant.id,
-                            kind: 'video',
-                            stream: participant.streams.video
-                        }
-                    }));
-                }
-                
-                if (participant.streams.share) {
-                    
-                    const participantData = this.participants.get(participant.id);
-                    if (participantData) {
-                        participantData.streams.set('share', participant.streams.share);
-                    }
-                    
-                    window.dispatchEvent(new CustomEvent('streamEnabled', {
-                        detail: { 
-                            participantId: participant.id,
-                            kind: 'share',
-                            stream: participant.streams.share
-                        }
-                    }));
-                }
-            }
-        }, 200);
+            }));
+        }
     }
     
     checkAllParticipantsForExistingStreams() {
         if (!this.meeting || !this.meeting.participants) return;
-        
-        
         
         this.meeting.participants.forEach((participant) => {
             if (participant && this.participants.has(participant.id)) {
@@ -1036,6 +1071,49 @@ class VoiceManager {
         
         if (this.meeting.localParticipant && this.participants.has(this.meeting.localParticipant.id)) {
             this.checkAndRestoreExistingStreams(this.meeting.localParticipant);
+        }
+    }
+    
+    ensureParticipantStreamsSynced(participantId) {
+        if (!this.meeting || !this.meeting.participants) return;
+        
+        const participant = this.meeting.participants.get(participantId);
+        if (!participant) return;
+        
+        const participantData = this.participants.get(participantId);
+        if (!participantData) return;
+        
+        if (participant.webcamOn && participant.webcamStream && !participantData.streams.has('video')) {
+            participantData.streams.set('video', participant.webcamStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participantId,
+                    kind: 'video',
+                    stream: participant.webcamStream
+                }
+            }));
+        }
+        
+        if (participant.screenShareOn && participant.screenShareStream && !participantData.streams.has('share')) {
+            participantData.streams.set('share', participant.screenShareStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participantId,
+                    kind: 'share',
+                    stream: participant.screenShareStream
+                }
+            }));
+        }
+        
+        if (participant.micOn && participant.micStream && !participantData.streams.has('audio')) {
+            participantData.streams.set('audio', participant.micStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participantId,
+                    kind: 'audio',
+                    stream: participant.micStream
+                }
+            }));
         }
     }
     

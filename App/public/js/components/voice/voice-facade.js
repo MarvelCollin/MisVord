@@ -27,7 +27,17 @@ class VoiceFacade {
         this._isConnectEventDispatched = false;
         await window.voiceManager._joinVoice(channelId, channelName, options);
         this._isConnectEventDispatched = true;
+        
+        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+            window.voiceManager.forceStreamSync();
+        }
+        
         await this.validateAndSyncState(channelId, channelName);
+        
+        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+            window.voiceManager.forceStreamSync();
+        }
+        
         return true;
     }
 
@@ -130,6 +140,15 @@ class VoiceFacade {
                     channel_id: channelId 
                 });
             }, 500);
+            
+            setTimeout(() => {
+                if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
+                    window.voiceManager.checkAllParticipantsForExistingStreams();
+                }
+                if (window.voiceCallSection && typeof window.voiceCallSection.rebuildGridFromVideoSDK === 'function') {
+                    window.voiceCallSection.rebuildGridFromVideoSDK();
+                }
+            }, 800);
         }
     }
 }

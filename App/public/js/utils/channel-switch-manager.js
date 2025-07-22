@@ -341,7 +341,11 @@ class SimpleChannelSwitcher {
                 if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
                     window.voiceManager.checkAllParticipantsForExistingStreams();
                 }
-            }, 1000);
+                
+                if (window.voiceCallSection && typeof window.voiceCallSection.rebuildGridFromVideoSDK === 'function') {
+                    window.voiceCallSection.rebuildGridFromVideoSDK();
+                }
+            }, 300);
         }
         
 

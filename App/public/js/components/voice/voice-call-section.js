@@ -235,12 +235,6 @@ class VoiceCallSection {
         
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
-        
-        document.addEventListener("visibilitychange", () => {
-            if (!document.hidden) {
-                this.syncButtonStates();
-            }
-        });
 
         if (window.globalSocketManager?.io) {
             this.setupSocketListeners();
@@ -394,14 +388,26 @@ class VoiceCallSection {
         }, 300);
 
         setTimeout(() => {
-            this.rebuildGridFromVideoSDK();
-        }, 500);
-        
-        setTimeout(() => {
             if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
                 window.voiceManager.checkAllParticipantsForExistingStreams();
             }
-        }, 1500);
+        }, 300);
+        
+        setTimeout(() => {
+            this.rebuildGridFromVideoSDK();
+            if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+                window.voiceManager.forceStreamSync();
+            }
+        }, 500);
+        
+        setTimeout(() => {
+            if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+                window.voiceManager.forceStreamSync();
+            }
+            if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
+                window.voiceManager.checkAllParticipantsForExistingStreams();
+            }
+        }, 800);
         
         if (!event.detail.skipJoinSound) {
             MusicLoaderStatic.playJoinVoiceSound();
@@ -573,7 +579,9 @@ class VoiceCallSection {
     syncWithExistingParticipants() {
         if (!window.voiceManager || !window.voiceManager.participants) return;
         
-        
+        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+            window.voiceManager.forceStreamSync();
+        }
         
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
@@ -597,6 +605,10 @@ class VoiceCallSection {
                 this.participantElements.set(botId, element);
             }
         });
+        
+        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+            window.voiceManager.forceStreamSync();
+        }
         
         this.updateGridLayout();
         this.updateParticipantCount();
@@ -688,7 +700,11 @@ class VoiceCallSection {
         
         setTimeout(() => {
             this.restoreExistingStreamsForParticipant(participant, data, element);
-        }, 100);
+        }, 50);
+        
+        setTimeout(() => {
+            this.syncParticipantStreams(participant, element);
+        }, 200);
         
         this.updateGridLayout();
         this.updateParticipantCount();
@@ -1250,6 +1266,9 @@ class VoiceCallSection {
             return;
         }
         
+        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+            window.voiceManager.forceStreamSync();
+        }
         
         this.clearGrid();
         
@@ -1266,28 +1285,75 @@ class VoiceCallSection {
             }
         });
         
+        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
+            window.voiceManager.forceStreamSync();
+        }
+        
         this.updateGridLayout();
         this.updateParticipantCount();
         this.updateLocalParticipantIndicators();
     }
     
     restoreExistingStreamsForParticipant(participantId, participantData, element) {
-        if (!participantData.streams || participantData.streams.size === 0) return;
+        if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) return;
         
+        const voiceParticipantData = window.voiceManager.participants.get(participantId);
+        const participant = window.voiceManager.meeting?.participants?.get(participantId);
         
-        
-        participantData.streams.forEach((stream, kind) => {
-            if (kind === 'video' || kind === 'webcam') {
-                
-                this.showParticipantVideo(element, stream);
-            } else if (kind === 'audio') {
-                
-                this.attachParticipantAudio(element, stream, participantId);
-            } else if (kind === 'share') {
-                
-                this.createScreenShareCard(participantId, stream);
+        if (voiceParticipantData && voiceParticipantData.streams && voiceParticipantData.streams.size > 0) {
+            voiceParticipantData.streams.forEach((stream, kind) => {
+                if (kind === 'video' || kind === 'webcam') {
+                    this.showParticipantVideo(element, stream);
+                } else if (kind === 'audio') {
+                    this.attachParticipantAudio(element, stream, participantId);
+                } else if (kind === 'share') {
+                    this.createScreenShareCard(participantId, stream);
+                }
+            });
+        } else if (participant) {
+            if (participant.webcamOn && participant.webcamStream) {
+                this.showParticipantVideo(element, participant.webcamStream);
+                voiceParticipantData.streams.set('video', participant.webcamStream);
             }
-        });
+            
+            if (participant.micOn && participant.micStream) {
+                this.attachParticipantAudio(element, participant.micStream, participantId);
+                voiceParticipantData.streams.set('audio', participant.micStream);
+            }
+            
+            if (participant.screenShareOn && participant.screenShareStream) {
+                this.createScreenShareCard(participantId, participant.screenShareStream);
+                voiceParticipantData.streams.set('share', participant.screenShareStream);
+            }
+        }
+    }
+    
+    syncParticipantStreams(participantId, element) {
+        if (!window.voiceManager || !window.voiceManager.meeting) return;
+        
+        const participant = window.voiceManager.meeting.participants?.get(participantId);
+        if (!participant) return;
+        
+        if (participant.webcamOn && participant.webcamStream) {
+            const existingVideo = element.querySelector('.participant-video-overlay video');
+            if (!existingVideo || !existingVideo.srcObject) {
+                this.showParticipantVideo(element, participant.webcamStream);
+            }
+        }
+        
+        if (participant.micOn && participant.micStream) {
+            const existingAudio = element.querySelector('audio');
+            if (!existingAudio || !existingAudio.srcObject) {
+                this.attachParticipantAudio(element, participant.micStream, participantId);
+            }
+        }
+        
+        if (participant.screenShareOn && participant.screenShareStream) {
+            const existingScreenShare = document.querySelector(`[data-screen-share-id="${participantId}"]`);
+            if (!existingScreenShare) {
+                this.createScreenShareCard(participantId, participant.screenShareStream);
+            }
+        }
     }
     
     removeDuplicateCards() {
