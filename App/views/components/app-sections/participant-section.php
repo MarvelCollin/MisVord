@@ -48,14 +48,14 @@ foreach ($members as $member) {
 }
 ?>
 
-<div class="w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-screen" style="overflow: auto;">
-    <div class="h-12 border-b border-gray-800 flex items-center px-4 relative">
+<div class="w-48 sm:w-56 md:w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-screen" style="overflow: auto;">
+    <div class="h-12 border-b border-gray-800 flex items-center px-2 sm:px-4 relative">
         <div class="relative flex-1">
             <input type="text" 
                    placeholder="Search messages in server" 
-                   class="w-full bg-black bg-opacity-30 text-white text-sm rounded px-2 py-1 pr-8 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all" 
+                   class="w-full bg-black bg-opacity-30 text-white text-xs sm:text-sm rounded px-2 py-1 pr-6 sm:pr-8 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all" 
                    id="server-search-input">
-            <div class="absolute right-2 top-1/2 transform -translate-y-1/2">
+            <div class="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2">
                 <i class="fas fa-search text-gray-500 text-xs" id="search-icon"></i>
                 <i class="fas fa-spinner fa-spin text-gray-500 text-xs hidden" id="search-loading"></i>
             </div>
@@ -63,14 +63,14 @@ foreach ($members as $member) {
         
         
         <button onclick="window.forceRefreshAllPresenceData()" 
-                class="ml-2 p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-all" 
+                class="ml-1 sm:ml-2 p-1 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-all" 
                 title="Refresh presence data">
             <i class="fas fa-sync-alt text-xs"></i>
         </button>
         
-        <div id="search-results-dropdown" class="absolute top-full left-0 right-0 bg-[#2b2d31] border border-gray-700 rounded-lg mt-1 max-h-80 overflow-y-auto shadow-lg z-50 hidden">
+        <div id="search-results-dropdown" class="absolute top-full left-0 right-0 bg-[#2b2d31] border border-gray-700 rounded-lg mt-1 max-h-60 sm:max-h-80 overflow-y-auto shadow-lg z-50 hidden">
             <div id="search-results-content">
-                <div class="p-3 text-center text-gray-400 text-sm">
+                <div class="p-2 sm:p-3 text-center text-gray-400 text-xs sm:text-sm">
                     <i class="fas fa-search mr-2"></i>
                     Type to search messages...
                 </div>
@@ -78,19 +78,19 @@ foreach ($members as $member) {
         </div>
     </div>
     
-    <div class="participant-content flex-1 p-2" style="height: calc(100vh - 3rem); overflow-y: auto;" data-lazyload="participant-list">
-        <div id="participant-skeleton-loader" class="px-2">
+    <div class="participant-content flex-1 p-1 sm:p-2" style="height: calc(100vh - 3rem); overflow-y: auto;" data-lazyload="participant-list">
+        <div id="participant-skeleton-loader" class="px-1 sm:px-2">
             <?php for ($j = 0; $j < 3; $j++): ?>
-                <div class="mb-4 role-group-skeleton">
-                    <div class="h-3 bg-gray-700 rounded" style="width: <?php echo rand(25, 40); ?>%;"></div>
-                    <div class="space-y-0.5 members-list-skeleton mt-2">
+                <div class="mb-2 sm:mb-4 role-group-skeleton">
+                    <div class="h-2 sm:h-3 bg-gray-700 rounded" style="width: <?php echo rand(25, 40); ?>%;"></div>
+                    <div class="space-y-0.5 members-list-skeleton mt-1 sm:mt-2">
                         <?php for ($i = 0; $i < rand(3, 6); $i++): ?>
-                            <div class="flex items-center px-2 py-1">
-                                <div class="relative mr-2">
-                                    <div class="w-8 h-8 rounded-full bg-gray-700"></div>
+                            <div class="flex items-center px-1 sm:px-2 py-1">
+                                <div class="relative mr-1 sm:mr-2">
+                                    <div class="w-6 sm:w-8 h-6 sm:h-8 rounded-full bg-gray-700"></div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="h-4 bg-gray-700 rounded" style="width: <?php echo rand(50, 80); ?>%;"></div>
+                                    <div class="h-3 sm:h-4 bg-gray-700 rounded" style="width: <?php echo rand(50, 80); ?>%;"></div>
                                 </div>
                             </div>
                         <?php endfor; ?>
@@ -99,7 +99,7 @@ foreach ($members as $member) {
             <?php endfor; ?>
         </div>
         
-        <div class="px-2" id="participant-list-container">
+        <div class="px-1 sm:px-2" id="participant-list-container">
             
         </div>
     </div>

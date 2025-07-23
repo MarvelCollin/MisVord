@@ -14,7 +14,7 @@ if ($hasTooltip) {
 }
 ?>
 
-<div class="p-2 bg-discord-darker flex items-center mt-auto user-profile-section">
+<div class="p-1 sm:p-2 bg-discord-darker flex items-center mt-auto user-profile-section">
     <div class="relative">        
         <?php if ($hasTooltip): ?>
             <?php
@@ -22,14 +22,14 @@ if ($hasTooltip) {
                 $userName = ($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User');
                 $userDiscriminator = ($currentUser && isset($currentUser->discriminator)) ? $currentUser->discriminator : ($_SESSION['discriminator'] ?? '0000');
                 
-                $userAvatarContent = '<div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2 user-profile-trigger transition-transform hover:scale-105" data-user-id="' . htmlspecialchars($_SESSION['user_id'] ?? '') . '">
+                $userAvatarContent = '<div class="w-6 sm:w-8 h-6 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-1 sm:mr-2 user-profile-trigger transition-transform hover:scale-105" data-user-id="' . htmlspecialchars($_SESSION['user_id'] ?? '') . '">
                     <img src="' . htmlspecialchars($userAvatar) . '" 
                          alt="Avatar" class="w-full h-full object-cover">
                 </div>';
                 
                 echo tooltip($userAvatarContent, htmlspecialchars($userName) . '#' . htmlspecialchars($userDiscriminator), 'top');
             ?>        <?php else: ?>
-            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-2 user-profile-trigger transition-transform hover:scale-105" data-user-id="<?php echo htmlspecialchars($_SESSION['user_id'] ?? ''); ?>">
+            <div class="w-6 sm:w-8 h-6 sm:h-8 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden mr-1 sm:mr-2 user-profile-trigger transition-transform hover:scale-105" data-user-id="<?php echo htmlspecialchars($_SESSION['user_id'] ?? ''); ?>">
                     <img src="<?php echo ($currentUser && isset($currentUser->avatar_url) && $currentUser->avatar_url) ? htmlspecialchars($currentUser->avatar_url) : asset('/common/default-profile-picture.png'); ?>"
          alt="Avatar" class="w-full h-full object-cover user-avatar">
             </div>
@@ -60,11 +60,11 @@ if ($hasTooltip) {
             $statusColor = 'bg-discord-green';
         }
         ?>
-        <span class="absolute bottom-0 right-0.5 w-3 h-3 rounded-full border-2 border-discord-darker <?php echo $statusColor; ?> transition-colors z-30"></span>
+        <span class="absolute bottom-0 right-0.5 w-2 sm:w-3 h-2 sm:h-3 rounded-full border-1 sm:border-2 border-discord-darker <?php echo $statusColor; ?> transition-colors z-30"></span>
     </div>
     
     <div class="flex-1 min-w-0">
-        <div class="text-sm text-white font-medium truncate" id="current-user-name" data-user-id="<?php echo htmlspecialchars($_SESSION['user_id'] ?? ''); ?>"><?php echo htmlspecialchars(($currentUser && isset($currentUser->display_name) && $currentUser->display_name) ? $currentUser->display_name : (($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User'))); ?></div>
+        <div class="text-xs sm:text-sm text-white font-medium truncate" id="current-user-name" data-user-id="<?php echo htmlspecialchars($_SESSION['user_id'] ?? ''); ?>"><?php echo htmlspecialchars(($currentUser && isset($currentUser->display_name) && $currentUser->display_name) ? $currentUser->display_name : (($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User'))); ?></div>
         <?php if ($hasTooltip): ?>
             <?php
                 $usernameDiscriminator = htmlspecialchars(($currentUser && isset($currentUser->username)) ? $currentUser->username : ($_SESSION['username'] ?? 'User')) . '#' . htmlspecialchars($_SESSION['discriminator'] ?? rand(1000, 9999));
@@ -76,33 +76,33 @@ if ($hasTooltip) {
         <?php endif; ?>
     </div>
     
-    <div class="flex items-center space-x-2 ml-auto">
+    <div class="flex items-center space-x-1 sm:space-x-2 ml-auto">
         <?php if ($hasTooltip): ?>
             <?php
                 $micContent = '<button class="mic-btn text-discord-lighter hover:text-white transition-colors duration-150">
-                    <i class="fas fa-microphone text-lg"></i>
+                    <i class="fas fa-microphone text-sm sm:text-lg"></i>
                 </button>';
                 echo tooltip($micContent, 'Mute', 'top');
                 
                 $headphonesContent = '<button class="deafen-btn text-discord-lighter hover:text-white transition-colors duration-150">
-                    <i class="fas fa-headphones text-lg"></i>
+                    <i class="fas fa-headphones text-sm sm:text-lg"></i>
                 </button>';
                 echo tooltip($headphonesContent, 'Deafen', 'top');
                 
                 $settingsContent = '<a href="/settings/user" class="text-discord-lighter hover:text-white transition-colors duration-150 p-1 rounded hover:bg-discord-background-modifier-hover">
-                    <i class="fas fa-cog text-lg"></i>
+                    <i class="fas fa-cog text-sm sm:text-lg"></i>
                 </a>';
                 echo tooltip($settingsContent, 'User Settings', 'top');
             ?>
         <?php else: ?>
             <button class="mic-btn text-discord-lighter hover:text-white transition-colors duration-150" title="Mute">
-                <i class="fas fa-microphone text-lg"></i>
+                <i class="fas fa-microphone text-sm sm:text-lg"></i>
             </button>
             <button class="deafen-btn text-discord-lighter hover:text-white transition-colors duration-150" title="Deafen">
-                <i class="fas fa-headphones text-lg"></i>
+                <i class="fas fa-headphones text-sm sm:text-lg"></i>
             </button>
             <a href="/settings/user" class="text-discord-lighter hover:text-white transition-colors duration-150 p-1 rounded hover:bg-discord-background-modifier-hover" title="User Settings">
-                <i class="fas fa-cog text-lg"></i>
+                <i class="fas fa-cog text-sm sm:text-lg"></i>
             </a>
         <?php endif; ?>
     </div>

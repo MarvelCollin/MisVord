@@ -84,65 +84,75 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<div class="flex min-h-screen">
-    <aside class="w-60">
+<div class="flex flex-col lg:flex-row min-h-screen max-w-7xl mx-auto">
+    <aside class="w-full lg:w-60 lg:min-w-60">
         <div class="p-4">
             <div class="text-sm"><?php echo htmlspecialchars($user->username ?? ''); ?></div>
             <div class="text-xs">User Settings</div>
         </div>
         
-        <nav>
-            <div class="sidebar-category">
-                <span>USER SETTINGS</span>
+        <nav class="px-2 lg:px-0">
+            <div class="lg:hidden mb-4">
+                <select id="mobile-section-selector" class="w-full bg-discord-darker text-white border border-gray-600 rounded-md p-2">
+                    <option value="my-account" <?php echo $section === 'my-account' ? 'selected' : ''; ?>>My Account</option>
+                    <option value="voice" <?php echo $section === 'voice' ? 'selected' : ''; ?>>Voice & Video</option>
+                    <option value="delete-account" <?php echo $section === 'delete-account' ? 'selected' : ''; ?>>Delete Account</option>
+                </select>
             </div>
-            <a href="?section=my-account" class="sidebar-item <?php echo $section === 'my-account' ? 'active' : ''; ?>">
-                <i class="fas fa-user-circle"></i>
-                My Account
-            </a>
             
-            <div class="sidebar-category">
-                <span>APP SETTINGS</span>
+            <div class="hidden lg:block">
+                <div class="sidebar-category">
+                    <span>USER SETTINGS</span>
+                </div>
+                <a href="?section=my-account" class="sidebar-item <?php echo $section === 'my-account' ? 'active' : ''; ?>">
+                    <i class="fas fa-user-circle"></i>
+                    My Account
+                </a>
+                
+                <div class="sidebar-category">
+                    <span>APP SETTINGS</span>
+                </div>
+                <a href="/nitro" class="sidebar-item">
+                    <i class="fas fa-crown text-purple-400"></i>
+                    Nitro
+                    <span class="sidebar-item-badge">Premium</span>
+                </a>
+                <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
+                    <i class="fas fa-headset"></i>
+                    Voice & Video
+                </a>
+                
+                <div class="sidebar-category">
+                    <span>USER ACTIONS</span>
+                </div>
+                <a href="?section=delete-account" class="sidebar-item text-red-500 hover:text-red-400 <?php echo $section === 'delete-account' ? 'active' : ''; ?>">
+                    <i class="fas fa-trash-alt mr-2"></i>
+                    Delete Account
+                </a>
+                <a href="#" id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
+                    Log Out
+                </a>
             </div>
-            <a href="/nitro" class="sidebar-item">
-                <i class="fas fa-crown text-purple-400"></i>
-                Nitro
-                <span class="sidebar-item-badge">Premium</span>
-            </a>
-            <a href="?section=voice" class="sidebar-item <?php echo $section === 'voice' ? 'active' : ''; ?>">
-                <i class="fas fa-headset"></i>
-                Voice & Video
-            </a>
-            
-            <div class="sidebar-category">
-                <span>USER ACTIONS</span>
-            </div>
-            <a href="?section=delete-account" class="sidebar-item text-red-500 hover:text-red-400 <?php echo $section === 'delete-account' ? 'active' : ''; ?>">
-                <i class="fas fa-trash-alt mr-2"></i>
-                Delete Account
-            </a>
-            <a href="#" id="logout-btn" class="sidebar-item text-red-500 hover:text-red-400">
-                <i class="fas fa-sign-out-alt mr-2"></i>
-                Log Out
-            </a>
         </nav>
     </aside>
 
-    <main class="flex-1 bg-discord-dark">
+    <main class="flex-1 bg-discord-dark overflow-x-hidden">
         <?php if ($section === 'my-account'): ?>
-            <div class="p-10">
-                <div class="max-w-[740px]">
-                    <div class="mb-8">
-                        <h1>My Account</h1>
-                        <p>Manage your account information and settings</p>
+            <div class="p-4 lg:p-10">
+                <div class="max-w-full lg:max-w-[740px]">
+                    <div class="mb-6 lg:mb-8">
+                        <h1 class="text-xl lg:text-2xl">My Account</h1>
+                        <p class="text-sm lg:text-base">Manage your account information and settings</p>
                     </div>
 
-                    <form id="user-profile-form" class="space-y-8">
-                        <section class="bg-discord-darker rounded-lg p-6 space-y-6">
+                    <form id="user-profile-form" class="space-y-6 lg:space-y-8">
+                        <section class="bg-discord-darker rounded-lg p-4 lg:p-6 space-y-4 lg:space-y-6">
                             <div class="form-group">
                                 <label class="block text-sm font-medium text-white mb-2">Profile Picture</label>
                                 <p class="text-discord-lighter text-xs mb-3">We recommend an image of at least 512×512.</p>
                                 
-                                <div class="flex items-center space-x-4">
+                                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
                                     <div id="user-avatar-container" class="relative">
                                         <?php if ($user->avatar_url): ?>
                                             <img id="user-avatar-preview" src="<?php echo htmlspecialchars($user->avatar_url); ?>" alt="<?php echo htmlspecialchars($user->username ?? 'User'); ?>">
@@ -300,22 +310,22 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
         <?php elseif ($section === 'voice'): ?>
-            <div class="p-10">
-                <div class="max-w-[740px]">
-                    <div class="mb-8">
-                        <h1 class="text-3xl font-bold text-white mb-3">Voice & Video</h1>
-                        <p class="text-gray-400">Configure your audio and video settings for the best communication experience</p>
+            <div class="p-4 lg:p-10">
+                <div class="max-w-full lg:max-w-[740px]">
+                    <div class="mb-6 lg:mb-8">
+                        <h1 class="text-2xl lg:text-3xl font-bold text-white mb-3">Voice & Video</h1>
+                        <p class="text-gray-400 text-sm lg:text-base">Configure your audio and video settings for the best communication experience</p>
                     </div>
 
-                    <div class="voice-video-tabs mb-8">
-                        <div class="tab-buttons">
-                            <button class="voice-tab active" data-tab="voice">
+                    <div class="voice-video-tabs mb-6 lg:mb-8">
+                        <div class="tab-buttons flex flex-col sm:flex-row">
+                            <button class="voice-tab active w-full sm:w-auto mb-2 sm:mb-0 sm:mr-2" data-tab="voice">
                                 <div class="tab-icon">
                                     <i class="fas fa-microphone"></i>
                                 </div>
                                 <span>Voice</span>
                             </button>
-                            <button class="voice-tab" data-tab="video">
+                            <button class="voice-tab w-full sm:w-auto" data-tab="video">
                                 <div class="tab-icon">
                                     <i class="fas fa-video"></i>
                                 </div>
@@ -325,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <div id="voice-content" class="tab-content">
-                        <div class="voice-section-grid">
+                        <div class="voice-section-grid grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                             <div class="device-card input-device">
                                 <div class="device-header">
                                     <div class="device-icon input">
@@ -479,14 +489,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         <?php elseif ($section === 'delete-account'): ?>
-            <div class="p-10">
-                <div class="max-w-[740px]">
-                    <div class="mb-8">
-                        <h1 class="text-red-400">Delete Account</h1>
-                        <p>Permanently delete your account and all associated data</p>
+            <div class="p-4 lg:p-10">
+                <div class="max-w-full lg:max-w-[740px]">
+                    <div class="mb-6 lg:mb-8">
+                        <h1 class="text-xl lg:text-2xl text-red-400">Delete Account</h1>
+                        <p class="text-sm lg:text-base">Permanently delete your account and all associated data</p>
                     </div>
                     
-                    <div class="bg-red-900/20 border border-red-600/50 rounded-lg p-6 mb-6">
+                    <div class="bg-red-900/20 border border-red-600/50 rounded-lg p-4 lg:p-6 mb-6">
                         <div class="flex items-start">
                             <i class="fas fa-exclamation-triangle text-red-400 text-xl mr-4 mt-1"></i>
                             <div>
@@ -504,14 +514,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                     
-                    <div class="bg-discord-darker rounded-lg p-6">
+                    <div class="bg-discord-darker rounded-lg p-4 lg:p-6">
                         <h3 class="text-lg font-medium mb-4">Delete My Account</h3>
-                        <p class="text-discord-lighter mb-6">
+                        <p class="text-discord-lighter mb-6 text-sm lg:text-base">
                             If you're sure you want to delete your account, click the button below. 
                             You'll be asked to confirm your username before the deletion process begins.
                         </p>
                         
-                        <button type="button" id="delete-account-btn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-6 rounded-md transition-colors">
+                        <button type="button" id="delete-account-btn" class="bg-red-600 hover:bg-red-700 text-white font-medium py-3 px-4 lg:px-6 rounded-md transition-colors w-full sm:w-auto">
                             <i class="fas fa-trash-alt mr-2"></i>
                             Delete My Account
                         </button>
@@ -519,14 +529,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         <?php else: ?>
-            <div class="p-10">
-                <div class="max-w-[740px]">
-                    <div class="mb-8">
-                        <h1><?php echo ucfirst(str_replace('-', ' ', $section)); ?></h1>
-                        <p>This section is under development.</p>
+            <div class="p-4 lg:p-10">
+                <div class="max-w-full lg:max-w-[740px]">
+                    <div class="mb-6 lg:mb-8">
+                        <h1 class="text-xl lg:text-2xl"><?php echo ucfirst(str_replace('-', ' ', $section)); ?></h1>
+                        <p class="text-sm lg:text-base">This section is under development.</p>
                     </div>
                     
-                    <div class="bg-discord-darker rounded-lg p-6">
+                    <div class="bg-discord-darker rounded-lg p-4 lg:p-6">
                         <p class="text-center text-discord-lighter">Coming soon!</p>
                     </div>
                 </div>

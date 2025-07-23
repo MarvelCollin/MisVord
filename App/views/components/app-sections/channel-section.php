@@ -13,13 +13,13 @@ $channels = $GLOBALS['serverChannels'] ?? [];
 $categories = $GLOBALS['serverCategories'] ?? [];
 ?>
 
-<div class="w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800/80">
-    <div class="h-12 border-b border-gray-800/90 flex items-center px-4 shadow-sm bg-discord-dark/95 server-header-container">
-        <h2 class="font-bold text-white flex-1 truncate server-name">
+<div class="w-48 sm:w-56 md:w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800/80">
+    <div class="h-12 border-b border-gray-800/90 flex items-center px-2 sm:px-4 shadow-sm bg-discord-dark/95 server-header-container">
+        <h2 class="font-bold text-white flex-1 truncate server-name text-sm sm:text-base">
             <?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?>
         </h2>
         <button id="server-dropdown-btn" class="server-dropdown-btn ml-2 p-1 rounded hover:bg-gray-700/50 transition-colors">
-            <i class="fas fa-chevron-down text-sm"></i>
+            <i class="fas fa-chevron-down text-xs sm:text-sm"></i>
         </button>
         
         <div id="server-dropdown" class="server-dropdown hidden">
@@ -63,8 +63,8 @@ $categories = $GLOBALS['serverCategories'] ?? [];
             <?php endfor; ?>
         </div>
         
-        <div class="channel-list p-2 space-y-2" id="channel-real-content" style="display: none;">
-            <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
+        <div class="channel-list p-1 sm:p-2 space-y-1 sm:space-y-2" id="channel-real-content" style="display: none;">
+            <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">>
             
             <?php
 
@@ -87,12 +87,12 @@ $categories = $GLOBALS['serverCategories'] ?? [];
                     
                     usort($categoryChannels, fn($a, $b) => ($a['position'] ?? 0) <=> ($b['position'] ?? 0));
             ?>
-                    <div class="category-section mb-4">
-                        <div class="category-header flex items-center px-3 py-1 mb-1 cursor-pointer">
+                    <div class="category-section mb-2 sm:mb-4">
+                        <div class="category-header flex items-center px-2 sm:px-3 py-1 mb-1 cursor-pointer">
                             <i class="fas fa-chevron-down text-xs mr-1 text-gray-500"></i>
-                            <span class="text-xs font-semibold uppercase text-gray-400"><?php echo htmlspecialchars($category['name']); ?></span>
+                            <span class="text-xs font-semibold uppercase text-gray-400 truncate"><?php echo htmlspecialchars($category['name']); ?></span>
                         </div>
-                        <div class="category-channels ml-2">
+                        <div class="category-channels ml-1 sm:ml-2">
                             <?php foreach ($categoryChannels as $channel): ?>
                                 <?php renderChannel($channel, $activeChannelId); ?>
                             <?php endforeach; ?>
@@ -104,7 +104,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
             if (empty($channels)):
             ?>
-                <div class="p-4 text-gray-400 text-center text-sm">No channels available</div>
+                <div class="p-2 sm:p-4 text-gray-400 text-center text-xs sm:text-sm">No channels available</div>
             <?php endif; ?>
         </div>
     </div>

@@ -74,13 +74,17 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
      data-discriminator="<?php echo htmlspecialchars($_SESSION['discriminator'] ?? '0000'); ?>"
      id="app-container">
 
+    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
+    
     <?php include dirname(__DIR__) . '/app-sections/server-sidebar.php'; ?>
 
     <div class="flex flex-1 overflow-hidden">
         <?php if ($contentType === 'home' || $contentType === 'dm'): ?>
             <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
         <?php elseif ($contentType === 'server'): ?>
-            <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
+            <div id="channel-sidebar" class="hidden md:flex">
+                <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
+            </div>
         <?php elseif ($contentType === 'explore'): ?>
             <?php include dirname(__DIR__) . '/app-sections/explore-sidebar.php'; ?>
         <?php endif; ?>
@@ -146,9 +150,13 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
         </div>
 
         <?php if ($contentType === 'home'): ?>
-            <?php include dirname(__DIR__) . '/app-sections/active-now-section.php'; ?>
+            <div id="active-now-sidebar" class="hidden lg:flex">
+                <?php include dirname(__DIR__) . '/app-sections/active-now-section.php'; ?>
+            </div>
         <?php elseif ($contentType === 'server'): ?>
-            <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
+            <div id="participant-sidebar" class="hidden xl:flex">
+                <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
+            </div>
         <?php elseif ($contentType === 'dm'): ?>
             <?php 
             $chatType = $GLOBALS['chatType'] ?? 'direct';
@@ -164,13 +172,97 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
             
             if ($isGroupChat):
             ?>
-                <?php include dirname(__DIR__) . '/app-sections/group-chat-participant-section.php'; ?>
+                <div id="group-participant-sidebar" class="hidden lg:flex">
+                    <?php include dirname(__DIR__) . '/app-sections/group-chat-participant-section.php'; ?>
+                </div>
             <?php else: ?>
-                <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
+                <div id="dm-participant-sidebar" class="hidden lg:flex">
+                    <?php include dirname(__DIR__) . '/app-sections/participant-section.php'; ?>
+                </div>
             <?php endif; ?>
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileOverlay = document.getElementById('mobile-overlay');
+    const channelSidebar = document.getElementById('channel-sidebar');
+    const participantSidebar = document.getElementById('participant-sidebar');
+    
+    function showChannelSidebar() {
+        if (channelSidebar) {
+            channelSidebar.classList.remove('hidden');
+            channelSidebar.classList.add('fixed', 'inset-y-0', 'left-16', 'z-50', 'md:relative', 'md:left-0', 'md:z-auto');
+            mobileOverlay.classList.remove('hidden');
+        }
+    }
+    
+    function hideChannelSidebar() {
+        if (channelSidebar) {
+            channelSidebar.classList.add('hidden');
+            channelSidebar.classList.remove('fixed', 'inset-y-0', 'left-16', 'z-50');
+            mobileOverlay.classList.add('hidden');
+        }
+    }
+    
+    function showParticipantSidebar() {
+        if (participantSidebar) {
+            participantSidebar.classList.remove('hidden');
+            participantSidebar.classList.add('fixed', 'inset-y-0', 'right-0', 'z-50', 'xl:relative', 'xl:z-auto');
+            mobileOverlay.classList.remove('hidden');
+        }
+    }
+    
+    function hideParticipantSidebar() {
+        if (participantSidebar) {
+            participantSidebar.classList.add('hidden');
+            participantSidebar.classList.remove('fixed', 'inset-y-0', 'right-0', 'z-50');
+            mobileOverlay.classList.add('hidden');
+        }
+    }
+    
+    if (mobileOverlay) {
+        mobileOverlay.addEventListener('click', function() {
+            hideChannelSidebar();
+            hideParticipantSidebar();
+        });
+    }
+    
+    window.toggleChannelSidebar = function() {
+        if (channelSidebar && channelSidebar.classList.contains('hidden')) {
+            showChannelSidebar();
+        } else {
+            hideChannelSidebar();
+        }
+    };
+    
+    window.toggleParticipantSidebar = function() {
+        if (participantSidebar && participantSidebar.classList.contains('hidden')) {
+            showParticipantSidebar();
+        } else {
+            hideParticipantSidebar();
+        }
+    };
+    
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 768) {
+            hideChannelSidebar();
+            if (channelSidebar) {
+                channelSidebar.classList.remove('hidden');
+                channelSidebar.classList.add('md:flex');
+            }
+        }
+        if (window.innerWidth >= 1280) {
+            hideParticipantSidebar();
+            if (participantSidebar) {
+                participantSidebar.classList.remove('hidden');
+                participantSidebar.classList.add('xl:flex');
+            }
+        }
+    });
+});
+</script>
 
 <style>
 .main-content-area {
@@ -199,5 +291,41 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
     position: relative;
     height: 100vh;
     overflow: hidden;
+}
+
+@media (max-width: 767px) {
+    #channel-sidebar.fixed {
+        width: 240px;
+        background-color: #2f3136;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+    }
+    
+    #participant-sidebar.fixed {
+        width: 240px;
+        background-color: #2f3136;
+        box-shadow: -8px 0 16px rgba(0, 0, 0, 0.24);
+    }
+}
+
+@media (min-width: 768px) {
+    #channel-sidebar {
+        display: flex !important;
+        position: relative !important;
+        left: auto !important;
+        z-index: auto !important;
+    }
+}
+
+@media (min-width: 1280px) {
+    #participant-sidebar {
+        display: flex !important;
+        position: relative !important;
+        right: auto !important;
+        z-index: auto !important;
+    }
+}
+
+#mobile-overlay {
+    backdrop-filter: blur(4px);
 }
 </style>

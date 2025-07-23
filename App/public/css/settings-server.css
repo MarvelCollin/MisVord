@@ -89,6 +89,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+@media (max-width: 768px) {
+  body {
+    padding: var(--discord-spacing-sm);
+    height: 100vh;
+    overflow-y: auto;
+  }
+}
+
 
 .flex.min-h-screen {
   margin: 0 auto;
@@ -105,6 +113,25 @@ body {
   animation: fadeIn 0.3s ease-out;
 }
 
+@media (max-width: 1024px) {
+  .flex.min-h-screen {
+    max-width: 100%;
+    height: calc(100vh - 2 * var(--discord-spacing-md));
+    border-radius: var(--discord-border-radius-secondary);
+  }
+}
+
+@media (max-width: 768px) {
+  .flex.min-h-screen {
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 2 * var(--discord-spacing-sm));
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -119,6 +146,14 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--discord-interactive-muted) transparent;
   border-radius: 0 var(--discord-border-radius-primary) var(--discord-border-radius-primary) 0;
+}
+
+@media (max-width: 768px) {
+  .flex-1.bg-discord-dark {
+    border-radius: 0;
+    height: auto;
+    overflow-y: visible;
+  }
 }
 
 .flex-1.bg-discord-dark::-webkit-scrollbar {
@@ -2246,6 +2281,25 @@ textarea.form-input {
   transition: width var(--discord-animation-default) ease;
 }
 
+@media (max-width: 1024px) {
+  .w-60.bg-discord-light {
+    width: 180px;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 768px) {
+  .w-60.bg-discord-light {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(4, 4, 5, 0.2);
+    border-radius: 0;
+    height: auto;
+    flex: none;
+  }
+}
+
 .w-60.bg-discord-light nav {
   flex: 1;
   overflow-y: auto;
@@ -2400,6 +2454,26 @@ textarea.form-input {
   height: 100%;
 }
 
+@media (max-width: 1200px) {
+  .w-80.bg-discord-dark {
+    width: 280px;
+    min-width: 280px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .w-80.bg-discord-dark {
+    width: 240px;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  .w-80.bg-discord-dark {
+    display: none;
+  }
+}
+
 .server-preview-card {
   background-color: var(--discord-bg-tertiary);
   border-radius: var(--discord-border-radius-primary);
@@ -2533,6 +2607,24 @@ textarea.form-input {
   position: relative;
 }
 
+@media (max-width: 1024px) {
+  .p-10 {
+    padding: var(--discord-spacing-lg) var(--discord-spacing-xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .p-10 {
+    padding: var(--discord-spacing-md) var(--discord-spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .p-10 {
+    padding: var(--discord-spacing-sm) var(--discord-spacing-md);
+  }
+}
+
 .p-10::before {
   content: '';
   position: absolute;
@@ -2554,6 +2646,20 @@ textarea.form-input {
   max-width: 740px;
   margin: 0 auto;
   position: relative;
+}
+
+@media (max-width: 1024px) {
+  .max-w-\[740px\] {
+    max-width: 100%;
+    margin: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .max-w-\[740px\] {
+    width: 100%;
+    max-width: none;
+  }
 }
 
 .mb-8 {

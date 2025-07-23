@@ -73,7 +73,7 @@ if (!$chatType) {
         $serverChannels = $GLOBALS['serverChannels'] ?? [];
 
         if (!isset($currentServer) || empty($currentServer)) {
-            echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-lg">Select a server to view channels</div>';
+            echo '<div class="flex-1 bg-[#313338] flex items-center justify-center text-white text-base sm:text-lg px-4 text-center">Select a server to view channels</div>';
             return;
         }
 
@@ -270,9 +270,15 @@ if (!function_exists('renderMessage')) {
 .bubble-message-group {
     position: relative;
     display: flex;
-    padding: 2px 16px;
+    padding: 2px 8px;
     margin-top: 17px;
     transition: background-color 0.1s ease;
+}
+
+@media (min-width: 640px) {
+    .bubble-message-group {
+        padding: 2px 16px;
+    }
 }
 
 .bubble-message-group:hover {
@@ -280,12 +286,20 @@ if (!function_exists('renderMessage')) {
 }
 
 .bubble-avatar {
-    width: 40px;
-    height: 40px;
-    margin-right: 16px;
+    width: 32px;
+    height: 32px;
+    margin-right: 12px;
     flex-shrink: 0;
     border-radius: 50%;
     overflow: hidden;
+}
+
+@media (min-width: 640px) {
+    .bubble-avatar {
+        width: 40px;
+        height: 40px;
+        margin-right: 16px;
+    }
 }
 
 .bubble-avatar img {
@@ -632,9 +646,15 @@ if (!function_exists('renderMessage')) {
 
 <div class="flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden">
     <?php if ($chatType): ?>
-    <div class="h-12 min-h-[48px] px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
-        <i id="channel-icon" class="<?php echo $chatIcon; ?> text-[#949ba4] mr-2"></i>
-        <span id="channel-name" class="font-semibold text-white"><?php echo htmlspecialchars($chatTitle); ?></span>
+    <div class="h-12 min-h-[48px] px-2 sm:px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
+        <button id="mobile-channel-menu" class="md:hidden mr-2 p-1 text-[#949ba4] hover:text-white rounded" onclick="window.toggleChannelSidebar && window.toggleChannelSidebar()">
+            <i class="fas fa-bars text-sm"></i>
+        </button>
+        <i id="channel-icon" class="<?php echo $chatIcon; ?> text-[#949ba4] mr-1 sm:mr-2 text-sm sm:text-base"></i>
+        <span id="channel-name" class="font-semibold text-white text-sm sm:text-base truncate flex-1"><?php echo htmlspecialchars($chatTitle); ?></span>
+        <button id="mobile-participant-menu" class="xl:hidden ml-2 p-1 text-[#949ba4] hover:text-white rounded" onclick="window.toggleParticipantSidebar && window.toggleParticipantSidebar()">
+            <i class="fas fa-users text-sm"></i>
+        </button>
     </div>
     <?php endif; ?>
 
@@ -644,20 +664,20 @@ if (!function_exists('renderMessage')) {
                 <div class="text-xs text-[#b9bbbe] text-center mb-4">
                     <i class="fas fa-spinner fa-spin mr-2"></i>Loading older messages...
                 </div>
-                <div class="flex items-start space-x-3 px-4">
-                    <div class="w-8 h-8 bg-[#4f545c] rounded-full skeleton"></div>
-                    <div class="flex-1 space-y-2">
-                        <div class="flex items-center space-x-2">
-                            <div class="h-3 bg-[#4f545c] rounded w-20 skeleton"></div>
-                            <div class="h-2 bg-[#4f545c] rounded w-16 skeleton"></div>
+                <div class="flex items-start space-x-2 sm:space-x-3 px-2 sm:px-4">
+                    <div class="w-6 sm:w-8 h-6 sm:h-8 bg-[#4f545c] rounded-full skeleton"></div>
+                    <div class="flex-1 space-y-1 sm:space-y-2">
+                        <div class="flex items-center space-x-1 sm:space-x-2">
+                            <div class="h-2 sm:h-3 bg-[#4f545c] rounded w-16 sm:w-20 skeleton"></div>
+                            <div class="h-1.5 sm:h-2 bg-[#4f545c] rounded w-12 sm:w-16 skeleton"></div>
                         </div>
-                        <div class="h-3 bg-[#4f545c] rounded w-3/4 skeleton"></div>
-                        <div class="h-3 bg-[#4f545c] rounded w-1/2 skeleton"></div>
+                        <div class="h-2 sm:h-3 bg-[#4f545c] rounded w-2/3 sm:w-3/4 skeleton"></div>
+                        <div class="h-2 sm:h-3 bg-[#4f545c] rounded w-1/2 skeleton"></div>
                     </div>
                 </div>
-                <div class="flex items-start space-x-3 px-4">
-                    <div class="w-8 h-8 bg-[#4f545c] rounded-full skeleton"></div>
-                    <div class="flex-1 space-y-2">
+                <div class="flex items-start space-x-2 sm:space-x-3 px-2 sm:px-4">
+                    <div class="w-6 sm:w-8 h-6 sm:h-8 bg-[#4f545c] rounded-full skeleton"></div>
+                    <div class="flex-1 space-y-1 sm:space-y-2">
                         <div class="flex items-center space-x-2">
                             <div class="h-3 bg-[#4f545c] rounded w-24 skeleton"></div>
                             <div class="h-2 bg-[#4f545c] rounded w-16 skeleton"></div>
@@ -873,29 +893,29 @@ if (!function_exists('renderMessage')) {
     </div>
 
     <?php if ($chatType): ?>
-    <div class="px-2 py-1.5 bg-[#313338] border-t border-[#3f4147]">
+    <div class="px-1 sm:px-2 py-1.5 bg-[#313338] border-t border-[#3f4147]">
         <div id="reply-container" class="hidden"></div>
 
-        <div id="typing-indicator" class="hidden px-4 py-2 text-xs text-[#a3a6aa] bg-[#2b2d31] rounded-lg mb-2 border-l-4 border-[#5865f2] transition-all duration-200 ease-in-out">
+        <div id="typing-indicator" class="hidden px-2 sm:px-4 py-2 text-xs text-[#a3a6aa] bg-[#2b2d31] rounded-lg mb-2 border-l-4 border-[#5865f2] transition-all duration-200 ease-in-out">
             <span class="typing-animation">
                 <span class="dot">.</span><span class="dot">.</span><span class="dot">.</span>
             </span>
         </div>
 
-        <div id="file-upload-area" class="hidden mb-3 p-3 bg-[#2b2d31] rounded-lg">
+        <div id="file-upload-area" class="hidden mb-2 sm:mb-3 p-2 sm:p-3 bg-[#2b2d31] rounded-lg">
             <div class="flex items-center justify-between mb-2">
-                <span class="text-[#f2f3f5] text-sm font-medium">
-                    <i class="fas fa-paperclip mr-2"></i>
+                <span class="text-[#f2f3f5] text-xs sm:text-sm font-medium">
+                    <i class="fas fa-paperclip mr-1 sm:mr-2"></i>
                     Files (<span id="file-count">0</span>)
                 </span>
-                <button id="clear-all-files" class="text-[#ed4245] hover:text-[#dc2626] text-sm transition-colors">
+                <button id="clear-all-files" class="text-[#ed4245] hover:text-[#dc2626] text-xs sm:text-sm transition-colors">
                     <i class="fas fa-times mr-1"></i>Clear All
                 </button>
             </div>
-            <div id="file-upload-list" class="flex flex-wrap gap-3"></div>
+            <div id="file-upload-list" class="flex flex-wrap gap-2 sm:gap-3"></div>
         </div>
 
-        <form id="message-form" class="flex items-center bg-[#383a40] rounded-lg h-11 relative">
+        <form id="message-form" class="flex items-center bg-[#383a40] rounded-lg h-10 sm:h-11 relative">
             <input 
                 type="file" 
                 id="file-upload" 
@@ -904,11 +924,11 @@ if (!function_exists('renderMessage')) {
                 accept="image/*,video/*,audio/*,text/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.rar,.7z"
             >
             
-            <div class="flex items-center pr-[2px] gap-1">
+            <div class="flex items-center pr-[1px] sm:pr-[2px] gap-0.5 sm:gap-1">
                 <button
                     id="file-upload-button"
                     type="button"
-                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-1 text-lg font-bold active:scale-95"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[28px] sm:w-[32px] h-[28px] sm:h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mx-0.5 sm:mx-1 text-base sm:text-lg font-bold active:scale-95"
                     title="Upload files"
                 >
                 +
@@ -919,22 +939,22 @@ if (!function_exists('renderMessage')) {
             <div class="flex-1 flex items-center">
                 <textarea
                     id="message-input"
-                    class="block w-full bg-transparent text-[#dcddde] placeholder-[#6d6f78] border-none resize-none py-[11px] px-0 focus:outline-none min-h-[22px] max-h-[50vh] text-[16px] leading-[22px]"
+                    class="block w-full bg-transparent text-[#dcddde] placeholder-[#6d6f78] border-none resize-none py-[9px] sm:py-[11px] px-0 focus:outline-none min-h-[20px] sm:min-h-[22px] max-h-[40vh] sm:max-h-[50vh] text-[14px] sm:text-[16px] leading-[20px] sm:leading-[22px]"
                     rows="1"
                     placeholder="<?php echo htmlspecialchars($placeholder); ?>"
                     maxlength="2000"
                 ></textarea>
             </div>
 
-            <div class="flex items-center pr-[2px] gap-1">
+            <div class="flex items-center pr-[1px] sm:pr-[2px] gap-0.5 sm:gap-1">
                 <button
                     id="send-button"
                     type="submit"
-                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[32px] h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-1 opacity-50 cursor-not-allowed disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="hover:text-[#dcddde] text-[#b9bbbe] w-[28px] sm:w-[32px] h-[28px] sm:h-[32px] flex items-center justify-center rounded hover:bg-[#404249] transition-all mr-0.5 sm:mr-1 opacity-50 cursor-not-allowed disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled
                     title="Send message"
                 >
-                    <i class="fas fa-paper-plane text-sm transition-transform duration-200 hover:scale-110"></i>
+                    <i class="fas fa-paper-plane text-xs sm:text-sm transition-transform duration-200 hover:scale-110"></i>
                 </button>
             </div>
         </form>
