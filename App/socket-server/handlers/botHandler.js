@@ -489,7 +489,8 @@ class BotHandler extends EventEmitter {
                             track: searchResult
                         };
                         
-                        const playChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                        const voiceChannelId = originalMessage.voice_context?.voice_channel_id;
+                        const playChannelKey = voiceChannelId || originalMessage.channel_id || originalMessage.target_id;
                         if (playChannelKey) {
                             if (!this.musicQueues.has(playChannelKey)) {
                                 this.musicQueues.set(playChannelKey, []);
@@ -511,7 +512,8 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'stop':
-                const stopChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                const voiceChannelIdStop = originalMessage.voice_context?.voice_channel_id;
+                const stopChannelKey = voiceChannelIdStop || originalMessage.channel_id || originalMessage.target_id;
                 if (stopChannelKey && this.musicQueues.has(stopChannelKey)) {
                     const queueLength = this.musicQueues.get(stopChannelKey).length;
                     this.musicQueues.delete(stopChannelKey);
@@ -523,7 +525,8 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'next':
-                const nextChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                const voiceChannelIdNext = originalMessage.voice_context?.voice_channel_id;
+                const nextChannelKey = voiceChannelIdNext || originalMessage.channel_id || originalMessage.target_id;
                 if (nextChannelKey && this.musicQueues.has(nextChannelKey)) {
                     const queue = this.musicQueues.get(nextChannelKey);
                     if (queue.length > 1) {
@@ -571,7 +574,8 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'prev':
-                const prevChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                const voiceChannelIdPrev = originalMessage.voice_context?.voice_channel_id;
+                const prevChannelKey = voiceChannelIdPrev || originalMessage.channel_id || originalMessage.target_id;
                 if (prevChannelKey && this.musicQueues.has(prevChannelKey)) {
                     const queue = this.musicQueues.get(prevChannelKey);
                     if (queue.length > 1) {
@@ -631,7 +635,8 @@ class BotHandler extends EventEmitter {
                             track: searchResult
                         };
                         
-                        const queueChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                        const voiceChannelIdQueue = originalMessage.voice_context?.voice_channel_id;
+                        const queueChannelKey = voiceChannelIdQueue || originalMessage.channel_id || originalMessage.target_id;
                         if (queueChannelKey) {
                             if (!this.musicQueues.has(queueChannelKey)) {
                                 this.musicQueues.set(queueChannelKey, []);
@@ -650,7 +655,8 @@ class BotHandler extends EventEmitter {
                 break;
 
             case 'list':
-                const listChannelKey = originalMessage.channel_id || originalMessage.target_id;
+                const voiceChannelIdList = originalMessage.voice_context?.voice_channel_id;
+                const listChannelKey = voiceChannelIdList || originalMessage.channel_id || originalMessage.target_id;
                 const queue = this.musicQueues.get(listChannelKey) || [];
                 
                 if (queue.length === 0) {
@@ -698,11 +704,13 @@ class BotHandler extends EventEmitter {
             originalChannelId: originalMessage.channel_id,
             originalRoomId: originalMessage.room_id,
             originalTargetType: originalMessage.target_type,
-            originalTargetId: originalMessage.target_id
+            originalTargetId: originalMessage.target_id,
+            voiceContext: originalMessage.voice_context
         });
         
         const channelId = originalMessage.channel_id || (originalMessage.target_type === 'channel' ? originalMessage.target_id : null);
         const roomId = originalMessage.room_id || (originalMessage.target_type === 'dm' ? originalMessage.target_id : null);
+        const voiceChannelId = originalMessage.voice_context?.voice_channel_id;
 
         const targetType = messageType === 'channel' ? 'channel' : 'dm';
         const targetId = messageType === 'channel' ? channelId : roomId;
@@ -711,7 +719,8 @@ class BotHandler extends EventEmitter {
             targetType,
             targetId,
             channelId,
-            roomId
+            roomId,
+            voiceChannelId
         });
         
         const temp_message_id = `bot-temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -953,41 +962,41 @@ class BotHandler extends EventEmitter {
                 io.to(targetRoom).emit('message_id_updated', updateData);
 
                 if (musicData) {
+                    const musicChannelId = voiceChannelId || channelId;
                     const musicCommandData = {
-                        channel_id: channelId,
+                        channel_id: musicChannelId,
                         room_id: roomId,
                         music_data: musicData,
                         bot_id: botId,
                         timestamp: Date.now()
                     };
                     
-                    console.log(`🎵 [BOT-DEBUG] Sending music command to all voice participants:`, {
+                    console.log(`🎵 [BOT-DEBUG] Sending music command to voice channel participants:`, {
                         targetRoom,
-                        channelId,
-                        roomId,
+                        textChannelId: channelId,
+                        voiceChannelId: voiceChannelId,
+                        musicChannelId: musicChannelId,
                         action: musicData.action
                     });
                     
                     io.to(targetRoom).emit('bot-music-command', musicCommandData);
                     
-                    if (channelId) {
-                        const voiceChannelRoom = `voice_channel_${channelId}`;
-                        const channelRoom = `channel-${channelId}`;
+                    if (musicChannelId) {
+                        const voiceChannelRoom = `voice_channel_${musicChannelId}`;
+                        const channelRoom = `channel-${musicChannelId}`;
                         
                         io.to(voiceChannelRoom).emit('bot-music-command', musicCommandData);
                         io.to(channelRoom).emit('bot-music-command', musicCommandData);
                         
                         const VoiceConnectionTracker = require('../services/voiceConnectionTracker');
-                        const participants = VoiceConnectionTracker.getChannelParticipants(channelId);
+                        const participants = VoiceConnectionTracker.getChannelParticipants(musicChannelId);
                         
-                        console.log(`🎵 [BOT-DEBUG] Found ${participants.length} participants in channel ${channelId}:`, 
+                        console.log(`🎵 [BOT-DEBUG] Found ${participants.length} participants in voice channel ${musicChannelId}:`, 
                             participants.map(p => ({ userId: p.userId, username: p.username, socketId: p.socket_id }))
                         );
                         
                         participants.forEach(participant => {
                             if (participant.userId && participant.userId !== botId.toString()) {
-                                
-                                
                                 const userSockets = require('../services/roomManager').userSockets.get(participant.userId.toString());
                                 if (userSockets && userSockets.size > 0) {
                                     userSockets.forEach(socketId => {

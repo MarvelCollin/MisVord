@@ -472,8 +472,13 @@ class MusicPlayerSystem {
             action: data.music_data?.action
         });
 
-        if (data.channel_id) {
+        const voiceChannelId = this.getUserVoiceChannelId();
+        if (voiceChannelId) {
+            this.channelId = voiceChannelId;
+            console.log('🎵 [MUSIC-PLAYER] Using voice channel ID:', voiceChannelId);
+        } else if (data.channel_id) {
             this.channelId = data.channel_id;
+            console.log('🎵 [MUSIC-PLAYER] Fallback to command channel ID:', data.channel_id);
         }
         
         if (!this.initialized) {
@@ -624,6 +629,15 @@ class MusicPlayerSystem {
             return;
         }
         
+        const voiceChannelId = this.getUserVoiceChannelId();
+        if (voiceChannelId && data.channel_id !== voiceChannelId) {
+            console.log('🎵 [MUSIC-PLAYER] Music state sync for different voice channel, ignoring:', {
+                syncChannelId: data.channel_id,
+                userVoiceChannelId: voiceChannelId
+            });
+            return;
+        }
+        
         console.log('🎵 [MUSIC-PLAYER] Processing music state sync:', {
             action: data.action,
             channelId: data.channel_id
@@ -672,11 +686,20 @@ class MusicPlayerSystem {
             return;
         }
         
+        const voiceChannelId = this.getUserVoiceChannelId();
+        if (voiceChannelId && data.channel_id !== voiceChannelId) {
+            console.log('🎵 [MUSIC-PLAYER] Music state request for different voice channel, ignoring:', {
+                requestChannelId: data.channel_id,
+                userVoiceChannelId: voiceChannelId
+            });
+            return;
+        }
+        
         console.log('🎵 [MUSIC-PLAYER] Processing music state request from channel:', data.channel_id);
         
         if (this.isPlaying && this.currentSong && window.globalSocketManager?.io) {
             const musicCommandData = {
-                channel_id: data.channel_id,
+                channel_id: voiceChannelId || data.channel_id,
                 music_data: {
                     action: 'play',
                     track: this.currentSong
@@ -705,6 +728,15 @@ class MusicPlayerSystem {
         
         if (!this.isUserInAnyVoiceChannel()) {
             console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring sync music state');
+            return;
+        }
+        
+        const voiceChannelId = this.getUserVoiceChannelId();
+        if (voiceChannelId && data.channel_id !== voiceChannelId) {
+            console.log('🎵 [MUSIC-PLAYER] Sync music state for different voice channel, ignoring:', {
+                syncChannelId: data.channel_id,
+                userVoiceChannelId: voiceChannelId
+            });
             return;
         }
         
@@ -1738,6 +1770,49 @@ class MusicPlayerSystem {
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error checking voice channel status:', error);
             return true;
+        }
+    }
+
+    getUserVoiceChannelId() {
+        try {
+            if (window.voiceManager && window.voiceManager.isConnected && window.voiceManager.currentChannelId) {
+                console.log('🎵 [MUSIC-PLAYER] Getting voice channel ID from voice manager:', window.voiceManager.currentChannelId);
+                return window.voiceManager.currentChannelId;
+            }
+
+            if (window.localStorageManager) {
+                const voiceState = window.localStorageManager.getUnifiedVoiceState();
+                if (voiceState && voiceState.isConnected && voiceState.channelId) {
+                    console.log('🎵 [MUSIC-PLAYER] Getting voice channel ID from storage state:', voiceState.channelId);
+                    return voiceState.channelId;
+                }
+            }
+
+            if (window.voiceCallSection && window.voiceCallSection.currentChannelId) {
+                console.log('🎵 [MUSIC-PLAYER] Getting voice channel ID from voice call section:', window.voiceCallSection.currentChannelId);
+                return window.voiceCallSection.currentChannelId;
+            }
+
+            if (window.voiceFacade) {
+                const currentState = window.voiceFacade.getCurrentState();
+                if (currentState && currentState.isConnected && currentState.channelId) {
+                    console.log('🎵 [MUSIC-PLAYER] Getting voice channel ID from voice facade:', currentState.channelId);
+                    return currentState.channelId;
+                }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlChannelId = urlParams.get('channel');
+            const urlChannelType = urlParams.get('type');
+            if (urlChannelType === 'voice' && urlChannelId) {
+                console.log('🎵 [MUSIC-PLAYER] Getting voice channel ID from URL:', urlChannelId);
+                return urlChannelId;
+            }
+
+            return null;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error getting voice channel ID:', error);
+            return null;
         }
     }
 
