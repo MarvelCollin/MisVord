@@ -187,11 +187,11 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                     <h3 class="text-xs uppercase font-semibold text-gray-400 mt-4 mb-2">Outgoing Friend Requests — <?php echo count($sentRequests); ?></h3>
                     <div class="space-y-2">
                         <?php foreach ($sentRequests as $request): ?>
-                            <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item" 
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item space-y-3 sm:space-y-0" 
                                  data-username="<?php echo htmlspecialchars($request['username']); ?>"
                                  data-display-name="<?php echo htmlspecialchars($request['display_name'] ?? $request['username']); ?>">
-                                <div class="flex items-center">
-                                    <div class="relative mr-3">
+                                <div class="flex items-center w-full sm:w-auto">
+                                    <div class="relative mr-3 flex-shrink-0">
                                         <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                             <img src="<?php echo htmlspecialchars($request['avatar_url'] ?? ''); ?>" 
                                                  alt="<?php echo htmlspecialchars($request['display_name'] ?? $request['username'] ?? 'User'); ?>" 
@@ -204,8 +204,8 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                                         <div class="text-xs text-gray-400">Outgoing Friend Request</div>
                                     </div>
                                 </div>
-                                <div>
-                                    <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors"
+                                <div class="w-full sm:w-auto">
+                                    <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors w-full sm:w-auto"
                                             onclick="cancelFriendRequest('<?php echo htmlspecialchars($request['id']); ?>')">Cancel</button>
                                 </div>
                             </div>
@@ -227,17 +227,17 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
     </div>
     
     <div class="tab-content <?php echo $activeTab === 'add-friend' ? '' : 'hidden'; ?>" id="add-friend-tab">
-        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
+        <div class="flex-1 p-3 lg:p-4 overflow-y-auto bg-discord-background">
             <h2 class="text-white font-bold text-lg mb-2">Add Friend</h2>
             <p class="text-gray-400 text-sm mb-4">You can add friends with their MisVord username or full username#discriminator.</p>
             
             <div class="bg-discord-dark p-4 rounded">
                 <div class="border-b border-gray-700 pb-4">
                     <label class="text-gray-400 text-sm uppercase font-medium">Add Friend</label>
-                    <form id="friend-request-form" class="flex mt-2 gap-2">
-                        <input type="text" class="flex-1 bg-discord-dark text-white px-3 py-2 rounded-l border border-gray-700 focus:outline-none focus:ring-1 focus:ring-discord-primary" 
+                    <form id="friend-request-form" class="flex flex-col sm:flex-row mt-2 gap-2">
+                        <input type="text" class="flex-1 bg-discord-dark text-white px-3 py-2 rounded border border-gray-700 focus:outline-none focus:ring-1 focus:ring-discord-primary" 
                                placeholder="Username#XXXX" id="friend-username-input">
-                        <button type="submit" class="bg-discord-primary hover:bg-discord-primary/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded-r font-medium text-sm transition-colors" id="send-friend-request">
+                        <button type="submit" class="bg-discord-primary hover:bg-discord-primary/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white px-4 py-2 rounded font-medium text-sm transition-colors w-full sm:w-auto" id="send-friend-request">
                             Send Friend Request
                         </button>
                     </form>

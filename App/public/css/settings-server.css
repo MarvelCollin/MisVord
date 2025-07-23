@@ -102,8 +102,7 @@ body {
   margin: 0 auto;
   width: 100%;
   max-width: 1260px;
-  height: calc(100vh - 2 * var(--discord-spacing-lg));
-  overflow: hidden;
+  min-height: calc(100vh - 80px);
   display: flex;
   box-shadow: var(--discord-elevation-high);
   border-radius: var(--discord-border-radius-primary);
@@ -116,19 +115,20 @@ body {
 @media (max-width: 1024px) {
   .flex.min-h-screen {
     max-width: 100%;
-    height: calc(100vh - 2 * var(--discord-spacing-md));
+    min-height: calc(100vh - 60px);
     border-radius: var(--discord-border-radius-secondary);
+    margin: 0 16px;
   }
 }
 
 @media (max-width: 768px) {
   .flex.min-h-screen {
     flex-direction: column;
-    height: auto;
-    min-height: calc(100vh - 2 * var(--discord-spacing-sm));
+    min-height: calc(100vh - 40px);
     border-radius: 0;
     box-shadow: none;
     border: none;
+    margin: 0 8px;
   }
 }
 
@@ -142,7 +142,7 @@ body {
   flex: 1;
   background-color: var(--discord-bg-primary);
   overflow-y: auto;
-  height: 100%;
+  min-height: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--discord-interactive-muted) transparent;
   border-radius: 0 var(--discord-border-radius-primary) var(--discord-border-radius-primary) 0;
@@ -179,6 +179,84 @@ body {
 .form-group {
   margin-bottom: var(--discord-spacing-lg);
   transition: transform var(--discord-animation-default) ease-out;
+}
+
+.space-y-8 > * + * {
+  margin-top: 2rem;
+}
+
+.space-y-6 > * + * {
+  margin-top: 1.5rem;
+}
+
+.space-y-4 > * + * {
+  margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .sm\\:flex {
+    display: flex;
+  }
+  
+  .sm\\:flex-row {
+    flex-direction: row;
+  }
+  
+  .sm\\:justify-around {
+    justify-content: space-around;
+  }
+  
+  .sm\\:px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .sm\\:flex-1 {
+    flex: 1 1 0%;
+  }
+  
+  .sm\\:text-center {
+    text-align: center;
+  }
+  
+  .sm\\:px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  .sm\\:text-xs {
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+  
+  .sm\\:mt-0 {
+    margin-top: 0;
+  }
+  
+  .sm\\:hidden {
+    display: none;
+  }
+  
+  .sm\\:pb-0 {
+    padding-bottom: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\\:text-sm {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+  
+  .lg\\:w-60 {
+    width: 15rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .md\\:w-48 {
+    width: 12rem;
+  }
 }
 
 .form-group:last-child {
@@ -291,8 +369,10 @@ body {
   box-shadow: var(--discord-elevation-low);
   transition: transform var(--discord-animation-default) ease, box-shadow var(--discord-animation-default) ease;
   border: 1px solid rgba(4, 4, 5, 0.2);
-  overflow: hidden;
+  overflow: visible;
   margin-top: var(--discord-spacing-lg);
+  display: block;
+  width: 100%;
 }
 
 .bg-discord-darker:hover {
@@ -979,9 +1059,40 @@ a:active {
   }
   
   .w-60.bg-discord-light {
-    width: 200px;
-    min-width: 200px;
+    width: 100%;
+    min-width: 100%;
     border-radius: 0;
+    border-right: none;
+    border-bottom: 1px solid rgba(4, 4, 5, 0.2);
+  }
+  
+  .w-60.bg-discord-light nav ul {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0 16px;
+    margin: 0;
+  }
+  
+  .w-60.bg-discord-light nav ul li {
+    flex: 1;
+    margin-top: 0;
+  }
+  
+  .w-60.bg-discord-light .sidebar-category {
+    display: none;
+  }
+  
+  .w-60.bg-discord-light .sidebar-item {
+    text-align: center;
+    padding: 8px;
+    margin: 2px 4px;
+    font-size: 12px;
+    justify-content: center;
+  }
+  
+  .w-60.bg-discord-light .sidebar-item span {
+    font-size: 12px;
   }
   
   .flex-1.bg-discord-dark {
@@ -2386,14 +2497,14 @@ textarea.form-input {
 
 
 .w-60.bg-discord-light {
-  width: 218px;
-  min-width: 218px;
+  width: 240px;
+  min-width: 240px;
   background-color: var(--discord-bg-secondary);
   border-right: 1px solid rgba(4, 4, 5, 0.2);
   border-radius: var(--discord-border-radius-primary) 0 0 var(--discord-border-radius-primary);
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 0;
   overflow: hidden;
   position: relative;
   transition: width var(--discord-animation-default) ease;
@@ -2578,7 +2689,7 @@ textarea.form-input {
   padding: var(--discord-spacing-md);
   display: flex;
   flex-direction: column;
-  height: 100%;
+  min-height: 0;
 }
 
 @media (max-width: 1200px) {
@@ -2732,6 +2843,7 @@ textarea.form-input {
 .p-10 {
   padding: var(--discord-spacing-xl) var(--discord-spacing-xxl);
   position: relative;
+  width: 100%;
 }
 
 @media (max-width: 1024px) {

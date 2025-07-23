@@ -5,14 +5,114 @@
 .friend-item:hover {
   background-color: rgba(79, 84, 92, 0.16);
 }
+.search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #72767d;
+  font-size: 14px;
+}
 
-.friend-actions {
+#mobile-sidebar-toggle {
+  transition: all 0.2s ease;
+}
+
+#mobile-sidebar-toggle:hover {
+  background-color: rgba(79, 84, 92, 0.16);
+}
+
+#friends-menu-toggle {
+  transition: all 0.2s ease;
+}
+
+#friends-menu-toggle:hover {
+  background-color: rgba(79, 84, 92, 0.16);
+}
+
+#friends-menu-toggle i {
+  transition: transform 0.2s ease;
+}
+
+#dm-sidebar.fixed {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+#mobile-overlay {
+  transition: opacity 0.3s ease;
+}
+
+#friends-mobile-menu {
+  transform-origin: top;
+  backface-visibility: hidden;
+}
+
+.friends-desktop-tabs button,
+#friends-mobile-menu button {
+  transition: all 0.2s ease;
+}
+
+.tab-content {
+  transition: opacity 0.2s ease;
+}
+
+@media (max-width: 1024px) {
+  #dm-sidebar {
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  #dm-sidebar.hidden {
+    transform: translateX(-100%);
+  }
+  
+  .friends-desktop-tabs {
+    display: none !important;
+  }
+  
+  #friends-mobile-menu {
+    border-top: 1px solid rgba(79, 84, 92, 0.3);
+  }
+}
+
+@media (max-width: 640px) {
+  .friend-item {
+    padding: 12px;
+  }
+  
+  .friend-item .flex.flex-col {
+    gap: 12px;
+  }
+  
+  .friend-item .w-10.h-10 {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .search-container {
+    margin-bottom: 16px;
+  }
+  
+  .tab-content {
+    padding: 12px;
+  }
+  
+  .profile-card {
+    width: calc(100vw - 32px);
+    max-width: 280px;
+  }
+}-actions {
   opacity: 0;
   transition: opacity 0.2s ease-out;
 }
 
 .friend-item:hover .friend-actions {
   opacity: 1;
+}
+
+@media (max-width: 1024px) {
+  .friend-actions {
+    opacity: 1;
+  }
 }
 
 .profile-card {
@@ -25,6 +125,14 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
   z-index: 10;
   overflow: visible;
+}
+
+@media (max-width: 768px) {
+  .profile-card {
+    width: 280px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 .profile-header {

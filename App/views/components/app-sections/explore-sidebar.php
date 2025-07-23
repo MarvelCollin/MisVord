@@ -1,13 +1,14 @@
 <?php
 $categories = $GLOBALS['categories'] ?? [];
 $servers = $GLOBALS['servers'] ?? [];
+$allServers = $GLOBALS['allServers'] ?? $servers;
 
 $categoryCounts = [];
 foreach ($categories as $key => $name) {
     $categoryCounts[$key] = 0;
 }
 
-foreach ($servers as $server) {
+foreach ($allServers as $server) {
     $serverCategory = $server['category'] ?? '';
     if ($serverCategory && isset($categoryCounts[$serverCategory])) {
         $categoryCounts[$serverCategory]++;
@@ -19,6 +20,9 @@ foreach ($servers as $server) {
 
     <div class="px-4 pt-4 flex items-center justify-between">
         <h3 class="uppercase text-discord-lighter font-semibold text-xs tracking-wider">Categories</h3>
+        <button id="mobile-explore-sidebar-close" class="lg:hidden p-1 text-gray-400 hover:text-white rounded" onclick="document.getElementById('explore-sidebar-overlay').click()">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
 
     <div class="px-2 mt-1 flex-grow overflow-y-auto">
@@ -28,7 +32,7 @@ foreach ($servers as $server) {
                 <i class="fas fa-globe"></i>
             </div>
             <span class="font-medium">All Servers</span>
-            <span class="ml-auto text-xs bg-discord-darker px-2 py-1 rounded misvord-category-count misvord-category-count-skeleton" data-count="<?php echo count($servers); ?>"></span>
+            <span class="ml-auto text-xs bg-discord-darker px-2 py-1 rounded misvord-category-count misvord-category-count-skeleton" data-count="<?php echo count($allServers); ?>"></span>
         </div>
 
         <?php foreach ($categories as $key => $name): ?>

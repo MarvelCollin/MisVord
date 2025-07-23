@@ -33,7 +33,20 @@ class FriendsTabManager {
         document.addEventListener('click', (e) => {
             const mobileToggle = e.target.closest('#friends-menu-toggle');
             if (mobileToggle) {
+                e.preventDefault();
+                e.stopPropagation();
                 this.toggleMobileMenu();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const friendsMenuToggle = document.getElementById('friends-menu-toggle');
+            const friendsMobileMenu = document.getElementById('friends-mobile-menu');
+            
+            if (friendsMenuToggle && friendsMobileMenu && 
+                !friendsMenuToggle.contains(e.target) && 
+                !friendsMobileMenu.contains(e.target)) {
+                this.hideMobileMenu();
             }
         });
     }
@@ -148,6 +161,8 @@ class FriendsTabManager {
         [...desktopTabs, ...mobileTabs].forEach(tab => {
             const tabName = tab.getAttribute('data-tab');
             
+            tab.style.transition = 'all 0.2s ease';
+            
             if (tabName === this.activeTab) {
                 if (tabName === 'add-friend') {
                     tab.className = 'bg-discord-green hover:bg-discord-green/90 text-white px-3 py-1 rounded';
@@ -176,9 +191,22 @@ class FriendsTabManager {
             const element = document.querySelector(selector);
             if (element) {
                 if (tabName === this.activeTab) {
+                    element.style.transition = 'opacity 0.2s ease-in';
                     element.classList.remove('hidden');
+                    element.style.opacity = '0';
+                    
+                    requestAnimationFrame(() => {
+                        element.style.opacity = '1';
+                    });
                 } else {
-                    element.classList.add('hidden');
+                    element.style.transition = 'opacity 0.15s ease-out';
+                    element.style.opacity = '0';
+                    
+                    setTimeout(() => {
+                        element.classList.add('hidden');
+                        element.style.opacity = '';
+                        element.style.transition = '';
+                    }, 150);
                 }
             }
         });
@@ -195,15 +223,69 @@ class FriendsTabManager {
 
     toggleMobileMenu() {
         const mobileMenu = document.getElementById('friends-mobile-menu');
-        if (mobileMenu) {
-            mobileMenu.classList.toggle('hidden');
+        const friendsMenuToggle = document.getElementById('friends-menu-toggle');
+        
+        if (mobileMenu && friendsMenuToggle) {
+            const isHidden = mobileMenu.classList.contains('hidden');
+            const icon = friendsMenuToggle.querySelector('i');
+            
+            if (isHidden) {
+                mobileMenu.classList.remove('hidden');
+                mobileMenu.style.transform = 'translateY(-10px)';
+                mobileMenu.style.opacity = '0';
+                
+                requestAnimationFrame(() => {
+                    mobileMenu.style.transition = 'transform 0.2s ease-out, opacity 0.2s ease-out';
+                    mobileMenu.style.transform = 'translateY(0)';
+                    mobileMenu.style.opacity = '1';
+                });
+                
+                if (icon) {
+                    icon.classList.remove('fa-chevron-down');
+                    icon.classList.add('fa-chevron-up');
+                }
+            } else {
+                mobileMenu.style.transition = 'transform 0.2s ease-in, opacity 0.2s ease-in';
+                mobileMenu.style.transform = 'translateY(-10px)';
+                mobileMenu.style.opacity = '0';
+                
+                setTimeout(() => {
+                    mobileMenu.classList.add('hidden');
+                    mobileMenu.style.transform = '';
+                    mobileMenu.style.opacity = '';
+                    mobileMenu.style.transition = '';
+                }, 200);
+                
+                if (icon) {
+                    icon.classList.remove('fa-chevron-up');
+                    icon.classList.add('fa-chevron-down');
+                }
+            }
         }
     }
 
     hideMobileMenu() {
         const mobileMenu = document.getElementById('friends-mobile-menu');
-        if (mobileMenu) {
-            mobileMenu.classList.add('hidden');
+        const friendsMenuToggle = document.getElementById('friends-menu-toggle');
+        
+        if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+            const icon = friendsMenuToggle?.querySelector('i');
+            
+            mobileMenu.style.transition = 'transform 0.2s ease-in, opacity 0.2s ease-in';
+            mobileMenu.style.transform = 'translateY(-10px)';
+            mobileMenu.style.opacity = '0';
+            
+            setTimeout(() => {
+                mobileMenu.classList.add('hidden');
+                mobileMenu.style.transform = '';
+                mobileMenu.style.opacity = '';
+                mobileMenu.style.transition = '';
+            }, 200);
+            
+            if (icon) {
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
         }
     }
 }

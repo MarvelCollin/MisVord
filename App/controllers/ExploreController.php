@@ -162,6 +162,11 @@ class ExploreController extends BaseController
         $servers = $initialData['servers'];
         $userServerIds = $this->getUserServerIds($currentUserId);
 
+        $allServers = $this->serverRepository->getPublicServersWithMemberCount();
+        $allServersArray = array_map(function($server) {
+            return is_array($server) ? $server : (array) $server;
+        }, $allServers);
+
         $categories = [
             'gaming' => 'Gaming',
             'music' => 'Music',
@@ -174,6 +179,7 @@ class ExploreController extends BaseController
         return [
             'userServers' => $userServers,
             'servers' => $servers,
+            'allServers' => $allServersArray,
             'userServerIds' => $userServerIds,
             'categories' => $categories,
             'currentUserId' => $currentUserId,

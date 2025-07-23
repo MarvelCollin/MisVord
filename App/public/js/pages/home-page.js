@@ -4,7 +4,68 @@ document.addEventListener('DOMContentLoaded', function() {
     initFriendProfileCards();
     initSearchFilter();
     setupUniqueSocketListeners();
+    initMobileSidebar();
 });
+
+function initMobileSidebar() {
+    const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+    const dmSidebar = document.getElementById('dm-sidebar');
+    const mobileOverlay = document.getElementById('mobile-overlay');
+    
+    if (mobileSidebarToggle && dmSidebar && mobileOverlay) {
+        mobileSidebarToggle.addEventListener('click', function() {
+            dmSidebar.classList.remove('hidden');
+            dmSidebar.classList.add('flex', 'fixed', 'inset-y-0', 'left-0', 'z-50');
+            dmSidebar.style.width = '240px';
+            dmSidebar.style.transform = 'translateX(-100%)';
+            dmSidebar.style.transition = 'transform 0.3s ease-out';
+            
+            mobileOverlay.classList.remove('hidden');
+            mobileOverlay.style.opacity = '0';
+            mobileOverlay.style.transition = 'opacity 0.3s ease-out';
+            
+            requestAnimationFrame(() => {
+                dmSidebar.style.transform = 'translateX(0)';
+                mobileOverlay.style.opacity = '1';
+            });
+        });
+        
+        mobileOverlay.addEventListener('click', function() {
+            closeMobileSidebar();
+        });
+        
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeMobileSidebar();
+            }
+        });
+    }
+}
+
+function closeMobileSidebar() {
+    const dmSidebar = document.getElementById('dm-sidebar');
+    const mobileOverlay = document.getElementById('mobile-overlay');
+    
+    if (dmSidebar && mobileOverlay) {
+        dmSidebar.style.transition = 'transform 0.3s ease-in';
+        dmSidebar.style.transform = 'translateX(-100%)';
+        
+        mobileOverlay.style.transition = 'opacity 0.3s ease-in';
+        mobileOverlay.style.opacity = '0';
+        
+        setTimeout(() => {
+            dmSidebar.classList.remove('flex', 'fixed', 'inset-y-0', 'left-0', 'z-50');
+            dmSidebar.classList.add('hidden');
+            dmSidebar.style.width = '';
+            dmSidebar.style.transform = '';
+            dmSidebar.style.transition = '';
+            
+            mobileOverlay.classList.add('hidden');
+            mobileOverlay.style.opacity = '';
+            mobileOverlay.style.transition = '';
+        }, 300);
+    }
+}
 
 function initFriendProfileCards() {
     const friendItems = document.querySelectorAll('.friend-item');

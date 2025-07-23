@@ -24,12 +24,14 @@ $exploreData = $exploreController->prepareExploreData();
 
 $userServers = $exploreData['userServers'];
 $servers = $exploreData['servers'];
+$allServers = $exploreData['allServers'];
 $userServerId = $exploreData['userServerIds'];
 $featuredServers = [];
 $categories = $exploreData['categories'];
 $initialData = $exploreData['initialData'];
 
 $GLOBALS['servers'] = $servers;
+$GLOBALS['allServers'] = $allServers;
 $GLOBALS['userServerIds'] = $userServerId;
 $GLOBALS['featuredServers'] = [];
 $GLOBALS['categories'] = $categories;
@@ -38,7 +40,7 @@ $GLOBALS['contentType'] = 'explore';
 
 $page_title = 'MisVord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
-$page_css = ['explore-servers', 'server-detail', 'explore-api-cards'];
+$page_css = ['explore-servers', 'server-detail', 'explore-api-cards', 'explore-mobile'];
 $page_js = 'pages/explore-servers';
 $head_scripts = ['logger-init', 'components/servers/server-detail'];
 $additional_js = ['components/servers/server-dropdown'];

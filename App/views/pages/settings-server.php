@@ -34,7 +34,7 @@ ob_start();
 <meta name="user-role" content="<?php echo $userRole; ?>">
 <meta name="user-id" content="<?php echo $_SESSION['user_id'] ?? ''; ?>">
 
-<div class="flex min-h-screen max-w-[1480px] mx-auto mt-10">
+<div class="flex min-h-screen mx-auto mt-10">
     <div class="w-60 bg-discord-light border-r border-discord-dark lg:w-60 md:w-48 sm:w-full sm:border-r-0 sm:border-b sm:border-discord-dark">
         <div class="p-4">
             <div class="text-sm font-semibold text-white"><?php echo htmlspecialchars($server->name); ?></div>

@@ -88,9 +88,10 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
                 <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
             </div>
         <?php elseif ($contentType === 'explore'): ?>
-            <div id="explore-sidebar" class="hidden lg:flex">
+            <div id="explore-sidebar" class="hidden lg:flex fixed lg:static inset-y-0 left-0 z-50 lg:z-auto">
                 <?php include dirname(__DIR__) . '/app-sections/explore-sidebar.php'; ?>
             </div>
+            <div id="explore-sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden"></div>
         <?php endif; ?>
 
         <div class="flex flex-col flex-1" id="main-content">

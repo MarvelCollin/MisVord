@@ -647,9 +647,15 @@ if (!function_exists('renderMessage')) {
 <div class="flex-1 flex flex-col bg-[#313338] h-screen overflow-hidden">
     <?php if ($chatType): ?>
     <div class="h-12 min-h-[48px] px-2 sm:px-4 border-b border-[#2d2f32] flex items-center shadow-sm z-10 bg-[#313338]">
+        <?php if ($chatType === 'direct'): ?>
+        <button id="mobile-dm-sidebar-toggle" class="lg:hidden mr-2 p-1 text-[#949ba4] hover:text-white rounded">
+            <i class="fas fa-bars text-sm"></i>
+        </button>
+        <?php else: ?>
         <button id="mobile-channel-menu" class="md:hidden mr-2 p-1 text-[#949ba4] hover:text-white rounded" onclick="window.toggleChannelSidebar && window.toggleChannelSidebar()">
             <i class="fas fa-bars text-sm"></i>
         </button>
+        <?php endif; ?>
         <i id="channel-icon" class="<?php echo $chatIcon; ?> text-[#949ba4] mr-1 sm:mr-2 text-sm sm:text-base"></i>
         <span id="channel-name" class="font-semibold text-white text-sm sm:text-base truncate flex-1"><?php echo htmlspecialchars($chatTitle); ?></span>
         <button id="mobile-participant-menu" class="xl:hidden ml-2 p-1 text-[#949ba4] hover:text-white rounded" onclick="window.toggleParticipantSidebar && window.toggleParticipantSidebar()">

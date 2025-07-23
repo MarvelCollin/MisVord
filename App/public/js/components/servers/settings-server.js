@@ -25,24 +25,12 @@ function initResponsiveBehavior() {
         if (isMobile) {
             document.body.classList.add('mobile-layout');
             
-            if (sidebar) {
-                sidebar.style.order = '1';
-            }
-            if (mainContent) {
-                mainContent.style.order = '2';
-            }
             if (rightSidebar) {
                 rightSidebar.style.display = 'none';
             }
         } else {
             document.body.classList.remove('mobile-layout');
             
-            if (sidebar) {
-                sidebar.style.order = '';
-            }
-            if (mainContent) {
-                mainContent.style.order = '';
-            }
             if (rightSidebar) {
                 rightSidebar.style.display = '';
             }
