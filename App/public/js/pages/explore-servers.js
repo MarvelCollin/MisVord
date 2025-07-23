@@ -680,7 +680,7 @@ async function fetchAndRenderServers(append = false) {
 
 function createServerCardElement(server) {
     const cardWrapper = document.createElement('div');
-    cardWrapper.className = 'misvord-initial-server-card fade-in-up';
+    cardWrapper.className = 'misvord-api-server-card fade-in-up';
     
     const isJoined = server.is_member;
     const bannerUrl = server.banner_url || '';

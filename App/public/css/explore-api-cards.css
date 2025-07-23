@@ -1,0 +1,7 @@
+.misvord-api-server-card {
+  transition: all 0.3s ease;
+}
+
+.misvord-api-server-card.fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}

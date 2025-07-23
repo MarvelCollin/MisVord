@@ -38,7 +38,7 @@ $GLOBALS['contentType'] = 'explore';
 
 $page_title = 'MisVord - Explore Servers';
 $body_class = 'bg-discord-dark text-white';
-$page_css = ['explore-servers', 'server-detail'];
+$page_css = ['explore-servers', 'server-detail', 'explore-api-cards'];
 $page_js = 'pages/explore-servers';
 $head_scripts = ['logger-init', 'components/servers/server-detail'];
 $additional_js = ['components/servers/server-dropdown'];
