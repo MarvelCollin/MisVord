@@ -37,6 +37,15 @@ if (strpos($parsedUri, '/api/') === 0) {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
     
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        exit(0);
+    }
+    
     if (session_status() === PHP_SESSION_NONE) {
         session_start();
     }
@@ -87,7 +96,9 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
 
     if (isset($contentTypes[$extension])) {
         header('Content-Type: ' . $contentTypes[$extension]);
-    }    $searchPaths = [
+    }
+    
+    $searchPaths = [
         $_SERVER['DOCUMENT_ROOT'] . '/',
         __DIR__ . '/',
         dirname(__DIR__) . '/public/',
@@ -108,4 +119,27 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
     
     header("HTTP/1.0 404 Not Found");
     exit("Static file not found: {$requestFile}");
+}
+
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    exit(0);
+}
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+$webConfigPath = APP_ROOT . '/config/web.php';
+if (file_exists($webConfigPath)) {
+    require_once $webConfigPath;
+} else {
+    error_log("Web config not found: " . $webConfigPath);
+    http_response_code(500);
+    echo json_encode(['error' => 'Configuration error']);
+    exit;
 }

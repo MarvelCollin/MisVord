@@ -56,32 +56,18 @@ class BaseController
             return;
         }
         
-        $cors = $this->ajaxConfig['cors'] ?? [];
-        
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
-        $allowedOrigins = $cors['allowed_origins'] ?? ['*'];
-        
-        if (in_array('*', $allowedOrigins) || in_array($origin, $allowedOrigins)) {
-            header("Access-Control-Allow-Origin: $origin");
-        }
-        
-        $allowedMethods = implode(', ', $cors['allowed_methods'] ?? ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
-        header("Access-Control-Allow-Methods: $allowedMethods");
-        
-        $allowedHeaders = implode(', ', $cors['allowed_headers'] ?? ['Content-Type', 'Accept', 'Authorization', 'X-Requested-With']);
-        header("Access-Control-Allow-Headers: $allowedHeaders");
-        
-        if ($cors['supports_credentials'] ?? true) {
-            header("Access-Control-Allow-Credentials: true");
-        }
-        
-        $maxAge = $cors['max_age'] ?? 86400;
-        header("Access-Control-Max-Age: $maxAge");
+        header("Access-Control-Allow-Origin: *");
+        header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+        header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization, X-Requested-With, X-Tauri");
+        header("Access-Control-Allow-Credentials: true");
+        header("Access-Control-Max-Age: 86400");
         
         if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
             exit(0);
         }
-    }    protected function db()
+    }
+    
+    protected function db()
     {
         if ($this->app && method_exists($this->app, 'getDatabase')) {
             return $this->app->getDatabase();

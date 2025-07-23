@@ -46,11 +46,13 @@ $_SESSION['old_input'] = [];
 $_SESSION['success'] = null;
 unset($_SESSION['register_failed_step']);
 
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
 header('Pragma: no-cache');
 header('Expires: 0');
-header('X-Frame-Options: DENY');
-header('X-Content-Type-Options: nosniff');
 
 $page_title = 'MisVord - Login or Register';
 $body_class = 'bg-discord-dark text-white';
