@@ -638,6 +638,14 @@ class VoiceManager {
         
         this.meeting.on('participant-joined', (participant) => {
             this.handleParticipantJoined(participant);
+            
+            setTimeout(() => {
+                this.meeting.participants.forEach((existingParticipant, existingId) => {
+                    if (existingId !== participant.id) {
+                        this.forceParticipantStreamSync(existingParticipant);
+                    }
+                });
+            }, 300);
         });
         
         this.meeting.on('participant-left', (participant) => {
@@ -742,7 +750,8 @@ class VoiceManager {
             isBot: false,
             isLocal: participant.id === this.localParticipant?.id,
             isSelf: isLocalUser,
-            streams: new Map()
+            streams: new Map(),
+            pollCount: 0
         });
         
         this.setupStreamHandlers(participant);
@@ -785,6 +794,8 @@ class VoiceManager {
         window.dispatchEvent(new CustomEvent('participantJoined', {
             detail: { participant: participantKey, data: this.participants.get(participantKey) }
         }));
+        
+        this.broadcastCurrentStreamsToNewParticipant(participant);
         
         setTimeout(() => {
             this.globalVoiceStateSync();
@@ -853,6 +864,8 @@ class VoiceManager {
             
             this.forceParticipantStreamSync(participant);
             
+            this.broadcastStreamToAllParticipants(participant.id, stream.kind, stream);
+            
             setTimeout(() => {
                 this.forceParticipantStreamSync(participant);
                 this.ensureParticipantStreamsSynced(participant.id);
@@ -872,6 +885,32 @@ class VoiceManager {
                 }
             }));
         });
+    }
+    
+    broadcastStreamToAllParticipants(participantId, streamKind, stream) {
+        if (!stream || !participantId) return;
+        
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participantId,
+                    kind: streamKind,
+                    stream: stream
+                }
+            }));
+        }, 100);
+        
+        if (window.voiceCallSection && typeof window.voiceCallSection.handleStreamEnabled === 'function') {
+            setTimeout(() => {
+                window.voiceCallSection.handleStreamEnabled({
+                    detail: { 
+                        participantId: participantId,
+                        kind: streamKind,
+                        stream: stream
+                    }
+                });
+            }, 150);
+        }
     }
     
     updateParticipantMicIndicator(userId, micOn) {
@@ -1035,6 +1074,8 @@ class VoiceManager {
                     stream: participant.webcamStream
                 }
             }));
+            
+            this.broadcastStreamToAllParticipants(participant.id, 'video', participant.webcamStream);
         }
         
         if (participant.screenShareOn && participant.screenShareStream) {
@@ -1046,6 +1087,8 @@ class VoiceManager {
                     stream: participant.screenShareStream
                 }
             }));
+            
+            this.broadcastStreamToAllParticipants(participant.id, 'share', participant.screenShareStream);
         }
         
         if (participant.micOn && participant.micStream) {
@@ -1057,6 +1100,144 @@ class VoiceManager {
                     stream: participant.micStream
                 }
             }));
+        }
+        
+        this.pollParticipantStreams(participant.id);
+    }
+    
+    pollParticipantStreams(participantId) {
+        if (!this.meeting || !this.meeting.participants) return;
+        
+        const participant = this.meeting.participants.get(participantId);
+        if (!participant) return;
+        
+        const participantData = this.participants.get(participantId);
+        if (!participantData) return;
+        
+        let hasNewStreams = false;
+        
+        if (participant.webcamOn && participant.webcamStream && !participantData.streams.has('video')) {
+            participantData.streams.set('video', participant.webcamStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participantId,
+                    kind: 'video',
+                    stream: participant.webcamStream
+                }
+            }));
+            this.broadcastStreamToAllParticipants(participantId, 'video', participant.webcamStream);
+            hasNewStreams = true;
+        }
+        
+        if (participant.screenShareOn && participant.screenShareStream && !participantData.streams.has('share')) {
+            participantData.streams.set('share', participant.screenShareStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participantId,
+                    kind: 'share',
+                    stream: participant.screenShareStream
+                }
+            }));
+            this.broadcastStreamToAllParticipants(participantId, 'share', participant.screenShareStream);
+            hasNewStreams = true;
+        }
+        
+        if (participant.micOn && participant.micStream && !participantData.streams.has('audio')) {
+            participantData.streams.set('audio', participant.micStream);
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: participantId,
+                    kind: 'audio',
+                    stream: participant.micStream
+                }
+            }));
+            hasNewStreams = true;
+        }
+        
+        if ((participant.webcamOn && !participant.webcamStream) || 
+            (participant.screenShareOn && !participant.screenShareStream)) {
+            
+            const checkCount = participantData.pollCount || 0;
+            if (checkCount < 15) {
+                participantData.pollCount = checkCount + 1;
+                setTimeout(() => this.pollParticipantStreams(participantId), 200);
+            }
+        }
+        
+        return hasNewStreams;
+    }
+    
+    
+    broadcastCurrentStreamsToNewParticipant(newParticipant) {
+        if (!newParticipant || !this.meeting || !this.meeting.participants) return;
+        
+        this.meeting.participants.forEach((existingParticipant, participantId) => {
+            if (participantId === newParticipant.id) return;
+            
+            const existingData = this.participants.get(participantId);
+            if (!existingData) return;
+            
+            if (existingParticipant.webcamOn && existingParticipant.webcamStream) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participantId,
+                            kind: 'video',
+                            stream: existingParticipant.webcamStream
+                        }
+                    }));
+                }, 200);
+            }
+            
+            if (existingParticipant.screenShareOn && existingParticipant.screenShareStream) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participantId,
+                            kind: 'share',
+                            stream: existingParticipant.screenShareStream
+                        }
+                    }));
+                }, 300);
+            }
+            
+            if (existingParticipant.micOn && existingParticipant.micStream) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: participantId,
+                            kind: 'audio',
+                            stream: existingParticipant.micStream
+                        }
+                    }));
+                }, 100);
+            }
+        });
+        
+        if (this.localParticipant && this.localParticipant.id !== newParticipant.id) {
+            if (this.localParticipant.webcamOn && this.localParticipant.webcamStream) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: this.localParticipant.id,
+                            kind: 'video',
+                            stream: this.localParticipant.webcamStream
+                        }
+                    }));
+                }, 200);
+            }
+            
+            if (this.localParticipant.screenShareOn && this.localParticipant.screenShareStream) {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('streamEnabled', {
+                        detail: { 
+                            participantId: this.localParticipant.id,
+                            kind: 'share',
+                            stream: this.localParticipant.screenShareStream
+                        }
+                    }));
+                }, 300);
+            }
         }
     }
     
@@ -1178,6 +1359,9 @@ class VoiceManager {
                 detail: { type: 'video', state: this._videoOn }
             }));
             
+            this.forceStreamSync();
+            this.ensureAllParticipantsSeeMyCam();
+            
             return this._videoOn;
         } catch (error) {
             console.error('Failed to toggle video:', error);
@@ -1269,6 +1453,9 @@ class VoiceManager {
                 detail: { type: 'screen', state: this._screenShareOn }
             }));
             
+            this.forceStreamSync();
+            this.ensureAllParticipantsSeeMyScreen();
+            
             return this._screenShareOn;
         } catch (error) {
             console.error('Failed to toggle screen share:', error);
@@ -1276,6 +1463,34 @@ class VoiceManager {
         }
     }
     
+    ensureAllParticipantsSeeMyCam() {
+        if (!this.localParticipant || !this.localParticipant.webcamStream) return;
+        
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: this.localParticipant.id,
+                    kind: 'video',
+                    stream: this.localParticipant.webcamStream
+                }
+            }));
+        }, 100);
+    }
+    
+    ensureAllParticipantsSeeMyScreen() {
+        if (!this.localParticipant || !this.localParticipant.screenShareStream) return;
+        
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('streamEnabled', {
+                detail: { 
+                    participantId: this.localParticipant.id,
+                    kind: 'share',
+                    stream: this.localParticipant.screenShareStream
+                }
+            }));
+        }, 100);
+    }
+
     getMicState() { return this._micOn; }
     getVideoState() { return this._videoOn; }
     getDeafenState() { return this._deafened; }

@@ -130,7 +130,8 @@ class VoiceCallSection {
         
         this.duplicateCleanupInterval = setInterval(() => {
             this.removeDuplicateCards();
-        }, 5000); 
+            this.cleanupOrphanedElements();
+        }, 2000); 
     }
     
     bindControls() {
@@ -398,6 +399,7 @@ class VoiceCallSection {
             if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
                 window.voiceManager.forceStreamSync();
             }
+            this.forceResyncAllStreams();
         }, 500);
         
         setTimeout(() => {
@@ -407,7 +409,22 @@ class VoiceCallSection {
             if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
                 window.voiceManager.checkAllParticipantsForExistingStreams();
             }
+            this.ensureAllExistingStreamsVisibleToNewParticipant();
         }, 800);
+        
+        setTimeout(() => {
+            this.forceResyncAllStreams();
+            if (window.voiceManager) {
+                window.voiceManager.participants.forEach((data, participantId) => {
+                    const participant = window.voiceManager.meeting?.participants?.get(participantId);
+                    if (participant) {
+                        window.voiceManager.forceParticipantStreamSync(participant);
+                    }
+                });
+            }
+            this.removeDuplicateCards();
+            this.cleanupOrphanedElements();
+        }, 1200);
         
         if (!event.detail.skipJoinSound) {
             MusicLoaderStatic.playJoinVoiceSound();
@@ -590,35 +607,88 @@ class VoiceCallSection {
         const botParticipants = window.voiceManager.getBotParticipants();
         
         allParticipants.forEach((participantData, participantId) => {
-            if (!this.participantElements.has(participantId)) {
+            if (!this.participantElements.has(participantId) && !this.hasExistingCardForUser(participantData)) {
                 const element = this.createParticipantElement(participantId, participantData);
                 grid.appendChild(element);
                 this.participantElements.set(participantId, element);
                 this.restoreExistingStreamsForParticipant(participantId, participantData, element);
+                
+                const voiceParticipant = window.voiceManager.meeting?.participants?.get(participantId);
+                if (voiceParticipant && window.voiceManager.forceParticipantStreamSync) {
+                    window.voiceManager.forceParticipantStreamSync(voiceParticipant);
+                }
+                
+                setTimeout(() => {
+                    this.syncParticipantStreams(participantId, element);
+                    this.ensureParticipantStreamsSynced(participantId, element);
+                }, 100);
             }
         });
         
         botParticipants.forEach((botData, botId) => {
-            if (!this.participantElements.has(botId)) {
+            if (!this.participantElements.has(botId) && !this.hasExistingCardForUser(botData)) {
                 const element = this.createParticipantElement(botId, botData);
                 grid.appendChild(element);
                 this.participantElements.set(botId, element);
             }
         });
         
-        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
-            window.voiceManager.forceStreamSync();
+        if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
+            window.voiceManager.checkAllParticipantsForExistingStreams();
         }
+        
+        this.forceResyncAllStreams();
         
         this.updateGridLayout();
         this.updateParticipantCount();
         this.updateLocalParticipantIndicators();
+        this.removeDuplicateCards();
 
         if (this.currentChannelId && window.globalSocketManager?.io) {
             window.globalSocketManager.io.emit('check-voice-meeting', { 
                 channel_id: this.currentChannelId 
             });
         }
+    }
+    
+    ensureParticipantStreamsSynced(participantId, element) {
+        if (!window.voiceManager || !window.voiceManager.meeting) return;
+        
+        const participant = window.voiceManager.meeting.participants?.get(participantId);
+        if (!participant) return;
+        
+        if (participant.webcamOn && participant.webcamStream) {
+            this.showParticipantVideo(element, participant.webcamStream);
+        }
+        
+        if (participant.screenShareOn && participant.screenShareStream) {
+            this.createScreenShareCard(participantId, participant.screenShareStream);
+        }
+        
+        if (participant.micOn && participant.micStream) {
+            this.attachParticipantAudio(element, participant.micStream, participantId);
+        }
+    }
+    
+    forceResyncAllStreams() {
+        if (!window.voiceManager || !window.voiceManager.meeting) return;
+        
+        this.participantElements.forEach((element, participantId) => {
+            const participant = window.voiceManager.meeting.participants?.get(participantId);
+            if (!participant) return;
+            
+            if (participant.webcamOn && participant.webcamStream) {
+                this.showParticipantVideo(element, participant.webcamStream);
+            }
+            
+            if (participant.screenShareOn && participant.screenShareStream) {
+                this.createScreenShareCard(participantId, participant.screenShareStream);
+            }
+            
+            if (participant.micOn && participant.micStream) {
+                this.attachParticipantAudio(element, participant.micStream, participantId);
+            }
+        });
     }
 
     ensureChannelSync() {
@@ -668,6 +738,12 @@ class VoiceCallSection {
         
         const userId = data?.user_id || data?.id;
         if (userId) {
+            const existingElement = this.findExistingElementByUserId(participant);
+            if (existingElement) {
+                this.participantElements.set(participant, existingElement);
+                return;
+            }
+            
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
@@ -675,6 +751,10 @@ class VoiceCallSection {
                     return;
                 }
             }
+        }
+        
+        if (this.hasExistingCardForUser(data)) {
+            return;
         }
         
         const grid = document.getElementById("participantGrid");
@@ -693,25 +773,74 @@ class VoiceCallSection {
             this.updateLocalParticipantIndicators();
         }
         
-        setTimeout(() => {
-            element.style.opacity = '1';
-            element.style.transform = 'translateY(0) scale(1)';
-        }, 10);
+        element.style.opacity = '1';
+        element.style.transform = 'translateY(0) scale(1)';
         
-        setTimeout(() => {
-            this.restoreExistingStreamsForParticipant(participant, data, element);
-        }, 50);
+        this.restoreExistingStreamsForParticipant(participant, data, element);
+        this.syncParticipantStreams(participant, element);
         
-        setTimeout(() => {
-            this.syncParticipantStreams(participant, element);
-        }, 200);
+        if (window.voiceManager && typeof window.voiceManager.forceParticipantStreamSync === 'function') {
+            const voiceParticipant = window.voiceManager.meeting?.participants?.get(participant);
+            if (voiceParticipant) {
+                window.voiceManager.forceParticipantStreamSync(voiceParticipant);
+            }
+        }
+        
+        this.ensureAllExistingStreamsVisibleToNewParticipant();
         
         this.updateGridLayout();
         this.updateParticipantCount();
+        this.removeDuplicateCards();
         
         if (window.ChannelVoiceParticipants && this.currentChannelId) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             instance.updateSidebarForChannel(this.currentChannelId, 'append');
+        }
+    }
+    
+    ensureAllExistingStreamsVisibleToNewParticipant() {
+        if (!window.voiceManager || !window.voiceManager.meeting) return;
+        
+        this.participantElements.forEach((element, participantId) => {
+            const participant = window.voiceManager.meeting.participants?.get(participantId);
+            if (!participant) return;
+            
+            if (participant.webcamOn && participant.webcamStream) {
+                setTimeout(() => {
+                    this.showParticipantVideo(element, participant.webcamStream);
+                }, 100);
+            }
+            
+            if (participant.screenShareOn && participant.screenShareStream) {
+                setTimeout(() => {
+                    this.createScreenShareCard(participantId, participant.screenShareStream);
+                }, 200);
+            }
+            
+            if (participant.micOn && participant.micStream) {
+                setTimeout(() => {
+                    this.attachParticipantAudio(element, participant.micStream, participantId);
+                }, 50);
+            }
+        });
+        
+        if (window.voiceManager.localParticipant) {
+            const localParticipant = window.voiceManager.localParticipant;
+            const localElement = this.participantElements.get(localParticipant.id);
+            
+            if (localElement) {
+                if (localParticipant.webcamOn && localParticipant.webcamStream) {
+                    setTimeout(() => {
+                        this.showParticipantVideo(localElement, localParticipant.webcamStream);
+                    }, 100);
+                }
+                
+                if (localParticipant.screenShareOn && localParticipant.screenShareStream) {
+                    setTimeout(() => {
+                        this.createScreenShareCard(localParticipant.id, localParticipant.screenShareStream);
+                    }, 200);
+                }
+            }
         }
     }
 
@@ -755,11 +884,32 @@ class VoiceCallSection {
 
     handleStreamEnabled(event) {
         const { participantId, kind, stream } = event.detail;
-        const element = this.participantElements.get(participantId);
-        if (!element) return;
+        let element = this.participantElements.get(participantId);
+        
+        if (!element) {
+            element = this.findExistingElementByUserId(participantId);
+            if (element) {
+                this.participantElements.set(participantId, element);
+            }
+        }
+        
+        if (!element) {
+            if (window.voiceManager && window.voiceManager.participants.has(participantId)) {
+                const participantData = window.voiceManager.participants.get(participantId);
+                const grid = document.getElementById("participantGrid");
+                if (grid && !this.hasExistingCardForUser(participantData)) {
+                    const newElement = this.createParticipantElement(participantId, participantData);
+                    grid.appendChild(newElement);
+                    this.participantElements.set(participantId, newElement);
+                    element = newElement;
+                    
+                    this.removeDuplicateCards();
+                }
+            }
+            if (!element) return;
+        }
         
         if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
-            
             return;
         }
         
@@ -770,8 +920,38 @@ class VoiceCallSection {
         } else if (kind === 'share') {
             this.createScreenShareCard(participantId, stream);
         }
+        
+        this.updateGridLayout();
     }
     
+    findExistingElementByUserId(participantId) {
+        if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) return null;
+        
+        const participantData = window.voiceManager.participants.get(participantId);
+        const userId = participantData?.user_id;
+        
+        if (userId) {
+            const grid = document.getElementById("participantGrid");
+            if (grid) {
+                const existingCard = grid.querySelector(`[data-user-id="${userId}"]`);
+                return existingCard;
+            }
+        }
+        
+        return null;
+    }
+    
+    hasExistingCardForUser(participantData) {
+        const userId = participantData?.user_id;
+        if (!userId) return false;
+        
+        const grid = document.getElementById("participantGrid");
+        if (!grid) return false;
+        
+        const existingCard = grid.querySelector(`[data-user-id="${userId}"]`);
+        return !!existingCard;
+    }
+
     handleStreamDisabled(event) {
         const { participantId, kind } = event.detail;
         const element = this.participantElements.get(participantId);
@@ -931,11 +1111,26 @@ class VoiceCallSection {
     }
 
     createParticipantElement(participantId, data) {
+        const userId = data?.user_id || data?.id;
+        
+        const grid = document.getElementById("participantGrid");
+        if (grid && userId) {
+            const existingCard = grid.querySelector(`[data-user-id="${userId}"]`);
+            if (existingCard) {
+                const existingParticipantId = existingCard.getAttribute('data-participant-id');
+                if (existingParticipantId !== participantId) {
+                    existingCard.remove();
+                    this.participantElements.delete(existingParticipantId);
+                } else {
+                    return existingCard;
+                }
+            }
+        }
+        
         const div = document.createElement("div");
         div.className = "participant-card bg-[#2f3136] rounded-lg p-4 flex flex-col items-center justify-center relative border border-[#40444b] hover:border-[#5865f2] transition-all duration-200";
         div.setAttribute("data-participant-id", participantId);
         
-        const userId = data?.user_id || data?.id;
         if (userId) {
             div.setAttribute("data-user-id", String(userId));
         }
@@ -1276,12 +1471,13 @@ class VoiceCallSection {
         if (!grid) return;
         
         window.voiceManager.participants.forEach((participantData, participantId) => {
-            if (participantData && !this.participantElements.has(participantId)) {
+            if (participantData && !this.participantElements.has(participantId) && !this.hasExistingCardForUser(participantData)) {
                 const element = this.createParticipantElement(participantId, participantData);
                 grid.appendChild(element);
                 this.participantElements.set(participantId, element);
                 
                 this.restoreExistingStreamsForParticipant(participantId, participantData, element);
+                this.ensureParticipantStreamsSynced(participantId, element);
             }
         });
         
@@ -1289,9 +1485,14 @@ class VoiceCallSection {
             window.voiceManager.forceStreamSync();
         }
         
+        setTimeout(() => {
+            this.forceResyncAllStreams();
+        }, 200);
+        
         this.updateGridLayout();
         this.updateParticipantCount();
         this.updateLocalParticipantIndicators();
+        this.removeDuplicateCards();
     }
     
     restoreExistingStreamsForParticipant(participantId, participantData, element) {
@@ -1361,6 +1562,7 @@ class VoiceCallSection {
         if (!grid) return;
         
         const seenUserIds = new Set();
+        const seenParticipantIds = new Set();
         const cardsToRemove = [];
         
         const cards = grid.querySelectorAll('.participant-card');
@@ -1368,19 +1570,26 @@ class VoiceCallSection {
             const userId = card.getAttribute('data-user-id');
             const participantId = card.getAttribute('data-participant-id');
             
+            let shouldRemove = false;
+            
             if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
-                cardsToRemove.push({ card, participantId });
-                
-                return;
+                shouldRemove = true;
             }
             
-            if (userId) {
-                if (seenUserIds.has(userId)) {
-                    cardsToRemove.push({ card, participantId });
-                    
-                } else {
-                    seenUserIds.add(userId);
-                }
+            if (participantId && seenParticipantIds.has(participantId)) {
+                shouldRemove = true;
+            } else if (participantId) {
+                seenParticipantIds.add(participantId);
+            }
+            
+            if (userId && seenUserIds.has(userId)) {
+                shouldRemove = true;
+            } else if (userId) {
+                seenUserIds.add(userId);
+            }
+            
+            if (shouldRemove) {
+                cardsToRemove.push({ card, participantId });
             }
         });
         
@@ -1390,12 +1599,52 @@ class VoiceCallSection {
         });
         
         if (cardsToRemove.length > 0) {
-            
             this.updateGridLayout();
             this.updateParticipantCount();
         }
     }
     
+    cleanupOrphanedElements() {
+        const grid = document.getElementById("participantGrid");
+        if (!grid) return;
+        
+        const cards = grid.querySelectorAll('.participant-card');
+        let removedCount = 0;
+        
+        cards.forEach(card => {
+            const participantId = card.getAttribute('data-participant-id');
+            const userId = card.getAttribute('data-user-id');
+            
+            if (participantId && !this.participantElements.has(participantId)) {
+                card.remove();
+                removedCount++;
+                return;
+            }
+            
+            if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
+                card.remove();
+                this.participantElements.delete(participantId);
+                removedCount++;
+                return;
+            }
+            
+            const gridCards = grid.querySelectorAll(`[data-user-id="${userId}"]`);
+            if (gridCards.length > 1) {
+                const isFirstOccurrence = gridCards[0] === card;
+                if (!isFirstOccurrence) {
+                    card.remove();
+                    this.participantElements.delete(participantId);
+                    removedCount++;
+                }
+            }
+        });
+        
+        if (removedCount > 0) {
+            this.updateGridLayout();
+            this.updateParticipantCount();
+        }
+    }
+
     syncButtonStates() {
         if (!window.voiceManager) return;
         

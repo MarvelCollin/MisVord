@@ -132,23 +132,19 @@ class VoiceFacade {
         }
 
         if (isConnected && channelId && window.globalSocketManager?.io) {
-            setTimeout(() => {
-                window.globalSocketManager.io.emit('check-voice-meeting', { 
-                    channel_id: channelId 
-                });
-                window.globalSocketManager.io.emit('request-music-state', { 
-                    channel_id: channelId 
-                });
-            }, 500);
+            window.globalSocketManager.io.emit('check-voice-meeting', { 
+                channel_id: channelId 
+            });
+            window.globalSocketManager.io.emit('request-music-state', { 
+                channel_id: channelId 
+            });
             
-            setTimeout(() => {
-                if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
-                    window.voiceManager.checkAllParticipantsForExistingStreams();
-                }
-                if (window.voiceCallSection && typeof window.voiceCallSection.rebuildGridFromVideoSDK === 'function') {
-                    window.voiceCallSection.rebuildGridFromVideoSDK();
-                }
-            }, 800);
+            if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
+                window.voiceManager.checkAllParticipantsForExistingStreams();
+            }
+            if (window.voiceCallSection && typeof window.voiceCallSection.rebuildGridFromVideoSDK === 'function') {
+                window.voiceCallSection.rebuildGridFromVideoSDK();
+            }
         }
     }
 }
