@@ -1,6 +1,5 @@
 <?php
 $servers = $GLOBALS['servers'] ?? [];
-$allServers = $GLOBALS['allServers'] ?? $servers;
 $userServerId = $GLOBALS['userServerIds'] ?? [];
 $categories = $GLOBALS['categories'] ?? [];
 
@@ -10,13 +9,6 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
 <div class="flex-1 bg-discord-background overflow-y-auto">
     <div class="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
         <div class="explore-header mb-8 slide-up">
-            <div class="flex items-center justify-between mb-4 lg:hidden">
-                <button id="mobile-explore-sidebar-toggle" class="text-gray-400 hover:text-white p-2 rounded-md hover:bg-discord-light">
-                    <i class="fa-solid fa-bars text-lg"></i>
-                </button>
-                <span class="font-semibold text-white">Categories</span>
-                <div></div>
-            </div>
             <div class="explore-title-container">
                 <h1 class="explore-title">
                     <span class="title-main">Explore Servers</span>
@@ -81,7 +73,7 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
                 <h2 class="text-xl lg:text-2xl font-bold text-white">Discover Communities</h2>
                 <div class="flex items-center text-discord-lighter text-sm">
                     <i class="fas fa-compass mr-2"></i>
-                    <span><?php echo count($allServers); ?> servers available</span>
+                    <span><?php echo count($servers); ?> servers available</span>
                 </div>
             </div>
             <div class="grid-container server-grid" id="all-servers">

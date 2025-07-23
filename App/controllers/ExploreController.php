@@ -34,20 +34,22 @@ class ExploreController extends BaseController
             $offset = ($page - 1) * $perPage;
             $currentUserId = $_SESSION['user_id'] ?? 0;
             
+
             $baseServers = $this->serverRepository->getPublicServersWithMemberCount();
             $userServerIds = $this->getUserServerIds($currentUserId);
             
+
             $servers = array_map(function($server) use ($userServerIds) {
                 $serverArray = is_array($server) ? $server : (array) $server;
                 $serverArray['is_member'] = in_array($serverArray['id'], $userServerIds);
                 return $serverArray;
             }, $baseServers);
             
+
             if (!empty($category)) {
                 $servers = array_filter($servers, function($server) use ($category) {
-                    return isset($server['category']) && $server['category'] === $category;
+                    return $server['category'] === $category;
                 });
-                $servers = array_values($servers);
             }
             
             if (!empty($search)) {
@@ -56,9 +58,9 @@ class ExploreController extends BaseController
                     return strpos(strtolower($server['name']), $searchLower) !== false ||
                            strpos(strtolower($server['description'] ?? ''), $searchLower) !== false;
                 });
-                $servers = array_values($servers);
             }
             
+
             switch ($sort) {
                 case 'alphabetical':
                     usort($servers, function($a, $b) {
@@ -93,10 +95,10 @@ class ExploreController extends BaseController
             }
             
             $total = count($servers);
-            $totalPages = $perPage > 0 ? ceil($total / $perPage) : 1;
             $paginatedServers = array_slice($servers, $offset, $perPage);
             $hasMore = ($offset + $perPage) < $total;
             
+
             $formattedServers = array_map(function($server) {
                 return [
                     'id' => $server['id'],
@@ -116,7 +118,7 @@ class ExploreController extends BaseController
                 'has_more' => $hasMore,
                 'total' => $total,
                 'current_page' => $page,
-                'total_pages' => $totalPages
+                'total_pages' => ceil($total / $perPage)
             ];
             
         } catch (Exception $e) {
@@ -160,11 +162,6 @@ class ExploreController extends BaseController
         $servers = $initialData['servers'];
         $userServerIds = $this->getUserServerIds($currentUserId);
 
-        $allServers = $this->serverRepository->getPublicServersWithMemberCount();
-        $allServersArray = array_map(function($server) {
-            return is_array($server) ? $server : (array) $server;
-        }, $allServers);
-
         $categories = [
             'gaming' => 'Gaming',
             'music' => 'Music',
@@ -177,7 +174,6 @@ class ExploreController extends BaseController
         return [
             'userServers' => $userServers,
             'servers' => $servers,
-            'allServers' => $allServersArray,
             'userServerIds' => $userServerIds,
             'categories' => $categories,
             'currentUserId' => $currentUserId,

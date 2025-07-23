@@ -16,3 +16,32 @@
     transform: translateY(0);
   }
 }
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.infinite-scroll-trigger {
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lazy-image {
+  transition: opacity 0.3s ease-in-out;
+  opacity: 0;
+}
+
+.lazy-image.loaded {
+  opacity: 1;
+}

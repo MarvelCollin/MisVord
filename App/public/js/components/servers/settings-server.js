@@ -10,148 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         serverSettingsInitialized = true;
         initServerSettingsPage();
-        initResponsiveBehavior();
-        initMobileSidebar();
     }
 });
-
-function initMobileSidebar() {
-    const sidebar = document.querySelector('.w-60.bg-discord-light');
-    if (!sidebar) return;
-    
-    const toggleBtn = document.createElement('button');
-    toggleBtn.className = 'mobile-sidebar-toggle';
-    toggleBtn.innerHTML = '<i class="fas fa-bars"></i>';
-    document.body.appendChild(toggleBtn);
-    
-    const backdrop = document.createElement('div');
-    backdrop.className = 'mobile-sidebar-backdrop';
-    document.body.appendChild(backdrop);
-    
-    toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('mobile-open');
-        backdrop.classList.toggle('active');
-    });
-    
-    backdrop.addEventListener('click', () => {
-        sidebar.classList.remove('mobile-open');
-        backdrop.classList.remove('active');
-    });
-    
-    const sidebarItems = sidebar.querySelectorAll('.sidebar-item');
-    sidebarItems.forEach(item => {
-        item.addEventListener('click', () => {
-            if (window.innerWidth < 768) {
-                sidebar.classList.remove('mobile-open');
-                backdrop.classList.remove('active');
-            }
-        });
-    });
-
-function initResponsiveBehavior() {
-    function handleResize() {
-        const isMobile = window.innerWidth <= 768;
-        const isTablet = window.innerWidth <= 1024;
-        
-        const sidebar = document.querySelector('.w-60.bg-discord-light');
-        const mainContent = document.querySelector('.flex-1.bg-discord-dark');
-        const rightSidebar = document.querySelector('.w-80.bg-discord-dark');
-        
-        if (isMobile) {
-            document.body.classList.add('mobile-layout');
-            
-            if (rightSidebar) {
-                rightSidebar.style.display = 'none';
-            }
-            
-            const tables = document.querySelectorAll('.members-table-header, .channels-table-header');
-            tables.forEach(table => {
-                table.style.display = 'none';
-            });
-            
-            const memberItems = document.querySelectorAll('.member-item');
-            memberItems.forEach(item => {
-                const actions = item.querySelector('.member-actions');
-                if (actions) {
-                    actions.style.opacity = '1';
-                }
-            });
-            
-            const channelItems = document.querySelectorAll('.channel-item');
-            channelItems.forEach(item => {
-                const actions = item.querySelector('.channel-actions');
-                if (actions) {
-                    actions.style.opacity = '1';
-                }
-            });
-        } else {
-            document.body.classList.remove('mobile-layout');
-            
-            if (rightSidebar && !isTablet) {
-                rightSidebar.style.display = '';
-            }
-            
-            const tables = document.querySelectorAll('.members-table-header, .channels-table-header');
-            tables.forEach(table => {
-                table.style.display = '';
-            });
-            
-            const memberItems = document.querySelectorAll('.member-item');
-            memberItems.forEach(item => {
-                const actions = item.querySelector('.member-actions');
-                if (actions) {
-                    actions.style.opacity = '';
-                }
-            });
-            
-            const channelItems = document.querySelectorAll('.channel-item');
-            channelItems.forEach(item => {
-                const actions = item.querySelector('.channel-actions');
-                if (actions) {
-                    actions.style.opacity = '';
-                }
-            });
-        }
-        
-        const modals = document.querySelectorAll('.modal-overlay, #delete-server-modal, .channel-modal-overlay');
-        modals.forEach(modal => {
-            if (modal && !modal.classList.contains('hidden')) {
-                const modalContent = modal.querySelector('.modal-container, .bg-discord-dark, .channel-modal-container');
-                if (modalContent && isMobile) {
-                    modalContent.style.margin = '1rem auto';
-                    modalContent.style.maxWidth = 'calc(100vw - 2rem)';
-                    modalContent.style.width = '100%';
-                } else if (modalContent) {
-                    modalContent.style.margin = '';
-                    modalContent.style.maxWidth = '';
-                    modalContent.style.width = '';
-                }
-            }
-        });
-        
-        const formGroups = document.querySelectorAll('.form-group');
-        formGroups.forEach(group => {
-            const input = group.querySelector('.form-input, textarea.form-input, select.form-input');
-            if (input && isMobile) {
-                input.style.fontSize = '16px';
-            } else if (input) {
-                input.style.fontSize = '';
-            }
-        });
-    }
-
-    handleResize();
-    
-    let resizeTimeout;
-    window.addEventListener('resize', function() {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(handleResize, 250);
-    });
-    
-    window.addEventListener('orientationchange', function() {
-        setTimeout(handleResize, 500);
-    });
-}
 
 function initServerSettingsPage() {
     if (!document.body.classList.contains('authenticated')) {
@@ -207,7 +67,7 @@ function initServerSettingsPage() {
                     content.style.transform = 'translateY(5px)';
                     
                     setTimeout(() => {
-                        content.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        content.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
                         content.style.opacity = '1';
                         content.style.transform = 'translateY(0)';
                     }, 10);
@@ -308,19 +168,19 @@ function createImageUploadHandler(containerId, previewId, placeholderId, type, o
         });
 
         input.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                cutter.loadImage(event.target.result);
-            };
-            reader.readAsDataURL(file);
-            
-            e.target.value = '';
-        });
+             const file = e.target.files[0];
+             if (!file) return;
  
-        if (type === 'profile') {
+             const reader = new FileReader();
+             reader.onload = (event) => {
+                 cutter.loadImage(event.target.result);
+             };
+             reader.readAsDataURL(file);
+             
+             e.target.value = '';
+         });
+ 
+         if (type === 'profile') {
              window.serverIconCutter = cutter;
          } else {
              window.serverBannerCutter = cutter;
@@ -418,12 +278,6 @@ function initServerProfileForm() {
     formInputs.forEach(input => {
         input.addEventListener('focus', function() {
             this.closest('.form-group')?.classList.add('is-focused');
-            
-            if (window.innerWidth <= 768) {
-                setTimeout(() => {
-                    this.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 300);
-            }
         });
         
         input.addEventListener('blur', function() {
@@ -443,6 +297,7 @@ function initServerProfileForm() {
         }, 300));
     }
     
+
     initServerInputApproveButtons(serverId);
 }
 
@@ -706,6 +561,10 @@ function initMemberManagementTab() {
                 const isCurrentUser = String(member.id) === String(currentUserId);
                 const displayName = member.display_name || member.username;
                 
+                
+                
+                
+                
                 let usernameText = displayName;
                 if (isCurrentUser) {
                     usernameText += ' (you)';
@@ -720,10 +579,6 @@ function initMemberManagementTab() {
             const discriminatorElement = memberElement.querySelector('.member-discriminator');
             if (discriminatorElement) {
                 discriminatorElement.textContent = `#${member.discriminator || '0000'}`;
-                
-                if (window.innerWidth <= 640) {
-                    discriminatorElement.style.display = 'none';
-                }
             }
             
             const roleElement = memberElement.querySelector('.member-role-badge');
@@ -741,10 +596,6 @@ function initMemberManagementTab() {
             if (joinedElement && member.joined_at) {
                 const joinedDate = new Date(member.joined_at);
                 joinedElement.textContent = joinedDate.toLocaleDateString();
-                
-                if (window.innerWidth <= 768) {
-                    joinedElement.parentElement.style.display = 'none';
-                }
             }
             
             memberElement.dataset.memberId = member.id;
@@ -764,8 +615,8 @@ function initMemberManagementTab() {
                     promoteBtn.title = 'Transfer Ownership';
                     promoteBtn.innerHTML = '<i class="fas fa-crown"></i>';
                 } else if (permissions.canPromote) {
-                    promoteBtn.title = 'Promote to Admin';
-                    promoteBtn.innerHTML = '<i class="fas fa-chevron-up"></i>';
+                    promoteBtn.title = 'Promote Member';
+                    promoteBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
                 }
             }
             if (demoteBtn) {
@@ -782,7 +633,7 @@ function initMemberManagementTab() {
                 newPromoteBtn.addEventListener('click', () => {
                     if (permissions.canTransferOwnership) {
                         showMemberActionModal('transfer-ownership', member);
-                    } else {
+                    } else if (member.role === 'member') {
                         showMemberActionModal('promote', member);
                     }
                 });
@@ -810,6 +661,8 @@ function initMemberManagementTab() {
     
     function showMemberActionModal(action, member) {
         try {
+            
+            
             if (!member) {
                 console.error('No member provided to action modal');
                 showToast('Error: Member data is missing', 'error');
@@ -823,6 +676,7 @@ function initMemberManagementTab() {
                 return;
             }
 
+
             const modalContainer = modal.querySelector('.modal-container');
             if (!modalContainer) {
                 console.error('Modal container not found');
@@ -830,12 +684,7 @@ function initMemberManagementTab() {
                 return;
             }
             
-            if (window.innerWidth <= 768) {
-                modalContainer.style.margin = '1rem auto';
-                modalContainer.style.maxWidth = 'calc(100vw - 2rem)';
-                modalContainer.style.width = '100%';
-            }
-            
+
             const safeSetContent = (selector, content, defaultContent = '') => {
                 const element = modal.querySelector(selector);
                 if (element) {
@@ -911,7 +760,10 @@ function initMemberManagementTab() {
 
                     const checkIcon = confirmBtn.querySelector('i');
                     if (checkIcon) {
-                        checkIcon.remove();
+                        confirmBtn.innerHTML = ''; 
+                        const iconEl = document.createElement('i');
+                        iconEl.className = 'fas fa-check mr-2';
+                        confirmBtn.appendChild(iconEl);
                     } else {
                         confirmBtn.innerHTML = '';
                     }
@@ -939,22 +791,22 @@ function initMemberManagementTab() {
 
             switch (action) {
                 case 'transfer-ownership':
-                    if (modalIcon) modalIcon.className = 'fas fa-crown text-yellow-400';
-                    if (modalTitle) modalTitle.textContent = 'Transfer Server Ownership';
-                    if (actionMessage) actionMessage.textContent = 'This will transfer complete ownership of the server to this member. You will become an admin.';
+                    if (modalIcon) modalIcon.className = 'fas fa-crown';
+                    if (modalTitle) modalTitle.textContent = 'Transfer Ownership';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to transfer server ownership to ${member.display_name || member.username}? This will make them the server owner and you will become an admin. This action cannot be undone.`;
                     
                     if (roleChangePreview) roleChangePreview.classList.remove('hidden');
                     if (fromRole) {
-                        fromRole.textContent = 'Owner';
-                        fromRole.className = 'role-badge from-role owner';
+                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                        fromRole.className = `role-badge ${member.role}`;
                     }
                     if (toRole) {
-                        toRole.textContent = 'Admin';
-                        toRole.className = 'role-badge to-role admin';
+                        toRole.textContent = 'Owner';
+                        toRole.className = 'role-badge owner';
                     }
                     
                     if (confirmBtn) {
-                        confirmBtn.classList.add('bg-yellow-600', 'hover:bg-yellow-700');
+                        confirmBtn.classList.add('danger');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
                         if (confirmText) confirmText.textContent = 'Transfer Ownership';
                     }
@@ -963,52 +815,57 @@ function initMemberManagementTab() {
                     break;
                     
                 case 'promote':
-                    if (modalIcon) modalIcon.className = 'fas fa-chevron-up text-green-400';
+                    if (modalIcon) modalIcon.className = 'fas fa-arrow-up';
                     if (modalTitle) modalTitle.textContent = 'Promote Member';
-                    if (actionMessage) actionMessage.textContent = 'This member will be promoted to admin and gain administrative privileges.';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to promote ${member.display_name || member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
                     
                     if (roleChangePreview) roleChangePreview.classList.remove('hidden');
                     if (fromRole) {
                         fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                        fromRole.className = `role-badge from-role ${member.role}`;
+                        fromRole.className = `role-badge ${member.role}`;
                     }
                     if (toRole) {
                         toRole.textContent = 'Admin';
-                        toRole.className = 'role-badge to-role admin';
+                        toRole.className = 'role-badge admin';
                     }
                     
                     if (confirmBtn) {
-                        confirmBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                        confirmBtn.classList.add('warning');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Promote Member';
+                        if (confirmText) confirmText.textContent = 'Promote';
                     }
                     
                     actionHandler = () => handlePromote(member);
                     break;
                     
                 case 'demote':
-                    if (modalIcon) modalIcon.className = 'fas fa-chevron-down text-orange-400';
+                    if (modalIcon) modalIcon.className = 'fas fa-arrow-down';
                     if (modalTitle) modalTitle.textContent = 'Demote Member';
-                    if (actionMessage) actionMessage.textContent = 'This member will be demoted to regular member and lose administrative privileges.';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
                     
+
                     if (roleChangePreview) {
                         roleChangePreview.classList.remove('hidden');
                     }
                     
+
                     if (fromRole) {
                         fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                        fromRole.className = `role-badge from-role ${member.role}`;
+                        fromRole.className = `role-badge ${member.role}`;
                     }
                     
+
                     if (toRole) {
-                        toRole.textContent = 'Member';
-                        toRole.className = 'role-badge to-role member';
+
+                        toRole.innerHTML = 'Member';
+                        toRole.className = 'role-badge member';
                     }
                     
+
                     if (confirmBtn) {
-                        confirmBtn.classList.add('bg-orange-600', 'hover:bg-orange-700');
+                        confirmBtn.classList.add('warning');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Demote Member';
+                        if (confirmText) confirmText.textContent = 'Demote';
                     }
                     
 
@@ -1017,19 +874,21 @@ function initMemberManagementTab() {
                     
                 case 'kick':
                     const isBot = member.status === 'bot';
-                    if (modalIcon) modalIcon.className = 'fas fa-sign-out-alt text-red-400';
+                    if (modalIcon) modalIcon.className = 'fas fa-user-times';
                     if (modalTitle) modalTitle.textContent = isBot ? 'Remove Bot' : 'Kick Member';
                     
                     if (actionMessage) {
-                        actionMessage.textContent = isBot ? 
-                            'This bot will be removed from the server and will need to be re-added to rejoin.' :
-                            'This member will be removed from the server. They can rejoin with a new invite.';
+                        if (isBot) {
+                            actionMessage.textContent = `Are you sure you want to remove ${member.display_name || member.username} from the server? The bot will be removed immediately but can be added again later.`;
+                        } else {
+                            actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
+                        }
                     }
                     
                     if (confirmBtn) {
-                        confirmBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                        confirmBtn.classList.add('danger');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = isBot ? 'Remove Bot' : 'Kick Member';
+                        if (confirmText) confirmText.textContent = isBot ? 'Remove Bot' : 'Kick';
                     }
                     
                     actionHandler = () => handleKick(member);
@@ -1081,11 +940,10 @@ function initMemberManagementTab() {
             modal.addEventListener('click', handleBackgroundClick);
             
 
-            modal.classList.remove('hidden');
             
-            if (window.innerWidth <= 768) {
-                document.body.style.overflow = 'hidden';
-            }
+            
+
+            modal.classList.remove('hidden');
             
         } catch (error) {
             console.error('Error showing member action modal:', error);
@@ -1428,6 +1286,8 @@ function initChannelManagementTab() {
     
     function showChannelActionModal(action, channel) {
         try {
+            
+            
             if (!channel) {
                 console.error('No channel provided to action modal');
                 showToast('Error: Channel data is missing', 'error');
@@ -1440,6 +1300,7 @@ function initChannelManagementTab() {
                 showToast('Error: Modal not found', 'error');
                 return;
             }
+            
 
             const modalContainer = modal.querySelector('.channel-modal-container');
             if (!modalContainer) {
@@ -1448,12 +1309,7 @@ function initChannelManagementTab() {
                 return;
             }
             
-            if (window.innerWidth <= 768) {
-                modalContainer.style.margin = '1rem auto';
-                modalContainer.style.maxWidth = 'calc(100vw - 2rem)';
-                modalContainer.style.width = '100%';
-            }
-            
+
             const safeSetContent = (selector, content, defaultContent = '') => {
                 const element = modal.querySelector(selector);
                 if (element) {
@@ -1539,34 +1395,53 @@ function initChannelManagementTab() {
                     const nameInput = modal.querySelector('#new-channel-name');
                     if (nameInput) {
                         nameInput.value = channel.name;
-                        nameInput.focus();
+                        
+
+                        if (!nameInput.dataset.listenerAttached) {
+                            nameInput.addEventListener('input', function() {
+                                let val = this.value.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9\-_]/g, '');
+                                this.value = val;
+                            });
+                            nameInput.dataset.listenerAttached = 'true';
+                        }
+                        
+
+                        setTimeout(() => {
+                            nameInput.focus();
+                        }, 50);
                     }
                     
                     if (confirmBtn) {
-                        confirmBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        confirmBtn.classList.add('channel-modal-btn-primary');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Save Changes';
+                        if (confirmText) confirmText.textContent = 'Rename';
                     }
                     
                     actionHandler = () => {
-                        const newName = nameInput.value.trim();
-                        if (newName && newName !== channel.name) {
-                            handleRenameChannel(channel, newName);
+                        if (nameInput) {
+                            const newName = nameInput.value.trim();
+                            if (newName && newName !== channel.name) {
+                                handleRenameChannel(channel, newName);
+                            } else {
+                                showToast('Please enter a different name for the channel', 'info');
+                                return false; 
+                            }
                         }
+                        return true; 
                     };
                     break;
                     
                 case 'delete':
                     safeSetContent('.channel-modal-icon i', icon => {
-                        if (icon) icon.className = 'fas fa-trash-alt text-red-400';
+                        if (icon) icon.className = 'fas fa-trash';
                     });
                     if (modalTitle) modalTitle.textContent = 'Delete Channel';
-                    if (actionMessage) actionMessage.textContent = `Are you sure you want to delete #${channel.name}? This action cannot be undone.`;
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to delete "${channel.name}"? This will permanently delete all messages in this channel.`;
                     
                     if (confirmBtn) {
-                        confirmBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                        confirmBtn.classList.add('channel-modal-btn-danger');
                         const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Delete Channel';
+                        if (confirmText) confirmText.textContent = 'Delete';
                     }
                     
                     actionHandler = () => handleDeleteChannel(channel);
@@ -1589,8 +1464,10 @@ function initChannelManagementTab() {
             if (newConfirmBtn) {
                 newConfirmBtn.addEventListener('click', () => {
                     if (actionHandler) {
-                        modal.classList.add('hidden');
-                        actionHandler();
+                        const shouldClose = actionHandler();
+                        if (shouldClose !== false) {
+                            modal.classList.add('hidden');
+                        }
                     } else {
                         modal.classList.add('hidden');
                     }
@@ -1623,10 +1500,6 @@ function initChannelManagementTab() {
             
 
             modal.classList.remove('hidden');
-            
-            if (window.innerWidth <= 768) {
-                document.body.style.overflow = 'hidden';
-            }
             
         } catch (error) {
             console.error('Error showing channel action modal:', error);
@@ -1885,6 +1758,7 @@ function initDeleteServerTab() {
 
                     if (member.role === 'owner') return false;
                     
+
                     if (member.status === 'bot') return false;
                     
                     return true;
@@ -2104,7 +1978,7 @@ function initDeleteServerTab() {
                     item.style.opacity = '0';
                     item.style.transform = 'translateY(10px)';
                     setTimeout(() => {
-                        item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        item.style.transition = 'all 0.2s ease';
                         item.style.opacity = '1';
                         item.style.transform = 'translateY(0)';
                     }, index * 50); 
@@ -2165,7 +2039,6 @@ function initDeleteServerTab() {
         }
         
         confirmDeleteBtn.addEventListener('click', async function() {
-
             try {
                 confirmDeleteBtn.disabled = true;
                 confirmDeleteBtn.innerHTML = `
@@ -2179,7 +2052,7 @@ function initDeleteServerTab() {
                 const response = await window.serverAPI.deleteUserServer(serverId);
                 
                 if (response && response.success) {
-                    showToast('Server deleted successfully', 'success', 5000, 'Server Deleted');
+                    showToast('Server has been deleted successfully', 'success', 5000, 'Server Deleted');
                     
                     setTimeout(() => {
                         window.location.href = '/home';
@@ -2531,7 +2404,7 @@ async function updateServerPublic(serverId, isPublic) {
                 const checkElement = checkboxWrapper.querySelector('.checkbox-check');
                 if (checkElement) {
                     checkElement.style.opacity = '0';
-                    checkElement.style.transform = 'scale(0)';
+                    checkElement.style.transform = 'scale(0.5)';
                 }
             }
         }
@@ -2571,5 +2444,4 @@ async function updateServerCategory(serverId, category) {
         approveBtn.disabled = false;
         approveBtn.innerHTML = originalIcon;
     }
-}
 }

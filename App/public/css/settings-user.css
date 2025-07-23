@@ -98,29 +98,19 @@ body {
 .flex.min-h-screen {
   margin: 0 auto;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1260px;
   min-height: calc(100vh - 2rem);
   display: flex;
-  padding: 0;
+  padding: var(--discord-spacing-xxl);
   gap: 0;
   box-shadow: var(--discord-elevation-high);
-  border-radius: 0;
+  border-radius: var(--discord-border-radius-primary);
   background-color: var(--discord-bg-primary);
-  margin-top: 0;
-  margin-bottom: 0;
+  margin-top: var(--discord-spacing-md);
+  margin-bottom: var(--discord-spacing-md);
   position: relative;
-  border: none;
+  border: 1px solid rgba(4, 4, 5, 0.2);
   animation: fadeIn 0.3s ease-out;
-}
-
-@media (min-width: 1024px) {
-  .flex.min-h-screen {
-    border-radius: var(--discord-border-radius-primary);
-    margin-top: var(--discord-spacing-md);
-    margin-bottom: var(--discord-spacing-md);
-    padding: var(--discord-spacing-xxl);
-    border: 1px solid rgba(4, 4, 5, 0.2);
-  }
 }
 
 @keyframes fadeIn {
@@ -129,29 +119,17 @@ body {
 }
 
 .w-60 {
-  width: 100%;
-  min-width: 100%;
+  width: 218px;
+  min-width: 218px;
   background-color: var(--discord-bg-secondary);
-  border-right: none;
-  border-bottom: 1px solid rgba(4, 4, 5, 0.2);
-  border-radius: 0;
+  border-right: 1px solid rgba(4, 4, 5, 0.2);
+  border-radius: var(--discord-border-radius-primary) 0 0 var(--discord-border-radius-primary);
   display: flex;
   flex-direction: column;
   height: auto;
-  min-height: auto;
+  min-height: 100%;
   position: relative;
   transition: width var(--discord-animation-default) ease;
-}
-
-@media (min-width: 1024px) {
-  .w-60 {
-    width: 218px;
-    min-width: 218px;
-    border-right: 1px solid rgba(4, 4, 5, 0.2);
-    border-bottom: none;
-    border-radius: var(--discord-border-radius-primary) 0 0 var(--discord-border-radius-primary);
-    min-height: 100%;
-  }
 }
 
 .w-60 .p-4 {
@@ -298,19 +276,12 @@ body {
   flex: 1;
   background-color: var(--discord-bg-primary);
   overflow-y: auto;
-  max-height: none;
-  border-radius: 0;
+  max-height: calc(100vh - 4rem);
+  border-radius: 0 var(--discord-border-radius-primary) var(--discord-border-radius-primary) 0;
   margin: 0;
   position: relative;
   scrollbar-width: thin;
   scrollbar-color: var(--discord-interactive-muted) transparent;
-}
-
-@media (min-width: 1024px) {
-  .flex-1.bg-discord-dark {
-    max-height: calc(100vh - 4rem);
-    border-radius: 0 var(--discord-border-radius-primary) var(--discord-border-radius-primary) 0;
-  }
 }
 
 .flex-1.bg-discord-dark::-webkit-scrollbar {
@@ -334,16 +305,9 @@ body {
 }
 
 .p-10 {
-  padding: var(--discord-spacing-md);
+  padding: var(--discord-spacing-xxl) var(--discord-spacing-xxl) calc(var(--discord-spacing-xxl) + 2rem) var(--discord-spacing-xl);
   position: relative;
-  min-height: auto;
-}
-
-@media (min-width: 1024px) {
-  .p-10 {
-    padding: var(--discord-spacing-xxl) var(--discord-spacing-xxl) calc(var(--discord-spacing-xxl) + 2rem) var(--discord-spacing-xl);
-    min-height: calc(100vh - 8rem);
-  }
+  min-height: calc(100vh - 8rem);
 }
 
 .p-10::before {
@@ -369,12 +333,6 @@ body {
   width: 100%;
   position: relative;
   z-index: 1;
-}
-
-@media (min-width: 1024px) {
-  .max-w-\[740px\] {
-    max-width: 740px;
-  }
 }
 
 .mb-8 {
@@ -837,26 +795,19 @@ button:active {
 @media (max-width: 1200px) {
   .flex.min-h-screen {
     max-width: 100%;
-    padding: 0;
+    padding: var(--discord-spacing-lg);
     margin-top: 0;
     margin-bottom: 0;
     border-radius: 0;
     min-height: 100vh;
-    border: none;
-    box-shadow: none;
   }
   
   .flex-1.bg-discord-dark {
     max-height: none;
-    border-radius: 0;
-  }
-  
-  .w-60 {
-    border-radius: 0;
   }
   
   .p-10 {
-    padding: var(--discord-spacing-md);
+    padding: var(--discord-spacing-lg) var(--discord-spacing-lg) calc(var(--discord-spacing-lg) + 2rem) var(--discord-spacing-lg);
     min-height: auto;
   }
 }
@@ -866,8 +817,8 @@ button:active {
     flex-direction: column;
     height: auto;
     min-height: 100vh;
-    padding: 0;
-    gap: 0;
+    padding: 15px;
+    gap: 15px;
   }
   
   .w-60 {
@@ -875,49 +826,19 @@ button:active {
     min-width: auto;
     height: auto;
     max-height: none;
-    border-radius: 0;
+    border-radius: 8px;
     border-right: none;
     border-bottom: 1px solid rgba(79, 84, 92, 0.3);
   }
   
-  .w-60 .p-4 {
-    padding: var(--discord-spacing-md);
-  }
-  
   .flex-1.bg-discord-dark {
-    border-radius: 0;
+    border-radius: 8px;
     height: auto;
   }
   
   .p-10 {
-    padding: var(--discord-spacing-md);
+    padding: 20px;
   }
-  
-  .voice-video-tabs .tab-buttons {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .voice-tab {
-    width: 100%;
-    justify-content: flex-start;
-  }
-  
-  .form-group .flex.items-center.space-x-4 {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-  
-  .form-group .flex.items-center.space-x-4 > * + * {
-    margin-left: 0;
-  }
-  
-  #user-avatar-container,
-  #user-banner-container {
-    align-self: center;
-  }
-}
   
   .close-button {
     top: 25px;
@@ -972,13 +893,6 @@ button:active {
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-@media (max-width: 640px) {
-  .tab-buttons {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-}
-
 .voice-tab {
   display: flex;
   align-items: center;
@@ -994,13 +908,6 @@ button:active {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-}
-
-@media (max-width: 640px) {
-  .voice-tab {
-    justify-content: flex-start;
-    width: 100%;
-  }
 }
 
 .voice-tab::before {
@@ -1045,17 +952,9 @@ button:active {
 
 .voice-section-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-@media (min-width: 1024px) {
-  .voice-section-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .device-card, .volume-card, .mic-test-card, .video-device-card, .video-preview-card {
@@ -2421,6 +2320,5 @@ button:active {
     border: 1px solid #40444b;
     border-radius: 4px;
 }
-
 
 
