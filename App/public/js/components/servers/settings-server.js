@@ -10,8 +10,67 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         serverSettingsInitialized = true;
         initServerSettingsPage();
+        initResponsiveBehavior();
     }
 });
+
+function initResponsiveBehavior() {
+    function handleResize() {
+        const isMobile = window.innerWidth <= 768;
+        
+        const sidebar = document.querySelector('.w-60.bg-discord-light');
+        const mainContent = document.querySelector('.flex-1.bg-discord-dark');
+        const rightSidebar = document.querySelector('.w-80.bg-discord-dark');
+        
+        if (isMobile) {
+            document.body.classList.add('mobile-layout');
+            
+            if (sidebar) {
+                sidebar.style.order = '1';
+            }
+            if (mainContent) {
+                mainContent.style.order = '2';
+            }
+            if (rightSidebar) {
+                rightSidebar.style.display = 'none';
+            }
+        } else {
+            document.body.classList.remove('mobile-layout');
+            
+            if (sidebar) {
+                sidebar.style.order = '';
+            }
+            if (mainContent) {
+                mainContent.style.order = '';
+            }
+            if (rightSidebar) {
+                rightSidebar.style.display = '';
+            }
+        }
+        
+        const modals = document.querySelectorAll('.modal-overlay, #delete-server-modal');
+        modals.forEach(modal => {
+            if (modal && !modal.classList.contains('hidden')) {
+                const modalContent = modal.querySelector('.modal-container, .bg-discord-dark');
+                if (modalContent && isMobile) {
+                    modalContent.style.margin = '1rem';
+                    modalContent.style.maxWidth = 'calc(100vw - 2rem)';
+                } else if (modalContent) {
+                    modalContent.style.margin = '';
+                    modalContent.style.maxWidth = '';
+                }
+            }
+        });
+    }
+
+    handleResize();
+    
+    let resizeTimeout;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(handleResize, 250);
+    });
+}
 
 function initServerSettingsPage() {
     if (!document.body.classList.contains('authenticated')) {

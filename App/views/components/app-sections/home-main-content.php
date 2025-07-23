@@ -8,13 +8,16 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
 ?>
 
 <div class="flex-1 bg-discord-background flex flex-col">
-    <div class="h-auto min-h-[48px] bg-discord-background border-b border-gray-800 flex items-center justify-between px-4 py-2">
-        <div class="flex items-center">
+    <div class="h-auto min-h-[48px] bg-discord-background border-b border-gray-800 flex flex-col lg:flex-row items-start lg:items-center justify-between px-4 py-2 space-y-2 lg:space-y-0">
+        <div class="flex items-center w-full lg:w-auto">
+            <button id="mobile-sidebar-toggle" class="lg:hidden mr-3 text-gray-400 hover:text-white p-1 rounded-md hover:bg-discord-light">
+                <i class="fa-solid fa-bars text-lg"></i>
+            </button>
             <i class="fa-solid fa-user-group text-[18px] text-gray-400 mr-2"></i>
             <span class="font-semibold text-white">Friends</span>
         </div>
         
-        <div class="hidden md:flex items-center space-x-4 text-sm friends-desktop-tabs">
+        <div class="hidden lg:flex items-center space-x-4 text-sm friends-desktop-tabs">
             <?php
             $tabs = [
                 'online' => 'Online',
@@ -42,14 +45,15 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
             <button class="<?php echo $addFriendClass; ?> text-white px-3 py-1 rounded" data-tab="add-friend">Add Friend</button>
         </div>
         
-        <div class="md:hidden">
-            <button id="friends-menu-toggle" class="text-gray-400 hover:text-white p-2 rounded-md hover:bg-discord-light">
-                <i class="fa-solid fa-bars text-lg"></i>
+        <div class="lg:hidden w-full">
+            <button id="friends-menu-toggle" class="w-full text-gray-400 hover:text-white p-2 rounded-md hover:bg-discord-light flex items-center justify-between">
+                <span>Menu</span>
+                <i class="fa-solid fa-chevron-down text-sm"></i>
             </button>
         </div>
     </div>
     
-    <div id="friends-mobile-menu" class="hidden md:hidden bg-discord-dark border-b border-gray-800 p-3">
+    <div id="friends-mobile-menu" class="hidden lg:hidden bg-discord-dark border-b border-gray-800 p-3">
         <div class="flex flex-col space-y-2">
             <?php
             foreach ($tabs as $tab => $label) {
@@ -74,10 +78,10 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
     </div>
 
     <div class="tab-content <?php echo $activeTab === 'online' ? '' : 'hidden'; ?>" id="online-tab">
-        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
-            <div class="flex items-center justify-between mb-4">
+        <div class="flex-1 p-3 lg:p-4 overflow-y-auto bg-discord-background">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 space-y-2 lg:space-y-0">
                 <h2 class="text-gray-400 font-bold text-xs uppercase">Online — <span id="online-count">0</span></h2>
-                <div class="relative w-60">
+                <div class="relative w-full lg:w-60">
                     <input type="text" placeholder="Search friends" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="online-search">
                     <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
                 </div>
@@ -89,10 +93,10 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
     </div>
     
     <div class="tab-content <?php echo $activeTab === 'all' ? '' : 'hidden'; ?>" id="all-tab">
-        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
-            <div class="flex items-center justify-between mb-4">
+        <div class="flex-1 p-3 lg:p-4 overflow-y-auto bg-discord-background">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 space-y-2 lg:space-y-0">
                 <h2 class="text-gray-400 font-bold text-xs uppercase">All Friends — <?php echo count($friends); ?></h2>
-                <div class="relative w-60">
+                <div class="relative w-full lg:w-60">
                     <input type="text" placeholder="Search friends" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="all-search">
                     <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
                 </div>
@@ -109,13 +113,13 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                 </div>
                 <?php else: ?>
                     <?php foreach ($friends as $friend): ?>
-                        <div class="flex justify-between items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200 cursor-pointer" 
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded hover:bg-discord-light group friend-item transition-all duration-200 cursor-pointer" 
                              data-user-id="<?php echo htmlspecialchars($friend['id']); ?>"
                              data-username="<?php echo htmlspecialchars($friend['username']); ?>"
                              data-display-name="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username']); ?>"
                              onclick="openUserDetail('<?php echo htmlspecialchars($friend['id']); ?>')">
-                            <div class="flex items-center">
-                                <div class="relative mr-3">
+                            <div class="flex items-center w-full sm:w-auto">
+                                <div class="relative mr-3 flex-shrink-0">
                                     <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                         <img src="<?php echo htmlspecialchars($friend['avatar_url'] ?? ''); ?>" 
                                              alt="<?php echo htmlspecialchars($friend['display_name'] ?? $friend['username'] ?? 'User'); ?>" 
@@ -137,10 +141,10 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
     </div>
     
     <div class="tab-content <?php echo $activeTab === 'pending' ? '' : 'hidden'; ?>" id="pending-tab">
-        <div class="flex-1 p-4 overflow-y-auto bg-discord-background">
-            <div class="flex items-center justify-between mb-4">
+        <div class="flex-1 p-3 lg:p-4 overflow-y-auto bg-discord-background">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4 space-y-2 lg:space-y-0">
                 <h2 class="text-gray-400 font-bold text-xs uppercase">Pending</h2>
-                <div class="relative w-60">
+                <div class="relative w-full lg:w-60">
                     <input type="text" placeholder="Search requests" class="w-full bg-discord-dark text-white text-sm rounded px-3 py-1 pl-8 focus:outline-none focus:ring-1 focus:ring-discord-primary transition-all" id="pending-search">
                     <i class="fas fa-search absolute left-2.5 top-1.5 text-gray-500 text-sm"></i>
                 </div>
@@ -151,11 +155,11 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                     <h3 class="text-xs uppercase font-semibold text-gray-400 mb-2">Incoming Friend Requests — <?php echo count($pendingRequests); ?></h3>
                     <div class="space-y-2">
                         <?php foreach ($pendingRequests as $request): ?>
-                            <div class="flex items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item" 
+                            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-discord-dark rounded transition-all duration-200 friend-item space-y-3 sm:space-y-0" 
                                  data-username="<?php echo htmlspecialchars($request['username']); ?>"
                                  data-display-name="<?php echo htmlspecialchars($request['display_name'] ?? $request['username']); ?>">
-                                <div class="flex items-center">
-                                    <div class="relative mr-3">
+                                <div class="flex items-center w-full sm:w-auto">
+                                    <div class="relative mr-3 flex-shrink-0">
                                         <div class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center overflow-hidden">
                                             <img src="<?php echo htmlspecialchars($request['avatar_url'] ?? ''); ?>" 
                                                  alt="<?php echo htmlspecialchars($request['display_name'] ?? $request['username'] ?? 'User'); ?>" 
@@ -168,10 +172,10 @@ $pendingCount = $GLOBALS['pendingCount'] ?? 0;
                                         <div class="text-xs text-gray-400">Incoming Friend Request</div>
                                     </div>
                                 </div>
-                                <div class="flex space-x-2">
-                                    <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors"
+                                <div class="flex flex-row space-x-2 w-full sm:w-auto">
+                                    <button class="bg-discord-green hover:bg-discord-green/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors flex-1 sm:flex-none"
                                             onclick="acceptFriendRequest('<?php echo htmlspecialchars($request['friendship_id']); ?>')">Accept</button>
-                                    <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm border border-gray-600 transition-colors"
+                                    <button class="bg-discord-dark hover:bg-discord-light disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm border border-gray-600 transition-colors flex-1 sm:flex-none"
                                             onclick="ignoreFriendRequest('<?php echo htmlspecialchars($request['friendship_id']); ?>')">Ignore</button>
                                 </div>
                             </div>

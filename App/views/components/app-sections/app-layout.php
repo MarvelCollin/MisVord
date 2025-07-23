@@ -68,25 +68,29 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
 
 ?>
 
-<div class="flex h-screen" 
+<div class="flex h-screen overflow-hidden" 
      data-user-id="<?php echo htmlspecialchars($_SESSION['user_id']); ?>" 
      data-username="<?php echo htmlspecialchars($_SESSION['username']); ?>"
      data-discriminator="<?php echo htmlspecialchars($_SESSION['discriminator'] ?? '0000'); ?>"
      id="app-container">
 
-    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
+    <div id="mobile-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden lg:hidden"></div>
     
     <?php include dirname(__DIR__) . '/app-sections/server-sidebar.php'; ?>
 
     <div class="flex flex-1 overflow-hidden">
         <?php if ($contentType === 'home' || $contentType === 'dm'): ?>
-            <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
+            <div id="dm-sidebar" class="hidden lg:flex">
+                <?php include dirname(__DIR__) . '/app-sections/direct-messages-sidebar.php'; ?>
+            </div>
         <?php elseif ($contentType === 'server'): ?>
-            <div id="channel-sidebar" class="hidden md:flex">
+            <div id="channel-sidebar" class="hidden lg:flex">
                 <?php include dirname(__DIR__) . '/app-sections/channel-section.php'; ?>
             </div>
         <?php elseif ($contentType === 'explore'): ?>
-            <?php include dirname(__DIR__) . '/app-sections/explore-sidebar.php'; ?>
+            <div id="explore-sidebar" class="hidden lg:flex">
+                <?php include dirname(__DIR__) . '/app-sections/explore-sidebar.php'; ?>
+            </div>
         <?php endif; ?>
 
         <div class="flex flex-col flex-1" id="main-content">
@@ -284,17 +288,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     window.addEventListener('resize', function() {
         if (window.innerWidth >= 768) {
-            hideChannelSidebar();
             if (channelSidebar) {
-                channelSidebar.classList.remove('hidden');
+                channelSidebar.classList.remove('sidebar-open');
+                channelSidebar.classList.remove('hidden', 'fixed', 'inset-y-0', 'left-16', 'z-50');
                 channelSidebar.classList.add('md:flex');
+                mobileOverlay.classList.add('hidden');
+                mobileOverlay.classList.remove('overlay-open');
             }
         }
         if (window.innerWidth >= 1280) {
-            hideParticipantSidebar();
             if (participantSidebar) {
-                participantSidebar.classList.remove('hidden');
+                participantSidebar.classList.remove('sidebar-open');
+                participantSidebar.classList.remove('hidden', 'fixed', 'inset-y-0', 'right-0', 'z-50');
                 participantSidebar.classList.add('xl:flex');
+                mobileOverlay.classList.add('hidden');
+                mobileOverlay.classList.remove('overlay-open');
             }
         }
     });
@@ -335,12 +343,24 @@ document.addEventListener('DOMContentLoaded', function() {
         width: 240px;
         background-color: #2f3136;
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
+        transform: translateX(-100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    #channel-sidebar.fixed.sidebar-open {
+        transform: translateX(0);
     }
     
     #participant-sidebar.fixed {
         width: 240px;
         background-color: #2f3136;
         box-shadow: -8px 0 16px rgba(0, 0, 0, 0.24);
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    #participant-sidebar.fixed.sidebar-open {
+        transform: translateX(0);
     }
 }
 
@@ -350,6 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
         position: relative !important;
         left: auto !important;
         z-index: auto !important;
+        transform: none !important;
     }
 }
 
@@ -359,10 +380,17 @@ document.addEventListener('DOMContentLoaded', function() {
         position: relative !important;
         right: auto !important;
         z-index: auto !important;
+        transform: none !important;
     }
 }
 
 #mobile-overlay {
     backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#mobile-overlay.overlay-open {
+    opacity: 1;
 }
 </style>

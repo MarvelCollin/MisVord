@@ -23,7 +23,7 @@ if (file_exists($tooltipPath)) {
 }
 ?>
 
-<div class="w-60 bg-discord-dark flex flex-col">
+<div class="w-full lg:w-60 bg-discord-dark flex flex-col">
 
     <div class="p-3">
         <div class="w-full bg-discord-darker rounded px-2 py-1.5 flex items-center">

@@ -2956,6 +2956,57 @@ textarea.form-input {
     }
 }
 
+@media (max-width: 480px) {
+    body {
+        padding: var(--discord-spacing-xs);
+    }
+    
+    .flex.min-h-screen {
+        margin: 0;
+        height: 100vh;
+        border-radius: 0;
+    }
+    
+    .p-10 {
+        padding: var(--discord-spacing-xs) var(--discord-spacing-sm);
+    }
+    
+    .sidebar-item {
+        padding: 8px var(--discord-spacing-sm);
+        font-size: 14px;
+        min-height: 40px;
+    }
+    
+    .form-input {
+        height: 48px;
+        font-size: 16px;
+        padding: var(--discord-spacing-md);
+    }
+    
+    .search-input {
+        padding: 16px 16px 16px 44px;
+        font-size: 16px;
+    }
+    
+    .modal-container {
+        width: calc(100vw - 16px);
+        margin: 8px;
+        border-radius: 8px;
+        max-height: calc(100vh - 16px);
+    }
+    
+    .close-button {
+        top: 8px;
+        right: 8px;
+        padding: var(--discord-spacing-xs);
+        font-size: 10px;
+    }
+    
+    .close-button-text {
+        display: none;
+    }
+}
+
 
 .channels-header-section {
   margin-bottom: var(--discord-spacing-lg);

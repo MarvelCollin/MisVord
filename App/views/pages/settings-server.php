@@ -35,50 +35,50 @@ ob_start();
 <meta name="user-id" content="<?php echo $_SESSION['user_id'] ?? ''; ?>">
 
 <div class="flex min-h-screen max-w-[1480px] mx-auto mt-10">
-    <div class="w-60 bg-discord-light border-r border-discord-dark">
+    <div class="w-60 bg-discord-light border-r border-discord-dark lg:w-60 md:w-48 sm:w-full sm:border-r-0 sm:border-b sm:border-discord-dark">
         <div class="p-4">
             <div class="text-sm font-semibold text-white"><?php echo htmlspecialchars($server->name); ?></div>
             <div class="text-xs text-discord-lighter mt-1">Server Settings</div>
         </div>
         
-        <nav class="mt-2">
-            <ul>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=profile" class="sidebar-item <?php echo $section === 'profile' ? 'active' : ''; ?>">
-                        Server Profile
+        <nav class="mt-2 pb-4 sm:pb-0">
+            <ul class="sm:flex sm:flex-row sm:justify-around sm:px-4">
+                <li class="sm:flex-1">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=profile" class="sidebar-item <?php echo $section === 'profile' ? 'active' : ''; ?> sm:text-center sm:px-2">
+                        <span class="sm:text-xs lg:text-sm">Server Profile</span>
                     </a>
                 </li>
                 
-                <li class="mt-6">
+                <li class="mt-6 sm:mt-0 sm:hidden">
                     <div class="sidebar-category">
                         <span>CHANNELS</span>
                     </div>
                 </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=channels" class="sidebar-item <?php echo $section === 'channels' ? 'active' : ''; ?>">
-                        Channel Management
+                <li class="sm:flex-1">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=channels" class="sidebar-item <?php echo $section === 'channels' ? 'active' : ''; ?> sm:text-center sm:px-2">
+                        <span class="sm:text-xs lg:text-sm">Channels</span>
                     </a>
                 </li>
                 
-                <li class="mt-6">
+                <li class="mt-6 sm:mt-0 sm:hidden">
                     <div class="sidebar-category">
                         <span>PEOPLE</span>
                     </div>
                 </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=roles" class="sidebar-item <?php echo $section === 'roles' ? 'active' : ''; ?>">
-                        Members
+                <li class="sm:flex-1">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=roles" class="sidebar-item <?php echo $section === 'roles' ? 'active' : ''; ?> sm:text-center sm:px-2">
+                        <span class="sm:text-xs lg:text-sm">Members</span>
                     </a>
                 </li>
                 
-                <li class="mt-6">
+                <li class="mt-6 sm:mt-0 sm:hidden">
                     <div class="sidebar-category">
                         <span>DANGER ZONE</span>
                     </div>
                 </li>
-                <li>
-                    <a href="?server_id=<?php echo $serverId; ?>&section=delete" class="sidebar-item text-discord-red <?php echo $section === 'delete' ? 'active' : ''; ?>">
-                        Delete Server
+                <li class="sm:flex-1">
+                    <a href="?server_id=<?php echo $serverId; ?>&section=delete" class="sidebar-item text-discord-red <?php echo $section === 'delete' ? 'active' : ''; ?> sm:text-center sm:px-2">
+                        <span class="sm:text-xs lg:text-sm">Delete</span>
                     </a>
                 </li>
             </ul>
@@ -87,73 +87,73 @@ ob_start();
 
     <div class="flex-1 bg-discord-dark overflow-y-auto">
         <?php if ($section === 'delete'): ?>
-            <div class="p-10 max-w-[740px]">
-                <div class="mb-8">
-                    <h1 class="text-2xl font-bold mb-2 text-discord-red">Delete Server</h1>
-                    <p class="text-discord-lighter">This action is permanent and cannot be undone</p>
+            <div class="p-10 max-w-[740px] sm:p-4 sm:max-w-none">
+                <div class="mb-8 sm:mb-6">
+                    <h1 class="text-2xl font-bold mb-2 text-discord-red sm:text-xl">Delete Server</h1>
+                    <p class="text-discord-lighter sm:text-sm">This action is permanent and cannot be undone</p>
                 </div>
                 
-                <div class="bg-discord-darker rounded-lg p-6 space-y-6">
-                    <div class="bg-discord-red bg-opacity-10 text-discord-red border-l-4 border-discord-red px-4 py-3 rounded-r">
+                <div class="bg-discord-darker rounded-lg p-6 space-y-6 sm:p-4 sm:space-y-4">
+                    <div class="bg-discord-red bg-opacity-10 text-discord-red border-l-4 border-discord-red px-4 py-3 rounded-r sm:px-3 sm:py-2">
                         <div class="flex items-center">
-                            <i class="fas fa-exclamation-triangle h-5 w-5 mr-2"></i>
-                            <span class="font-medium">This action cannot be undone</span>
+                            <i class="fas fa-exclamation-triangle h-5 w-5 mr-2 sm:h-4 sm:w-4"></i>
+                            <span class="font-medium sm:text-sm">This action cannot be undone</span>
                         </div>
                     </div>
                     
-                    <p class="text-white">
+                    <p class="text-white sm:text-sm">
                         Deleting this server will:
                     </p>
                     
-                    <ul class="ml-6 space-y-2 text-discord-lighter">
+                    <ul class="ml-6 space-y-2 text-discord-lighter sm:ml-4 sm:space-y-1 sm:text-sm">
                         <li class="flex items-center">
-                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red"></i>
+                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red sm:h-3 sm:w-3"></i>
                             Permanently delete all channels and their content
                         </li>
                         <li class="flex items-center">
-                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red"></i>
+                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red sm:h-3 sm:w-3"></i>
                             Remove all members from the server
                         </li>
                         <li class="flex items-center">
-                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red"></i>
+                            <i class="fas fa-times h-4 w-4 mr-2 text-discord-red sm:h-3 sm:w-3"></i>
                             Delete all server settings and custom emojis
                         </li>
                     </ul>
                     
-                    <div class="pt-4">
-                        <button id="open-delete-modal" class="bg-discord-red hover:bg-red-700 text-white font-medium py-2 px-6 rounded-md transition-colors">
+                    <div class="pt-4 sm:pt-3">
+                        <button id="open-delete-modal" class="bg-discord-red hover:bg-red-700 text-white font-medium py-2 px-6 rounded-md transition-colors sm:py-3 sm:px-4 sm:w-full sm:text-base">
                             Delete Server
                         </button>
                     </div>
                 </div>
             </div>
         <?php elseif ($section === 'profile'): ?>       
-            <div class="p-10 max-w-[740px]">
-                <div class="mb-8">
-                    <h1 class="text-2xl font-bold mb-2">Server Profile</h1>
-                    <p class="text-discord-lighter">Customize your server's appearance and profile information</p>
+            <div class="p-10 max-w-[740px] sm:p-4 sm:max-w-none">
+                <div class="mb-8 sm:mb-6">
+                    <h1 class="text-2xl font-bold mb-2 sm:text-xl">Server Profile</h1>
+                    <p class="text-discord-lighter sm:text-sm">Customize your server's appearance and profile information</p>
                 </div>
                 
-                <form id="server-profile-form" class="space-y-8">
+                <form id="server-profile-form" class="space-y-8 sm:space-y-6">
                     <input type="hidden" name="server_id" value="<?php echo $serverId; ?>">
                     
-                    <div class="bg-discord-darker rounded-lg p-6 space-y-6">
+                    <div class="bg-discord-darker rounded-lg p-6 space-y-6 sm:p-4 sm:space-y-4">
                         <div class="form-group">
                             <label for="server-name" class="block text-sm font-medium text-white mb-2">Server Name</label>
-                            <div class="flex">
+                            <div class="flex sm:flex-col sm:gap-2">
                                 <input type="text" id="server-name" name="name" class="form-input bg-discord-dark-input text-white border-none focus:ring-2 focus:ring-discord-primary flex-grow" value="<?php echo htmlspecialchars($server->name); ?>" data-original-value="<?php echo htmlspecialchars($server->name); ?>">
-                                <button type="button" id="approve-server-name" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-md hidden approve-btn">
-                                    <i class="fas fa-check"></i>
+                                <button type="button" id="approve-server-name" class="ml-2 bg-blue-600 hover:bg-blue-700 text-white px-3 rounded-md hidden approve-btn sm:ml-0 sm:w-full">
+                                    <i class="fas fa-check mr-2 sm:mr-1"></i><span class="hidden sm:inline">Update Name</span>
                                 </button>
                             </div>
                         </div>
                         
                         <div class="form-group">
                             <label for="server-description" class="block text-sm font-medium text-white mb-2">Description</label>
-                            <div class="flex">
+                            <div class="flex sm:flex-col sm:gap-2">
                                 <textarea id="server-description" name="description" class="form-input bg-discord-dark-input text-white border-none h-24 resize-none focus:ring-2 focus:ring-discord-primary flex-grow" placeholder="Tell people what your server is about..." data-original-value="<?php echo htmlspecialchars($server->description ?? ''); ?>"><?php echo htmlspecialchars($server->description ?? ''); ?></textarea>
-                                <button type="button" id="approve-server-description" class="ml-2 bg-green-600 hover:bg-green-700 text-white px-3 rounded-md hidden approve-btn self-start mt-0">
-                                    <i class="fas fa-check"></i>
+                                <button type="button" id="approve-server-description" class="ml-2 bg-green-600 hover:bg-green-700 text-white px-3 rounded-md hidden approve-btn self-start mt-0 sm:ml-0 sm:w-full sm:self-auto sm:mt-0">
+                                    <i class="fas fa-check mr-2 sm:mr-1"></i><span class="hidden sm:inline">Update Description</span>
                                 </button>
                             </div>
                             <p class="text-xs text-discord-lighter mt-1">This description will be shown in server discovery and invites.</p>
@@ -557,8 +557,8 @@ ob_start();
         <?php endif; ?>
     </div>
     
-    <div class="w-80 bg-discord-dark border-l">
-        <div class="sticky top-6">
+    <div class="w-80 bg-discord-dark border-l hidden lg:block">
+        <div class="sticky top-6 p-4">
             <h3 class="text-sm font-semibold text-discord-lighter uppercase mb-4">Preview</h3>
             
             <div class="server-preview-card bg-[#1e1f22] rounded-lg overflow-hidden">
@@ -592,7 +592,7 @@ ob_start();
         <div class="close-button-icon">
             <i class="fas fa-times"></i>
         </div>
-        <span class="close-button-text">ESC</span>
+        <span class="close-button-text hidden sm:inline">ESC</span>
     </a>
 </div>
 
