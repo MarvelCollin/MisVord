@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('click', async function(e) {
         const homeLink = e.target.closest('a[href="/home"]') || 
                         e.target.closest('a[href="/"]') ||
-                        e.target.closest('.server-icon:first-child a');
+                        e.target.closest('.server-sidebar-icon:first-child a');
         if (homeLink && !isHandlingClick) {
             e.preventDefault();
             

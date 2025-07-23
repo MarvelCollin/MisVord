@@ -530,8 +530,11 @@ function initInfiniteScrollIfNeeded() {
     const existingTrigger = document.getElementById('infinite-loading-indicator');
     if (existingTrigger) return;
 
-    const publicServerCount = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
+    const initialCards = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
         .filter(card => card.getAttribute('data-server-id')).length;
+    const apiCards = Array.from(container.querySelectorAll('.misvord-api-server-card .explore-server-card'))
+        .filter(card => card.getAttribute('data-server-id')).length;
+    const publicServerCount = initialCards + apiCards;
     
     if (publicServerCount < 6) return;
 
@@ -557,8 +560,11 @@ function initInfiniteScroll() {
     const container = document.getElementById('all-servers');
     if (!container) return;
 
-    const publicServerCount = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
+    const initialCards = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
         .filter(card => card.getAttribute('data-server-id')).length;
+    const apiCards = Array.from(container.querySelectorAll('.misvord-api-server-card .explore-server-card'))
+        .filter(card => card.getAttribute('data-server-id')).length;
+    const publicServerCount = initialCards + apiCards;
     
     if (publicServerCount < 6) {
         return;
@@ -648,8 +654,11 @@ async function fetchAndRenderServers(append = false) {
                 initLazyLoadingForNewCards(container);
                 
                 if (!append) {
-                    const publicServerCount = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
+                    const initialCards = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
                         .filter(card => card.getAttribute('data-server-id')).length;
+                    const apiCards = Array.from(container.querySelectorAll('.misvord-api-server-card .explore-server-card'))
+                        .filter(card => card.getAttribute('data-server-id')).length;
+                    const publicServerCount = initialCards + apiCards;
                     
                     if (publicServerCount >= 6) {
                         initInfiniteScrollIfNeeded();
