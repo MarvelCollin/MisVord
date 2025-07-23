@@ -172,12 +172,25 @@ class ChatController extends BaseController
     {
         error_log("[BOT-DEBUG] respondMessages called for $type $targetId with " . count($messages) . " messages, hasMore: " . ($hasMore ? 'true' : 'false'));
 
-        return $this->success([
+        $response = [
             'type' => $type,
             'target_id' => $targetId,
             'messages' => $messages,
             'has_more' => $hasMore
-        ], 'Messages retrieved successfully');
+        ];
+
+        if ($type === 'dm') {
+            $chatRoom = $this->chatRoomRepository->find($targetId);
+            if ($chatRoom) {
+                $response['room_info'] = [
+                    'name' => $chatRoom->name,
+                    'type' => $chatRoom->type,
+                    'image_url' => $chatRoom->image_url
+                ];
+            }
+        }
+
+        return $this->success($response, 'Messages retrieved successfully');
     }
 
     private function getDirectMessages($chatRoomId, $userId)

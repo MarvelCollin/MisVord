@@ -193,7 +193,7 @@ $activeTab = $GLOBALS['activeTab'] ?? 'online';
 document.addEventListener('DOMContentLoaded', function() {
     const mobileOverlay = document.getElementById('mobile-overlay');
     const channelSidebar = document.getElementById('channel-sidebar');
-    const participantSidebar = document.getElementById('participant-sidebar');
+    const participantSidebar = document.getElementById('participant-sidebar') || document.getElementById('group-participant-sidebar');
     
     function showChannelSidebar() {
         if (channelSidebar) {

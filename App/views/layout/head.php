@@ -84,6 +84,95 @@ if ($isVPS && $vpsHost !== 'localhost') {
 
 <title><?php echo htmlspecialchars($page_title); ?></title>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('contextmenu', function(e) {
+        const allowedContextMenuElements = [
+            '.message-item',
+            '[data-message-id]',
+            '.context-menu',
+            '#message-context-menu',
+            '.group-header',
+            '.server-sidebar-header'
+        ];
+        
+        let isAllowed = false;
+        for (const selector of allowedContextMenuElements) {
+            if (e.target.closest(selector)) {
+                isAllowed = true;
+                break;
+            }
+        }
+        
+        if (!isAllowed) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F12' || 
+            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+            (e.ctrlKey && e.key === 'u') ||
+            (e.ctrlKey && e.key === 'U') ||
+            (e.ctrlKey && e.key === 's') ||
+            (e.ctrlKey && e.key === 'S') ||
+            (e.ctrlKey && e.key === 'p') ||
+            (e.ctrlKey && e.key === 'P') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'J')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    document.addEventListener('selectstart', function(e) {
+        const allowedSelectElements = [
+            'input',
+            'textarea',
+            'select',
+            '[contenteditable="true"]',
+            '.form-input',
+            '#server-search',
+            '#message-input'
+        ];
+        
+        let isAllowed = false;
+        for (const selector of allowedSelectElements) {
+            if (e.target.matches(selector) || e.target.closest(selector)) {
+                isAllowed = true;
+                break;
+            }
+        }
+        
+        if (!isAllowed) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    document.addEventListener('dragstart', function(e) {
+        const allowedDragElements = [
+            'input[type="file"]',
+            '.file-input',
+            '.draggable'
+        ];
+        
+        let isAllowed = false;
+        for (const selector of allowedDragElements) {
+            if (e.target.matches(selector) || e.target.closest(selector)) {
+                isAllowed = true;
+                break;
+            }
+        }
+        
+        if (!isAllowed) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+</script>
 
 <link rel="icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
 <link rel="shortcut icon" type="image/png" href="/public/assets/common/default-profile-picture.png">
@@ -97,6 +186,52 @@ if ($isVPS && $vpsHost !== 'localhost') {
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 <script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+* {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+input, textarea, select, [contenteditable="true"], .form-input, #server-search {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+img {
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+    pointer-events: none;
+}
+
+img:not(.message-attachment):not(.user-avatar):not(.server-icon) {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+@media print {
+    * {
+        display: none !important;
+    }
+}
+</style>
 
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />

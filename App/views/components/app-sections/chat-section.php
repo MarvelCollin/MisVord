@@ -25,27 +25,40 @@ if (!$chatType) {
             $chatRoom = $chatRoomRepository->find($activeDmId);
             if ($chatRoom) {
                 $participants = $chatRoomRepository->getParticipants($activeDmId);
-                $friend = null;
+                $isGroupChat = ($chatRoom->type === 'group');
                 
-                foreach ($participants as $participant) {
-                    if ($participant['user_id'] != $currentUserId) {
-                        $friend = [
-                            'id' => $participant['user_id'],
-                            'username' => $participant['username'],
-                            'display_name' => $participant['display_name'] ?? $participant['username'],
-                            'avatar_url' => $participant['avatar_url']
+                if ($isGroupChat) {
+                    $chatData = [
+                        'group_name' => $chatRoom->name ?? 'Group Chat',
+                        'is_group' => true,
+                        'participant_count' => count($participants),
+                        'participants' => $participants
+                    ];
+                } else {
+                    $friend = null;
+                    foreach ($participants as $participant) {
+                        if ($participant['user_id'] != $currentUserId) {
+                            $friend = [
+                                'id' => $participant['user_id'],
+                                'username' => $participant['username'],
+                                'display_name' => $participant['display_name'] ?? $participant['username'],
+                                'avatar_url' => $participant['avatar_url']
+                            ];
+                            break;
+                        }
+                    }
+                    
+                    if ($friend) {
+                        $chatData = [
+                            'friend_username' => $friend['display_name'] ?? $friend['username'] ?? 'Unknown User',
+                            'friend_id' => $friend['id'] ?? null,
+                            'friend_avatar_url' => $friend['avatar_url'] ?? null,
+                            'is_group' => false
                         ];
-                        break;
                     }
                 }
                 
-                if ($friend) {
-                    $chatData = [
-                        'friend_username' => $friend['display_name'] ?? $friend['username'] ?? 'Unknown User',
-                        'friend_id' => $friend['id'] ?? null,
-                        'friend_avatar_url' => $friend['avatar_url'] ?? null
-                    ];
-                    
+                if ($chatData) {
                     require_once dirname(dirname(dirname(__DIR__))) . '/database/repositories/ChatRoomMessageRepository.php';
                     $chatRoomMessageRepository = new ChatRoomMessageRepository();
                     $rawMessages = $chatRoomMessageRepository->getMessagesByRoomId($activeDmId, 20, 0);
@@ -129,13 +142,19 @@ if ($chatType === 'channel') {
     $chatIcon = 'fas fa-hashtag';
     $placeholder = "Message #{$chatTitle}";
 } elseif ($chatType === 'direct' || $chatType === 'dm') {
-    $chatTitle = $chatData['friend_username'] ?? 'Direct Message';
+    if (isset($chatData['is_group']) && $chatData['is_group']) {
+        $chatTitle = $chatData['group_name'] ?? 'Group Chat';
+        $chatIcon = 'fas fa-users';
+        $placeholder = "Message in {$chatTitle}";
+    } else {
+        $chatTitle = $chatData['friend_username'] ?? 'Direct Message';
+        $chatIcon = 'fas fa-user';
+        $placeholder = "Message @{$chatTitle}";
+    }
     $chatTitle = preg_replace('/=+/', '', $chatTitle);
     $chatTitle = preg_replace('/\b(Edit|Delete)\b/i', '', $chatTitle);
     $chatTitle = preg_replace('/\s+/', ' ', trim($chatTitle));
-    if (empty($chatTitle)) $chatTitle = 'Direct Message';
-    $chatIcon = 'fas fa-user';
-    $placeholder = "Message @{$chatTitle}";
+    if (empty($chatTitle)) $chatTitle = $chatData['is_group'] ? 'Group Chat' : 'Direct Message';
 }
 
 
@@ -658,9 +677,11 @@ if (!function_exists('renderMessage')) {
         <?php endif; ?>
         <i id="channel-icon" class="<?php echo $chatIcon; ?> text-[#949ba4] mr-1 sm:mr-2 text-sm sm:text-base"></i>
         <span id="channel-name" class="font-semibold text-white text-sm sm:text-base truncate flex-1"><?php echo htmlspecialchars($chatTitle); ?></span>
+        <?php if ($chatType === 'channel' || (isset($chatData['is_group']) && $chatData['is_group'])): ?>
         <button id="mobile-participant-menu" class="xl:hidden ml-2 p-1 text-[#949ba4] hover:text-white rounded" onclick="window.toggleParticipantSidebar && window.toggleParticipantSidebar()">
             <i class="fas fa-users text-sm"></i>
         </button>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 

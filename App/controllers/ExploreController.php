@@ -34,21 +34,18 @@ class ExploreController extends BaseController
             $offset = ($page - 1) * $perPage;
             $currentUserId = $_SESSION['user_id'] ?? 0;
             
-
             $baseServers = $this->serverRepository->getPublicServersWithMemberCount();
             $userServerIds = $this->getUserServerIds($currentUserId);
             
-
             $servers = array_map(function($server) use ($userServerIds) {
                 $serverArray = is_array($server) ? $server : (array) $server;
                 $serverArray['is_member'] = in_array($serverArray['id'], $userServerIds);
                 return $serverArray;
             }, $baseServers);
             
-
             if (!empty($category)) {
                 $servers = array_filter($servers, function($server) use ($category) {
-                    return $server['category'] === $category;
+                    return isset($server['category']) && $server['category'] === $category;
                 });
             }
             
@@ -60,7 +57,6 @@ class ExploreController extends BaseController
                 });
             }
             
-
             switch ($sort) {
                 case 'alphabetical':
                     usort($servers, function($a, $b) {
@@ -95,10 +91,10 @@ class ExploreController extends BaseController
             }
             
             $total = count($servers);
+            $totalPages = $perPage > 0 ? ceil($total / $perPage) : 1;
             $paginatedServers = array_slice($servers, $offset, $perPage);
             $hasMore = ($offset + $perPage) < $total;
             
-
             $formattedServers = array_map(function($server) {
                 return [
                     'id' => $server['id'],
@@ -118,7 +114,7 @@ class ExploreController extends BaseController
                 'has_more' => $hasMore,
                 'total' => $total,
                 'current_page' => $page,
-                'total_pages' => ceil($total / $perPage)
+                'total_pages' => $totalPages
             ];
             
         } catch (Exception $e) {

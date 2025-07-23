@@ -192,6 +192,7 @@ class ChatSection {
             this.currentServerName = options.serverName || null;
             this.currentServerIcon = options.serverIcon || null;
             this.currentChannelName = options.channelName || null;
+            this.currentRoomInfo = null;
             
             this.chatContainer = null;
             this.chatMessages = null;
@@ -1095,6 +1096,10 @@ class ChatSection {
                 if (response.data.messages && Array.isArray(response.data.messages)) {
                     messages = response.data.messages;
                     hasMore = response.data.has_more || false;
+
+                    if (response.data.room_info && this.chatType === 'direct') {
+                        this.currentRoomInfo = response.data.room_info;
+                    }
 
                     let botCount = 0;
                     let userCount = 0;
@@ -2702,12 +2707,17 @@ class ChatSection {
 
             
         } else if (this.chatType === 'direct') {
-            const chatTitleMeta = document.querySelector('meta[name="chat-title"]');
-            let titleText = chatTitleMeta?.content || 'Direct Message';
-            titleText = this.cleanChannelName(titleText);
-            
-            channelName.textContent = titleText;
-            channelIcon.className = 'fas fa-user text-[#949ba4] mr-2';
+            if (this.currentRoomInfo && this.currentRoomInfo.type === 'group') {
+                channelName.textContent = this.currentRoomInfo.name || 'Group Chat';
+                channelIcon.className = 'fas fa-users text-[#949ba4] mr-2';
+            } else {
+                const chatTitleMeta = document.querySelector('meta[name="chat-title"]');
+                let titleText = chatTitleMeta?.content || 'Direct Message';
+                titleText = this.cleanChannelName(titleText);
+                
+                channelName.textContent = titleText;
+                channelIcon.className = 'fas fa-user text-[#949ba4] mr-2';
+            }
 
             
         } else {
@@ -2817,6 +2827,7 @@ class ChatSection {
         
         this.targetId = dmId;
         this.chatType = 'direct';
+        this.currentRoomInfo = null;
         
         const messagesContainer = this.getMessagesContainer();
         if (messagesContainer) {
@@ -2897,6 +2908,7 @@ class ChatSection {
         this.hasMoreMessages = true;
         this.userHasScrolled = false;
         this.lastScrollPosition = 0;
+        this.currentRoomInfo = null;
         
         if (this.messageHandler) {
             this.messageHandler.processedMessageIds.clear();
