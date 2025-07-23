@@ -32,7 +32,7 @@ foreach ($allServers as $server) {
                 <i class="fas fa-globe"></i>
             </div>
             <span class="font-medium">All Servers</span>
-            <span class="ml-auto text-xs bg-discord-darker px-2 py-1 rounded misvord-category-count misvord-category-count-skeleton" data-count="<?php echo count($allServers); ?>"></span>
+            <span class="ml-auto text-xs bg-discord-darker px-2 py-1 rounded misvord-category-count" data-count="<?php echo count($allServers); ?>"><?php echo count($allServers); ?></span>
         </div>
 
         <?php foreach ($categories as $key => $name): ?>
@@ -53,7 +53,7 @@ foreach ($allServers as $server) {
                     <i class="<?php echo $icon; ?>"></i>
                 </div>
                 <span class="font-medium"><?php echo htmlspecialchars($name); ?></span>
-                <span class="ml-auto text-xs bg-discord-darker px-2 py-1 rounded misvord-category-count misvord-category-count-skeleton" data-count="<?php echo $categoryCounts[$key] ?? 0; ?>"></span>
+                <span class="ml-auto text-xs bg-discord-darker px-2 py-1 rounded misvord-category-count" data-count="<?php echo $categoryCounts[$key] ?? 0; ?>"><?php echo $categoryCounts[$key] ?? 0; ?></span>
             </div>
         <?php endforeach; ?>
     </div>

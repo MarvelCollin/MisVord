@@ -47,6 +47,7 @@ class ExploreController extends BaseController
                 $servers = array_filter($servers, function($server) use ($category) {
                     return isset($server['category']) && $server['category'] === $category;
                 });
+                $servers = array_values($servers);
             }
             
             if (!empty($search)) {
@@ -55,6 +56,7 @@ class ExploreController extends BaseController
                     return strpos(strtolower($server['name']), $searchLower) !== false ||
                            strpos(strtolower($server['description'] ?? ''), $searchLower) !== false;
                 });
+                $servers = array_values($servers);
             }
             
             switch ($sort) {
