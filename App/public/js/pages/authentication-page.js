@@ -7,6 +7,10 @@ function initAuth() {
     }
     window.authPageInitialized = true;
 
+    if (window.self !== window.top) {
+        document.cookie = "PHPSESSID=; path=/; SameSite=None; Secure";
+    }
+
     clearStoredAuthData();
     
     setTimeout(() => {
@@ -386,6 +390,10 @@ function initAuth() {
             
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
+
+                if (window.self !== window.top) {
+                    this.target = '_top';
+                }
                 
                 FormValidator.clearErrors(this);
                 

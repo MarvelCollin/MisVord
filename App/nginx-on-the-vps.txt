@@ -11,12 +11,11 @@ server {
     ssl_certificate /etc/letsencrypt/live/marvelcollin.my.id/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/marvelcollin.my.id/privkey.pem;
 
-    # Enhanced security headers with WebSocket support
-    add_header X-Frame-Options "SAMEORIGIN" always;
+    # Enhanced security headers with WebSocket support and iframe embedding
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: wss: ws: data: blob:; worker-src 'self' blob:;" always;
+    add_header Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: wss: ws: data: blob:; worker-src 'self' blob:; frame-ancestors *;" always;
 
     # Socket.IO WebSocket proxy with enhanced configuration
     location /socket.io/ {

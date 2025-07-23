@@ -471,11 +471,10 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/$domain/privkey.pem;
     
     # Security headers
-    add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "no-referrer-when-downgrade" always;
-    add_header Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'" always;
+    add_header Content-Security-Policy "default-src 'self' https: data: 'unsafe-inline' 'unsafe-eval'; frame-ancestors *;" always;
 
     # Socket.IO - Direct connection to socket server
     location /socket.io/ {

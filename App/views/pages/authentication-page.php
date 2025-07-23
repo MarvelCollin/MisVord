@@ -202,7 +202,7 @@ try {
 
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
-            <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
+            <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm"<?php if (isset($_SERVER['HTTP_SEC_FETCH_DEST']) && $_SERVER['HTTP_SEC_FETCH_DEST'] === 'iframe'): ?> target="_top"<?php endif; ?>>
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -266,7 +266,7 @@ try {
                 </div>
             </form>
 
-            <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
+            <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm"<?php if (isset($_SERVER['HTTP_SEC_FETCH_DEST']) && $_SERVER['HTTP_SEC_FETCH_DEST'] === 'iframe'): ?> target="_top"<?php endif; ?>>
                 <div class="flex items-center justify-center mb-4">
                     <div class="flex items-center">
                         <div class="step-indicator active" id="step-1-indicator">
@@ -548,6 +548,8 @@ try {
         window.initialRegisterStep = 2;
     </script>
     <?php endif; ?>
+    
+    <script src="<?php echo js('utils/iframe-handler'); ?>?v=<?php echo time(); ?>"></script>
 </body>
 <?php 
 $content = ob_get_clean(); 

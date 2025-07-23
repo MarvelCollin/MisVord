@@ -1,18 +1,21 @@
 <?php
 
 require_once __DIR__ . '/env.php';
+require_once __DIR__ . '/iframe.php';
+
+setIframeCookieOptions();
 
 $sessionLifetime = EnvLoader::get('SESSION_LIFETIME', 86400);
-$sessionSecure = false;
+$sessionSecure = isIframeRequest() ? true : false;
 $sessionHttpOnly = false;
-$sessionSameSite = 'None';
+$sessionSameSite = isIframeRequest() ? 'None' : 'None';
 
 ini_set('session.cookie_lifetime', $sessionLifetime);
 ini_set('session.gc_maxlifetime', $sessionLifetime);
 ini_set('session.cookie_path', '/');
 ini_set('session.cookie_domain', '');
-ini_set('session.cookie_secure', '0');
-ini_set('session.cookie_httponly', '0');
+ini_set('session.cookie_secure', $sessionSecure ? '1' : '0');
+ini_set('session.cookie_httponly', $sessionHttpOnly ? '1' : '0');
 ini_set('session.use_strict_mode', '0');
 ini_set('session.cookie_samesite', $sessionSameSite);
 ini_set('session.use_only_cookies', '1');
