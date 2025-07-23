@@ -502,8 +502,11 @@ class BotHandler extends EventEmitter {
                                 artist: searchResult.artist,
                                 previewUrl: searchResult.previewUrl,
                                 addedAt: new Date().toISOString(),
-                                isCurrentlyPlaying: true
+                                isCurrentlyPlaying: true,
+                                id: searchResult.id || Date.now()
                             });
+                            
+                            musicData.queue_state = queue;
                         }
                     } else {
                         responseContent = `❌ Sorry bang, ga nemu lagu "${parameter}" di iTunes. Coba judul lagu yang lain ya~`;
@@ -538,7 +541,8 @@ class BotHandler extends EventEmitter {
                             responseContent = `🎵 Starting with first song: **${firstTrack.title}** by **${firstTrack.artist}**`;
                             musicData = { 
                                 action: 'next',
-                                track: firstTrack
+                                track: firstTrack,
+                                queue_state: queue
                             };
                         } else if (currentPlayingIndex < queue.length - 1) {
                             queue.forEach(song => song.isCurrentlyPlaying = false);
@@ -547,7 +551,8 @@ class BotHandler extends EventEmitter {
                             responseContent = `⏭️ Next song: **${nextTrack.title}** by **${nextTrack.artist}**`;
                             musicData = { 
                                 action: 'next',
-                                track: nextTrack
+                                track: nextTrack,
+                                queue_state: queue
                             };
                         } else {
                             responseContent = '❌ Already at the last song in queue';
@@ -560,7 +565,8 @@ class BotHandler extends EventEmitter {
                             responseContent = `🎵 Playing the only song: **${onlyTrack.title}** by **${onlyTrack.artist}**`;
                             musicData = { 
                                 action: 'next',
-                                track: onlyTrack
+                                track: onlyTrack,
+                                queue_state: queue
                             };
                         } else {
                             responseContent = '❌ No next song in queue. Add more songs with `/titibot queue [song name]`';
@@ -587,7 +593,8 @@ class BotHandler extends EventEmitter {
                             responseContent = `🎵 Starting with first song: **${firstTrack.title}** by **${firstTrack.artist}**`;
                             musicData = { 
                                 action: 'prev',
-                                track: firstTrack
+                                track: firstTrack,
+                                queue_state: queue
                             };
                         } else if (currentPlayingIndex > 0) {
                             queue.forEach(song => song.isCurrentlyPlaying = false);
@@ -596,7 +603,8 @@ class BotHandler extends EventEmitter {
                             responseContent = `⏮️ Previous song: **${prevTrack.title}** by **${prevTrack.artist}**`;
                             musicData = { 
                                 action: 'prev',
-                                track: prevTrack
+                                track: prevTrack,
+                                queue_state: queue
                             };
                         } else {
                             responseContent = '❌ Already at the first song in queue';
@@ -609,7 +617,8 @@ class BotHandler extends EventEmitter {
                             responseContent = `🎵 Playing the only song: **${onlyTrack.title}** by **${onlyTrack.artist}**`;
                             musicData = { 
                                 action: 'prev',
-                                track: onlyTrack
+                                track: onlyTrack,
+                                queue_state: queue
                             };
                         } else {
                             responseContent = '❌ No previous song in queue. Add more songs with `/titibot queue [song name]`';
@@ -641,12 +650,16 @@ class BotHandler extends EventEmitter {
                             if (!this.musicQueues.has(queueChannelKey)) {
                                 this.musicQueues.set(queueChannelKey, []);
                             }
-                            this.musicQueues.get(queueChannelKey).push({
+                            const queue = this.musicQueues.get(queueChannelKey);
+                            queue.push({
                                 title: searchResult.title,
                                 artist: searchResult.artist,
                                 previewUrl: searchResult.previewUrl,
-                                addedAt: new Date().toISOString()
+                                addedAt: new Date().toISOString(),
+                                id: searchResult.id || Date.now()
                             });
+                            
+                            musicData.queue_state = queue;
                         }
                     } else {
                         responseContent = `❌ Sorry bang, ga nemu lagu "${parameter}" buat di queue. Coba judul lagu yang lain ya~`;
@@ -678,6 +691,11 @@ class BotHandler extends EventEmitter {
 • \`/titibot next\` - Skip to next song
 • \`/titibot prev\` - Go to previous song
 • \`/titibot stop\` - Stop music and clear queue`;
+                    
+                    musicData = {
+                        action: 'list',
+                        queue_state: queue
+                    };
                 }
                 break;
 

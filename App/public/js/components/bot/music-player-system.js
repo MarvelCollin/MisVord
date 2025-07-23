@@ -506,8 +506,29 @@ class MusicPlayerSystem {
                         this.currentSong = track;
                         this.currentTrack = track;
                         
-                        this.queue = [track];
-                        this.currentIndex = 0;
+                        if (data.queue_state && Array.isArray(data.queue_state)) {
+                            this.queue = data.queue_state.map(t => ({
+                                title: t.title,
+                                artist: t.artist,
+                                album: t.album,
+                                previewUrl: t.previewUrl,
+                                artworkUrl: t.artworkUrl,
+                                duration: t.duration,
+                                id: t.id || t.trackId
+                            }));
+                            
+                            const trackIndex = this.queue.findIndex(t => t.id === track.id);
+                            this.currentIndex = trackIndex >= 0 ? trackIndex : 0;
+                        } else if (!this.queue.find(t => t.id === track.id)) {
+                            this.queue = [track];
+                            this.currentIndex = 0;
+                        } else {
+                            this.currentIndex = this.queue.findIndex(t => t.id === track.id);
+                            if (this.currentIndex === -1) {
+                                this.queue.unshift(track);
+                                this.currentIndex = 0;
+                            }
+                        }
                         
                         await this.playTrack(track);
                         
@@ -576,8 +597,34 @@ class MusicPlayerSystem {
                         await this.stop();
                         this.currentSong = track;
                         this.currentTrack = track;
-                        this.queue = [track];
-                        this.currentIndex = 0;
+                        
+                        if (data.queue_state && Array.isArray(data.queue_state)) {
+                            this.queue = data.queue_state.map(t => ({
+                                title: t.title,
+                                artist: t.artist,
+                                album: t.album,
+                                previewUrl: t.previewUrl,
+                                artworkUrl: t.artworkUrl,
+                                duration: t.duration,
+                                id: t.id || t.trackId
+                            }));
+                        }
+                        
+                        const newIndex = this.queue.findIndex(t => t.id === track.id);
+                        if (newIndex >= 0) {
+                            this.currentIndex = newIndex;
+                        } else {
+                            if (this.currentIndex < this.queue.length - 1) {
+                                this.currentIndex++;
+                            }
+                            if (this.currentIndex < this.queue.length) {
+                                this.queue[this.currentIndex] = track;
+                            } else {
+                                this.queue.push(track);
+                                this.currentIndex = this.queue.length - 1;
+                            }
+                        }
+                        
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.isPlaying = true;
@@ -593,8 +640,34 @@ class MusicPlayerSystem {
                         await this.stop();
                         this.currentSong = track;
                         this.currentTrack = track;
-                        this.queue = [track];
-                        this.currentIndex = 0;
+                        
+                        if (data.queue_state && Array.isArray(data.queue_state)) {
+                            this.queue = data.queue_state.map(t => ({
+                                title: t.title,
+                                artist: t.artist,
+                                album: t.album,
+                                previewUrl: t.previewUrl,
+                                artworkUrl: t.artworkUrl,
+                                duration: t.duration,
+                                id: t.id || t.trackId
+                            }));
+                        }
+                        
+                        const newIndex = this.queue.findIndex(t => t.id === track.id);
+                        if (newIndex >= 0) {
+                            this.currentIndex = newIndex;
+                        } else {
+                            if (this.currentIndex > 0) {
+                                this.currentIndex--;
+                            }
+                            if (this.currentIndex < this.queue.length) {
+                                this.queue[this.currentIndex] = track;
+                            } else {
+                                this.queue.unshift(track);
+                                this.currentIndex = 0;
+                            }
+                        }
+                        
                         await this.playTrack(track);
                         this.showNowPlaying(track);
                         this.isPlaying = true;
@@ -607,14 +680,52 @@ class MusicPlayerSystem {
                     
                 case 'queue':
                     if (track && track.previewUrl) {
-                        this.queue.push(track);
-                        this.showStatus(`Added to queue: ${track.title} by ${track.artist}`);
+                        if (!this.queue.find(t => t.id === track.id)) {
+                            this.queue.push(track);
+                            this.showStatus(`Added to queue: ${track.title} by ${track.artist}`);
+                        } else {
+                            this.showStatus(`Already in queue: ${track.title}`);
+                        }
+                        
+                        if (data.queue_state && Array.isArray(data.queue_state)) {
+                            this.queue = data.queue_state.map(t => ({
+                                title: t.title,
+                                artist: t.artist,
+                                album: t.album,
+                                previewUrl: t.previewUrl,
+                                artworkUrl: t.artworkUrl,
+                                duration: t.duration,
+                                id: t.id || t.trackId
+                            }));
+                        }
                     } else if (query && query.trim()) {
                         await this.addToQueue(query.trim());
                         this.showStatus('Added to queue: ' + query);
                     } else {
                         this.showError('No song specified for queue');
                     }
+                    break;
+                    
+                case 'list':
+                    if (data.queue_state && Array.isArray(data.queue_state)) {
+                        this.queue = data.queue_state.map(t => ({
+                            title: t.title,
+                            artist: t.artist,
+                            album: t.album,
+                            previewUrl: t.previewUrl,
+                            artworkUrl: t.artworkUrl,
+                            duration: t.duration,
+                            id: t.id || t.trackId
+                        }));
+                        
+                        const currentTrack = data.queue_state.find(t => t.isCurrentlyPlaying);
+                        if (currentTrack) {
+                            this.currentIndex = this.queue.findIndex(t => t.id === currentTrack.id);
+                            if (this.currentIndex === -1) this.currentIndex = 0;
+                        }
+                    }
+                    
+                    this.showStatus('Queue list displayed in chat');
                     break;
                     
                 default:
@@ -1048,10 +1159,9 @@ class MusicPlayerSystem {
             return;
         }
         
-        this.queue.push(track);
-
-        
-
+        if (!this.queue.find(t => t.id === track.id)) {
+            this.queue.push(track);
+        }
     }
 
     removeExistingSearchModal() {
@@ -1189,15 +1299,19 @@ class MusicPlayerSystem {
     shuffleQueue() {
         if (this.queue.length <= 1) return;
         
-        const currentSong = this.queue[this.currentIndex];
+        const currentSong = this.currentSong || this.queue[this.currentIndex];
         
         for (let i = this.queue.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [this.queue[i], this.queue[j]] = [this.queue[j], this.queue[i]];
         }
         
-        this.currentIndex = this.queue.findIndex(track => track.id === currentSong.id);
-        if (this.currentIndex === -1) this.currentIndex = 0;
+        if (currentSong) {
+            this.currentIndex = this.queue.findIndex(track => track.id === currentSong.id);
+            if (this.currentIndex === -1) this.currentIndex = 0;
+        } else {
+            this.currentIndex = 0;
+        }
         
         this.showQueueModal();
     }
@@ -1205,9 +1319,10 @@ class MusicPlayerSystem {
     clearQueue() {
         this.queue = [];
         this.currentIndex = 0;
+        this.currentSong = null;
+        this.currentTrack = null;
         
         this.removeExistingQueueModal();
-
     }
 
     async searchMusic(query) {
@@ -1607,14 +1722,11 @@ class MusicPlayerSystem {
     async playNext() {
         try {
             if (this.queue.length === 0) {
-                
                 this.showStatus('Queue is empty');
                 return false;
             }
 
             if (this.currentIndex >= this.queue.length - 1) {
-                
-                await this.stop();
                 this.showStatus('Reached end of queue');
                 return false;
             }
@@ -1622,10 +1734,11 @@ class MusicPlayerSystem {
             this.currentIndex = this.currentIndex + 1;
             const nextTrack = this.queue[this.currentIndex];
             
-            
+            await this.stop();
             await this.playTrack(nextTrack);
             this.showNowPlaying(nextTrack);
             this.currentSong = nextTrack;
+            this.currentTrack = nextTrack;
             
             return true;
         } catch (error) {
@@ -1637,13 +1750,11 @@ class MusicPlayerSystem {
     async playPrevious() {
         try {
             if (this.queue.length === 0) {
-                
                 this.showStatus('Queue is empty');
                 return false;
             }
 
             if (this.currentIndex <= 0) {
-                
                 this.showStatus('Already at first song');
                 return false;
             }
@@ -1651,10 +1762,11 @@ class MusicPlayerSystem {
             this.currentIndex = this.currentIndex - 1;
             const prevTrack = this.queue[this.currentIndex];
             
-            
+            await this.stop();
             await this.playTrack(prevTrack);
             this.showNowPlaying(prevTrack);
             this.currentSong = prevTrack;
+            this.currentTrack = prevTrack;
             
             return true;
         } catch (error) {
@@ -1678,10 +1790,14 @@ class MusicPlayerSystem {
             
             const searchResult = await this.searchMusic(songName);
             if (searchResult && searchResult.previewUrl) {
-                this.queue.push(searchResult);
-                this.showStatus(`Added to queue: ${searchResult.title}`);
-                
-                return `Added to queue: ${searchResult.title}`;
+                if (!this.queue.find(t => t.id === searchResult.id)) {
+                    this.queue.push(searchResult);
+                    this.showStatus(`Added to queue: ${searchResult.title}`);
+                    return `Added to queue: ${searchResult.title}`;
+                } else {
+                    this.showStatus(`Already in queue: ${searchResult.title}`);
+                    return `Already in queue: ${searchResult.title}`;
+                }
             } else {
                 this.showError(`Could not find: ${songName}`);
                 return `Could not find: ${songName}`;
