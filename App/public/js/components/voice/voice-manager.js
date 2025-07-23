@@ -611,6 +611,15 @@ class VoiceManager {
             
             this.handleParticipantJoined(this.meeting.localParticipant);
             
+            this.loadExistingBotParticipants();
+            
+            if (this.currentChannelId && window.globalSocketManager?.io) {
+                console.log('🔍 [VOICE-MANAGER] Requesting voice meeting status after joining');
+                window.globalSocketManager.io.emit('check-voice-meeting', { 
+                    channel_id: this.currentChannelId 
+                });
+            }
+            
             this.checkAllParticipantsForExistingStreams();
             await this.restoreVideoStatesFromStorage();
             

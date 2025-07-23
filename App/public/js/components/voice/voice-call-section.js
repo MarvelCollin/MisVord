@@ -237,6 +237,48 @@ class VoiceCallSection {
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
 
+        window.addEventListener("bot-voice-participant-joined", (e) => {
+            console.log(`🤖 [VOICE-CALL-SECTION] Bot participant joined event:`, e.detail);
+            if (e.detail && e.detail.participant) {
+                const botData = e.detail.participant;
+                const botId = `bot-${botData.user_id}`;
+                
+                if (!this.participantElements.has(botId)) {
+                    const grid = document.getElementById("participantGrid");
+                    if (grid) {
+                        const element = this.createParticipantElement(botId, botData);
+                        grid.appendChild(element);
+                        this.participantElements.set(botId, element);
+                        this.updateGridLayout();
+                        this.updateParticipantCount();
+                        
+                        console.log(`🤖 [VOICE-CALL-SECTION] Created bot participant card:`, {
+                            botId,
+                            username: botData.username
+                        });
+                    }
+                }
+            }
+        });
+
+        window.addEventListener("bot-voice-participant-left", (e) => {
+            console.log(`🤖 [VOICE-CALL-SECTION] Bot participant left event:`, e.detail);
+            if (e.detail && e.detail.participant) {
+                const botData = e.detail.participant;
+                const botId = `bot-${botData.user_id}`;
+                
+                const element = this.participantElements.get(botId);
+                if (element) {
+                    element.remove();
+                    this.participantElements.delete(botId);
+                    this.updateGridLayout();
+                    this.updateParticipantCount();
+                    
+                    console.log(`🤖 [VOICE-CALL-SECTION] Removed bot participant card:`, botId);
+                }
+            }
+        });
+
         if (window.globalSocketManager?.io) {
             this.setupSocketListeners();
         } else {
@@ -379,6 +421,7 @@ class VoiceCallSection {
         
         setTimeout(() => {
             if (window.globalSocketManager?.io && finalChannelId) {
+                console.log(`🔍 [VOICE-CALL-SECTION] Requesting voice meeting status after connection:`, finalChannelId);
                 window.globalSocketManager.io.emit('check-voice-meeting', { 
                     channel_id: finalChannelId 
                 });
@@ -389,10 +432,13 @@ class VoiceCallSection {
         }, 300);
 
         setTimeout(() => {
+            console.log(`🔄 [VOICE-CALL-SECTION] Starting participant synchronization after voice connect`);
+            this.syncWithExistingParticipants();
+            
             if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
                 window.voiceManager.checkAllParticipantsForExistingStreams();
             }
-        }, 300);
+        }, 500);
         
         setTimeout(() => {
             this.rebuildGridFromVideoSDK();
@@ -400,6 +446,8 @@ class VoiceCallSection {
                 window.voiceManager.forceStreamSync();
             }
             this.forceResyncAllStreams();
+            
+            console.log(`🔄 [VOICE-CALL-SECTION] Force rebuilding grid after voice connect`);
         }, 500);
         
         setTimeout(() => {
@@ -514,7 +562,8 @@ class VoiceCallSection {
             participantCount: data.participants?.length,
             hasMeeting: data.has_meeting,
             meetingId: data.meeting_id,
-            currentChannelId: this.currentChannelId
+            currentChannelId: this.currentChannelId,
+            existingCards: this.participantElements.size
         });
 
         if (data.has_meeting && data.meeting_id) {
@@ -537,10 +586,17 @@ class VoiceCallSection {
                     }
                 });
 
+                console.log(`📊 [VOICE-CALL-SECTION] Participant synchronization:`, {
+                    existingCards: Array.from(existingParticipants),
+                    incomingParticipants: Array.from(incomingParticipants),
+                    uniqueParticipantsCount: uniqueParticipants.size
+                });
+
                 existingParticipants.forEach(participantId => {
                     if (!incomingParticipants.has(participantId)) {
                         const element = this.participantElements.get(participantId);
                         if (element) {
+                            console.log(`🗑️ [VOICE-CALL-SECTION] Removing participant card:`, participantId);
                             element.remove();
                             this.participantElements.delete(participantId);
                         }
@@ -550,22 +606,31 @@ class VoiceCallSection {
                 uniqueParticipants.forEach((participant) => {
                     const participantId = participant.user_id || participant.id;
                     if (!this.participantElements.has(participantId)) {
-                        const element = this.createParticipantElement(participantId, participant);
-                        grid.appendChild(element);
-                        this.participantElements.set(participantId, element);
-                        
-                        console.log(`👤 [VOICE-CALL-SECTION] Added participant card:`, {
+                        console.log(`➕ [VOICE-CALL-SECTION] Creating participant card:`, {
                             participantId,
                             username: participant.username,
                             isBot: participant.isBot,
                             isLocal: participantId === currentUserId
                         });
+                        
+                        const element = this.createParticipantElement(participantId, participant);
+                        grid.appendChild(element);
+                        this.participantElements.set(participantId, element);
+                        
+                        if (!participant.isBot && window.musicPlayer) {
+                            setTimeout(() => {
+                                window.musicPlayer.shareCurrentMusicStateWithParticipant(participantId);
+                            }, 500);
+                        }
+                    } else {
+                        console.log(`✅ [VOICE-CALL-SECTION] Participant card already exists:`, participantId);
                     }
                 });
 
                 this.updateGridLayout();
                 this.updateParticipantCount();
                 this.updateLocalParticipantIndicators();
+                this.removeDuplicateCards();
             }
         }
     }
@@ -596,6 +661,12 @@ class VoiceCallSection {
     syncWithExistingParticipants() {
         if (!window.voiceManager || !window.voiceManager.participants) return;
         
+        console.log(`🔄 [VOICE-CALL-SECTION] Starting participant sync:`, {
+            voiceManagerParticipants: window.voiceManager.participants.size,
+            voiceManagerBots: window.voiceManager.botParticipants?.size || 0,
+            existingCards: this.participantElements.size
+        });
+
         if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
             window.voiceManager.forceStreamSync();
         }
@@ -606,8 +677,20 @@ class VoiceCallSection {
         const allParticipants = window.voiceManager.getAllParticipants();
         const botParticipants = window.voiceManager.getBotParticipants();
         
+        console.log(`🔄 [VOICE-CALL-SECTION] Syncing participants:`, {
+            humanParticipants: allParticipants.size,
+            botParticipants: botParticipants.size,
+            totalToSync: allParticipants.size + botParticipants.size
+        });
+
         allParticipants.forEach((participantData, participantId) => {
             if (!this.participantElements.has(participantId) && !this.hasExistingCardForUser(participantData)) {
+                console.log(`➕ [VOICE-CALL-SECTION] Creating card for human participant:`, {
+                    participantId,
+                    username: participantData.username,
+                    isLocal: participantData.isLocal
+                });
+                
                 const element = this.createParticipantElement(participantId, participantData);
                 grid.appendChild(element);
                 this.participantElements.set(participantId, element);
@@ -622,14 +705,23 @@ class VoiceCallSection {
                     this.syncParticipantStreams(participantId, element);
                     this.ensureParticipantStreamsSynced(participantId, element);
                 }, 100);
+            } else {
+                console.log(`✅ [VOICE-CALL-SECTION] Human participant card already exists:`, participantId);
             }
         });
         
         botParticipants.forEach((botData, botId) => {
             if (!this.participantElements.has(botId) && !this.hasExistingCardForUser(botData)) {
+                console.log(`🤖 [VOICE-CALL-SECTION] Creating card for bot participant:`, {
+                    botId,
+                    username: botData.username
+                });
+                
                 const element = this.createParticipantElement(botId, botData);
                 grid.appendChild(element);
                 this.participantElements.set(botId, element);
+            } else {
+                console.log(`✅ [VOICE-CALL-SECTION] Bot participant card already exists:`, botId);
             }
         });
         
@@ -645,10 +737,16 @@ class VoiceCallSection {
         this.removeDuplicateCards();
 
         if (this.currentChannelId && window.globalSocketManager?.io) {
+            console.log(`🔍 [VOICE-CALL-SECTION] Requesting voice meeting status for channel:`, this.currentChannelId);
             window.globalSocketManager.io.emit('check-voice-meeting', { 
                 channel_id: this.currentChannelId 
             });
         }
+        
+        console.log(`✅ [VOICE-CALL-SECTION] Participant sync completed:`, {
+            totalCards: this.participantElements.size,
+            cardIds: Array.from(this.participantElements.keys())
+        });
     }
     
     ensureParticipantStreamsSynced(participantId, element) {
@@ -729,10 +827,22 @@ class VoiceCallSection {
 
     handleParticipantJoined(event) {
         const { participant, data } = event.detail;
-        if (!participant || this.participantElements.has(participant)) return;
+        
+        console.log(`👤 [VOICE-CALL-SECTION] Participant joined event:`, {
+            participant,
+            data,
+            hasExistingCard: this.participantElements.has(participant),
+            voiceManagerHasParticipant: window.voiceManager?.participants.has(participant),
+            totalExistingCards: this.participantElements.size
+        });
+        
+        if (!participant || this.participantElements.has(participant)) {
+            console.log(`⚠️ [VOICE-CALL-SECTION] Skipping participant join - already exists or invalid:`, participant);
+            return;
+        }
         
         if (!window.voiceManager || !window.voiceManager.participants.has(participant)) {
-            
+            console.log(`⚠️ [VOICE-CALL-SECTION] Skipping participant join - not in voice manager:`, participant);
             return;
         }
         
@@ -740,6 +850,7 @@ class VoiceCallSection {
         if (userId) {
             const existingElement = this.findExistingElementByUserId(participant);
             if (existingElement) {
+                console.log(`🔄 [VOICE-CALL-SECTION] Reusing existing element for participant:`, participant);
                 this.participantElements.set(participant, existingElement);
                 return;
             }
@@ -747,18 +858,29 @@ class VoiceCallSection {
             for (const [existingParticipantId, existingElement] of this.participantElements.entries()) {
                 const existingUserId = existingElement.getAttribute('data-user-id');
                 if (existingUserId === String(userId)) {
-                    
+                    console.log(`🔄 [VOICE-CALL-SECTION] Found duplicate user ID, skipping:`, { participant, userId, existingParticipantId });
                     return;
                 }
             }
         }
         
         if (this.hasExistingCardForUser(data)) {
+            console.log(`🔄 [VOICE-CALL-SECTION] Has existing card for user, skipping:`, data);
             return;
         }
         
         const grid = document.getElementById("participantGrid");
-        if (!grid) return;
+        if (!grid) {
+            console.error(`❌ [VOICE-CALL-SECTION] Participant grid not found`);
+            return;
+        }
+        
+        console.log(`➕ [VOICE-CALL-SECTION] Creating new participant card:`, {
+            participant,
+            username: data?.username,
+            isBot: data?.isBot,
+            userId: data?.user_id
+        });
         
         const element = this.createParticipantElement(participant, data);
         
@@ -796,6 +918,11 @@ class VoiceCallSection {
             const instance = window.ChannelVoiceParticipants.getInstance();
             instance.updateSidebarForChannel(this.currentChannelId, 'append');
         }
+        
+        console.log(`✅ [VOICE-CALL-SECTION] Participant card created successfully:`, {
+            participant,
+            totalCards: this.participantElements.size
+        });
     }
     
     ensureAllExistingStreamsVisibleToNewParticipant() {
@@ -1461,6 +1588,12 @@ class VoiceCallSection {
             return;
         }
         
+        console.log(`🔄 [VOICE-CALL-SECTION] Rebuilding grid from VideoSDK:`, {
+            voiceManagerParticipants: window.voiceManager.participants.size,
+            voiceManagerBots: window.voiceManager.botParticipants?.size || 0,
+            currentCards: this.participantElements.size
+        });
+        
         if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
             window.voiceManager.forceStreamSync();
         }
@@ -1470,14 +1603,41 @@ class VoiceCallSection {
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
-        window.voiceManager.participants.forEach((participantData, participantId) => {
+        const allParticipants = window.voiceManager.getAllParticipants();
+        const botParticipants = window.voiceManager.getBotParticipants();
+        
+        console.log(`🔄 [VOICE-CALL-SECTION] Adding participants to grid:`, {
+            humanCount: allParticipants.size,
+            botCount: botParticipants.size
+        });
+
+        allParticipants.forEach((participantData, participantId) => {
             if (participantData && !this.participantElements.has(participantId) && !this.hasExistingCardForUser(participantData)) {
+                console.log(`➕ [VOICE-CALL-SECTION] Adding human participant to grid:`, {
+                    participantId,
+                    username: participantData.username,
+                    isLocal: participantData.isLocal
+                });
+                
                 const element = this.createParticipantElement(participantId, participantData);
                 grid.appendChild(element);
                 this.participantElements.set(participantId, element);
                 
                 this.restoreExistingStreamsForParticipant(participantId, participantData, element);
                 this.ensureParticipantStreamsSynced(participantId, element);
+            }
+        });
+        
+        botParticipants.forEach((botData, botId) => {
+            if (botData && !this.participantElements.has(botId) && !this.hasExistingCardForUser(botData)) {
+                console.log(`🤖 [VOICE-CALL-SECTION] Adding bot participant to grid:`, {
+                    botId,
+                    username: botData.username
+                });
+                
+                const element = this.createParticipantElement(botId, botData);
+                grid.appendChild(element);
+                this.participantElements.set(botId, element);
             }
         });
         
@@ -1493,6 +1653,11 @@ class VoiceCallSection {
         this.updateParticipantCount();
         this.updateLocalParticipantIndicators();
         this.removeDuplicateCards();
+        
+        console.log(`✅ [VOICE-CALL-SECTION] Grid rebuild completed:`, {
+            totalCards: this.participantElements.size,
+            cardIds: Array.from(this.participantElements.keys())
+        });
     }
     
     restoreExistingStreamsForParticipant(participantId, participantData, element) {
