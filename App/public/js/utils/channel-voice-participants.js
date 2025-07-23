@@ -25,25 +25,6 @@ class ChannelVoiceParticipants {
                 const voiceState = window.localStorageManager?.getUnifiedVoiceState();
                 if (voiceState?.isConnected && voiceState?.channelId) {
                     this.updateSidebarForChannel(voiceState.channelId, 'append');
-                    if (window.voiceCallSection && window.voiceManager?.participants?.size > 0) {
-                        window.voiceCallSection.syncWithExistingParticipants();
-                        
-                        if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
-                            window.voiceManager.forceStreamSync();
-                        }
-                        
-                        setTimeout(() => {
-                            if (window.voiceManager && typeof window.voiceManager.forceStreamSync === 'function') {
-                                window.voiceManager.forceStreamSync();
-                            }
-                            if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
-                                window.voiceManager.checkAllParticipantsForExistingStreams();
-                            }
-                            if (window.voiceCallSection && typeof window.voiceCallSection.rebuildGridFromVideoSDK === 'function') {
-                                window.voiceCallSection.rebuildGridFromVideoSDK();
-                            }
-                        }, 300);
-                    }
                 }
             }
         }, 500);

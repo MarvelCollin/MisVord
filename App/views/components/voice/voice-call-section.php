@@ -33,7 +33,7 @@ $channelName = $activeChannel->name ?? 'Voice Channel';
             </div>
             <div class="flex items-center space-x-2">
                 <h1 class="text-white font-semibold text-base"><?php echo htmlspecialchars($channelName); ?></h1>
-                <div class="flex items-center space-x-1 text-[#b9bbbe] text-xs">
+                <div class="flex hidden items-center space-x-1 text-[#b9bbbe] text-xs">
                     <div class="w-2 h-2 bg-[#3ba55c] rounded-full"></div>
                     <span id="voiceParticipantCount">0</span>
                 </div>

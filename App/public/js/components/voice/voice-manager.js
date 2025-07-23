@@ -8,6 +8,7 @@ class VoiceManager {
         this.currentMeetingId = null;
         this.authToken = null;
         this.participants = new Map();
+        this.botParticipants = new Map();
         this.localParticipant = null;
         
         this._micOn = false;
@@ -172,46 +173,49 @@ class VoiceManager {
         const { participant, channelId, isRecovery } = data;
         if (!participant || !participant.user_id) return;
         
-        if (channelId !== this.currentChannelId) return;
-        
-        const botId = `bot-${participant.user_id}`;
-        
-        if (this.participants.has(botId)) {
-            return;
-        }
-        
-        let avatarUrl = participant.avatar_url;
-        if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
-            avatarUrl = '/public/assets/landing-page/robot.webp';
-        }
-        
-        const botParticipantData = {
-            id: botId,
-            user_id: participant.user_id,
-            name: participant.username || 'TitiBot',
-            username: participant.username || 'TitiBot',
-            avatar_url: avatarUrl,
-            isBot: true,
-            isLocal: false,
-            isSelf: false,
-            streams: new Map(),
-            channelId: channelId,
-            status: participant.status || 'Ready to play music',
-            pollCount: 0
-        };
-        
-        this.participants.set(botId, botParticipantData);
-        
-        window.dispatchEvent(new CustomEvent('participantJoined', {
-            detail: { participant: botId, data: botParticipantData }
-        }));
-        
-        if (window.ChannelVoiceParticipants) {
-            const instance = window.ChannelVoiceParticipants.getInstance();
-            const updateMode = isRecovery ? 'full' : 'append';
-            setTimeout(() => {
-                instance.updateSidebarForChannel(channelId, updateMode);
-            }, isRecovery ? 100 : 0);
+        if (channelId === this.currentChannelId) {
+            const botId = `bot-${participant.user_id}`;
+            
+
+            let avatarUrl = participant.avatar_url;
+            if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
+                avatarUrl = '/public/assets/landing-page/robot.webp';
+            }
+            
+            this.botParticipants.set(botId, {
+                id: botId,
+                user_id: participant.user_id,
+                name: participant.username || 'TitiBot',
+                username: participant.username || 'TitiBot',
+                avatar_url: avatarUrl,
+                isBot: true,
+                isLocal: false,
+                streams: new Map(),
+                channelId: channelId,
+                status: participant.status || 'Ready to play music' 
+            });
+            
+            this.participants.set(botId, this.botParticipants.get(botId));
+            
+            window.dispatchEvent(new CustomEvent('participantJoined', {
+                detail: { participant: botId, data: this.botParticipants.get(botId) }
+            }));
+            
+            if (window.ChannelVoiceParticipants) {
+                const instance = window.ChannelVoiceParticipants.getInstance();
+
+                const updateMode = isRecovery ? 'full' : 'append';
+                setTimeout(() => {
+                    instance.updateSidebarForChannel(channelId, updateMode);
+                }, isRecovery ? 100 : 0); 
+            }
+            
+            console.log(`🤖 [VOICE-MANAGER] Bot participant ${isRecovery ? 'recovered' : 'joined'}:`, {
+                botId,
+                username: participant.username,
+                channelId,
+                isRecovery: !!isRecovery
+            });
         }
     }
     
@@ -220,10 +224,11 @@ class VoiceManager {
         if (!participant || !participant.user_id) return;
         
         const botId = `bot-${participant.user_id}`;
-        if (this.participants.has(botId)) {
-            const botData = this.participants.get(botId);
+        if (this.botParticipants.has(botId)) {
+            const botData = this.botParticipants.get(botId);
             const channelId = botData.channelId;
             
+            this.botParticipants.delete(botId);
             this.participants.delete(botId);
             
             window.dispatchEvent(new CustomEvent('participantLeft', {
@@ -594,13 +599,7 @@ class VoiceManager {
     }
     
     getBotParticipants() {
-        const botParticipants = new Map();
-        this.participants.forEach((participant, id) => {
-            if (participant.isBot) {
-                botParticipants.set(id, participant);
-            }
-        });
-        return botParticipants;
+        return new Map([...this.botParticipants]);
     }
     
     setupMeetingEvents() {

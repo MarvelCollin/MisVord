@@ -138,13 +138,6 @@ class VoiceFacade {
             window.globalSocketManager.io.emit('request-music-state', { 
                 channel_id: channelId 
             });
-            
-            if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
-                window.voiceManager.checkAllParticipantsForExistingStreams();
-            }
-            if (window.voiceCallSection && typeof window.voiceCallSection.rebuildGridFromVideoSDK === 'function') {
-                window.voiceCallSection.rebuildGridFromVideoSDK();
-            }
         }
     }
 }

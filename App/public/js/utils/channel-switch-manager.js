@@ -199,14 +199,6 @@ class SimpleChannelSwitcher {
             window.globalSocketManager.joinRoom('channel', channelId);
             
 
-            setTimeout(() => {
-                
-                window.globalSocketManager.io.emit('check-voice-meeting', { 
-                    channel_id: channelId 
-                });
-            }, 200);
-            
-
             setTimeout(async () => {
                 
                 
@@ -286,15 +278,6 @@ class SimpleChannelSwitcher {
 
             if (!currentState.isConnected && !window.voiceManager?.isConnected) {
                 window.localStorageManager.clearVoiceState();
-            } else {
-
-                window.localStorageManager.setUnifiedVoiceState({
-                    ...currentState,
-                    channelId: channelId,
-                    channelName: channelName,
-
-                    isConnected: window.voiceManager?.isConnected || currentState.isConnected
-                });
             }
         }
         
@@ -310,74 +293,18 @@ class SimpleChannelSwitcher {
             voiceManagerChannelId: window.voiceManager?.currentChannelId,
             voiceManagerConnected: window.voiceManager?.isConnected,
             storageChannelId: voiceState?.channelId,
-            storageConnected: voiceState?.isConnected,
-            participantCount: window.voiceManager?.getAllParticipants?.()?.size || 0
+            storageConnected: voiceState?.isConnected
         });
         
         if (isConnectedToVoice || isConnectedInStorage) {
-
-            
             document.getElementById('voice-not-join-container')?.classList.add('hidden');
             document.getElementById('voice-call-container')?.classList.remove('hidden');
         } else {
-
-            
             document.getElementById('voice-not-join-container')?.classList.remove('hidden');
             document.getElementById('voice-call-container')?.classList.add('hidden');
         }
         
         await this.ensureVoiceCallSectionReady();
-        if (window.voiceCallSection && typeof window.voiceCallSection.ensureChannelSync === 'function') {
-            window.voiceCallSection.ensureChannelSync();
-        }
-        
-        if (isConnectedToVoice || isConnectedInStorage) {
-            if (window.voiceManager && voiceState) {
-                window.voiceManager._videoOn = voiceState.videoOn || false;
-                window.voiceManager._screenShareOn = voiceState.screenShareOn || false;
-            }
-            
-            setTimeout(() => {
-                if (window.voiceManager && typeof window.voiceManager.checkAllParticipantsForExistingStreams === 'function') {
-                    window.voiceManager.checkAllParticipantsForExistingStreams();
-                }
-                
-                if (window.voiceCallSection && typeof window.voiceCallSection.rebuildGridFromVideoSDK === 'function') {
-                    window.voiceCallSection.rebuildGridFromVideoSDK();
-                }
-            }, 300);
-        }
-        
-
-        if (isConnectedToVoice || isConnectedInStorage) {
-            
-            
-
-            if (window.voiceManager?.currentMeetingId) {
-                window.dispatchEvent(new CustomEvent('voiceConnect', {
-                    detail: {
-                        channelId: channelId,
-                        channelName: channelName,
-                        meetingId: window.voiceManager.currentMeetingId,
-                        skipJoinSound: true,
-                        skipSidebarRefresh: true, 
-                        source: 'channelSwitch'
-                    }
-                }));
-            }
-            
-
-            if (window.voiceCallSection && typeof window.voiceCallSection.updateConnectionStatus === 'function') {
-
-                window.voiceCallSection.updateConnectionStatus(true, true);
-            }
-            
-
-            if (window.ChannelVoiceParticipants) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-                instance.ensureParticipantsVisible(channelId);
-            }
-        }
     }
     
     async ensureChatSectionReady() {
