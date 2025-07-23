@@ -546,8 +546,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 
-<div id="change-password-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden">
-    <div class="w-full max-w-md mx-4">
+<div id="change-password-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70 hidden p-4">
+    <div class="w-full max-w-md mx-auto">
         <div class="bg-discord-darker rounded-lg shadow-xl overflow-hidden border border-gray-700">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">

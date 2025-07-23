@@ -15,6 +15,9 @@ $categories = $GLOBALS['serverCategories'] ?? [];
 
 <div class="w-48 sm:w-56 md:w-60 bg-discord-dark flex flex-col h-full border-r border-gray-800/80">
     <div class="h-12 border-b border-gray-800/90 flex items-center px-2 sm:px-4 shadow-sm bg-discord-dark/95 server-header-container">
+        <button id="mobile-channel-close" class="md:hidden mr-2 p-1 text-gray-400 hover:text-white rounded" onclick="window.toggleChannelSidebar && window.toggleChannelSidebar()">
+            <i class="fas fa-times text-sm"></i>
+        </button>
         <h2 class="font-bold text-white flex-1 truncate server-name text-sm sm:text-base">
             <?php echo htmlspecialchars(is_array($currentServer) ? ($currentServer['name'] ?? 'Server') : ($currentServer->name ?? 'Server')); ?>
         </h2>
@@ -64,7 +67,7 @@ $categories = $GLOBALS['serverCategories'] ?? [];
         </div>
         
         <div class="channel-list p-1 sm:p-2 space-y-1 sm:space-y-2" id="channel-real-content" style="display: none;">
-            <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">>
+            <input type="hidden" id="active-channel-id" value="<?php echo $activeChannelId; ?>">
             
             <?php
 

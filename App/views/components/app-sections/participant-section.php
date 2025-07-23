@@ -50,6 +50,9 @@ foreach ($members as $member) {
 
 <div class="w-48 sm:w-56 md:w-60 bg-discord-dark border-l border-gray-800 flex flex-col h-screen" style="overflow: auto;">
     <div class="h-12 border-b border-gray-800 flex items-center px-2 sm:px-4 relative">
+        <button id="mobile-participant-close" class="xl:hidden mr-2 p-1 text-gray-400 hover:text-white rounded" onclick="window.toggleParticipantSidebar && window.toggleParticipantSidebar()">
+            <i class="fas fa-times text-sm"></i>
+        </button>
         <div class="relative flex-1">
             <input type="text" 
                    placeholder="Search messages in server" 

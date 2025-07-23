@@ -60,6 +60,7 @@ function initUserSettingsPage() {
 
 function initSidebarNavigation(activeSection) {
     const sidebarItems = document.querySelectorAll('a.sidebar-item');
+    const mobileSelector = document.getElementById('mobile-section-selector');
     
     sidebarItems.forEach(item => {
         item.addEventListener('click', function(e) {
@@ -87,6 +88,17 @@ function initSidebarNavigation(activeSection) {
             window.location.href = href;
         });
     });
+    
+    if (mobileSelector) {
+        mobileSelector.addEventListener('change', function() {
+            const selectedSection = this.value;
+            if (selectedSection) {
+                const url = new URL(window.location);
+                url.searchParams.set('section', selectedSection);
+                window.location.href = url.toString();
+            }
+        });
+    }
 }
 
 

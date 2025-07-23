@@ -195,14 +195,24 @@ document.addEventListener('DOMContentLoaded', function() {
             channelSidebar.classList.remove('hidden');
             channelSidebar.classList.add('fixed', 'inset-y-0', 'left-16', 'z-50', 'md:relative', 'md:left-0', 'md:z-auto');
             mobileOverlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                channelSidebar.classList.add('sidebar-open');
+                mobileOverlay.classList.add('overlay-open');
+            }, 10);
         }
     }
     
     function hideChannelSidebar() {
         if (channelSidebar) {
-            channelSidebar.classList.add('hidden');
-            channelSidebar.classList.remove('fixed', 'inset-y-0', 'left-16', 'z-50');
-            mobileOverlay.classList.add('hidden');
+            channelSidebar.classList.remove('sidebar-open');
+            mobileOverlay.classList.remove('overlay-open');
+            
+            setTimeout(() => {
+                channelSidebar.classList.add('hidden');
+                channelSidebar.classList.remove('fixed', 'inset-y-0', 'left-16', 'z-50');
+                mobileOverlay.classList.add('hidden');
+            }, 300);
         }
     }
     
@@ -211,14 +221,24 @@ document.addEventListener('DOMContentLoaded', function() {
             participantSidebar.classList.remove('hidden');
             participantSidebar.classList.add('fixed', 'inset-y-0', 'right-0', 'z-50', 'xl:relative', 'xl:z-auto');
             mobileOverlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                participantSidebar.classList.add('sidebar-open');
+                mobileOverlay.classList.add('overlay-open');
+            }, 10);
         }
     }
     
     function hideParticipantSidebar() {
         if (participantSidebar) {
-            participantSidebar.classList.add('hidden');
-            participantSidebar.classList.remove('fixed', 'inset-y-0', 'right-0', 'z-50');
-            mobileOverlay.classList.add('hidden');
+            participantSidebar.classList.remove('sidebar-open');
+            mobileOverlay.classList.remove('overlay-open');
+            
+            setTimeout(() => {
+                participantSidebar.classList.add('hidden');
+                participantSidebar.classList.remove('fixed', 'inset-y-0', 'right-0', 'z-50');
+                mobileOverlay.classList.add('hidden');
+            }, 300);
         }
     }
     
@@ -229,19 +249,36 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    window.toggleChannelSidebar = function() {
-        if (channelSidebar && channelSidebar.classList.contains('hidden')) {
-            showChannelSidebar();
-        } else {
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
             hideChannelSidebar();
+            hideParticipantSidebar();
+        }
+    });
+    
+    window.toggleChannelSidebar = function() {
+        if (channelSidebar) {
+            const isHidden = channelSidebar.classList.contains('hidden') || 
+                           (!channelSidebar.classList.contains('fixed') && window.innerWidth < 768);
+            if (isHidden) {
+                hideParticipantSidebar();
+                showChannelSidebar();
+            } else {
+                hideChannelSidebar();
+            }
         }
     };
     
     window.toggleParticipantSidebar = function() {
-        if (participantSidebar && participantSidebar.classList.contains('hidden')) {
-            showParticipantSidebar();
-        } else {
-            hideParticipantSidebar();
+        if (participantSidebar) {
+            const isHidden = participantSidebar.classList.contains('hidden') || 
+                           (!participantSidebar.classList.contains('fixed') && window.innerWidth < 1280);
+            if (isHidden) {
+                hideChannelSidebar();
+                showParticipantSidebar();
+            } else {
+                hideParticipantSidebar();
+            }
         }
     };
     
