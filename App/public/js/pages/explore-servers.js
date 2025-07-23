@@ -262,7 +262,36 @@ function selectSortOption(sortType, optionElement) {
 function applyFilters() {
     currentPage = 1;
     hasMore = true;
-    fetchAndRenderServers(false);
+    
+    const isDefaultState = currentSort === 'alphabetical' && currentCategory === '' && currentSearch === '';
+    
+    if (isDefaultState) {
+        showInitialCards();
+        hideAllApiCards();
+        hideNoResults();
+    } else {
+        fetchAndRenderServers(false);
+    }
+}
+
+function showInitialCards() {
+    const container = document.getElementById('all-servers');
+    if (!container) return;
+    
+    const initialCards = container.querySelectorAll('.misvord-initial-server-card');
+    initialCards.forEach((card, index) => {
+        setTimeout(() => {
+            card.style.display = 'block';
+        }, index * 50);
+    });
+}
+
+function hideAllApiCards() {
+    const container = document.getElementById('all-servers');
+    if (!container) return;
+    
+    const apiCards = container.querySelectorAll('.misvord-api-server-card');
+    apiCards.forEach(card => card.remove());
 }
 
 function showLoadingSkeletons() {
@@ -632,27 +661,7 @@ async function fetchAndRenderServers(append = false) {
                 
                 const initialCards = container.querySelectorAll('.misvord-initial-server-card');
                 initialCards.forEach(card => {
-                    const serverCard = card.querySelector('.explore-server-card');
-                    if (serverCard) {
-                        const cardCategory = serverCard.getAttribute('data-category') || '';
-                        const cardName = serverCard.querySelector('.server-name')?.textContent?.toLowerCase() || '';
-                        const cardDescription = serverCard.querySelector('.server-description')?.textContent?.toLowerCase() || '';
-                        
-                        let shouldShow = true;
-                        
-                        if (currentCategory && currentCategory !== cardCategory) {
-                            shouldShow = false;
-                        }
-                        
-                        if (currentSearch && shouldShow) {
-                            const searchLower = currentSearch.toLowerCase();
-                            if (!cardName.includes(searchLower) && !cardDescription.includes(searchLower)) {
-                                shouldShow = false;
-                            }
-                        }
-                        
-                        card.style.display = shouldShow ? 'block' : 'none';
-                    }
+                    card.style.display = 'none';
                 });
             }
 
@@ -794,36 +803,50 @@ function createServerCardElement(server) {
     
     const memberText = server.member_count === 1 ? 'member' : 'members';
     const joinButtonText = server.is_member ? '<i class="fas fa-check mr-2"></i>Joined' : '<i class="fas fa-plus mr-2"></i>Join Server';
-    const joinButtonClass = server.is_member ? 'bg-discord-green' : 'bg-discord-primary hover:bg-discord-primary-dark';
+    const joinButtonClass = server.is_member ? 'bg-discord-green/20 text-discord-green border border-discord-green/30' : 'bg-discord-primary text-white';
     
     const bannerContent = server.banner_url 
         ? `<img src="${server.banner_url}" alt="Server Banner" class="w-full h-full object-cover">`
-        : '<div class="w-full h-full bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500"></div>';
+        : '';
     
     const iconContent = server.image_url 
-        ? `<img src="${server.image_url}" alt="${server.name}" class="w-full h-full object-cover rounded-xl">`
-        : `<div class="w-full h-full bg-discord-darker rounded-xl flex items-center justify-center text-white font-bold text-xl">${server.name.charAt(0).toUpperCase()}</div>`;
+        ? `<img src="${server.image_url}" alt="${server.name}" class="w-full h-full object-cover rounded-lg server-icon">`
+        : `<img src="/public/assets/common/default-profile-picture.png" alt="${server.name}" class="w-full h-full object-cover rounded-lg server-icon">`;
+    
+    const createdDate = server.created_at ? new Date(server.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const createdSection = createdDate ? `
+        <div class="server-created text-xs text-discord-lighter mb-3 flex items-center">
+            <i class="fas fa-calendar-plus mr-1"></i>
+            <span>Created ${createdDate}</span>
+        </div>` : '';
+    
+    const categoryBadge = server.category ? `<span class="category-badge">${server.category.charAt(0).toUpperCase() + server.category.slice(1)}</span>` : '';
     
     cardWrapper.innerHTML = `
-        <div class="explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group hover:scale-105 hover:shadow-2xl" data-server-id="${server.id}" data-category="${server.category || ''}">
-            <div class="server-banner h-32 relative overflow-hidden">
+        <div class="explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group" data-server-id="${server.id}" data-category="${server.category || ''}">
+            <div class="server-banner h-32 bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 relative overflow-hidden">
                 ${bannerContent}
             </div>
             <div class="relative px-5 pt-5 pb-5">
-                <div class="absolute -top-8 left-5 w-16 h-16 rounded-xl overflow-hidden border-4 border-discord-dark">
-                    ${iconContent}
+                <div class="explore-server-icon-small server-icon-small absolute -top-8 left-5">
+                    <div class="w-full h-full rounded-xl bg-discord-dark p-1 shadow-xl relative overflow-hidden">
+                        ${iconContent}
+                        <div class="absolute inset-0 ring-2 ring-white/20 rounded-lg"></div>
+                    </div>
                 </div>
                 <div class="mt-8 pl-2">
                     <div class="flex items-center gap-2 mb-2">
-                        <h3 class="server-name text-white font-bold text-lg truncate flex-1">${server.name}</h3>
-                        ${server.category ? `<span class="bg-discord-primary text-white text-xs px-2 py-1 rounded-full">${server.category}</span>` : ''}
+                        <h3 class="server-name font-bold text-lg text-white transition-colors flex-1">${server.name}</h3>
+                        ${categoryBadge}
                     </div>
-                    <p class="server-description text-gray-400 text-sm mb-3 line-clamp-2">${server.description || 'No description available.'}</p>
-                    <div class="server-stats flex items-center gap-4 text-xs text-gray-500 mb-4">
-                        <span><i class="fas fa-users mr-1"></i>${server.member_count} ${memberText}</span>
+                    <p class="server-description text-discord-lighter text-sm mb-3 line-clamp-2 leading-relaxed">${server.description || 'No description available'}</p>
+                    ${createdSection}
+                    <div class="server-stats flex items-center text-xs text-discord-lighter mb-4">
+                        <span class="font-medium">${server.member_count.toLocaleString()} members</span>
                     </div>
                     <div class="mt-4 space-y-2">
-                        <button class="join-server-btn w-full ${joinButtonClass} text-white py-2 px-4 rounded-lg transition-all font-medium" ${server.is_member ? 'disabled' : ''}>
+                        <button class="join-server-btn w-full ${joinButtonClass} text-center py-2.5 text-sm rounded-lg hover:bg-discord-primary/90 transition-all font-semibold" 
+                               data-server-id="${server.id}" ${server.is_member ? 'disabled' : ''}>
                             ${joinButtonText}
                         </button>
                     </div>
@@ -836,23 +859,30 @@ function createServerCardElement(server) {
 }
 
 function initMobileExploreSidebar() {
-    const mobileToggle = document.querySelector('.mobile-sidebar-toggle');
-    const sidebar = document.querySelector('.explore-sidebar');
-    const overlay = document.querySelector('.mobile-sidebar-overlay');
+    const mobileToggle = document.getElementById('mobile-explore-sidebar-toggle');
+    const sidebar = document.getElementById('explore-sidebar');
+    const overlay = document.getElementById('explore-sidebar-overlay');
     
-    if (mobileToggle && sidebar) {
+    if (mobileToggle && sidebar && overlay) {
         mobileToggle.addEventListener('click', function() {
-            sidebar.classList.toggle('mobile-open');
-            if (overlay) {
-                overlay.classList.toggle('active');
-            }
+            sidebar.classList.remove('hidden');
+            sidebar.classList.add('flex');
+            overlay.classList.remove('hidden');
         });
-    }
-    
-    if (overlay) {
+        
         overlay.addEventListener('click', function() {
-            sidebar.classList.remove('mobile-open');
-            overlay.classList.remove('active');
+            sidebar.classList.add('hidden');
+            sidebar.classList.remove('flex');
+            overlay.classList.add('hidden');
         });
+        
+        const closeButton = document.getElementById('mobile-explore-sidebar-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', function() {
+                sidebar.classList.add('hidden');
+                sidebar.classList.remove('flex');
+                overlay.classList.add('hidden');
+            });
+        }
     }
 }

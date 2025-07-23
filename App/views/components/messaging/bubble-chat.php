@@ -300,6 +300,7 @@ if (!function_exists('isBubbleVideoFile')) {
 .bubble-message-text {
     color: #dcddde;
     word-wrap: break-word;
+    white-space: pre-wrap;
     font-size: 16px;
     line-height: 1.375;
     margin: 0;

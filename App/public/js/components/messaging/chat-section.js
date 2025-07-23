@@ -2656,6 +2656,7 @@ class ChatSection {
         
         const channelIcon = document.getElementById('channel-icon');
         const channelName = document.getElementById('channel-name');
+        const participantButton = document.getElementById('mobile-participant-menu');
         
         if (!channelIcon || !channelName) {
             console.warn('⚠️ [CHAT-SECTION] Channel header elements not found');
@@ -2680,6 +2681,9 @@ class ChatSection {
                     channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
                 }
                 
+                if (participantButton) {
+                    participantButton.style.display = 'block';
+                }
 
                 return;
             }
@@ -2689,6 +2693,10 @@ class ChatSection {
                 let nameText = this.cleanChannelName(chatTitleMeta.content);
                 channelName.textContent = nameText;
                 channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
+                
+                if (participantButton) {
+                    participantButton.style.display = 'block';
+                }
 
                 return;
             }
@@ -2698,18 +2706,30 @@ class ChatSection {
                 channelName.textContent = nameText;
                 const iconClass = window.currentChannelData.type === 'voice' ? 'fas fa-volume-high' : 'fas fa-hashtag';
                 channelIcon.className = `${iconClass} text-[#949ba4] mr-2`;
+                
+                if (participantButton) {
+                    participantButton.style.display = 'block';
+                }
 
                 return;
             }
             
             channelName.textContent = `Channel ${this.targetId}`;
             channelIcon.className = 'fas fa-hashtag text-[#949ba4] mr-2';
+            
+            if (participantButton) {
+                participantButton.style.display = 'block';
+            }
 
             
         } else if (this.chatType === 'direct') {
             if (this.currentRoomInfo && this.currentRoomInfo.type === 'group') {
                 channelName.textContent = this.currentRoomInfo.name || 'Group Chat';
                 channelIcon.className = 'fas fa-users text-[#949ba4] mr-2';
+                
+                if (participantButton) {
+                    participantButton.style.display = 'block';
+                }
             } else {
                 const chatTitleMeta = document.querySelector('meta[name="chat-title"]');
                 let titleText = chatTitleMeta?.content || 'Direct Message';
@@ -2717,12 +2737,20 @@ class ChatSection {
                 
                 channelName.textContent = titleText;
                 channelIcon.className = 'fas fa-user text-[#949ba4] mr-2';
+                
+                if (participantButton) {
+                    participantButton.style.display = 'none';
+                }
             }
 
             
         } else {
             channelName.textContent = 'Chat';
             channelIcon.className = 'fas fa-comments text-[#949ba4] mr-2';
+            
+            if (participantButton) {
+                participantButton.style.display = 'none';
+            }
 
         }
     }
