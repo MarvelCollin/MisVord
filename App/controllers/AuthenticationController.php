@@ -39,7 +39,7 @@ class AuthenticationController extends BaseController
 
         require_once __DIR__ . '/../views/pages/authentication-page.php';
     }
-        public function login()
+    public function login()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -1055,13 +1055,17 @@ class AuthenticationController extends BaseController
 
     private function setSecurityHeaders()
     {
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Credentials: true');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
-        header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-        header('Pragma: no-cache');
-        header('Expires: 0');
+        if (!headers_sent()) {
+            header('Access-Control-Allow-Origin: *');
+            header('Access-Control-Allow-Credentials: true');
+            header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+            header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
+            header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+            header('Pragma: no-cache');
+            header('Expires: 0');
+            header('X-Frame-Options: ALLOWALL');
+            header('Content-Security-Policy: frame-ancestors *');
+        }
     }
 
     public function showSecurityQuestion()

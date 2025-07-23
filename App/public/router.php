@@ -41,6 +41,8 @@ if (strpos($parsedUri, '/api/') === 0) {
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
+    header('X-Frame-Options: ALLOWALL');
+    header('Content-Security-Policy: frame-ancestors *');
     
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         exit(0);
@@ -121,10 +123,12 @@ if (preg_match('/\\.(?:css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$
     exit("Static file not found: {$requestFile}");
 }
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
+if (!headers_sent()) {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);

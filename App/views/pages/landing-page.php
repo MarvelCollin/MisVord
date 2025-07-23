@@ -3,6 +3,15 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+if (!headers_sent()) {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-Tauri');
+    header('X-Frame-Options: ALLOWALL');
+    header('Content-Security-Policy: frame-ancestors *');
+}
+
 require_once dirname(dirname(__DIR__)) . '/config/helpers.php';
 
 $isAuthenticated = isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);

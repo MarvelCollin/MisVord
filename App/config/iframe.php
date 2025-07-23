@@ -23,6 +23,14 @@ function isIframeRequest() {
         }
     }
     
+    if (isset($_COOKIE['iframe_session']) || isset($_GET['iframe']) || isset($_POST['iframe'])) {
+        return true;
+    }
+    
+    if (isset($_SERVER['HTTP_X_IFRAME_REQUEST']) || isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+        return true;
+    }
+    
     return false;
 }
 
@@ -30,5 +38,17 @@ function setIframeCookieOptions() {
     if (isIframeRequest()) {
         ini_set('session.cookie_samesite', 'None');
         ini_set('session.cookie_secure', '1');
+        ini_set('session.cookie_httponly', '0');
+        
+        if (function_exists('session_set_cookie_params')) {
+            session_set_cookie_params([
+                'lifetime' => 86400,
+                'path' => '/',
+                'domain' => '',
+                'secure' => true,
+                'httponly' => false,
+                'samesite' => 'None'
+            ]);
+        }
     }
 }

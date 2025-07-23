@@ -6,9 +6,9 @@ require_once __DIR__ . '/iframe.php';
 setIframeCookieOptions();
 
 $sessionLifetime = EnvLoader::get('SESSION_LIFETIME', 86400);
-$sessionSecure = isIframeRequest() ? true : false;
+$sessionSecure = true;
 $sessionHttpOnly = false;
-$sessionSameSite = isIframeRequest() ? 'None' : 'None';
+$sessionSameSite = 'None';
 
 ini_set('session.cookie_lifetime', $sessionLifetime);
 ini_set('session.gc_maxlifetime', $sessionLifetime);

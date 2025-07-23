@@ -53,6 +53,8 @@ header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-W
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
 header('Pragma: no-cache');
 header('Expires: 0');
+header('X-Frame-Options: ALLOWALL');
+header('Content-Security-Policy: frame-ancestors *');
 
 $page_title = 'MisVord - Login or Register';
 $body_class = 'bg-discord-dark text-white';
@@ -202,7 +204,7 @@ try {
 
         <div id="formsContainer" class="relative transition-all duration-300 ease-out" style="min-height: 200px;">
 
-            <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm"<?php if (isset($_SERVER['HTTP_SEC_FETCH_DEST']) && $_SERVER['HTTP_SEC_FETCH_DEST'] === 'iframe'): ?> target="_top"<?php endif; ?>>
+            <form action="/login" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'login' ? 'block' : 'hidden'; ?>" id="loginForm">
                 <div class="form-group">
                     <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
                     <input 
@@ -266,7 +268,7 @@ try {
                 </div>
             </form>
 
-            <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm"<?php if (isset($_SERVER['HTTP_SEC_FETCH_DEST']) && $_SERVER['HTTP_SEC_FETCH_DEST'] === 'iframe'): ?> target="_top"<?php endif; ?>>
+            <form action="/register" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'register' ? 'block' : 'hidden'; ?>" id="registerForm">
                 <div class="flex items-center justify-center mb-4">
                     <div class="flex items-center">
                         <div class="step-indicator active" id="step-1-indicator">

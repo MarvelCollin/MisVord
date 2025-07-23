@@ -2,15 +2,19 @@ function initIframeHandler() {
     if (window.self !== window.top) {
         document.body.classList.add('in-iframe');
         
-        if (document.cookie.indexOf('PHPSESSID') === -1) {
-            document.cookie = "iframe_session=true; path=/; SameSite=None; Secure";
-        }
+        document.cookie = "iframe_session=true; path=/; SameSite=None; Secure";
 
         const forms = document.querySelectorAll('form');
         forms.forEach(form => {
             if (!form.hasAttribute('target')) {
-                form.setAttribute('target', '_top');
+                form.setAttribute('target', '_self');
             }
+            
+            const iframeInput = document.createElement('input');
+            iframeInput.type = 'hidden';
+            iframeInput.name = 'iframe';
+            iframeInput.value = '1';
+            form.appendChild(iframeInput);
         });
 
         window.addEventListener('message', function(event) {
