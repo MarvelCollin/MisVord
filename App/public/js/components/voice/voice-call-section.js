@@ -848,7 +848,7 @@ class VoiceCallSection {
         const { participant } = event.detail;
         if (!participant) return;
         
-        
+        this.removeScreenShareCard(participant);
         
 
         if (this.currentModal) {
