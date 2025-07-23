@@ -237,54 +237,11 @@ class VoiceCallSection {
         window.addEventListener("voiceConnect", (e) => this.handleVoiceConnect(e));
         window.addEventListener("voiceDisconnect", (e) => this.handleVoiceDisconnect(e));
 
-        window.addEventListener("bot-voice-participant-joined", (e) => {
-            console.log(`🤖 [VOICE-CALL-SECTION] Bot participant joined event:`, e.detail);
-            if (e.detail && e.detail.participant) {
-                const botData = e.detail.participant;
-                const botId = `bot-${botData.user_id}`;
-                
-                if (!this.participantElements.has(botId)) {
-                    const grid = document.getElementById("participantGrid");
-                    if (grid) {
-                        const element = this.createParticipantElement(botId, botData);
-                        grid.appendChild(element);
-                        this.participantElements.set(botId, element);
-                        this.updateGridLayout();
-                        this.updateParticipantCount();
-                        
-                        console.log(`🤖 [VOICE-CALL-SECTION] Created bot participant card:`, {
-                            botId,
-                            username: botData.username
-                        });
-                    }
-                }
-            }
-        });
-
-        window.addEventListener("bot-voice-participant-left", (e) => {
-            console.log(`🤖 [VOICE-CALL-SECTION] Bot participant left event:`, e.detail);
-            if (e.detail && e.detail.participant) {
-                const botData = e.detail.participant;
-                const botId = `bot-${botData.user_id}`;
-                
-                const element = this.participantElements.get(botId);
-                if (element) {
-                    element.remove();
-                    this.participantElements.delete(botId);
-                    this.updateGridLayout();
-                    this.updateParticipantCount();
-                    
-                    console.log(`🤖 [VOICE-CALL-SECTION] Removed bot participant card:`, botId);
-                }
-            }
-        });
-
         if (window.globalSocketManager?.io) {
             this.setupSocketListeners();
         } else {
             window.addEventListener('globalSocketReady', () => this.setupSocketListeners());
         }
-        
 
         if (window.localStorageManager) {
             window.localStorageManager.addVoiceStateListener((state) => {
@@ -292,15 +249,11 @@ class VoiceCallSection {
                     this.currentChannelId = state.channelId;
                     this.currentChannelName = state.channelName;
                     this.currentMeetingId = state.meetingId;
-                    this.updateConnectionStatus(true);
-                } else if (!state.isConnected) {
-                    this.currentChannelId = null;
-                    this.currentChannelName = null;
-                    this.currentMeetingId = null;
-                    this.updateConnectionStatus(false);
+                    this.updateConnectionStatus(true, true);
                 }
-                this.syncButtonStates();
             });
+
+            window.addEventListener('unifiedVoiceStateChanged', (e) => this.handleUnifiedVoiceStateChanged(e));
         }
     }
     
@@ -580,37 +533,27 @@ class VoiceCallSection {
                 const uniqueParticipants = new Map();
                 data.participants.forEach((participant) => {
                     const userId = participant.user_id || participant.id;
-                    if (userId && !uniqueParticipants.has(userId)) {
-                        uniqueParticipants.set(userId, participant);
-                        incomingParticipants.add(userId);
+                    const participantId = participant.isBot ? `bot-${userId}` : participant.id || userId;
+                    
+                    if (!uniqueParticipants.has(participantId)) {
+                        uniqueParticipants.set(participantId, {
+                            ...participant,
+                            id: participantId,
+                            user_id: userId,
+                            isLocal: String(userId) === currentUserId
+                        });
                     }
+                    
+                    incomingParticipants.add(participantId);
                 });
 
-                console.log(`📊 [VOICE-CALL-SECTION] Participant synchronization:`, {
-                    existingCards: Array.from(existingParticipants),
-                    incomingParticipants: Array.from(incomingParticipants),
-                    uniqueParticipantsCount: uniqueParticipants.size
-                });
-
-                existingParticipants.forEach(participantId => {
-                    if (!incomingParticipants.has(participantId)) {
-                        const element = this.participantElements.get(participantId);
-                        if (element) {
-                            console.log(`🗑️ [VOICE-CALL-SECTION] Removing participant card:`, participantId);
-                            element.remove();
-                            this.participantElements.delete(participantId);
-                        }
-                    }
-                });
-
-                uniqueParticipants.forEach((participant) => {
-                    const participantId = participant.user_id || participant.id;
-                    if (!this.participantElements.has(participantId)) {
+                uniqueParticipants.forEach((participant, participantId) => {
+                    if (!this.participantElements.has(participantId) && !this.hasExistingCardForUser(participant)) {
                         console.log(`➕ [VOICE-CALL-SECTION] Creating participant card:`, {
                             participantId,
                             username: participant.username,
                             isBot: participant.isBot,
-                            isLocal: participantId === currentUserId
+                            isLocal: participant.isLocal
                         });
                         
                         const element = this.createParticipantElement(participantId, participant);
@@ -675,53 +618,43 @@ class VoiceCallSection {
         if (!grid) return;
         
         const allParticipants = window.voiceManager.getAllParticipants();
-        const botParticipants = window.voiceManager.getBotParticipants();
         
-        console.log(`🔄 [VOICE-CALL-SECTION] Syncing participants:`, {
-            humanParticipants: allParticipants.size,
-            botParticipants: botParticipants.size,
-            totalToSync: allParticipants.size + botParticipants.size
+        const existingParticipantIds = new Set();
+        grid.querySelectorAll('.participant-card').forEach(card => {
+            const participantId = card.getAttribute('data-participant-id');
+            if (participantId) {
+                existingParticipantIds.add(participantId);
+            }
         });
-
+        
         allParticipants.forEach((participantData, participantId) => {
-            if (!this.participantElements.has(participantId) && !this.hasExistingCardForUser(participantData)) {
-                console.log(`➕ [VOICE-CALL-SECTION] Creating card for human participant:`, {
+            if (!existingParticipantIds.has(participantId) && !this.hasExistingCardForUser(participantData)) {
+                console.log(`➕ [VOICE-CALL-SECTION] Creating card for participant:`, {
                     participantId,
                     username: participantData.username,
+                    isBot: participantData.isBot,
                     isLocal: participantData.isLocal
                 });
                 
                 const element = this.createParticipantElement(participantId, participantData);
                 grid.appendChild(element);
                 this.participantElements.set(participantId, element);
-                this.restoreExistingStreamsForParticipant(participantId, participantData, element);
                 
-                const voiceParticipant = window.voiceManager.meeting?.participants?.get(participantId);
-                if (voiceParticipant && window.voiceManager.forceParticipantStreamSync) {
-                    window.voiceManager.forceParticipantStreamSync(voiceParticipant);
+                if (!participantData.isBot) {
+                    this.restoreExistingStreamsForParticipant(participantId, participantData, element);
+                    
+                    const voiceParticipant = window.voiceManager.meeting?.participants?.get(participantId);
+                    if (voiceParticipant && window.voiceManager.forceParticipantStreamSync) {
+                        window.voiceManager.forceParticipantStreamSync(voiceParticipant);
+                    }
+                    
+                    setTimeout(() => {
+                        this.syncParticipantStreams(participantId, element);
+                        this.ensureParticipantStreamsSynced(participantId, element);
+                    }, 100);
                 }
-                
-                setTimeout(() => {
-                    this.syncParticipantStreams(participantId, element);
-                    this.ensureParticipantStreamsSynced(participantId, element);
-                }, 100);
             } else {
-                console.log(`✅ [VOICE-CALL-SECTION] Human participant card already exists:`, participantId);
-            }
-        });
-        
-        botParticipants.forEach((botData, botId) => {
-            if (!this.participantElements.has(botId) && !this.hasExistingCardForUser(botData)) {
-                console.log(`🤖 [VOICE-CALL-SECTION] Creating card for bot participant:`, {
-                    botId,
-                    username: botData.username
-                });
-                
-                const element = this.createParticipantElement(botId, botData);
-                grid.appendChild(element);
-                this.participantElements.set(botId, element);
-            } else {
-                console.log(`✅ [VOICE-CALL-SECTION] Bot participant card already exists:`, botId);
+                console.log(`✅ [VOICE-CALL-SECTION] Participant card already exists:`, participantId);
             }
         });
         
@@ -1070,13 +1003,30 @@ class VoiceCallSection {
     
     hasExistingCardForUser(participantData) {
         const userId = participantData?.user_id;
-        if (!userId) return false;
+        const participantId = participantData?.id;
+        
+        if (!userId && !participantId) return false;
         
         const grid = document.getElementById("participantGrid");
         if (!grid) return false;
         
-        const existingCard = grid.querySelector(`[data-user-id="${userId}"]`);
-        return !!existingCard;
+        if (userId) {
+            const existingCard = grid.querySelector(`[data-user-id="${userId}"]`);
+            if (existingCard) return true;
+        }
+        
+        if (participantId) {
+            const existingCard = grid.querySelector(`[data-participant-id="${participantId}"]`);
+            if (existingCard) return true;
+        }
+        
+        if (participantData.isBot && userId) {
+            const botId = `bot-${userId}`;
+            const existingBotCard = grid.querySelector(`[data-participant-id="${botId}"]`);
+            if (existingBotCard) return true;
+        }
+        
+        return false;
     }
 
     handleStreamDisabled(event) {
@@ -1726,7 +1676,7 @@ class VoiceCallSection {
         const grid = document.getElementById("participantGrid");
         if (!grid) return;
         
-        const seenUserIds = new Set();
+        const seenUserIds = new Map();
         const seenParticipantIds = new Set();
         const cardsToRemove = [];
         
@@ -1738,7 +1688,9 @@ class VoiceCallSection {
             let shouldRemove = false;
             
             if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
-                shouldRemove = true;
+                if (!participantId || !participantId.startsWith('bot-') || !window.voiceManager.botParticipants.has(participantId)) {
+                    shouldRemove = true;
+                }
             }
             
             if (participantId && seenParticipantIds.has(participantId)) {
@@ -1747,10 +1699,22 @@ class VoiceCallSection {
                 seenParticipantIds.add(participantId);
             }
             
-            if (userId && seenUserIds.has(userId)) {
-                shouldRemove = true;
-            } else if (userId) {
-                seenUserIds.add(userId);
+            if (userId) {
+                const existingCard = seenUserIds.get(userId);
+                if (existingCard) {
+                    const existingParticipantId = existingCard.getAttribute('data-participant-id');
+                    const isBotCard = participantId && participantId.startsWith('bot-');
+                    const isExistingBotCard = existingParticipantId && existingParticipantId.startsWith('bot-');
+                    
+                    if (isBotCard && !isExistingBotCard) {
+                        shouldRemove = false;
+                        cardsToRemove.push({ card: existingCard, participantId: existingParticipantId });
+                    } else {
+                        shouldRemove = true;
+                    }
+                } else {
+                    seenUserIds.set(userId, card);
+                }
             }
             
             if (shouldRemove) {

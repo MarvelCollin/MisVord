@@ -1285,6 +1285,38 @@ button {
     transform: translateY(-10px);
 }
 
+.load-more-message-entry {
+    opacity: 0;
+    transform: translateY(-15px);
+    animation: loadMoreMessageFadeIn 0.3s ease-out forwards;
+}
+
+.load-more-message-entry:nth-child(1) { animation-delay: 0.05s; }
+.load-more-message-entry:nth-child(2) { animation-delay: 0.1s; }
+.load-more-message-entry:nth-child(3) { animation-delay: 0.15s; }
+.load-more-message-entry:nth-child(4) { animation-delay: 0.2s; }
+.load-more-message-entry:nth-child(5) { animation-delay: 0.25s; }
+.load-more-message-entry:nth-child(n+6) { animation-delay: 0.3s; }
+
+@keyframes loadMoreMessageFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.load-more-container {
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.load-more-container.loading {
+    opacity: 0.7;
+    transform: scale(0.98);
+}
 
 .messages-container .bubble-message-group.grouped {
     margin-top: 0 !important;

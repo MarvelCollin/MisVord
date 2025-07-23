@@ -462,8 +462,14 @@ class MusicPlayerSystem {
         }
 
         const isInAnyVoiceChannel = this.isUserInAnyVoiceChannel();
-        if (!isInAnyVoiceChannel) {
-            console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring music command');
+        const isInVoiceCall = this.isUserInVoiceCall();
+        
+        if (!isInAnyVoiceChannel || !isInVoiceCall) {
+            console.log('🎵 [MUSIC-PLAYER] User not in voice channel or voice call, ignoring music command:', {
+                inVoiceChannel: isInAnyVoiceChannel,
+                inVoiceCall: isInVoiceCall
+            });
+            this.showStatus('You must be in a voice call to play music');
             return;
         }
         
@@ -624,8 +630,12 @@ class MusicPlayerSystem {
     async handleMusicStateSync(data) {
         if (!data || !data.channel_id) return;
         
-        if (!this.isUserInAnyVoiceChannel()) {
-            console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring music state sync');
+        const isInVoiceCall = this.isUserInVoiceCall();
+        if (!this.isUserInAnyVoiceChannel() || !isInVoiceCall) {
+            console.log('🎵 [MUSIC-PLAYER] User not in voice channel or voice call, ignoring music state sync:', {
+                inVoiceChannel: this.isUserInAnyVoiceChannel(),
+                inVoiceCall: isInVoiceCall
+            });
             return;
         }
         
@@ -681,8 +691,12 @@ class MusicPlayerSystem {
     handleMusicStateRequest(data) {
         if (!data || !data.channel_id) return;
         
-        if (!this.isUserInAnyVoiceChannel()) {
-            console.log('🎵 [MUSIC-PLAYER] User not in any voice channel, ignoring music state request');
+        const isInVoiceCall = this.isUserInVoiceCall();
+        if (!this.isUserInAnyVoiceChannel() || !isInVoiceCall) {
+            console.log('🎵 [MUSIC-PLAYER] User not in voice channel or voice call, ignoring music state request:', {
+                inVoiceChannel: this.isUserInAnyVoiceChannel(),
+                inVoiceCall: isInVoiceCall
+            });
             return;
         }
         
@@ -1651,7 +1665,16 @@ class MusicPlayerSystem {
 
     async addToQueue(songName) {
         try {
-            
+            const isInVoiceCall = this.isUserInVoiceCall();
+            if (!this.isUserInAnyVoiceChannel() || !isInVoiceCall) {
+                const errorMsg = 'You must be in a voice call to add songs to queue';
+                console.log('🎵 [MUSIC-PLAYER] User not in voice call, cannot add to queue:', {
+                    inVoiceChannel: this.isUserInAnyVoiceChannel(),
+                    inVoiceCall: isInVoiceCall
+                });
+                this.showStatus(errorMsg);
+                return errorMsg;
+            }
             
             const searchResult = await this.searchMusic(songName);
             if (searchResult && searchResult.previewUrl) {
@@ -1770,6 +1793,64 @@ class MusicPlayerSystem {
         } catch (error) {
             console.error('🎵 [MUSIC-PLAYER] Error checking voice channel status:', error);
             return true;
+        }
+    }
+
+    isUserInVoiceCall() {
+        try {
+            if (window.GlobalPresenceManager && typeof window.GlobalPresenceManager.isCurrentUserInVoiceCall === 'function') {
+                const isInVoiceCall = window.GlobalPresenceManager.isCurrentUserInVoiceCall();
+                console.log('🎵 [MUSIC-PLAYER] Using GlobalPresenceManager for voice call check:', isInVoiceCall);
+                return isInVoiceCall;
+            }
+            
+            if (window.globalSocketManager && window.globalSocketManager.currentActivityDetails) {
+                const currentActivity = window.globalSocketManager.currentActivityDetails;
+                
+                if (currentActivity.type && currentActivity.type.startsWith('In Voice')) {
+                    console.log('🎵 [MUSIC-PLAYER] User presence indicates in voice call:', currentActivity.type);
+                    return true;
+                }
+            }
+            
+            if (window.GlobalPresenceManager && window.globalPresenceManager) {
+                const presenceManager = window.globalPresenceManager;
+                const friendsManager = presenceManager.friendsManager;
+                if (friendsManager && friendsManager.cache && friendsManager.cache.onlineUsers) {
+                    const currentUserId = window.globalSocketManager?.userId;
+                    if (currentUserId) {
+                        const userPresence = friendsManager.cache.onlineUsers[currentUserId];
+                        if (userPresence && userPresence.activity_details && userPresence.activity_details.type) {
+                            const activityType = userPresence.activity_details.type;
+                            if (activityType.startsWith('In Voice')) {
+                                console.log('🎵 [MUSIC-PLAYER] User cache indicates in voice call:', activityType);
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            const voicePresenceElements = document.querySelectorAll('.user-presence-text[data-user-id]');
+            const currentUserId = window.globalSocketManager?.userId;
+            
+            if (currentUserId) {
+                for (const element of voicePresenceElements) {
+                    if (element.getAttribute('data-user-id') === currentUserId) {
+                        const presenceText = element.textContent.trim();
+                        if (presenceText.startsWith('In Voice')) {
+                            console.log('🎵 [MUSIC-PLAYER] DOM presence indicates in voice call:', presenceText);
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            console.log('🎵 [MUSIC-PLAYER] User presence does not indicate voice call');
+            return false;
+        } catch (error) {
+            console.error('🎵 [MUSIC-PLAYER] Error checking voice call presence:', error);
+            return false;
         }
     }
 

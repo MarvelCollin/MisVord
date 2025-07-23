@@ -1211,6 +1211,11 @@ class ChatSection {
     showLoadMoreProgress() {
         const loadMoreButton = this.loadMoreButton;
         const loadMoreSkeleton = document.getElementById('load-more-skeleton');
+        const loadMoreContainer = this.loadMoreContainer;
+        
+        if (loadMoreContainer) {
+            loadMoreContainer.classList.add('loading');
+        }
         
         if (loadMoreButton) {
             loadMoreButton.disabled = true;
@@ -1238,6 +1243,11 @@ class ChatSection {
         const loadMoreButton = this.loadMoreButton;
         const loadMoreSkeleton = document.getElementById('load-more-skeleton');
         const loadMoreStatus = document.getElementById('load-more-status');
+        const loadMoreContainer = this.loadMoreContainer;
+        
+        if (loadMoreContainer) {
+            loadMoreContainer.classList.remove('loading');
+        }
         
         if (loadMoreSkeleton) {
             loadMoreSkeleton.classList.add('hidden');
@@ -1275,7 +1285,6 @@ class ChatSection {
     
     updateLoadMoreButton() {
         if (!this.loadMoreContainer || !this.loadMoreButton) {
-
             this.findDOMElements();
         }
         
@@ -1284,29 +1293,21 @@ class ChatSection {
             return;
         }
         
-
-        
-        if (this.isLoading) {
-            this.loadMoreContainer.classList.add('hidden');
-
-            return;
-        }
-        
-        this.loadMoreButton.disabled = false;
-        const content = this.loadMoreButton.querySelector('.load-more-content');
-        const progress = this.loadMoreButton.querySelector('.load-more-progress');
-        
-        if (content && progress) {
-            progress.style.display = 'none';
-            content.style.display = 'flex';
-        }
-        
         if (this.hasMoreMessages) {
             this.loadMoreContainer.classList.remove('hidden');
-
+            
+            if (!this.isLoading) {
+                this.loadMoreButton.disabled = false;
+                const content = this.loadMoreButton.querySelector('.load-more-content');
+                const progress = this.loadMoreButton.querySelector('.load-more-progress');
+                
+                if (content && progress) {
+                    progress.style.display = 'none';
+                    content.style.display = 'flex';
+                }
+            }
         } else {
             this.loadMoreContainer.classList.add('hidden');
-
         }
     }
     

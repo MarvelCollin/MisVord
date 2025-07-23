@@ -173,49 +173,44 @@ class VoiceManager {
         const { participant, channelId, isRecovery } = data;
         if (!participant || !participant.user_id) return;
         
-        if (channelId === this.currentChannelId) {
-            const botId = `bot-${participant.user_id}`;
-            
-
-            let avatarUrl = participant.avatar_url;
-            if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
-                avatarUrl = '/public/assets/landing-page/robot.webp';
-            }
-            
-            this.botParticipants.set(botId, {
-                id: botId,
-                user_id: participant.user_id,
-                name: participant.username || 'TitiBot',
-                username: participant.username || 'TitiBot',
-                avatar_url: avatarUrl,
-                isBot: true,
-                isLocal: false,
-                streams: new Map(),
-                channelId: channelId,
-                status: participant.status || 'Ready to play music' 
-            });
-            
-            this.participants.set(botId, this.botParticipants.get(botId));
-            
-            window.dispatchEvent(new CustomEvent('participantJoined', {
-                detail: { participant: botId, data: this.botParticipants.get(botId) }
-            }));
-            
-            if (window.ChannelVoiceParticipants) {
-                const instance = window.ChannelVoiceParticipants.getInstance();
-
-                const updateMode = isRecovery ? 'full' : 'append';
-                setTimeout(() => {
-                    instance.updateSidebarForChannel(channelId, updateMode);
-                }, isRecovery ? 100 : 0); 
-            }
-            
-            console.log(`🤖 [VOICE-MANAGER] Bot participant ${isRecovery ? 'recovered' : 'joined'}:`, {
-                botId,
-                username: participant.username,
-                channelId,
-                isRecovery: !!isRecovery
-            });
+        if (channelId !== this.currentChannelId) return;
+        
+        const botId = `bot-${participant.user_id}`;
+        
+        if (this.botParticipants.has(botId)) {
+            return;
+        }
+        
+        let avatarUrl = participant.avatar_url;
+        if (!avatarUrl || avatarUrl === '/public/assets/common/default-profile-picture.png') {
+            avatarUrl = '/public/assets/landing-page/robot.webp';
+        }
+        
+        this.botParticipants.set(botId, {
+            id: botId,
+            user_id: participant.user_id,
+            name: participant.username || 'TitiBot',
+            username: participant.username || 'TitiBot',
+            avatar_url: avatarUrl,
+            isBot: true,
+            isLocal: false,
+            streams: new Map(),
+            channelId: channelId,
+            status: participant.status || 'Ready to play music'
+        });
+        
+        this.participants.set(botId, this.botParticipants.get(botId));
+        
+        window.dispatchEvent(new CustomEvent('participantJoined', {
+            detail: { participant: botId, data: this.botParticipants.get(botId) }
+        }));
+        
+        if (window.ChannelVoiceParticipants) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            const updateMode = isRecovery ? 'full' : 'append';
+            setTimeout(() => {
+                instance.updateSidebarForChannel(channelId, updateMode);
+            }, isRecovery ? 100 : 0);
         }
     }
     

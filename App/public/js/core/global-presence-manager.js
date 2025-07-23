@@ -807,6 +807,34 @@ class GlobalPresenceManager {
         };
     }
 
+    static isCurrentUserInVoiceCall() {
+        try {
+            const presenceManager = window.globalPresenceManager;
+            if (!presenceManager) return false;
+            
+            if (window.globalSocketManager && window.globalSocketManager.currentActivityDetails) {
+                const currentActivity = window.globalSocketManager.currentActivityDetails;
+                return currentActivity.type && currentActivity.type.startsWith('In Voice');
+            }
+            
+            const friendsManager = presenceManager.friendsManager;
+            if (friendsManager && friendsManager.cache && friendsManager.cache.onlineUsers) {
+                const currentUserId = window.globalSocketManager?.userId;
+                if (currentUserId) {
+                    const userPresence = friendsManager.cache.onlineUsers[currentUserId];
+                    if (userPresence && userPresence.activity_details && userPresence.activity_details.type) {
+                        return userPresence.activity_details.type.startsWith('In Voice');
+                    }
+                }
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('❌ [GLOBAL-PRESENCE] Error checking voice call status:', error);
+            return false;
+        }
+    }
+
     static getInstance() {
         if (!window.globalPresenceManager) {
             window.globalPresenceManager = new GlobalPresenceManager();

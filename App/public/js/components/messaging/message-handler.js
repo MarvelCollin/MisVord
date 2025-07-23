@@ -1268,15 +1268,15 @@ class MessageHandler {
             messagesContainer.insertBefore(separator, firstChild);
         }
         
-        const reversedMessages = [...messages].reverse();
-        const messageBatches = this.createMessageBatches(reversedMessages, 5);
+        const messageBatches = this.createMessageBatches(messages, 5);
         
         for (let batchIndex = 0; batchIndex < messageBatches.length; batchIndex++) {
             const batch = messageBatches[batchIndex];
             const batchContainer = document.createElement('div');
             batchContainer.className = 'progressive-load-group';
             
-            for (const message of batch) {
+            for (let i = 0; i < batch.length; i++) {
+                const message = batch[i];
                 try {
                     const formattedMessage = this.formatMessageForBubble(message);
                     
@@ -1375,7 +1375,8 @@ class MessageHandler {
         
         const fragment = document.createDocumentFragment();
         
-        for (const message of messages.reverse()) {
+        for (let i = 0; i < messages.length; i++) {
+            const message = messages[i];
             try {
                 const formattedMessage = this.formatMessageForBubble(message);
                 
@@ -1387,6 +1388,7 @@ class MessageHandler {
                 const messageElement = this.createMessageElementSync(formattedMessage, false);
                 
                 if (messageElement) {
+                    messageElement.classList.add('load-more-message-entry');
                     fragment.appendChild(messageElement);
                     this.processedMessageIds.add(message.id);
                 }
@@ -1395,6 +1397,7 @@ class MessageHandler {
                 const formattedMessage = this.formatMessageForBubble(message);
                 const fallbackElement = this.createFallbackMessageElement(formattedMessage, false);
                 if (fallbackElement) {
+                    fallbackElement.classList.add('load-more-message-entry');
                     fragment.appendChild(fallbackElement);
                     this.processedMessageIds.add(message.id);
                 }
@@ -1411,6 +1414,15 @@ class MessageHandler {
         
         const newScrollHeight = messagesContainer.scrollHeight;
         messagesContainer.scrollTop = currentScrollTop + (newScrollHeight - currentScrollHeight);
+        
+        requestAnimationFrame(() => {
+            const newMessages = messagesContainer.querySelectorAll('.load-more-message-entry');
+            newMessages.forEach((msg, index) => {
+                requestAnimationFrame(() => {
+                    msg.classList.remove('load-more-message-entry');
+                });
+            });
+        });
     }
     
     fallbackPrependMessage(formattedMessage, messagesContainer, firstChild) {
