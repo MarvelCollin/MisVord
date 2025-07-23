@@ -1688,9 +1688,7 @@ class VoiceCallSection {
             let shouldRemove = false;
             
             if (!window.voiceManager || !window.voiceManager.participants.has(participantId)) {
-                if (!participantId || !participantId.startsWith('bot-') || !window.voiceManager.botParticipants.has(participantId)) {
-                    shouldRemove = true;
-                }
+                shouldRemove = true;
             }
             
             if (participantId && seenParticipantIds.has(participantId)) {

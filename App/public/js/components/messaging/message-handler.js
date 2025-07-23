@@ -1418,9 +1418,13 @@ class MessageHandler {
         requestAnimationFrame(() => {
             const newMessages = messagesContainer.querySelectorAll('.load-more-message-entry');
             newMessages.forEach((msg, index) => {
-                requestAnimationFrame(() => {
-                    msg.classList.remove('load-more-message-entry');
-                });
+                setTimeout(() => {
+                    requestAnimationFrame(() => {
+                        msg.classList.remove('load-more-message-entry');
+                        msg.style.transform = '';
+                        msg.style.opacity = '';
+                    });
+                }, 600 + (index * 50));
             });
         });
     }

@@ -1287,35 +1287,50 @@ button {
 
 .load-more-message-entry {
     opacity: 0;
-    transform: translateY(-15px);
-    animation: loadMoreMessageFadeIn 0.3s ease-out forwards;
+    transform: translateY(-20px) scale(0.95);
+    animation: loadMoreMessageFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.load-more-message-entry:nth-child(1) { animation-delay: 0.05s; }
-.load-more-message-entry:nth-child(2) { animation-delay: 0.1s; }
-.load-more-message-entry:nth-child(3) { animation-delay: 0.15s; }
-.load-more-message-entry:nth-child(4) { animation-delay: 0.2s; }
-.load-more-message-entry:nth-child(5) { animation-delay: 0.25s; }
-.load-more-message-entry:nth-child(n+6) { animation-delay: 0.3s; }
+.load-more-message-entry:nth-child(1) { animation-delay: 0.08s; }
+.load-more-message-entry:nth-child(2) { animation-delay: 0.16s; }
+.load-more-message-entry:nth-child(3) { animation-delay: 0.24s; }
+.load-more-message-entry:nth-child(4) { animation-delay: 0.32s; }
+.load-more-message-entry:nth-child(5) { animation-delay: 0.4s; }
+.load-more-message-entry:nth-child(n+6) { animation-delay: 0.48s; }
 
 @keyframes loadMoreMessageFadeIn {
-    from {
+    0% {
         opacity: 0;
-        transform: translateY(-15px);
+        transform: translateY(-20px) scale(0.95);
     }
-    to {
+    50% {
+        opacity: 0.5;
+        transform: translateY(-10px) scale(0.98);
+    }
+    100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
 .load-more-container {
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .load-more-container.loading {
-    opacity: 0.7;
-    transform: scale(0.98);
+    opacity: 0.6;
+    transform: scale(0.96);
+}
+
+.load-more-container.loading #load-more-messages {
+    background: linear-gradient(90deg, #4752c4, #5865f2, #4752c4);
+    background-size: 200% 100%;
+    animation: loadingShimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes loadingShimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .messages-container .bubble-message-group.grouped {
