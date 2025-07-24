@@ -86,3 +86,30 @@ require_once dirname(__DIR__) . '/explore/server-card.php';
         </div>
     </div>
 </div>
+
+<div class="invite-code-modal" id="invite-code-modal">
+    <div class="invite-code-modal-toggle" id="invite-code-toggle">
+        <i class="fas fa-plus"></i>
+        <span class="tooltip">Join with code</span>
+    </div>
+    <div class="invite-code-modal-content" id="invite-code-content">
+        <div class="invite-code-modal-header">
+            <h3>Join Server</h3>
+            <button class="invite-code-modal-close" id="invite-code-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="invite-code-modal-body">
+            <div class="invite-code-input-container">
+                <input type="text" 
+                       id="invite-code-input" 
+                       placeholder="Enter invite code..." 
+                       class="invite-code-input">
+                <button id="join-with-code-btn" class="join-with-code-btn">
+                    <i class="fas fa-sign-in-alt"></i>
+                </button>
+            </div>
+            <p class="invite-code-hint">Enter a server invite code to join</p>
+        </div>
+    </div>
+</div>

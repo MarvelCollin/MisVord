@@ -30,14 +30,10 @@ class MediaController extends BaseController
             if (!mkdir($this->uploadPath, 0777, true)) {
                 throw new Exception("Failed to create storage directory");
             }
-            chmod($this->uploadPath, 0777);
         }
 
         if (!is_writable($this->uploadPath)) {
-            chmod($this->uploadPath, 0777);
-            if (!is_writable($this->uploadPath)) {
-                throw new Exception("Storage directory not writable and cannot fix permissions");
-            }
+            throw new Exception("Storage directory not writable");
         }
     }
 
@@ -81,8 +77,6 @@ class MediaController extends BaseController
                 $uploadError = error_get_last();
                 return $this->serverError('Failed to save uploaded file: ' . ($uploadError['message'] ?? 'Unknown error'));
             }
-
-            chmod($absolutePath, 0644);
 
             $fileUrl = "/public/storage/{$fileName}";
 
@@ -136,8 +130,6 @@ class MediaController extends BaseController
                     $errors[] = "File '{$originalName}': Failed to save";
                     continue;
                 }
-
-                chmod($absolutePath, 0644);
 
                 $uploadedFiles[] = [
                     'file_url' => "/public/storage/{$fileName}",

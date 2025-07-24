@@ -1,5 +1,3 @@
-import { showToast } from '../../core/ui/toast.js';
-
 if (typeof window !== 'undefined' && window.logger) {
     window.logger.info('server', 'server-dropdown.js loaded successfully - FIXED VERSION');
 }
@@ -308,7 +306,7 @@ function showInviteBotModal() {
 
 async function fetchAndInviteTitiBot() {
     try {
-        showToast('Searching for TitiBot...', 'info');
+        window.showToast('Searching for TitiBot...', 'info');
         
 
         const response = await fetch('/api/bots/public-check/titibot');
@@ -316,16 +314,16 @@ async function fetchAndInviteTitiBot() {
 
         if (result.success && result.exists && result.is_bot) {
 
-            showToast('Found TitiBot, adding to server...', 'info');
+            window.showToast('Found TitiBot, adding to server...', 'info');
             const botId = result.bot.id;
             await inviteBotToServer(botId);
         } else {
 
-            showToast('TitiBot not found in the database. Please contact an administrator.', 'error');
+            window.showToast('TitiBot not found in the database. Please contact an administrator.', 'error');
         }
     } catch (error) {
         console.error('Error searching for TitiBot:', error);
-        showToast('Failed to search for TitiBot. Please try again later.', 'error');
+        window.showToast('Failed to search for TitiBot. Please try again later.', 'error');
     }
 }
 
@@ -346,7 +344,7 @@ async function showLeaveServerConfirmation() {
 
     const serverId = getCurrentServerId();
     if (!serverId) {
-        showToast('Could not identify the server.', 'error');
+        window.showToast('Could not identify the server.', 'error');
         return;
     }
     
@@ -423,7 +421,7 @@ async function setupOwnerLeaveFlow(serverId) {
 
         transferView.classList.remove('hidden');
         deleteView.classList.add('hidden');
-        showToast('Could not verify member count. Please try again.', 'error');
+        window.showToast('Could not verify member count. Please try again.', 'error');
     }
 
 
@@ -521,7 +519,7 @@ async function setupOwnerLeaveFlow(serverId) {
 
     confirmTransferBtn.onclick = async () => {
         if (!selectedUserId) {
-            showToast('Please select a member to transfer ownership to.', 'error');
+            window.showToast('Please select a member to transfer ownership to.', 'error');
             return;
         }
         await transferOwnershipAndLeave(serverId, selectedUserId);
@@ -533,7 +531,7 @@ async function setupOwnerLeaveFlow(serverId) {
 async function transferOwnershipAndLeave(serverId, newOwnerId) {
     try {
         if (!serverId || !newOwnerId) {
-            showToast('Missing required information for ownership transfer.', 'error');
+            window.showToast('Missing required information for ownership transfer.', 'error');
             return;
         }
 
@@ -549,13 +547,13 @@ async function transferOwnershipAndLeave(serverId, newOwnerId) {
         
         
         if (response && response.success) {
-            showToast('Ownership transferred successfully. You can now leave the server.', 'success');
+            window.showToast('Ownership transferred successfully. You can now leave the server.', 'success');
             
             try {
                 await leaveServer(serverId, false);
             } catch (leaveError) {
                 console.error('Error leaving server after transfer:', leaveError);
-                showToast('Ownership transferred, but could not leave server automatically. Please try leaving manually.', 'warning');
+                window.showToast('Ownership transferred, but could not leave server automatically. Please try leaving manually.', 'warning');
                 
 
                 closeModal('leave-server-modal');
@@ -573,7 +571,7 @@ async function transferOwnershipAndLeave(serverId, newOwnerId) {
                 confirmBtn.classList.remove('opacity-50');
             }
             
-            showToast(response?.message || 'Failed to transfer ownership.', 'error');
+            window.showToast(response?.message || 'Failed to transfer ownership.', 'error');
         }
     } catch (error) {
         console.error('Transfer ownership error:', error);
@@ -586,7 +584,7 @@ async function transferOwnershipAndLeave(serverId, newOwnerId) {
             confirmBtn.classList.remove('opacity-50');
         }
         
-        showToast(error.message || 'An error occurred during ownership transfer.', 'error');
+        window.showToast(error.message || 'An error occurred during ownership transfer.', 'error');
     }
 }
 
@@ -596,7 +594,7 @@ function redirectToServerSettings() {
         window.location.href = `/settings-server?server_id=${serverId}&section=profile`;
     } else {
         console.error('Cannot redirect to server settings: Server ID not found');
-        showToast('Error: Could not determine server ID', 'error');
+        window.showToast('Error: Could not determine server ID', 'error');
     }
 }
 
@@ -656,9 +654,8 @@ async function loadInviteLink(serverId) {
         const data = await window.serverAPI.getExistingInvite(serverId);
             
             if (data.success && data.data && data.data.invite_code) {
-                const inviteUrl = data.data.invite_url || `${window.location.origin}/join/${data.data.invite_code}`;
-                    inviteLinkInput.value = inviteUrl;
-                    inviteLinkInput.disabled = false;
+                inviteLinkInput.value = data.data.invite_code;
+                inviteLinkInput.disabled = false;
                     } else {
                 generateNewInvite(serverId);
             }
@@ -674,7 +671,7 @@ function copyInviteLink() {
     
     input.select();
     document.execCommand('copy');
-    showToast('Invite link copied to clipboard!', 'success');
+    window.showToast('Invite code copied to clipboard!', 'success');
 }
 
 async function generateNewInvite(serverId, expirationValue = null) {
@@ -708,20 +705,19 @@ async function generateNewInvite(serverId, expirationValue = null) {
         
         if (data && (data.data || data.invite_code)) {
             const inviteCode = data.invite_code || (data.data && data.data.invite_code);
-            const inviteUrl = data.invite_url || (data.data && data.data.invite_url) || `${window.location.origin}/join/${inviteCode}`;
             
                     if (inviteLinkInput) {
-                        inviteLinkInput.value = inviteUrl;
+                        inviteLinkInput.value = inviteCode;
                         inviteLinkInput.disabled = false;
                     }
 
-                    showToast('New invite link generated!', 'success');
+                    window.showToast('New invite link generated!', 'success');
                 } else {
             throw new Error('Invalid response from server');
         }
     } catch (error) {
             console.error('Error generating invite:', error);
-        showToast('Failed to generate invite link', 'error');
+        window.showToast('Failed to generate invite link', 'error');
             
             if (inviteLinkInput) {
                 inviteLinkInput.value = 'Error generating invite link';
@@ -762,7 +758,7 @@ async function leaveServer(serverId, isDeleting = false) {
             if (isDeleting || (data.data && data.data.server_deleted)) {
                 message = 'Server deleted successfully';
             }
-            showToast(data.message || message, 'success');
+            window.showToast(data.message || message, 'success');
             closeModal('leave-server-modal');
             
 
@@ -795,7 +791,7 @@ async function leaveServer(serverId, isDeleting = false) {
             confirmBtn.classList.remove('opacity-50');
         }
         
-        showToast(`Failed to leave server: ${error.message || 'Unknown error'}`, 'error');
+        window.showToast(`Failed to leave server: ${error.message || 'Unknown error'}`, 'error');
     }
 }
 
@@ -1001,7 +997,7 @@ function setupExpirationOptions() {
 async function inviteBotToServer(botId) {
     const serverId = getCurrentServerId();
     if (!serverId) {
-        showToast('Server ID not found', 'error');
+        window.showToast('Server ID not found', 'error');
         return;
     }
 
@@ -1021,7 +1017,7 @@ async function inviteBotToServer(botId) {
         const result = await response.json();
         
         if (result.success) {
-            showToast('TitiBot has been added to the server!', 'success');
+            window.showToast('TitiBot has been added to the server!', 'success');
 
             const modal = document.getElementById('invite-bot-modal');
             if (modal) {
@@ -1029,13 +1025,13 @@ async function inviteBotToServer(botId) {
                 modal.style.display = 'none';
             }
         } else if (result.message && result.message.includes('already a member')) {
-            showToast('TitiBot is already a member of this server', 'info');
+            window.showToast('TitiBot is already a member of this server', 'info');
         } else {
-            showToast(result.message || 'Failed to add TitiBot to server', 'error');
+            window.showToast(result.message || 'Failed to add TitiBot to server', 'error');
         }
     } catch (error) {
         console.error('Error adding TitiBot to server:', error);
-        showToast('Failed to add TitiBot to server. Please try again later.', 'error');
+        window.showToast('Failed to add TitiBot to server. Please try again later.', 'error');
     }
 }
 

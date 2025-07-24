@@ -966,7 +966,6 @@ class ServerController extends BaseController
 
                     return $this->success([
                         'invite_code' => $existingInvite->invite_link,
-                        'invite_url' => $this->getBaseUrl() . '/join/' . $existingInvite->invite_link,
                         'expires_at' => $existingInvite->expires_at,
                         'created_at' => $existingInvite->created_at,
                         'existing' => true
@@ -1002,7 +1001,6 @@ class ServerController extends BaseController
 
             return $this->success([
                 'invite_code' => $invite->invite_link,
-                'invite_url' => $this->getBaseUrl() . '/join/' . $invite->invite_link,
                 'expires_at' => $expiresAt,
                 'created_at' => $invite->created_at,
                 'existing' => false

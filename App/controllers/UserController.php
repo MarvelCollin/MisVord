@@ -192,14 +192,10 @@ class UserController extends BaseController
                 if (!mkdir($uploadDir, 0777, true)) {
                     return $this->serverError('Failed to create upload directory');
                 }
-                chmod($uploadDir, 0777);
             }
 
             if (!is_writable($uploadDir)) {
-                chmod($uploadDir, 0777);
-                if (!is_writable($uploadDir)) {
-                    return $this->serverError('Upload directory is not writable');
-                }
+                return $this->serverError('Upload directory is not writable');
             }
 
             $fileExtension = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
@@ -216,8 +212,6 @@ class UserController extends BaseController
                 $error = error_get_last();
                 return $this->serverError('Failed to save avatar file: ' . ($error['message'] ?? 'Unknown error'));
             }
-
-            chmod($filePath, 0644);
 
             $avatarUrl = '/public/storage/' . $filename;
 
@@ -299,14 +293,10 @@ class UserController extends BaseController
                 if (!mkdir($uploadDir, 0777, true)) {
                     return $this->serverError('Failed to create upload directory');
                 }
-                chmod($uploadDir, 0777);
             }
 
             if (!is_writable($uploadDir)) {
-                chmod($uploadDir, 0777);
-                if (!is_writable($uploadDir)) {
-                    return $this->serverError('Upload directory is not writable');
-                }
+                return $this->serverError('Upload directory is not writable');
             }
 
             $fileExtension = pathinfo($_FILES['banner']['name'], PATHINFO_EXTENSION);
@@ -323,8 +313,6 @@ class UserController extends BaseController
                 $error = error_get_last();
                 return $this->serverError('Failed to save banner file: ' . ($error['message'] ?? 'Unknown error'));
             }
-
-            chmod($filePath, 0644);
 
             $bannerUrl = '/public/storage/' . $filename;
 

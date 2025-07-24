@@ -208,6 +208,211 @@
   text-align: center;
 }
 
+.invite-code-modal {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  font-family: inherit;
+}
+
+.invite-code-modal-toggle {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(88, 101, 242, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  border: none;
+  outline: none;
+}
+
+.invite-code-modal-toggle:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 32px rgba(88, 101, 242, 0.5);
+}
+
+.invite-code-modal-toggle i {
+  color: #ffffff;
+  font-size: 24px;
+  transition: transform 0.3s ease;
+}
+
+.invite-code-modal.active .invite-code-modal-toggle i {
+  transform: rotate(45deg);
+}
+
+.invite-code-modal-toggle .tooltip {
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #2b2d31;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-right: 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  border: 1px solid #404249;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.invite-code-modal-toggle .tooltip::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: #2b2d31;
+}
+
+.invite-code-modal-toggle:hover .tooltip {
+  opacity: 1;
+}
+
+.invite-code-modal.active .invite-code-modal-toggle .tooltip {
+  opacity: 0;
+}
+
+.invite-code-modal-content {
+  position: absolute;
+  bottom: 72px;
+  right: 0;
+  width: 320px;
+  background: #2b2d31;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  border: 1px solid #404249;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.invite-code-modal.active .invite-code-modal-content {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+
+.invite-code-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #404249;
+}
+
+.invite-code-modal-header h3 {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.invite-code-modal-close {
+  background: none;
+  border: none;
+  color: #80848e;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.invite-code-modal-close:hover {
+  background: #404249;
+  color: #ffffff;
+}
+
+.invite-code-modal-body {
+  padding: 20px;
+}
+
+.invite-code-input-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.invite-code-modal .invite-code-input {
+  flex: 1;
+  background: #313338;
+  border: 2px solid #404249;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.invite-code-modal .invite-code-input::placeholder {
+  color: #80848e;
+  font-weight: 400;
+}
+
+.invite-code-modal .invite-code-input:focus {
+  outline: none;
+  border-color: #5865f2;
+  box-shadow: 0 0 0 2px rgba(88, 101, 242, 0.2);
+  background: #36393f;
+}
+
+.invite-code-modal .join-with-code-btn {
+  background: #5865f2;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+}
+
+.invite-code-modal .join-with-code-btn:hover {
+  background: #4752c4;
+  transform: translateY(-1px);
+}
+
+.invite-code-modal .join-with-code-btn:active {
+  transform: translateY(0);
+}
+
+.invite-code-modal .join-with-code-btn:disabled {
+  background: #404249;
+  color: #80848e;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.invite-code-hint {
+  color: #80848e;
+  font-size: 12px;
+  margin: 0;
+  text-align: center;
+}
+
 .filter-controls {
   display: flex;
   gap: 12px;
@@ -729,6 +934,19 @@
   .filter-dropdown,
   .sort-btn {
     width: 100%;
+  }
+
+  .invite-code-modal {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  .invite-code-modal-content {
+    width: 280px;
+  }
+
+  .invite-code-modal-toggle .tooltip {
+    display: none;
   }
 }
 

@@ -9,11 +9,11 @@ function setupStorageDirectories() {
             error_log("Failed to create public storage directory");
             return false;
         }
-        chmod($publicStoragePath, 0777);
     }
     
     if (!is_writable($publicStoragePath)) {
-        chmod($publicStoragePath, 0777);
+        error_log("Public storage directory is not writable");
+        return false;
     }
     
     return true;

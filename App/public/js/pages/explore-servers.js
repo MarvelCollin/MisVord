@@ -43,6 +43,7 @@ function initExplorePage() {
     initCategoryFilter();
     initSearchFilter();
     initSortFunctionality();
+    initInviteCodeInput();
     initJoinServerHandlers();
     initSidebarServerIcons();
     highlightExploreButton();
@@ -160,6 +161,86 @@ function initSearchFilter() {
                 searchInput.focus();
                 searchInput.select();
             }
+        }
+    });
+}
+
+function initInviteCodeInput() {
+    const inviteCodeModal = document.getElementById('invite-code-modal');
+    const inviteCodeToggle = document.getElementById('invite-code-toggle');
+    const inviteCodeClose = document.getElementById('invite-code-close');
+    const inviteCodeInput = document.getElementById('invite-code-input');
+    const joinWithCodeBtn = document.getElementById('join-with-code-btn');
+    
+    if (!inviteCodeModal || !inviteCodeToggle || !inviteCodeInput || !joinWithCodeBtn) {
+        return;
+    }
+
+    function openModal() {
+        inviteCodeModal.classList.add('active');
+        setTimeout(() => {
+            inviteCodeInput.focus();
+        }, 300);
+    }
+
+    function closeModal() {
+        inviteCodeModal.classList.remove('active');
+        inviteCodeInput.value = '';
+        inviteCodeInput.style.borderColor = '#404249';
+        if (joinWithCodeBtn.disabled) {
+            joinWithCodeBtn.disabled = false;
+            joinWithCodeBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i>';
+        }
+    }
+
+    function handleJoinWithCode() {
+        const code = inviteCodeInput.value.trim();
+        
+        if (!code) {
+            inviteCodeInput.focus();
+            inviteCodeInput.style.borderColor = '#ed4245';
+            setTimeout(() => {
+                inviteCodeInput.style.borderColor = '#404249';
+            }, 3000);
+            return;
+        }
+
+        joinWithCodeBtn.disabled = true;
+        joinWithCodeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        window.location.href = `/join/${code}`;
+    }
+
+    inviteCodeToggle.addEventListener('click', openModal);
+    inviteCodeClose.addEventListener('click', closeModal);
+    joinWithCodeBtn.addEventListener('click', handleJoinWithCode);
+    
+    inviteCodeInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleJoinWithCode();
+        }
+        
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+    
+    inviteCodeInput.addEventListener('input', function() {
+        this.style.borderColor = '#404249';
+    });
+
+    document.addEventListener('click', function(e) {
+        if (inviteCodeModal.classList.contains('active')) {
+            if (!inviteCodeModal.contains(e.target)) {
+                closeModal();
+            }
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && inviteCodeModal.classList.contains('active')) {
+            closeModal();
         }
     });
 }
