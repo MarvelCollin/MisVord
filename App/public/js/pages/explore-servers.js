@@ -635,7 +635,11 @@ async function fetchAndRenderServers(append = false) {
         if (data.success) {
             if (!append) {
                 hideLoadingSkeletons();
-                container.innerHTML = '';
+                const initialCards = container.querySelectorAll('.misvord-initial-server-card');
+                const apiCards = container.querySelectorAll('.misvord-api-server-card');
+                
+                initialCards.forEach(card => card.remove());
+                apiCards.forEach(card => card.remove());
             }
 
             hasMore = data.has_more;
@@ -654,11 +658,9 @@ async function fetchAndRenderServers(append = false) {
                 initLazyLoadingForNewCards(container);
                 
                 if (!append) {
-                    const initialCards = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
-                        .filter(card => card.getAttribute('data-server-id')).length;
-                    const apiCards = Array.from(container.querySelectorAll('.misvord-api-server-card .explore-server-card'))
-                        .filter(card => card.getAttribute('data-server-id')).length;
-                    const publicServerCount = initialCards + apiCards;
+                    const allCards = Array.from(container.querySelectorAll('.explore-server-card'))
+                        .filter(card => card.getAttribute('data-server-id'));
+                    const publicServerCount = allCards.length;
                     
                     if (publicServerCount >= 6) {
                         initInfiniteScrollIfNeeded();

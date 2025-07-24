@@ -29,7 +29,10 @@ $featuredServers = [];
 $categories = $exploreData['categories'];
 $initialData = $exploreData['initialData'];
 
+$allServers = $exploreController->getPublicServers();
+
 $GLOBALS['servers'] = $servers;
+$GLOBALS['allServers'] = $allServers;
 $GLOBALS['userServerIds'] = $userServerId;
 $GLOBALS['featuredServers'] = [];
 $GLOBALS['categories'] = $categories;
