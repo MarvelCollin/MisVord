@@ -258,7 +258,17 @@ function selectSortOption(sortType, optionElement) {
 
 function applyFilters() {
     currentPage = 1;
+    resetInfiniteScroll();
     fetchAndRenderServers(false);
+}
+
+function resetInfiniteScroll() {
+    const existingTrigger = document.getElementById('infinite-loading-indicator');
+    if (existingTrigger) {
+        existingTrigger.remove();
+    }
+    hasMore = true;
+    isLoading = false;
 }
 
 function showLoadingSkeletons() {
@@ -530,11 +540,9 @@ function initInfiniteScrollIfNeeded() {
     const existingTrigger = document.getElementById('infinite-loading-indicator');
     if (existingTrigger) return;
 
-    const initialCards = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
-        .filter(card => card.getAttribute('data-server-id')).length;
-    const apiCards = Array.from(container.querySelectorAll('.misvord-api-server-card .explore-server-card'))
-        .filter(card => card.getAttribute('data-server-id')).length;
-    const publicServerCount = initialCards + apiCards;
+    const allCards = Array.from(container.querySelectorAll('.explore-server-card'))
+        .filter(card => card.getAttribute('data-server-id'));
+    const publicServerCount = allCards.length;
     
     if (publicServerCount < 6) return;
 
@@ -560,11 +568,9 @@ function initInfiniteScroll() {
     const container = document.getElementById('all-servers');
     if (!container) return;
 
-    const initialCards = Array.from(container.querySelectorAll('.misvord-initial-server-card .explore-server-card'))
-        .filter(card => card.getAttribute('data-server-id')).length;
-    const apiCards = Array.from(container.querySelectorAll('.misvord-api-server-card .explore-server-card'))
-        .filter(card => card.getAttribute('data-server-id')).length;
-    const publicServerCount = initialCards + apiCards;
+    const allCards = Array.from(container.querySelectorAll('.explore-server-card'))
+        .filter(card => card.getAttribute('data-server-id'));
+    const publicServerCount = allCards.length;
     
     if (publicServerCount < 6) {
         return;
