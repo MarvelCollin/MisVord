@@ -5,9 +5,11 @@ function renderServerCard($server, $userServerId, $isFeatured = false) {
     $cardClass = 'explore-server-card server-card bg-discord-dark rounded-xl overflow-hidden transition-all cursor-pointer group';
     ?>
     <div class="<?php echo $cardClass; ?>" data-server-id="<?php echo $serverId; ?>" data-category="<?php echo htmlspecialchars($server['category'] ?? ''); ?>">
-        <div class="server-banner h-32 bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 relative overflow-hidden">
+        <div class="server-banner h-32 <?php echo !empty($server['banner_url']) ? '' : 'bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500'; ?> relative overflow-hidden">
             <?php if (!empty($server['banner_url'])): ?>
-                <img src="<?php echo htmlspecialchars($server['banner_url']); ?>" alt="<?php echo htmlspecialchars($server['name']); ?>" class="w-full h-full object-cover">
+                <img src="<?php echo htmlspecialchars($server['banner_url']); ?>" 
+                     alt="<?php echo htmlspecialchars($server['name']); ?> banner" 
+                     class="w-full h-full object-cover">
             <?php endif; ?>
             
             <?php if ($isFeatured): ?>
