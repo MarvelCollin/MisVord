@@ -1908,11 +1908,22 @@ class ChatController extends BaseController
         $uploadDir = dirname(__DIR__) . '/public/storage/group_images/';
 
         if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            if (!mkdir($uploadDir, 0777, true)) {
+                throw new Exception("Failed to create group images directory");
+            }
+            chmod($uploadDir, 0777);
+        }
+
+        if (!is_writable($uploadDir)) {
+            chmod($uploadDir, 0777);
+            if (!is_writable($uploadDir)) {
+                throw new Exception("Group images directory is not writable");
+            }
         }
 
         $filePath = $uploadDir . $filename;
         if (file_put_contents($filePath, $data)) {
+            chmod($filePath, 0644);
             return '/public/storage/group_images/' . $filename;
         } else {
             throw new Exception("Failed to save image to disk.");

@@ -187,8 +187,19 @@ class UserController extends BaseController
             }
 
             $uploadDir = dirname(__DIR__) . '/public/storage/';
+            
             if (!file_exists($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+                if (!mkdir($uploadDir, 0777, true)) {
+                    return $this->serverError('Failed to create upload directory');
+                }
+                chmod($uploadDir, 0777);
+            }
+
+            if (!is_writable($uploadDir)) {
+                chmod($uploadDir, 0777);
+                if (!is_writable($uploadDir)) {
+                    return $this->serverError('Upload directory is not writable');
+                }
             }
 
             $fileExtension = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
@@ -202,8 +213,11 @@ class UserController extends BaseController
             $filePath = $uploadDir . $filename;
 
             if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $filePath)) {
-                return $this->serverError('Failed to save avatar file');
+                $error = error_get_last();
+                return $this->serverError('Failed to save avatar file: ' . ($error['message'] ?? 'Unknown error'));
             }
+
+            chmod($filePath, 0644);
 
             $avatarUrl = '/public/storage/' . $filename;
 
@@ -212,6 +226,7 @@ class UserController extends BaseController
             ]);
 
             if (!$result) {
+                unlink($filePath);
                 return $this->serverError('Failed to update avatar URL in database');
             }
 
@@ -279,8 +294,19 @@ class UserController extends BaseController
             }
 
             $uploadDir = dirname(__DIR__) . '/public/storage/';
+            
             if (!file_exists($uploadDir)) {
-                mkdir($uploadDir, 0755, true);
+                if (!mkdir($uploadDir, 0777, true)) {
+                    return $this->serverError('Failed to create upload directory');
+                }
+                chmod($uploadDir, 0777);
+            }
+
+            if (!is_writable($uploadDir)) {
+                chmod($uploadDir, 0777);
+                if (!is_writable($uploadDir)) {
+                    return $this->serverError('Upload directory is not writable');
+                }
             }
 
             $fileExtension = pathinfo($_FILES['banner']['name'], PATHINFO_EXTENSION);
@@ -294,8 +320,11 @@ class UserController extends BaseController
             $filePath = $uploadDir . $filename;
 
             if (!move_uploaded_file($_FILES['banner']['tmp_name'], $filePath)) {
-                return $this->serverError('Failed to save banner file');
+                $error = error_get_last();
+                return $this->serverError('Failed to save banner file: ' . ($error['message'] ?? 'Unknown error'));
             }
+
+            chmod($filePath, 0644);
 
             $bannerUrl = '/public/storage/' . $filename;
 
@@ -304,6 +333,7 @@ class UserController extends BaseController
             ]);
 
             if (!$result) {
+                unlink($filePath);
                 return $this->serverError('Failed to update banner URL in database');
             }
 

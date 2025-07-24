@@ -26,19 +26,20 @@ class MediaController extends BaseController
 
     private function ensureUploadDirectories()
     {
-                if (!is_dir($this->uploadPath)) {
-                        if (!mkdir($this->uploadPath, 0777, true)) {
-                                throw new Exception("Failed to create storage directory");
+        if (!is_dir($this->uploadPath)) {
+            if (!mkdir($this->uploadPath, 0777, true)) {
+                throw new Exception("Failed to create storage directory");
             }
-                    }
+            chmod($this->uploadPath, 0777);
+        }
 
         if (!is_writable($this->uploadPath)) {
-                        if (!chmod($this->uploadPath, 0777)) {
-                                throw new Exception("Storage directory not writable and cannot fix permissions");
+            chmod($this->uploadPath, 0777);
+            if (!is_writable($this->uploadPath)) {
+                throw new Exception("Storage directory not writable and cannot fix permissions");
             }
-                    }
-
-            }
+        }
+    }
 
     public function uploadMedia()
     {
@@ -78,8 +79,10 @@ class MediaController extends BaseController
 
                         if (!move_uploaded_file($tempPath, $absolutePath)) {
                 $uploadError = error_get_last();
-                                return $this->serverError('Failed to save uploaded file: ' . ($uploadError['message'] ?? 'Unknown error'));
+                return $this->serverError('Failed to save uploaded file: ' . ($uploadError['message'] ?? 'Unknown error'));
             }
+
+            chmod($absolutePath, 0644);
 
             $fileUrl = "/public/storage/{$fileName}";
 
@@ -133,6 +136,8 @@ class MediaController extends BaseController
                     $errors[] = "File '{$originalName}': Failed to save";
                     continue;
                 }
+
+                chmod($absolutePath, 0644);
 
                 $uploadedFiles[] = [
                     'file_url' => "/public/storage/{$fileName}",

@@ -548,8 +548,16 @@ class BaseController
 
         $baseDir = dirname(__DIR__) . "/public/storage/";
         if (!is_dir($baseDir)) {
-            if (!mkdir($baseDir, 0755, true)) {
+            if (!mkdir($baseDir, 0777, true)) {
                 throw new Exception('Failed to create storage directory');
+            }
+            chmod($baseDir, 0777);
+        }
+
+        if (!is_writable($baseDir)) {
+            chmod($baseDir, 0777);
+            if (!is_writable($baseDir)) {
+                throw new Exception('Storage directory is not writable');
             }
         }
 
@@ -573,8 +581,11 @@ class BaseController
         $targetFile = $baseDir . $filename;
 
         if (!move_uploaded_file($file['tmp_name'], $targetFile)) {
-            throw new Exception('Failed to upload file');
+            $error = error_get_last();
+            throw new Exception('Failed to upload file: ' . ($error['message'] ?? 'Unknown error'));
         }
+
+        chmod($targetFile, 0644);
 
         return '/public/storage/' . $filename;
     }
