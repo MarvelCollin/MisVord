@@ -83,14 +83,14 @@ class GoogleAuthController
             }
 
             $userInfo = $this->getUserInfo($tokenData['access_token']);
-            $this->authenticateUser($userInfo);
+            $redirectUrl = $this->authenticateUser($userInfo, $isPopup);
 
             unset($_SESSION['oauth_popup']);
 
             if ($isPopup) {
-                $this->sendPopupResponse(true, '/home');
+                $this->sendPopupResponse(true, $redirectUrl);
             } else {
-                header('Location: /home');
+                header('Location: ' . $redirectUrl);
                 exit;
             }
         } catch (Exception $e) {
@@ -198,7 +198,7 @@ class GoogleAuthController
         return json_decode($response, true);
     }
 
-    private function authenticateUser($googleData)
+    private function authenticateUser($googleData, $isPopup = false)
     {
         if (!isset($googleData['sub']) || !isset($googleData['email'])) {
             throw new Exception("Incomplete user data received from Google");
@@ -219,18 +219,24 @@ class GoogleAuthController
                 $user->avatar_url = $picture;
                 $user->save();
             } else {
-                                $userData = [
-                    'username' => $name ?? $email,
+                $processedUsername = $this->processUsername($name ?? $email);
+                
+                $userData = [
+                    'username' => $processedUsername,
                     'email' => $email,
                     'discriminator' => User::generateDiscriminator(),
                     'google_id' => $googleId,
-                    'avatar_url' => $picture
+                    'avatar_url' => $picture,
+                    'password' => null,
+                    'status' => 'active',
+                    'display_name' => $processedUsername
                 ];
 
-                $user = $this->userRepository->create($userData);
-                if (!$user) {
-                    throw new Exception("Failed to create user account");
-                }
+                $_SESSION['pending_google_user'] = $userData;
+                $_SESSION['google_auth_completed'] = true;
+                unset($_SESSION['security_question_set']);
+                
+                return '/set-security-question';
                             }
         } else {
                         if ($user->avatar_url != $picture) {
@@ -246,5 +252,28 @@ class GoogleAuthController
 
         $user->save();
 
+        if (empty($user->security_question)) {
+            $_SESSION['google_auth_completed'] = true;
+            unset($_SESSION['security_question_set']);
+            
+            return '/set-security-question';
+        }
+
+        return '/home';
             }
+    
+    private function processUsername($name)
+    {
+        $username = strtolower(str_replace(' ', '', $name));
+        
+        $originalUsername = $username;
+        $counter = 1;
+        
+        while ($this->userRepository->findByUsername($username)) {
+            $username = $originalUsername . $counter;
+            $counter++;
+        }
+        
+        return $username;
+    }
 }

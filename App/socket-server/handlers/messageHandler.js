@@ -635,6 +635,9 @@ class MessageHandler {
                         io.emit('message_id_updated', updateData);
                     }
                     
+                    const BotHandler = require('./botHandler');
+                    BotHandler.handleMessageIdUpdate(updateData);
+                    
 
                     
                     client.emit('message_sent', {
@@ -742,12 +745,16 @@ class MessageHandler {
 
         } else {
             console.warn(`⚠️ [DATABASE-SAVED] No target room found, broadcasting to all clients`);
-            io.emit('message_id_updated', {
+            const globalUpdateData = {
                 temp_message_id: data.temp_message_id,
                 real_message_id: data.real_message_id,
                 message_data: messageData,
                 timestamp: Date.now()
-            });
+            };
+            io.emit('message_id_updated', globalUpdateData);
+            
+            const BotHandler = require('./botHandler');
+            BotHandler.handleMessageIdUpdate(globalUpdateData);
         }
     }
     

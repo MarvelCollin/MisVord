@@ -10,6 +10,7 @@ class BotHandler extends EventEmitter {
     static botEventEmitter = new EventEmitter();
     static botVoiceParticipants = new Map();
     static musicQueues = new Map();
+    static pendingResponses = new Map();
 
     static async registerBot(botId, username) {
         if (this.bots.has(botId)) {
@@ -118,36 +119,92 @@ class BotHandler extends EventEmitter {
         const isTitiBotCommand = content.startsWith('/titibot');
         
         if (isTitiBotCommand) {
-            this.waitForMessageSaved(io, data, messageType, botId, username, content);
+            console.log(`🤖 [BOT-DEBUG] TitiBot command received:`, {
+                command: content,
+                messageId: data.id,
+                isTemp: data.id?.toString().startsWith('temp-'),
+                userId: data.user_id,
+                targetType: messageType,
+                targetId: data.channel_id || data.room_id
+            });
+
+            if (data.id && data.id.toString().startsWith('temp-')) {
+                this.storePendingResponse(data.id, {
+                    io,
+                    data,
+                    messageType,
+                    botId,
+                    username,
+                    content
+                });
+                console.log(`⏳ [BOT-DEBUG] Stored pending response for temp ID: ${data.id}`);
+            } else {
+                await this.processBotCommand(io, data, messageType, botId, username, content, data.id);
+            }
             return;
         }
     }
 
-    static waitForMessageSaved(io, originalData, messageType, botId, username, content) {
-        const tempMessageId = originalData.id;
-        const timeout = setTimeout(() => {
-            this.processBotCommand(io, originalData, messageType, botId, username, content, null);
-        }, 2000);
-
-        const messageUpdatedHandler = (updateData) => {
-            if (updateData.temp_message_id === tempMessageId) {
-                clearTimeout(timeout);
-                io.off('message_id_updated', messageUpdatedHandler);
-                
-                const updatedData = {
-                    ...originalData,
-                    id: updateData.real_message_id,
-                    message_id: updateData.real_message_id
-                };
-                
-                this.processBotCommand(io, updatedData, messageType, botId, username, content, updateData.real_message_id);
+    static storePendingResponse(tempId, responseData) {
+        this.pendingResponses.set(tempId, responseData);
+        
+        setTimeout(() => {
+            if (this.pendingResponses.has(tempId)) {
+                console.log(`⏱️ [BOT-DEBUG] Timeout for pending response: ${tempId}`);
+                const pending = this.pendingResponses.get(tempId);
+                this.pendingResponses.delete(tempId);
+                this.processBotCommand(
+                    pending.io,
+                    pending.data,
+                    pending.messageType,
+                    pending.botId,
+                    pending.username,
+                    pending.content,
+                    null
+                );
             }
-        };
+        }, 3000);
+    }
 
-        io.on('message_id_updated', messageUpdatedHandler);
+    static handleMessageIdUpdate(updateData) {
+        const tempId = updateData.temp_message_id;
+        const realId = updateData.real_message_id;
+        
+        console.log(`🔄 [BOT-DEBUG] Message ID update received:`, {
+            tempId,
+            realId
+        });
+        
+        if (this.pendingResponses.has(tempId)) {
+            const pending = this.pendingResponses.get(tempId);
+            this.pendingResponses.delete(tempId);
+            
+            const updatedData = {
+                ...pending.data,
+                id: realId,
+                message_id: realId
+            };
+            
+            console.log(`✅ [BOT-DEBUG] Processing pending response with real ID: ${realId}`);
+            
+            this.processBotCommand(
+                pending.io,
+                updatedData,
+                pending.messageType,
+                pending.botId,
+                pending.username,
+                pending.content,
+                realId
+            );
+        }
     }
 
     static async processBotCommand(io, data, messageType, botId, username, content, realMessageId) {
+        if (realMessageId) {
+            console.log(`🔄 [BOT-DEBUG] Using real message ID in processBotCommand: ${realMessageId}`);
+            data = { ...data, id: realMessageId, message_id: realMessageId };
+        }
+        
         let voiceChannelToJoin = null;
         
         const voiceRequiredCommands = ['play', 'stop', 'next', 'prev', 'queue', 'list'];
@@ -748,6 +805,15 @@ class BotHandler extends EventEmitter {
         const replyIdForDB = (originalMessage.id && !isNaN(originalMessage.id) && originalMessage.id !== '' && !originalMessage.id.toString().startsWith('temp-')) 
             ? parseInt(originalMessage.id) 
             : null;
+            
+        console.log(`📊 [BOT-DEBUG] Reply ID calculation:`, {
+            originalId: originalMessage.id,
+            originalIdType: typeof originalMessage.id,
+            isNumber: !isNaN(originalMessage.id),
+            isNotEmpty: originalMessage.id !== '',
+            isNotTemp: !originalMessage.id.toString().startsWith('temp-'),
+            replyIdForDB: replyIdForDB
+        });
         const botMessageData = {
             user_id: parseInt(botId),
             target_type: targetType,

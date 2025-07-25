@@ -507,8 +507,6 @@ try {
                     Please set a security question and answer to protect your account.
                 </p>
 
-                <input type="hidden" name="user_id" value="<?php echo $_SESSION['user_id'] ?? ''; ?>">
-
                 <div class="form-group">
                     <label for="google_security_question" class="block text-sm font-medium text-gray-300 mb-1">Security Question</label>
                     <select 

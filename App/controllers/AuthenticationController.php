@@ -692,7 +692,9 @@ class AuthenticationController extends BaseController
         $input = $this->sanitize($input);
 
         $userId = $_SESSION['user_id'] ?? null;
-        if (!$userId) {
+        $pendingGoogleUser = $_SESSION['pending_google_user'] ?? null;
+        
+        if (!$userId && !$pendingGoogleUser) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->error('Not authenticated', 401);
             }
@@ -737,37 +739,74 @@ class AuthenticationController extends BaseController
         }
 
         try {
-            $user = $this->userRepository->find($userId);
-            if (!$user) {
-                throw new Exception('User not found');
-            }
-
-            $user->security_question = $securityQuestion;
-            $user->security_answer = password_hash($securityAnswer, PASSWORD_DEFAULT);
-
-            if ($user->save()) {
-                $_SESSION['security_question_set'] = true;
-
-                $this->logActivity('security_question_set', ['user_id' => $userId]);
-
-                $redirect = '/home';
-
-                if ($this->isApiRoute() || $this->isAjaxRequest()) {
-                    return $this->success([
-                        'redirect' => $redirect
-                    ], 'Security question set successfully');
+            if ($pendingGoogleUser) {
+                $pendingGoogleUser['security_question'] = $securityQuestion;
+                $pendingGoogleUser['security_answer'] = password_hash($securityAnswer, PASSWORD_DEFAULT);
+                
+                $this->logActivity('creating_google_user', [
+                    'email' => $pendingGoogleUser['email'],
+                    'has_security_question' => !empty($securityQuestion),
+                    'has_security_answer' => !empty($securityAnswer),
+                    'user_data' => $pendingGoogleUser
+                ]);
+                
+                error_log("About to create Google user with data: " . json_encode($pendingGoogleUser));
+                
+                $user = $this->userRepository->create($pendingGoogleUser);
+                
+                error_log("User creation result: " . ($user ? "SUCCESS - ID: " . $user->id : "FAILED - returned null"));
+                
+                if (!$user) {
+                    error_log("Failed to create Google user - userRepository->create returned null");
+                    throw new Exception('Failed to create user account - database insertion failed');
                 }
-
-                if (!headers_sent()) {
-                    header('Location: ' . $redirect);
-                }
-                exit;
+                
+                $this->logActivity('google_user_created', [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'security_question_set' => !empty($user->security_question)
+                ]);
+                
+                $_SESSION['user_id'] = $user->id;
+                $_SESSION['username'] = $user->username;
+                $_SESSION['discriminator'] = $user->discriminator;
+                $_SESSION['avatar_url'] = $user->avatar_url;
+                
+                unset($_SESSION['pending_google_user']);
             } else {
-                throw new Exception('Failed to save security question');
+                $user = $this->userRepository->find($userId);
+                if (!$user) {
+                    throw new Exception('User not found');
+                }
+
+                $user->security_question = $securityQuestion;
+                $user->security_answer = password_hash($securityAnswer, PASSWORD_DEFAULT);
+                
+                if (!$user->save()) {
+                    throw new Exception('Failed to save security question');
+                }
             }
+
+            $_SESSION['security_question_set'] = true;
+            unset($_SESSION['google_auth_completed']);
+
+            $this->logActivity('security_question_set', ['user_id' => $user->id]);
+
+            $redirect = '/home';
+
+            if ($this->isApiRoute() || $this->isAjaxRequest()) {
+                return $this->success([
+                    'redirect' => $redirect
+                ], 'Security question set successfully');
+            }
+
+            if (!headers_sent()) {
+                header('Location: ' . $redirect);
+            }
+            exit;
         } catch (Exception $e) {
             $this->logActivity('security_question_error', [
-                'user_id' => $userId,
+                'user_id' => $user->id ?? $userId,
                 'error' => $e->getMessage()
             ]);
 

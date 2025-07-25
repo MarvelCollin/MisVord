@@ -21,8 +21,29 @@ abstract class Repository {
     }
     
     public function create($data) {
-        $instance = new $this->modelClass($data);
-        return $instance->save() ? $instance : null;
+        try {
+            error_log("Repository::create called with data: " . json_encode($data));
+            
+            $instance = new $this->modelClass($data);
+            
+            error_log("Created model instance for table: " . $instance::getTable());
+            
+            $saveResult = $instance->save();
+            
+            error_log("Model save result: " . ($saveResult ? "SUCCESS" : "FAILED"));
+            
+            if ($saveResult) {
+                error_log("User created successfully with ID: " . $instance->id);
+                return $instance;
+            } else {
+                error_log("Model save failed - returning null");
+                return null;
+            }
+        } catch (Exception $e) {
+            error_log("Exception in Repository::create: " . $e->getMessage());
+            error_log("Exception trace: " . $e->getTraceAsString());
+            throw $e;
+        }
     }
       public function update($id, $data) {
         $instance = $this->find($id);

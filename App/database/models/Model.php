@@ -87,32 +87,49 @@ abstract class Model {
     }
     
     public function save() {
-        $query = new Query();
-        
-        if (!isset($this->attributes['updated_at'])) {
-            $this->attributes['updated_at'] = date('Y-m-d H:i:s');
-        }        if (isset($this->attributes['id'])) {
-            $id = $this->attributes['id'];
-            $data = $this->attributes;
-            unset($data['id']);
+        try {
+            $query = new Query();
             
-            $result = $query->table(static::$table)
-                ->where('id', $id)
-                ->update($data);
-                
-            return $result > 0;} else {
-            if (!isset($this->attributes['created_at'])) {
-                $this->attributes['created_at'] = date('Y-m-d H:i:s');
+            if (!isset($this->attributes['updated_at'])) {
+                $this->attributes['updated_at'] = date('Y-m-d H:i:s');
             }
             
-            $insertId = $query->table(static::$table)
-                ->insert($this->attributes);
+            if (isset($this->attributes['id'])) {
+                $id = $this->attributes['id'];
+                $data = $this->attributes;
+                unset($data['id']);
                 
-            if ($insertId) {
-                $this->attributes['id'] = $insertId;
-                return true;
+                error_log("Model::save - Updating existing record with ID: $id");
+                
+                $result = $query->table(static::$table)
+                    ->where('id', $id)
+                    ->update($data);
+                    
+                return $result > 0;
+            } else {
+                if (!isset($this->attributes['created_at'])) {
+                    $this->attributes['created_at'] = date('Y-m-d H:i:s');
+                }
+                
+                error_log("Model::save - Inserting new record into table: " . static::$table);
+                error_log("Model::save - Data to insert: " . json_encode($this->attributes));
+                
+                $insertId = $query->table(static::$table)
+                    ->insert($this->attributes);
+                    
+                error_log("Model::save - Insert result: " . ($insertId ? "ID $insertId" : "FAILED"));
+                
+                if ($insertId) {
+                    $this->attributes['id'] = $insertId;
+                    return true;
+                }
+                return false;
             }
-            return false;
+        } catch (Exception $e) {
+            error_log("Exception in Model::save: " . $e->getMessage());
+            error_log("Exception trace: " . $e->getTraceAsString());
+            error_log("Data that failed to save: " . json_encode($this->attributes));
+            throw $e;
         }
     }
     

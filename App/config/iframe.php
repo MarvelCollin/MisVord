@@ -1,6 +1,6 @@
 <?php
 
-define('IS_DEVELOPMENT', false);
+define('IS_DEVELOPMENT', true);
 
 function isIframeRequest() {
     $secFetchDest = $_SERVER['HTTP_SEC_FETCH_DEST'] ?? '';
