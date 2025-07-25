@@ -27,9 +27,13 @@ class GoogleAuthController
 
     public function redirectToGoogle()
     {
-
         $state = bin2hex(random_bytes(16));
         $_SESSION['oauth_state'] = $state;
+
+        $isPopup = isset($_GET['popup']) && $_GET['popup'] === '1';
+        if ($isPopup) {
+            $_SESSION['oauth_popup'] = true;
+        }
 
         $params = [
             'client_id' => $this->clientId,
@@ -41,7 +45,7 @@ class GoogleAuthController
         ];
 
         $url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
-                header('Location: ' . $url);
+        header('Location: ' . $url);
         exit;
     }
 

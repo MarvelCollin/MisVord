@@ -31,6 +31,7 @@ class ChatRoomMessageRepository extends Repository {
                    m.message_type, m.attachment_url, m.reply_message_id,
                    m.created_at, m.updated_at,
                    u.username, u.avatar_url, u.status as user_status,
+                   CASE WHEN u.status = 'bot' THEN 1 ELSE 0 END as is_bot,
                    crm.created_at as chat_room_message_created_at
             FROM chat_room_messages crm
             INNER JOIN messages m ON crm.message_id = m.id
@@ -62,6 +63,8 @@ class ChatRoomMessageRepository extends Repository {
         }
         
         foreach ($results as &$row) {
+            $row['is_bot'] = (bool)$row['is_bot'];
+            
             if (isset($row['user_status']) && $row['user_status'] === 'bot') {
                 $botMessageCount++;
                 error_log("[BOT-DEBUG] Found bot message in DM: ID {$row['id']} from user {$row['username']} (user_id: {$row['user_id']})");
@@ -99,15 +102,11 @@ class ChatRoomMessageRepository extends Repository {
     public function getMessagesByRoomIdWithPagination($roomId, $limit = 20, $offset = 0) {
         $messages = $this->getMessagesByRoomId($roomId, $limit, $offset);
         
-        error_log("[BOT-DEBUG] getMessagesByRoomIdWithPagination for room $roomId: " . count($messages) . " messages retrieved");
-        
         $hasMore = false;
         if (count($messages) === $limit) {
             $nextMessages = $this->getMessagesByRoomId($roomId, 1, $offset + $limit);
             $hasMore = !empty($nextMessages);
         }
-        
-        error_log("[BOT-DEBUG] Final DM pagination result: " . count($messages) . " messages, hasMore: " . ($hasMore ? 'true' : 'false'));
         
         return [
             'messages' => $messages,

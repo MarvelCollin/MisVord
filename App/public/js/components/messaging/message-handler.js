@@ -283,7 +283,8 @@ class MessageHandler {
     }
 
     generateReplyHTML(replyData) {
-        return `<div class="bubble-reply-container">
+        const replyMessageId = replyData.id || replyData.message_id;
+        return `<div class="bubble-reply-container" onclick="window.messageHandler.jumpToMessage('${replyMessageId}')" style="cursor: pointer;">
             <span class="bubble-reply-username">${replyData.username || 'Unknown'}</span>
             <span class="bubble-reply-content">${(replyData.content || '').substring(0, 50)}${replyData.content && replyData.content.length > 50 ? '...' : ''}</span>
         </div>`;

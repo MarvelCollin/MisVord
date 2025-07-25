@@ -1370,6 +1370,18 @@ class VoiceManager {
                 detail: { type: 'video', state: this._videoOn }
             }));
             
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            if (currentUserId && this.currentChannelId) {
+                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                    detail: {
+                        userId: currentUserId,
+                        channelId: this.currentChannelId,
+                        type: 'video',
+                        state: this._videoOn
+                    }
+                }));
+            }
+            
             this.forceStreamSync();
             this.ensureAllParticipantsSeeMyCam();
             
@@ -1524,6 +1536,7 @@ class VoiceManager {
             if (currentUserId) {
                 window.voiceCallSection.updateParticipantVoiceState(currentUserId, 'mic', this._micOn);
                 window.voiceCallSection.updateParticipantVoiceState(currentUserId, 'deafen', this._deafened);
+                window.voiceCallSection.updateParticipantVoiceState(currentUserId, 'video', this._videoOn);
             }
         }
         
@@ -1531,6 +1544,7 @@ class VoiceManager {
             const instance = window.ChannelVoiceParticipants.getInstance();
             instance.updateParticipantVoiceState(currentUserId, this.currentChannelId, 'mic', this._micOn);
             instance.updateParticipantVoiceState(currentUserId, this.currentChannelId, 'deafen', this._deafened);
+            instance.updateParticipantVoiceState(currentUserId, this.currentChannelId, 'video', this._videoOn);
         }
         
         if (currentUserId && this.currentChannelId) {
@@ -1549,6 +1563,15 @@ class VoiceManager {
                     channelId: this.currentChannelId,
                     type: 'deafen',
                     state: this._deafened
+                }
+            }));
+            
+            window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                detail: {
+                    userId: currentUserId,
+                    channelId: this.currentChannelId,
+                    type: 'video',
+                    state: this._videoOn
                 }
             }));
         }

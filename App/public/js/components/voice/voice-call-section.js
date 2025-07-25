@@ -1128,6 +1128,7 @@ class VoiceCallSection {
         
         const muteIndicator = localCard.querySelector('.mute-indicator');
         const deafenIndicator = localCard.querySelector('.deafen-indicator');
+        const videoIndicator = localCard.querySelector('.video-indicator');
         
         if (muteIndicator) {
             const isMuted = !window.voiceManager.getMicState();
@@ -1143,6 +1144,14 @@ class VoiceCallSection {
             
             deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
             deafenIndicator.classList.add('bg-red-600');
+        }
+        
+        if (videoIndicator) {
+            const isVideoOn = window.voiceManager.getVideoState();
+            videoIndicator.classList.toggle('hidden', !isVideoOn);
+            
+            videoIndicator.classList.remove('bg-red-500', 'bg-green-500');
+            videoIndicator.classList.add('bg-green-500');
         }
     }
     
@@ -1186,6 +1195,16 @@ class VoiceCallSection {
                 
                 deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
                 deafenIndicator.classList.add('bg-red-600');
+                
+                
+            }
+        } else if (type === 'video') {
+            const videoIndicator = participantElement.querySelector('.video-indicator');
+            if (videoIndicator) {
+                videoIndicator.classList.toggle('hidden', !state);
+                
+                videoIndicator.classList.remove('bg-red-500', 'bg-green-500');
+                videoIndicator.classList.add('bg-green-500');
                 
                 
             }
@@ -1282,6 +1301,9 @@ class VoiceCallSection {
                 <div class="deafen-indicator w-6 h-6 rounded-full flex items-center justify-center bg-red-600 ${this.getParticipantDeafenIndicatorVisibility(participantId, isLocal)}">
                     <i class="fas fa-deaf text-white text-xs"></i>
                 </div>
+                <div class="video-indicator w-6 h-6 rounded-full flex items-center justify-center bg-green-500 ${this.getParticipantVideoIndicatorVisibility(participantId, isLocal)}">
+                    <i class="fas fa-video text-white text-xs"></i>
+                </div>
             </div>
             
             <div class="participant-default-view flex flex-col items-center justify-center w-full h-full">
@@ -1311,6 +1333,7 @@ class VoiceCallSection {
         
         const muteIndicator = element.querySelector('.mute-indicator');
         const deafenIndicator = element.querySelector('.deafen-indicator');
+        const videoIndicator = element.querySelector('.video-indicator');
         
         if (isLocal) {
             if (muteIndicator && window.voiceManager) {
@@ -1321,12 +1344,23 @@ class VoiceCallSection {
                 const isDeafened = window.voiceManager.getDeafenState();
                 deafenIndicator.classList.toggle('hidden', !isDeafened);
             }
+            if (videoIndicator && window.voiceManager) {
+                const isVideoOn = window.voiceManager.getVideoState();
+                videoIndicator.classList.toggle('hidden', !isVideoOn);
+            }
         } else {
             if (muteIndicator && window.voiceManager?.meeting) {
                 const participant = window.voiceManager.meeting.participants.get(participantId);
                 if (participant) {
                     const isMuted = !participant.micOn;
                     muteIndicator.classList.toggle('hidden', !isMuted);
+                }
+            }
+            if (videoIndicator && window.voiceManager?.meeting) {
+                const participant = window.voiceManager.meeting.participants.get(participantId);
+                if (participant) {
+                    const isVideoOn = participant.webcamOn;
+                    videoIndicator.classList.toggle('hidden', !isVideoOn);
                 }
             }
         }
@@ -1351,6 +1385,19 @@ class VoiceCallSection {
         }
         
         return 'hidden';
+    }
+    
+    getParticipantVideoIndicatorVisibility(participantId, isLocal) {
+        if (isLocal) {
+            return window.voiceManager?.getVideoState() ? '' : 'hidden';
+        }
+        
+        if (!window.voiceManager?.meeting) return 'hidden';
+        
+        const participant = window.voiceManager.meeting.participants.get(participantId);
+        if (!participant) return 'hidden';
+        
+        return participant.webcamOn ? '' : 'hidden';
     }
     
     showParticipantVideo(element, stream) {

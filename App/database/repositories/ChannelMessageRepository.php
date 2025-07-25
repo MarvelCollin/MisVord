@@ -24,13 +24,12 @@ class ChannelMessageRepository extends Repository {
     public function getMessagesByChannelId($channelId, $limit = 20, $offset = 0) {
         $query = new Query();
         
-        error_log("[BOT-DEBUG] Loading channel messages for channel $channelId with limit $limit, offset $offset");
-        
         $sql = "
             SELECT m.id as id, m.user_id, m.content, m.sent_at, m.edited_at, 
                    m.message_type, m.attachment_url, m.reply_message_id,
                    m.created_at, m.updated_at,
                    u.username, u.avatar_url, u.status as user_status,
+                   CASE WHEN u.status = 'bot' THEN 1 ELSE 0 END as is_bot,
                    cm.created_at as channel_message_created_at
             FROM channel_messages cm
             INNER JOIN messages m ON cm.message_id = m.id
@@ -42,41 +41,11 @@ class ChannelMessageRepository extends Repository {
         
         $results = $query->query($sql, [$channelId, $limit, $offset]);
         
-        error_log("[BOT-DEBUG] Channel $channelId raw query returned " . count($results) . " messages");
-        
-        $botMessageCount = 0;
-        $userMessageCount = 0;
-        
         foreach ($results as &$row) {
-            if (isset($row['user_status']) && $row['user_status'] === 'bot') {
-                $botMessageCount++;
-                error_log("[BOT-DEBUG] Found bot message: ID {$row['id']} from user {$row['username']} (user_id: {$row['user_id']})");
-            } else {
-                $userMessageCount++;
-            }
+            $row['is_bot'] = (bool)$row['is_bot'];
             $row['attachments'] = $this->parseAttachments($row['attachment_url']);
             unset($row['attachment_url']);
-            
             $row['reactions'] = $this->getMessageReactions($row['id']);
-        }
-        
-        error_log("[BOT-DEBUG] Channel $channelId message breakdown: $botMessageCount bot messages, $userMessageCount user messages");
-        
-        if ($botMessageCount === 0) {
-            $botCheckSql = "
-                SELECT COUNT(*) as bot_count 
-                FROM channel_messages cm
-                INNER JOIN messages m ON cm.message_id = m.id
-                INNER JOIN users u ON m.user_id = u.id
-                WHERE cm.channel_id = ? AND u.status = 'bot'
-            ";
-            $botCheck = $query->query($botCheckSql, [$channelId]);
-            $totalBotMessages = $botCheck[0]['bot_count'] ?? 0;
-            error_log("[BOT-DEBUG] Total bot messages in channel $channelId: $totalBotMessages");
-            
-            if ($totalBotMessages > 0) {
-                error_log("[BOT-DEBUG] WARNING: Channel $channelId has $totalBotMessages bot messages but none returned in current query (offset: $offset)");
-            }
         }
         
         return array_reverse($results);
@@ -85,15 +54,11 @@ class ChannelMessageRepository extends Repository {
     public function getMessagesByChannelIdWithPagination($channelId, $limit = 20, $offset = 0) {
         $messages = $this->getMessagesByChannelId($channelId, $limit, $offset);
         
-        error_log("[BOT-DEBUG] getMessagesByChannelIdWithPagination for channel $channelId: " . count($messages) . " messages retrieved");
-        
         $hasMore = false;
         if (count($messages) === $limit) {
             $nextMessages = $this->getMessagesByChannelId($channelId, 1, $offset + $limit);
             $hasMore = !empty($nextMessages);
         }
-        
-        error_log("[BOT-DEBUG] Final pagination result: " . count($messages) . " messages, hasMore: " . ($hasMore ? 'true' : 'false'));
         
         return [
             'messages' => $messages,

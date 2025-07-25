@@ -175,6 +175,61 @@ function initAuth() {
             }
         });
     }
+
+    function setupGoogleAuth() {
+        const googleButtons = document.querySelectorAll('a[href="/auth/google"]');
+        
+        googleButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                openGoogleAuthPopup();
+            });
+        });
+    }
+
+    function openGoogleAuthPopup() {
+        const width = 500;
+        const height = 600;
+        const left = (screen.width / 2) - (width / 2);
+        const top = (screen.height / 2) - (height / 2);
+        
+        const popup = window.open(
+            '/auth/google?popup=1',
+            'googleAuth',
+            `width=${width},height=${height},top=${top},left=${left},resizable=no,scrollbars=yes`
+        );
+        
+        const checkClosed = setInterval(() => {
+            if (popup.closed) {
+                clearInterval(checkClosed);
+            }
+        }, 1000);
+        
+        window.addEventListener('message', function(event) {
+            if (event.origin !== window.location.origin) return;
+            
+            if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
+                clearInterval(checkClosed);
+                popup.close();
+                
+                if (event.data.redirect) {
+                    window.location.href = event.data.redirect;
+                } else {
+                    window.location.href = '/home';
+                }
+            } else if (event.data.type === 'GOOGLE_AUTH_ERROR') {
+                clearInterval(checkClosed);
+                popup.close();
+                
+                if (event.data.message) {
+                    FormValidator.showFormError(
+                        document.querySelector('form:not(.hidden)'), 
+                        event.data.message
+                    );
+                }
+            }
+        });
+    }
     
     function enhanceInputFocus() {
         document.querySelectorAll('input').forEach(input => {
@@ -918,6 +973,7 @@ function initAuth() {
         setupResizeHandler();
         setupCaptcha();
         checkForErrors();
+        setupGoogleAuth();
         
         setTimeout(function() {
             refreshCaptcha();

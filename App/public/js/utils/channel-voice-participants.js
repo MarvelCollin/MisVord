@@ -408,6 +408,7 @@ class ChannelVoiceParticipants {
                     setTimeout(() => {
                         this.updateParticipantVoiceState(currentUserId, channelId, 'mic', window.voiceManager.getMicState());
                         this.updateParticipantVoiceState(currentUserId, channelId, 'deafen', window.voiceManager.getDeafenState());
+                        this.updateParticipantVoiceState(currentUserId, channelId, 'video', window.voiceManager.getVideoState());
                     }, 200);
                 }
             }, 1500);
@@ -419,6 +420,7 @@ class ChannelVoiceParticipants {
                 setTimeout(() => {
                     this.updateParticipantVoiceState(currentUserId, channelId, 'mic', window.voiceManager.getMicState());
                     this.updateParticipantVoiceState(currentUserId, channelId, 'deafen', window.voiceManager.getDeafenState());
+                    this.updateParticipantVoiceState(currentUserId, channelId, 'video', window.voiceManager.getVideoState());
                 }, 500);
             }
         }
@@ -643,6 +645,9 @@ class ChannelVoiceParticipants {
                 <div class="deafen-indicator w-4 h-4 rounded-full flex items-center justify-center bg-red-600 hidden">
                     <i class="fas fa-deaf text-white text-xs"></i>
                 </div>
+                <div class="video-indicator w-4 h-4 rounded-full flex items-center justify-center bg-green-500 hidden">
+                    <i class="fas fa-video text-white text-xs"></i>
+                </div>
             </div>` : '';
 
         div.innerHTML = avatarHTML + nameHTML + indicatorsHTML;
@@ -659,10 +664,12 @@ class ChannelVoiceParticipants {
     updateParticipantIndicators(element, participant, isSelf) {
         const muteIndicator = element.querySelector('.mute-indicator');
         const deafenIndicator = element.querySelector('.deafen-indicator');
+        const videoIndicator = element.querySelector('.video-indicator');
         
         if (isSelf && window.voiceManager) {
             const micState = window.voiceManager.getMicState();
             const deafenState = window.voiceManager.getDeafenState();
+            const videoState = window.voiceManager.getVideoState();
             
             if (muteIndicator) {
                 const isMuted = !micState;
@@ -671,6 +678,10 @@ class ChannelVoiceParticipants {
             
             if (deafenIndicator) {
                 deafenIndicator.classList.toggle('hidden', !deafenState);
+            }
+            
+            if (videoIndicator) {
+                videoIndicator.classList.toggle('hidden', !videoState);
             }
         } else if (!isSelf && window.voiceManager?.meeting) {
             if (muteIndicator) {
@@ -874,9 +885,11 @@ class ChannelVoiceParticipants {
         
         const micState = window.voiceManager.getMicState();
         const deafenState = window.voiceManager.getDeafenState();
+        const videoState = window.voiceManager.getVideoState();
         
         const muteIndicator = userCard.querySelector('.mute-indicator');
         const deafenIndicator = userCard.querySelector('.deafen-indicator');
+        const videoIndicator = userCard.querySelector('.video-indicator');
         
         if (muteIndicator) {
             const isMuted = !micState;
@@ -889,6 +902,12 @@ class ChannelVoiceParticipants {
             deafenIndicator.classList.toggle('hidden', !deafenState);
             deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
             deafenIndicator.classList.add(deafenState ? 'bg-red-600' : 'bg-green-600');
+        }
+        
+        if (videoIndicator) {
+            videoIndicator.classList.toggle('hidden', !videoState);
+            videoIndicator.classList.remove('bg-red-500', 'bg-green-500');
+            videoIndicator.classList.add(videoState ? 'bg-green-500' : 'bg-red-500');
         }
     }
     
@@ -941,6 +960,18 @@ class ChannelVoiceParticipants {
             } else {
                 console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No deafen indicator found for user ${userId}`);
             }
+        } else if (type === 'video') {
+            const videoIndicator = participantCard.querySelector('.video-indicator');
+            if (videoIndicator) {
+                videoIndicator.classList.toggle('hidden', !state);
+                
+                videoIndicator.classList.remove('bg-red-500', 'bg-green-500');
+                videoIndicator.classList.add('bg-green-500');
+                
+                
+            } else {
+                console.warn(`⚠️ [CHANNEL-VOICE-PARTICIPANTS] No video indicator found for user ${userId}`);
+            }
         }
         
         if (window.voiceCallSection && window.voiceManager?.currentChannelId === channelId) {
@@ -975,6 +1006,16 @@ class ChannelVoiceParticipants {
                         
                         deafenIndicator.classList.remove('bg-red-600', 'bg-green-600');
                         deafenIndicator.classList.add('bg-red-600');
+                        
+                        
+                    }
+                } else if (type === 'video') {
+                    const videoIndicator = participantElement.querySelector('.video-indicator');
+                    if (videoIndicator) {
+                        videoIndicator.classList.toggle('hidden', !state);
+                        
+                        videoIndicator.classList.remove('bg-red-500', 'bg-green-500');
+                        videoIndicator.classList.add('bg-green-500');
                         
                         
                     }
