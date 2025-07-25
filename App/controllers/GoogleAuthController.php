@@ -42,6 +42,8 @@ class GoogleAuthController
             'scope' => 'email profile',
             'state' => $state,
             'prompt' => 'select_account',
+            'access_type' => 'offline',
+            'include_granted_scopes' => 'true'
         ];
 
         $url = 'https://accounts.google.com/o/oauth2/v2/auth?' . http_build_query($params);
@@ -51,27 +53,25 @@ class GoogleAuthController
 
     public function callback()
     {
-                if (!isset($_GET['state']) || !isset($_SESSION['oauth_state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
-                        $_SESSION['errors'] = ['auth' => 'Invalid state parameter. Possible CSRF attack.'];
-            header('Location: /login');
-            exit;
+        if (!isset($_GET['state']) || !isset($_SESSION['oauth_state']) || $_GET['state'] !== $_SESSION['oauth_state']) {
+            $this->handleAuthError('Invalid state parameter. Possible CSRF attack.');
+            return;
         }
 
         if (isset($_GET['error'])) {
-                        $_SESSION['errors'] = ['auth' => 'Google authentication error: ' . $_GET['error']];
-            header('Location: /login');
-            exit;
+            $this->handleAuthError('Google authentication error: ' . $_GET['error']);
+            return;
         }
 
         if (!isset($_GET['code'])) {
-                        $_SESSION['errors'] = ['auth' => 'No authorization code received from Google.'];
-            header('Location: /login');
-            exit;
+            $this->handleAuthError('No authorization code received from Google.');
+            return;
         }
 
         $code = $_GET['code'];
-                try {
-
+        $isPopup = isset($_SESSION['oauth_popup']) && $_SESSION['oauth_popup'] === true;
+        
+        try {
             $tokenData = $this->getAccessToken($code);
 
             if (!isset($tokenData['access_token'])) {
@@ -79,19 +79,66 @@ class GoogleAuthController
                     "Failed to get access token: {$tokenData['error']} - {$tokenData['error_description']}" :
                     "Failed to get access token: " . json_encode($tokenData);
 
-                                throw new Exception($errorMsg);
+                throw new Exception($errorMsg);
             }
 
             $userInfo = $this->getUserInfo($tokenData['access_token']);
-                        $this->authenticateUser($userInfo);
+            $this->authenticateUser($userInfo);
 
-            header('Location: /home');
-            exit;
+            unset($_SESSION['oauth_popup']);
+
+            if ($isPopup) {
+                $this->sendPopupResponse(true, '/home');
+            } else {
+                header('Location: /home');
+                exit;
+            }
         } catch (Exception $e) {
-                        $_SESSION['errors'] = ['auth' => 'Google authentication error: ' . $e->getMessage()];
+            $this->handleAuthError('Google authentication error: ' . $e->getMessage());
+        }
+    }
+
+    private function handleAuthError($message)
+    {
+        $isPopup = isset($_SESSION['oauth_popup']) && $_SESSION['oauth_popup'] === true;
+        unset($_SESSION['oauth_popup']);
+
+        if ($isPopup) {
+            $this->sendPopupResponse(false, null, $message);
+        } else {
+            $_SESSION['errors'] = ['auth' => $message];
             header('Location: /login');
             exit;
         }
+    }
+
+    private function sendPopupResponse($success, $redirect = null, $message = null)
+    {
+        $response = [
+            'type' => $success ? 'GOOGLE_AUTH_SUCCESS' : 'GOOGLE_AUTH_ERROR'
+        ];
+
+        if ($success && $redirect) {
+            $response['redirect'] = $redirect;
+        }
+
+        if (!$success && $message) {
+            $response['message'] = $message;
+        }
+
+        echo '<!DOCTYPE html>
+<html>
+<head>
+    <title>Authentication</title>
+</head>
+<body>
+    <script>
+        window.opener.postMessage(' . json_encode($response) . ', window.location.origin);
+        window.close();
+    </script>
+</body>
+</html>';
+        exit;
     }
 
     private function getAccessToken($code)
