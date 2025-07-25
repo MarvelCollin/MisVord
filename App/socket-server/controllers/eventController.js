@@ -35,6 +35,8 @@ const handleApiRequest = (req, res) => {
             handleBroadcast(req, res, query);
         } else if (path === '/api/voice/meetings') {
             handleVoiceMeetings(req, res, query);
+        } else if (path === '/api/server-member-joined' && method === 'POST') {
+            handleServerMemberJoined(req, res);
         } else {
             res.statusCode = 404;
             res.end(JSON.stringify({ success: false, error: 'Not found' }));
@@ -188,6 +190,59 @@ function handleGetOnlineUsers(req, res) {
             count: 0
         }));
     }
+}
+
+function handleServerMemberJoined(req, res) {
+    if (!io) {
+        res.statusCode = 503;
+        res.end(JSON.stringify({ success: false, error: 'Socket.IO not initialized' }));
+        return;
+    }
+
+    let body = '';
+    req.on('data', chunk => {
+        body += chunk.toString();
+    });
+
+    req.on('end', () => {
+        try {
+            const memberData = JSON.parse(body);
+            
+            if (!memberData.server_id || !memberData.user_id) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ success: false, error: 'Missing server_id or user_id' }));
+                return;
+            }
+
+            const eventData = {
+                server_id: memberData.server_id,
+                user_id: memberData.user_id,
+                username: memberData.username,
+                display_name: memberData.display_name,
+                avatar_url: memberData.avatar_url,
+                role: memberData.role || 'member',
+                timestamp: Date.now()
+            };
+
+            io.emit('server-member-joined', eventData);
+            io.to(`server_${memberData.server_id}`).emit('server-member-joined', eventData);
+
+            console.log('📢 [SERVER-MEMBER] Broadcasted member joined event:', {
+                serverId: memberData.server_id,
+                userId: memberData.user_id,
+                username: memberData.username,
+                totalConnectedSockets: io.sockets.sockets.size
+            });
+
+            res.statusCode = 200;
+            res.end(JSON.stringify({ success: true, message: 'Event broadcasted' }));
+
+        } catch (error) {
+            console.error('Server member joined handler error:', error);
+            res.statusCode = 500;
+            res.end(JSON.stringify({ success: false, error: 'Failed to process request' }));
+        }
+    });
 }
 
 module.exports = {

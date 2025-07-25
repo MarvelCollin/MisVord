@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../database/repositories/UserRepository.php';
+require_once __DIR__ . '/../database/models/User.php';
 
 class GoogleAuthController
 {
@@ -221,20 +222,35 @@ class GoogleAuthController
             } else {
                 $processedUsername = $this->processUsername($name ?? $email);
                 
-                $userData = [
-                    'username' => $processedUsername,
-                    'email' => $email,
-                    'discriminator' => User::generateDiscriminator(),
-                    'google_id' => $googleId,
-                    'avatar_url' => $picture,
-                    'password' => null,
-                    'status' => 'active',
-                    'display_name' => $processedUsername
-                ];
-
-                $_SESSION['pending_google_user'] = $userData;
+                $user = new User();
+                $user->username = $processedUsername;
+                $user->email = $email;
+                $user->discriminator = User::generateDiscriminator();
+                $user->google_id = $googleId;
+                $user->avatar_url = $picture;
+                $user->password = null;
+                $user->status = 'active';
+                $user->display_name = $processedUsername;
+                $user->security_question = null;
+                $user->security_answer = null;
+                
+                error_log("GoogleAuth: About to save new user: " . json_encode(['username' => $user->username, 'email' => $user->email]));
+                
+                if (!$user->save()) {
+                    error_log("GoogleAuth: Failed to save user");
+                    throw new Exception('Failed to create user account');
+                }
+                
+                error_log("GoogleAuth: User saved successfully with ID: " . $user->id);
+                
+                $_SESSION['user_id'] = $user->id;
+                $_SESSION['username'] = $user->username;
+                $_SESSION['discriminator'] = $user->discriminator;
+                $_SESSION['avatar_url'] = $user->avatar_url;
                 $_SESSION['google_auth_completed'] = true;
                 unset($_SESSION['security_question_set']);
+                
+                error_log("GoogleAuth: Session set, redirecting to security question setup");
                 
                 return '/set-security-question';
                             }

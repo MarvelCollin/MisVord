@@ -688,13 +688,38 @@ class AuthenticationController extends BaseController
 
     public function setSecurityQuestion()
     {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         $input = $this->getInput();
-        $input = $this->sanitize($input);
 
         $userId = $_SESSION['user_id'] ?? null;
-        $pendingGoogleUser = $_SESSION['pending_google_user'] ?? null;
         
-        if (!$userId && !$pendingGoogleUser) {
+        // If user_id is not in session, try to get it from form data as fallback
+        if (!$userId && isset($input['user_id'])) {
+            $userId = $input['user_id'];
+            
+            // Try to restore session data by looking up user
+            try {
+                require_once __DIR__ . '/../database/query.php';
+                $query = new Query();
+                $user = $query->table('users')->where('id', $userId)->first();
+                if ($user) {
+                    $_SESSION['user_id'] = $userId;
+                    $_SESSION['username'] = $user['username'];
+                    $_SESSION['discriminator'] = $user['discriminator'] ?? '';
+                    $_SESSION['avatar_url'] = $user['avatar_url'] ?? '';
+                    $_SESSION['banner_url'] = $user['banner_url'] ?? '';
+                    session_write_close();
+                    session_start();
+                }
+            } catch (Exception $e) {
+                // Silently handle session restore errors
+            }
+        }
+        
+        if (!$userId) {
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->error('Not authenticated', 401);
             }
@@ -704,13 +729,8 @@ class AuthenticationController extends BaseController
             exit;
         }
 
-        $this->validate($input, [
-            'security_question' => 'required',
-            'security_answer' => 'required'
-        ]);
-
-        $securityQuestion = $input['security_question'];
-        $securityAnswer = $input['security_answer'];
+        $securityQuestion = trim($input['security_question'] ?? '');
+        $securityAnswer = trim($input['security_answer'] ?? '');
 
         $errors = [];
 
@@ -730,7 +750,8 @@ class AuthenticationController extends BaseController
             }
             $_SESSION['errors'] = $errors;
             $_SESSION['old_input'] = [
-                'security_question' => $securityQuestion
+                'security_question' => $securityQuestion,
+                'security_answer' => $securityAnswer
             ];
             if (!headers_sent()) {
                 header('Location: /set-security-question');
@@ -739,58 +760,32 @@ class AuthenticationController extends BaseController
         }
 
         try {
-            if ($pendingGoogleUser) {
-                $pendingGoogleUser['security_question'] = $securityQuestion;
-                $pendingGoogleUser['security_answer'] = password_hash($securityAnswer, PASSWORD_DEFAULT);
-                
-                $this->logActivity('creating_google_user', [
-                    'email' => $pendingGoogleUser['email'],
-                    'has_security_question' => !empty($securityQuestion),
-                    'has_security_answer' => !empty($securityAnswer),
-                    'user_data' => $pendingGoogleUser
-                ]);
-                
-                error_log("About to create Google user with data: " . json_encode($pendingGoogleUser));
-                
-                $user = $this->userRepository->create($pendingGoogleUser);
-                
-                error_log("User creation result: " . ($user ? "SUCCESS - ID: " . $user->id : "FAILED - returned null"));
-                
-                if (!$user) {
-                    error_log("Failed to create Google user - userRepository->create returned null");
-                    throw new Exception('Failed to create user account - database insertion failed');
-                }
-                
-                $this->logActivity('google_user_created', [
-                    'user_id' => $user->id,
-                    'email' => $user->email,
-                    'security_question_set' => !empty($user->security_question)
-                ]);
-                
-                $_SESSION['user_id'] = $user->id;
-                $_SESSION['username'] = $user->username;
-                $_SESSION['discriminator'] = $user->discriminator;
-                $_SESSION['avatar_url'] = $user->avatar_url;
-                
-                unset($_SESSION['pending_google_user']);
-            } else {
-                $user = $this->userRepository->find($userId);
-                if (!$user) {
-                    throw new Exception('User not found');
-                }
+            require_once __DIR__ . '/../database/query.php';
+            $query = new Query();
+            
+            $user = $query->table('users')->where('id', $userId)->first();
+            if (!$user) {
+                throw new Exception('User not found in database');
+            }
 
-                $user->security_question = $securityQuestion;
-                $user->security_answer = password_hash($securityAnswer, PASSWORD_DEFAULT);
-                
-                if (!$user->save()) {
-                    throw new Exception('Failed to save security question');
-                }
+            $hashedAnswer = password_hash($securityAnswer, PASSWORD_DEFAULT);
+            
+            $updateResult = $query->table('users')
+                ->where('id', $userId)
+                ->update([
+                    'security_question' => $securityQuestion,
+                    'security_answer' => $hashedAnswer,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            
+            if (!$updateResult) {
+                throw new Exception('Failed to save security question');
             }
 
             $_SESSION['security_question_set'] = true;
             unset($_SESSION['google_auth_completed']);
 
-            $this->logActivity('security_question_set', ['user_id' => $user->id]);
+            $this->logActivity('security_question_set', ['user_id' => $userId]);
 
             $redirect = '/home';
 
@@ -804,18 +799,18 @@ class AuthenticationController extends BaseController
                 header('Location: ' . $redirect);
             }
             exit;
-        } catch (Exception $e) {
-            $this->logActivity('security_question_error', [
-                'user_id' => $user->id ?? $userId,
-                'error' => $e->getMessage()
-            ]);
 
+        } catch (Exception $e) {
             $errorMessage = 'Failed to set security question. Please try again.';
 
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->serverError($errorMessage);
             }
             $_SESSION['errors'] = ['general' => $errorMessage];
+            $_SESSION['old_input'] = [
+                'security_question' => $securityQuestion,
+                'security_answer' => $securityAnswer
+            ];
             if (!headers_sent()) {
                 header('Location: /set-security-question');
             }

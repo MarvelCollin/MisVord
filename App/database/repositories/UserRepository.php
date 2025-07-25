@@ -37,13 +37,25 @@ class UserRepository extends Repository {
     }
     
     public function setSecurityQuestion($userId, $question, $answer) {
-        $user = $this->find($userId);
-        if ($user) {
-            $user->security_question = $question;
-            $user->security_answer = password_hash($answer, PASSWORD_DEFAULT);
-            return $user->save();
+        try {
+            require_once __DIR__ . '/../query.php';
+            $query = new Query();
+            
+            $hashedAnswer = password_hash($answer, PASSWORD_DEFAULT);
+            
+            $result = $query->table('users')
+                ->where('id', $userId)
+                ->update([
+                    'security_question' => $question,
+                    'security_answer' => $hashedAnswer,
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            
+            return $result > 0;
+        } catch (Exception $e) {
+            error_log("UserRepository::setSecurityQuestion failed: " . $e->getMessage());
+            return false;
         }
-        return false;
     }
     
     public function verifySecurityAnswer($userId, $answer) {

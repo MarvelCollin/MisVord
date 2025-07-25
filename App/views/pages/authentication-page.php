@@ -40,6 +40,16 @@ $securityQuestion = $_SESSION['security_question'] ?? null;
 $email = $_SESSION['reset_email'] ?? '';
 $token = $_SESSION['reset_token'] ?? '';
 $registerFailedStep = $_SESSION['register_failed_step'] ?? 1;
+$currentUser = null;
+
+if (isset($_SESSION['user_id']) && isset($_SESSION['google_auth_completed'])) {
+    $currentUser = [
+        'username' => $_SESSION['username'] ?? '',
+        'email' => '', 
+        'avatar_url' => $_SESSION['avatar_url'] ?? '',
+        'display_name' => $_SESSION['username'] ?? ''
+    ];
+}
 
 $_SESSION['errors'] = [];
 $_SESSION['old_input'] = [];
@@ -503,6 +513,38 @@ try {
             </form>
 
             <form action="/set-security-question" method="POST" class="space-y-4 sm:space-y-5 <?php echo $mode === 'security-question' ? 'block' : 'hidden'; ?>" id="securityQuestionForm">
+                <?php if (isset($_SESSION['user_id'])): ?>
+                <input type="hidden" name="user_id" value="<?php echo $_SESSION['user_id']; ?>">
+                <?php endif; ?>
+                
+                <?php if ($currentUser): ?>
+                <div class="bg-[#2f3136] rounded-lg p-4 mb-6 border border-[#40444b]">
+                    <div class="flex items-center mb-3">
+                        <i class="fab fa-google text-[#4285F4] text-lg mr-2"></i>
+                        <h3 class="text-white font-medium">Google Account Setup</h3>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <?php if (!empty($currentUser['avatar_url'])): ?>
+                        <img src="<?php echo htmlspecialchars($currentUser['avatar_url']); ?>" alt="Profile Picture" class="w-12 h-12 rounded-full border-2 border-[#40444b]">
+                        <?php else: ?>
+                        <div class="w-12 h-12 rounded-full bg-discord-blue flex items-center justify-center">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <?php endif; ?>
+                        <div>
+                            <p class="text-white font-medium"><?php echo htmlspecialchars($currentUser['display_name'] ?? $currentUser['username'] ?? 'User'); ?></p>
+                            <p class="text-gray-400 text-sm">Google Account</p>
+                            <?php if (isset($_SESSION['user_id'])): ?>
+                            <p class="text-yellow-400 text-xs mt-1">Debug: User ID: <?php echo $_SESSION['user_id']; ?></p>
+                            <?php else: ?>
+                            <p class="text-red-400 text-xs mt-1">DEBUG ERROR: No User ID in session!</p>
+                            <p class="text-red-400 text-xs">Session contents: <?php echo json_encode($_SESSION); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
                 <p class="text-gray-300 text-sm mb-4">
                     Please set a security question and answer to protect your account.
                 </p>
@@ -512,7 +554,7 @@ try {
                     <select 
                         id="google_security_question" 
                         name="security_question" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all"
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all<?php echo isset($errors['security_question']) ? ' border-red-500' : ''; ?>"
                         required
                     >
                         <option value="">Select a security question</option>
@@ -522,6 +564,9 @@ try {
                         <option value="What is your mother's maiden name?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What is your mother\'s maiden name?') ? 'selected' : ''; ?>>What is your mother's maiden name?</option>
                         <option value="What was your childhood nickname?" <?php echo (isset($oldInput['security_question']) && $oldInput['security_question'] === 'What was your childhood nickname?') ? 'selected' : ''; ?>>What was your childhood nickname?</option>
                     </select>
+                    <?php if (isset($errors['security_question'])): ?>
+                        <div class="text-red-500 text-xs mt-1"><?php echo $errors['security_question']; ?></div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
@@ -529,10 +574,14 @@ try {
                     <input 
                         id="google_security_answer" 
                         name="security_answer" 
-                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all" 
+                        class="w-full bg-[#202225] text-white border border-[#40444b] rounded-md p-2.5 focus:ring-2 focus:ring-discord-blue focus:border-transparent transition-all<?php echo isset($errors['security_answer']) ? ' border-red-500' : ''; ?>" 
                         placeholder="Answer to your security question"
+                        value="<?php echo isset($oldInput['security_answer']) ? htmlspecialchars($oldInput['security_answer']) : ''; ?>"
                         required
                     >
+                    <?php if (isset($errors['security_answer'])): ?>
+                        <div class="text-red-500 text-xs mt-1"><?php echo $errors['security_answer']; ?></div>
+                    <?php endif; ?>
                 </div>
 
                 <button type="submit" class="w-full py-2.5 bg-discord-blue hover:bg-discord-blue/90 text-white font-medium rounded-md transition-all">

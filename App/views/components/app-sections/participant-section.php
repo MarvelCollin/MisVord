@@ -123,7 +123,7 @@ let searchResults = [];
 let onlineUsers = {};
 let updateTimer = null;
 
-const allMembers = <?php echo json_encode($members); ?>;
+let allMembers = <?php echo json_encode($members); ?>;
 
 function loadSocketIO(callback) {
     if (window.io) {
@@ -152,6 +152,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     initializeParticipantSystem();
     initializeServerSearch();
+    
+    if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+        setupSocketListeners();
+    } else {
+        window.addEventListener('globalSocketReady', setupSocketListeners);
+        window.addEventListener('socketAuthenticated', setupSocketListeners);
+    }
 });
 
 function initializeParticipantSystem() {
@@ -260,10 +267,28 @@ function setupFriendsManagerIntegration() {
         setTimeout(setupFriendsManagerIntegration, 500);
     }
     
+    setupSocketListeners();
+}
+    
+function setupSocketListeners() {
     if (window.globalSocketManager && window.globalSocketManager.io) {
         window.globalSocketManager.io.on('user-presence-update', (data) => {
 
             scheduleUpdate();
+        });
+
+        window.globalSocketManager.io.on('server-member-joined', (data) => {
+            console.log('🎉 [PARTICIPANT] Server member joined event received:', data);
+            if (data.server_id == <?php echo $currentServerId; ?>) {
+                
+                if (window.showToast) {
+                    window.showToast(`${data.display_name || data.username} joined the server`, 'success', 5000, 'New Member');
+                }
+                
+                setTimeout(async () => {
+                    await window.refreshServerMembers();
+                }, 500);
+            }
         });
     }
 }
@@ -311,6 +336,40 @@ window.forceRefreshAllPresenceData = async function() {
         console.error('❌ [PARTICIPANT] Error refreshing presence data:', error);
         if (window.showToast) {
             window.showToast('Failed to refresh presence data', 'error', 3000);
+        }
+    }
+};
+
+window.refreshServerMembers = async function() {
+    try {
+        const serverId = <?php echo $currentServerId; ?>;
+        if (!serverId) return;
+
+        const response = await fetch(`/api/servers/${serverId}/members`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (data.success && data.data && data.data.members) {
+            window.allMembers = data.data.members;
+            updateParticipantDisplay();
+            
+            if (window.showToast) {
+                window.showToast('Member list updated', 'info', 2000);
+            }
+        }
+    } catch (error) {
+        console.error('❌ [PARTICIPANT] Error refreshing server members:', error);
+        if (window.showToast) {
+            window.showToast('Failed to refresh member list', 'error', 3000);
         }
     }
 };
@@ -389,7 +448,9 @@ function updateParticipantDisplay() {
     const currentUserStatus = window.globalSocketManager?.currentPresenceStatus || 'online';
     const currentActivityDetails = window.globalSocketManager?.currentActivityDetails || { type: 'idle' };
 
-    allMembers.forEach(member => {
+    const currentMembersToProcess = window.allMembers || allMembers;
+    
+    currentMembersToProcess.forEach(member => {
         const role = member.role || 'member';
         const isBot = member.status === 'bot';
         let userData = onlineUsers[member.id];

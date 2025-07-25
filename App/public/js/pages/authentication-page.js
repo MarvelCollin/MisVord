@@ -445,6 +445,7 @@ function initAuth() {
             
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
+                console.log('Form submitted:', this.id, this.action);
 
                 if (window.self !== window.top) {
                     this.target = '_top';
@@ -477,10 +478,37 @@ function initAuth() {
                 } else if (this.id === 'forgotForm') {
                     isValid = FormValidator.validateForgotForm(this);
                 } else if (this.id === 'securityQuestionForm') {
+                    console.log('=== SECURITY QUESTION FORM DEBUG ===');
+                    console.log('Form action:', this.action);
+                    console.log('Form method:', this.method);
+                    
+                    const questionField = this.querySelector('#google_security_question');
+                    const answerField = this.querySelector('#google_security_answer');
+                    
+                    console.log('Question field found:', !!questionField);
+                    console.log('Answer field found:', !!answerField);
+                    
+                    if (questionField) {
+                        console.log('Question value:', questionField.value);
+                        console.log('Question name:', questionField.name);
+                    }
+                    
+                    if (answerField) {
+                        console.log('Answer value length:', answerField.value.length);
+                        console.log('Answer name:', answerField.name);
+                        console.log('Answer value (first 3 chars):', answerField.value.substring(0, 3) + '...');
+                    }
+                    
+                    console.log('Validating security question form');
                     isValid = FormValidator.validateSecurityQuestionForm(this);
+                    console.log('Security form validation result:', isValid);
+                    
+                    console.log('=== END SECURITY QUESTION FORM DEBUG ===');
                 } else if (this.id === 'resetPasswordForm') {
                     isValid = FormValidator.validateResetPasswordForm(this);
                 }
+                
+                console.log('Form validation passed:', isValid);
                 
                 if (!isValid) {
                     FormValidator.showFormError(this, 'Please correct the errors below.');
@@ -512,6 +540,7 @@ function initAuth() {
                     }, 5000);
                 }
                 
+                console.log('Submitting form:', this.id);
                 this.submit();
                 return true;
             });

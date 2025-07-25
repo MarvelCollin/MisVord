@@ -6,6 +6,7 @@ require_once __DIR__ . '/../database/repositories/CategoryRepository.php';
 require_once __DIR__ . '/../database/repositories/MessageRepository.php';
 require_once __DIR__ . '/../database/repositories/UserServerMembershipRepository.php';
 require_once __DIR__ . '/../database/repositories/ServerInviteRepository.php';
+require_once __DIR__ . '/../database/repositories/UserRepository.php';
 require_once __DIR__ . '/../database/models/Channel.php';
 require_once __DIR__ . '/BaseController.php';
 
@@ -18,6 +19,7 @@ class ServerController extends BaseController
     private $userServerMembershipRepository;
     private $inviteRepository;
     private $membershipRepository;
+    private $userRepository;
 
     public function __construct()
     {
@@ -29,6 +31,7 @@ class ServerController extends BaseController
         $this->userServerMembershipRepository = new UserServerMembershipRepository();
         $this->inviteRepository = new ServerInviteRepository();
         $this->membershipRepository = $this->userServerMembershipRepository;
+        $this->userRepository = new UserRepository();
     }
 
     public function show($id)
@@ -484,6 +487,8 @@ class ServerController extends BaseController
                 'server_id' => $server->id,
                 'invite_code' => $inviteCode
             ]);
+
+            $this->emitServerMemberJoinedEvent($server->id, $this->getCurrentUserId());
                 
             $redirectUrl = "/server/{$server->id}";
             
@@ -624,6 +629,8 @@ class ServerController extends BaseController
                 'server_id' => $serverId,
                 'user_id' => $userId
             ]);
+
+            $this->emitServerMemberJoinedEvent($serverId, $userId);
 
             http_response_code(200);
             header('Content-Type: application/json');
@@ -1823,6 +1830,60 @@ class ServerController extends BaseController
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         return $protocol . $host;
+    }
+
+    private function emitServerMemberJoinedEvent($serverId, $userId) {
+        try {
+            $socketHost = EnvLoader::get('SOCKET_HOST', 'localhost');
+            $socketPort = EnvLoader::get('SOCKET_PORT', '1002');
+            
+            $user = $this->userRepository->find($userId);
+            if (!$user) return;
+            
+            $userData = [
+                'server_id' => $serverId,
+                'user_id' => $userId,
+                'username' => $user->username,
+                'display_name' => $user->display_name ?? $user->username,
+                'avatar_url' => $user->avatar_url ?? '/public/assets/common/default-profile-picture.png',
+                'role' => 'member',
+                'timestamp' => time()
+            ];
+            
+            $socketUrl = "http://{$socketHost}:{$socketPort}/api/server-member-joined";
+            
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $socketUrl);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($userData));
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'X-Internal-Request: true'
+            ]);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 2);
+            $result = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            
+            if (function_exists('logger')) {
+                logger()->info("Server member joined event emitted", [
+                    'server_id' => $serverId,
+                    'user_id' => $userId,
+                    'username' => $user->username,
+                    'socket_response_code' => $httpCode,
+                    'socket_response' => $result
+                ]);
+            }
+        } catch (Exception $e) {
+            if (function_exists('logger')) {
+                logger()->error("Failed to emit server member joined event", [
+                    'server_id' => $serverId,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
     }
 
     private function validateUploadedFile($file)

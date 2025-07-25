@@ -4,7 +4,7 @@ require_once __DIR__ . '/../query.php';
 
 abstract class Model {
     protected static $table;
-    protected $attributes = [];
+    public $attributes = [];
     protected $fillable = [];
     
     public function __construct($attributes = []) {
@@ -100,11 +100,14 @@ abstract class Model {
                 unset($data['id']);
                 
                 error_log("Model::save - Updating existing record with ID: $id");
+                error_log("Model::save - Data to update: " . json_encode($data));
+                error_log("Model::save - Table: " . static::$table);
                 
                 $result = $query->table(static::$table)
                     ->where('id', $id)
                     ->update($data);
                     
+                error_log("Model::save - Update result: " . var_export($result, true));
                 return $result > 0;
             } else {
                 if (!isset($this->attributes['created_at'])) {
