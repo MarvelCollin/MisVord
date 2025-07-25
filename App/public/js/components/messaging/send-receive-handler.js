@@ -57,13 +57,18 @@ class SendReceiveHandler {
             content = messageInput.value || '';
         }
         
-        if (!content.trim()) {
+        content = content.trim();
+        
+        const attachmentUrls = this.chatSection.fileUploadHandler.hasFiles() 
+            ? this.chatSection.fileUploadHandler.getUploadedFileUrls() 
+            : [];
+
+        if (!content && attachmentUrls.length === 0) {
+            console.warn('⚠️ [SEND-RECEIVE] No content or attachments to send');
             return;
         }
-        
-        content = content.trim();
 
-        if (this.detectSQLInjection(content)) {
+        if (content && this.detectSQLInjection(content)) {
             showToast('Bang ngapain bang jangan di sql injection', 'warning', 5000);
             this.chatSection.messageInput.value = '';
             if (this.chatSection.messageInput.getAttribute('contenteditable') === 'true') {
@@ -73,7 +78,6 @@ class SendReceiveHandler {
             return;
         }
 
-        
         if (!window.globalSocketManager || !window.globalSocketManager.isReady()) {
             console.error('❌ WebSocket not ready for sending message');
             this.chatSection.showNotification('Connection error. Please try again.', 'error');
@@ -90,13 +94,12 @@ class SendReceiveHandler {
                 options.reply_message_id = this.chatSection.replyingTo.messageId;
             }
             
-            const attachmentUrls = this.chatSection.fileUploadHandler.hasFiles() 
-                ? this.chatSection.fileUploadHandler.getUploadedFileUrls() 
-                : [];
-            
             if (attachmentUrls.length > 0) {
                 options.attachments = attachmentUrls;
-
+                console.log('🔗 [SEND-RECEIVE] Sending message with attachments:', attachmentUrls);
+                if (!content) {
+                    content = '';
+                }
             }
             
             let mentions = [];
@@ -120,7 +123,7 @@ class SendReceiveHandler {
                 }
             }
             
-            if (this.detectSQLInjection(content)) {
+            if (content && this.detectSQLInjection(content)) {
                 throw new Error('Potential SQL injection detected in the message content');
             }
             
@@ -204,6 +207,7 @@ class SendReceiveHandler {
             };
         }
         
+        console.log('📤 [SEND-RECEIVE] Temp message data:', tempMessageData);
 
         this.chatSection.hideEmptyState();
         

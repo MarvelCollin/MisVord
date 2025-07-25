@@ -14,9 +14,16 @@ class MessageHandler {
             messageData.id === '' || 
             messageData.id === '0' ||
             (!messageData.content && !messageData.attachments?.length)) {
-            console.error('❌ [MESSAGE-HANDLER] Invalid message data - missing ID or content:', messageData);
+            console.error('❌ [MESSAGE-HANDLER] Invalid message data - missing ID or content/attachments:', messageData);
             return;
         }
+        
+        console.log('📨 [MESSAGE-HANDLER] Adding message:', {
+            id: messageData.id,
+            content: messageData.content?.substring(0, 50) + '...',
+            attachments: messageData.attachments,
+            hasAttachments: messageData.attachments?.length > 0
+        });
         
 
         const isTemporary = messageData.is_bot ? false : 
@@ -206,7 +213,7 @@ class MessageHandler {
                     ${replyData ? this.generateReplyHTML(replyData) : ''}
                     <div class="bubble-message-content" data-message-id="${messageId}">
                         ${content ? `<div class="bubble-message-text">${formattedContent}${editedAt ? '<span class="bubble-edited-badge">(edited)</span>' : ''}</div>` : ''}
-                        ${attachments.length > 0 ? this.generateAttachmentsHTML(attachments) : ''}
+                        ${attachments && attachments.length > 0 ? this.generateAttachmentsHTML(attachments) : ''}
                         ${reactions.length > 0 ? this.generateReactionsHTML(reactions, messageId) : ''}
                         <div class="bubble-message-actions">
                             <button class="bubble-action-button" data-action="reply" data-message-id="${messageId}" title="Reply">
@@ -290,9 +297,53 @@ class MessageHandler {
     }
 
     generateAttachmentsHTML(attachments) {
-        return `<div class="bubble-attachments">${attachments.map(att => 
-            `<div class="bubble-attachment"><a href="${att.url || att}" download="${att.name || 'attachment'}">${att.name || 'attachment'}</a></div>`
-        ).join('')}</div>`;
+        if (!attachments || !Array.isArray(attachments) || attachments.length === 0) {
+            return '';
+        }
+        
+        console.log('🎨 [MESSAGE-HANDLER] Generating attachments HTML for:', attachments);
+        
+        return `<div class="bubble-attachments">${attachments.map(att => {
+            const url = att.url || att.file_url || att;
+            const name = att.name || att.file_name || 'attachment';
+            const size = att.size || att.file_size;
+            const type = att.type || att.mime_type || '';
+            
+            console.log('📎 [MESSAGE-HANDLER] Processing attachment:', { url, name, size, type });
+            
+            let displayContent = '';
+            if (type.startsWith('image/')) {
+                displayContent = `<div class="attachment-image">
+                    <img src="${url}" alt="${name}" style="max-width: 300px; max-height: 200px; border-radius: 8px;">
+                    <div class="attachment-info">
+                        <span class="attachment-name">${name}</span>
+                        ${size ? `<span class="attachment-size">${this.formatFileSize(size)}</span>` : ''}
+                    </div>
+                </div>`;
+            } else {
+                displayContent = `<div class="attachment-file">
+                    <i class="fas fa-file attachment-icon"></i>
+                    <div class="attachment-info">
+                        <span class="attachment-name">${name}</span>
+                        ${size ? `<span class="attachment-size">${this.formatFileSize(size)}</span>` : ''}
+                    </div>
+                </div>`;
+            }
+            
+            return `<div class="bubble-attachment">
+                <a href="${url}" download="${name}" class="attachment-link">
+                    ${displayContent}
+                </a>
+            </div>`;
+        }).join('')}</div>`;
+    }
+    
+    formatFileSize(bytes) {
+        if (!bytes || bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
 
     generateReactionsHTML(reactions, messageId) {
@@ -497,6 +548,65 @@ class MessageHandler {
 .bubble-action-button.delete-button:hover {
     background: #ed4245;
     color: #ffffff;
+}
+
+.bubble-attachments {
+    margin-top: 8px;
+}
+
+.bubble-attachment {
+    margin-bottom: 8px;
+}
+
+.attachment-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.attachment-image, .attachment-file {
+    background: #2b2d31;
+    border-radius: 8px;
+    padding: 8px;
+    border: 1px solid #40444b;
+    transition: background-color 0.2s ease;
+}
+
+.attachment-image:hover, .attachment-file:hover {
+    background: #32353b;
+}
+
+.attachment-image img {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.attachment-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.attachment-icon {
+    font-size: 24px;
+    color: #b9bbbe;
+}
+
+.attachment-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.attachment-name {
+    color: #dcddde;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.attachment-size {
+    color: #b9bbbe;
+    font-size: 12px;
 }
 
 .bubble-message-temporary {

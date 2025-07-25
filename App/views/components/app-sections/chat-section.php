@@ -678,9 +678,6 @@ if (!function_exists('renderMessage')) {
         <i id="channel-icon" class="<?php echo $chatIcon; ?> text-[#949ba4] mr-1 sm:mr-2 text-sm sm:text-base"></i>
         <span id="channel-name" class="font-semibold text-white text-sm sm:text-base truncate flex-1"><?php echo htmlspecialchars($chatTitle); ?></span>
         <?php if ($chatType === 'channel' || (isset($chatData['is_group']) && $chatData['is_group'])): ?>
-        <button id="mobile-participant-menu" class="xl:hidden ml-2 p-1 text-[#949ba4] hover:text-white rounded" onclick="window.toggleParticipantSidebar && window.toggleParticipantSidebar()">
-            <i class="fas fa-users text-sm"></i>
-        </button>
         <?php endif; ?>
     </div>
     <?php endif; ?>

@@ -533,7 +533,7 @@ async function loadPendingRequests(forceRefresh = false) {
                             </div>
                             <div>
                                 <button class="bg-discord-red hover:bg-discord-red/90 disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-md px-3 py-1 text-sm transition-colors"
-                                        onclick="cancelFriendRequest('${user.id}')">Cancel</button>
+                                        onclick="cancelFriendRequest('${user.friendship_id}')">Cancel</button>
                             </div>
                         </div>
                     `).join('')}
@@ -726,7 +726,7 @@ async function cancelFriendRequest(requestId) {
         button.disabled = true;
         button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Canceling...';
         
-        const result = await window.userAPI.cancelFriendRequest(requestId);
+        const result = await window.FriendAPI.declineFriendRequest(requestId);
         
         if (!result.success) {
             throw new Error(result.error || 'Failed to cancel friend request');

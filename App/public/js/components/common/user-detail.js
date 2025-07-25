@@ -102,6 +102,18 @@ class UserDetailModal {
                 }
             });
         }
+
+        document.addEventListener('scroll', (e) => {
+            if (this.isVisible() && e.target.classList.contains('participant-content')) {
+                this.hide();
+            }
+        }, true);
+
+        window.addEventListener('resize', () => {
+            if (this.isVisible()) {
+                this.hide();
+            }
+        });
     }
 
     show(options = {}) {
@@ -117,6 +129,27 @@ class UserDetailModal {
         if (this.openingTimeout) {
             clearTimeout(this.openingTimeout);
         }
+
+        const participantContainer = options.triggerElement?.closest('.participant-content');
+        if (participantContainer) {
+            if (participantContainer.classList.contains('scrolling')) {
+                return;
+            }
+            
+            const scrollBefore = participantContainer.scrollTop;
+            requestAnimationFrame(() => {
+                const scrollAfter = participantContainer.scrollTop;
+                if (Math.abs(scrollBefore - scrollAfter) > 1) {
+                    return;
+                }
+                this.performShow(options);
+            });
+        } else {
+            this.performShow(options);
+        }
+    }
+
+    performShow(options = {}) {
 
         this.isOpening = true;
         this.openingTimeout = setTimeout(() => {
@@ -135,25 +168,82 @@ class UserDetailModal {
         
         if (options.triggerElement && typeof options.triggerElement.getBoundingClientRect === 'function') {
             const rect = options.triggerElement.getBoundingClientRect();
+            
+            if (rect.width === 0 && rect.height === 0) {
+                this.showCenteredModal();
+                return;
+            }
+            
+            if (rect.left === 0 && rect.top === 0 && rect.right === 0 && rect.bottom === 0) {
+                this.showCenteredModal();
+                return;
+            }
+            
             const modalWidth = 340;
+            const modalHeight = 400;
 
             const viewportWidth = window.innerWidth;
             const viewportHeight = window.innerHeight;
 
-            const showOnRight = rect.left + rect.width + modalWidth <= viewportWidth;
-            const left = showOnRight ? rect.left + rect.width + 10 : rect.left - modalWidth - 10;
+            if (viewportWidth === 0 || viewportHeight === 0) {
+                this.showCenteredModal();
+                return;
+            }
 
-            let top = rect.top;
-            if (top + 400 > viewportHeight) {
-                top = Math.max(10, viewportHeight - 400 - 10);
+            let adjustedLeft = rect.left;
+            let adjustedTop = rect.top;
+
+            const participantContainer = options.triggerElement.closest('.participant-content');
+            if (participantContainer) {
+                const containerRect = participantContainer.getBoundingClientRect();
+                
+                adjustedTop = rect.top;
+                adjustedLeft = rect.left;
+                
+                if (adjustedTop < containerRect.top + 10) {
+                    adjustedTop = containerRect.top + 10;
+                }
+                if (adjustedTop + modalHeight > containerRect.bottom - 10) {
+                    adjustedTop = containerRect.bottom - modalHeight - 10;
+                }
+                
+                if (adjustedLeft < containerRect.left) {
+                    adjustedLeft = containerRect.left + 10;
+                }
+            }
+
+            const showOnRight = adjustedLeft + rect.width + modalWidth <= viewportWidth;
+            let left = showOnRight ? adjustedLeft + rect.width + 10 : adjustedLeft - modalWidth - 10;
+
+            let top = adjustedTop;
+            if (top + modalHeight > viewportHeight) {
+                top = Math.max(10, viewportHeight - modalHeight - 10);
+            }
+            if (top < 10) {
+                top = 10;
+            }
+
+            if (left < 10) {
+                left = 10;
+            }
+            if (left + modalWidth > viewportWidth - 10) {
+                left = viewportWidth - modalWidth - 10;
+            }
+
+            if (top < 10) {
+                top = 10;
+            }
+            if (top + modalHeight > viewportHeight - 10) {
+                top = viewportHeight - modalHeight - 10;
             }
             
             const container = this.modal.querySelector('.user-detail-container');
             if (container) {
                 container.style.position = 'absolute';
-                container.style.left = `${left}px`;
-                container.style.top = `${top}px`;
+                container.style.left = `${Math.max(10, left)}px`;
+                container.style.top = `${Math.max(10, top)}px`;
                 container.style.transform = 'none';
+                container.style.zIndex = '1001';
             }
         }   
         else if (options.position) {
@@ -166,6 +256,8 @@ class UserDetailModal {
                 container.style.top = `${top}px`;
                 container.style.transform = 'none';
             }
+        } else {
+            this.showCenteredModal();
         }
 
         const startTime = Date.now();
@@ -221,6 +313,17 @@ class UserDetailModal {
             container.style.left = '';
             container.style.top = '';
             container.style.transform = '';
+        }
+    }
+
+    showCenteredModal() {
+        const container = this.modal.querySelector('.user-detail-container');
+        if (container) {
+            container.style.position = 'fixed';
+            container.style.left = '50%';
+            container.style.top = '50%';
+            container.style.transform = 'translate(-50%, -50%)';
+            container.style.zIndex = '1001';
         }
     }
 

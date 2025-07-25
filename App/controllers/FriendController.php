@@ -530,7 +530,7 @@ class FriendController extends BaseController
             if (!$friendship) {
                 return $this->notFound('Friend request not found');
             }
-              if ($friendship->__get('user_id2') != $userId) {
+              if ($friendship->__get('user_id2') != $userId && $friendship->__get('user_id') != $userId) {
                 return $this->forbidden('You cannot decline this friend request');
             }
 
@@ -540,8 +540,10 @@ class FriendController extends BaseController
                 return $this->serverError('Failed to decline friend request');
             }
 
+            $targetUserId = $friendship->__get('user_id') == $userId ? $friendship->__get('user_id2') : $friendship->__get('user_id');
+
             $this->notifyViaSocket('friend-request-declined', [
-                'target_user_id' => $friendship->__get('user_id'),
+                'target_user_id' => $targetUserId,
                 'friendship_id' => $friendshipId,
                 'recipient_id' => $userId,
                 'timestamp' => date('Y-m-d H:i:s')

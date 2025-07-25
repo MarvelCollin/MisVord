@@ -1010,6 +1010,30 @@ window.debugPresenceState = function() {
     });
 };
 
+window.addParticipantScrollHandler = function() {
+    const participantContent = document.querySelector('.participant-content');
+    if (participantContent && !participantContent.hasScrollHandler) {
+        participantContent.hasScrollHandler = true;
+        
+        let scrollTimer = null;
+        participantContent.addEventListener('scroll', function() {
+            participantContent.classList.add('scrolling');
+            
+            if (scrollTimer) {
+                clearTimeout(scrollTimer);
+            }
+            
+            scrollTimer = setTimeout(() => {
+                participantContent.classList.remove('scrolling');
+            }, 150);
+        });
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    window.addParticipantScrollHandler();
+});
+
 </script>
 
 <style>
@@ -1093,5 +1117,13 @@ window.debugPresenceState = function() {
 .user-profile-trigger .flex-1 {
     min-width: 0;
     flex: 1;
+}
+
+.participant-content.scrolling .user-profile-trigger {
+    pointer-events: none;
+}
+
+.participant-content:not(.scrolling) .user-profile-trigger {
+    pointer-events: auto;
 }
 </style>

@@ -7,9 +7,7 @@ class FileUploadHandler {
         this.isUploading = false;
     }
 
-    async handleFileSelection(file) {
-
-        
+    async handleFileSelection() {
         if (!this.chatSection.fileUploadInput) {
             console.error('File upload input not found');
             return;
@@ -54,10 +52,14 @@ class FileUploadHandler {
         try {
             const uploadedFiles = await this.uploadFilesToServer(validFiles);
             
+            console.log('📁 [FILE-UPLOAD] Server response:', uploadedFiles);
+            
             uploadedFiles.forEach((fileData, index) => {
                 this.currentFileUploads.push(fileData);
                 this.createFileCard(fileData, index);
             });
+
+            console.log('📁 [FILE-UPLOAD] Current file uploads:', this.currentFileUploads);
 
             if (this.currentFileUploads.length > 0) {
                 fileUploadArea.classList.remove('hidden');
@@ -189,10 +191,19 @@ class FileUploadHandler {
         const iconContainer = document.getElementById(`file-icon-${index}`);
         if (!iconContainer) return;
 
-        iconContainer.style.backgroundImage = `url(${url})`;
-        iconContainer.style.backgroundSize = 'cover';
-        iconContainer.style.backgroundPosition = 'center';
-        iconContainer.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        img.style.borderRadius = '4px';
+        img.onload = () => {
+            iconContainer.innerHTML = '';
+            iconContainer.appendChild(img);
+        };
+        img.onerror = () => {
+            console.warn('Failed to load image preview for:', url);
+        };
     }
 
     loadImagePreview(file, index) {
@@ -201,10 +212,14 @@ class FileUploadHandler {
 
         const reader = new FileReader();
         reader.onload = (e) => {
-            iconContainer.style.backgroundImage = `url(${e.target.result})`;
-            iconContainer.style.backgroundSize = 'cover';
-            iconContainer.style.backgroundPosition = 'center';
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.style.width = '100%';
+            img.style.height = '100%';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '4px';
             iconContainer.innerHTML = '';
+            iconContainer.appendChild(img);
         };
         reader.readAsDataURL(file);
     }
@@ -369,7 +384,19 @@ class FileUploadHandler {
     }
 
     getUploadedFileUrls() {
-        return this.currentFileUploads.filter(file => file.uploaded && file.url).map(file => file.url);
+        const fileUrls = this.currentFileUploads.filter(file => file.uploaded && file.url).map(file => ({
+            url: file.url,
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            file_name: file.name,
+            file_size: file.size,
+            mime_type: file.type,
+            file_url: file.url
+        }));
+        
+        console.log('🔗 [FILE-UPLOAD] Generated file URLs:', fileUrls);
+        return fileUrls;
     }
 
     getFileIcon(mimeType, fileName) {

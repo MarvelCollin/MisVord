@@ -69,7 +69,7 @@ class FriendListRepository extends Repository {
     }    public function declineFriendRequest($userId, $friendshipId) {
         $friendship = $this->find($friendshipId);
         
-        if (!$friendship || $friendship->user_id2 != $userId) {
+        if (!$friendship || ($friendship->user_id2 != $userId && $friendship->user_id != $userId)) {
             return false;
         }
         

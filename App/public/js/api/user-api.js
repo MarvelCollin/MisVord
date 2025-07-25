@@ -187,17 +187,6 @@ class UserAPI {
         return result;
     }
 
-    async cancelFriendRequest(userId) {
-        const result = await this.makeRequest('/api/friends', {
-            method: 'DELETE',
-            body: JSON.stringify({
-                user_id: userId
-            })
-        });
-        
-        return result;
-    }
-
     async getPendingRequests() {
         const result = await this.makeRequest('/api/friends/pending');
         
