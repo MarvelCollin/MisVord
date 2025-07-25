@@ -45,6 +45,9 @@ class VoiceConnectionTracker {
             currentState.isMuted = !state;
         } else if (type === 'deafen') {
             currentState.isDeafened = state;
+            if (state === true) {
+                currentState.isMuted = true;
+            }
         }
         
         currentState.lastUpdated = Date.now();

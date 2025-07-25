@@ -68,6 +68,10 @@ class ChannelVoiceParticipants {
     }
     
     handleVoiceStateChanged(event) {
+        if (event.detail.source === 'voiceManager') {
+            return;
+        }
+        
         const { state, source } = event.detail;
         this.syncWithVoiceState(state);
     }
@@ -79,7 +83,7 @@ class ChannelVoiceParticipants {
         if (type === 'deafen' && state === true && window.voiceManager) {
             const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
             if (userId === currentUserId) {
-                this.updateParticipantVoiceState(userId, channelId, 'mic', false);
+                this.updateParticipantVoiceState(userId, channelId, 'mic', window.voiceManager._micOn);
             }
         }
     }

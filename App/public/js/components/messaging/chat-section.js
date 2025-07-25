@@ -209,6 +209,7 @@ class ChatSection {
             this.currentOffset = 0;
             
             this.messageHandler = new MessageHandler(this);
+            window.messageHandler = this.messageHandler;
             this.socketHandler = new SocketHandler(this);
             this.fileUploadHandler = new FileUploadHandler(this);
             this.sendReceiveHandler = new SendReceiveHandler(this);
@@ -2778,6 +2779,7 @@ class ChatSection {
         if (!this.messageHandler) {
 
             this.messageHandler = new MessageHandler(this);
+            window.messageHandler = this.messageHandler;
         } else {
 
             this.messageHandler.clearProcessedMessages();

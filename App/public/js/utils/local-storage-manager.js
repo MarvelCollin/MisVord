@@ -307,7 +307,7 @@ class LocalStorageManager {
     }
 
     toggleVoiceMute() {
-        if (window.voiceManager && window.voiceManager.isConnected) {
+        if (window.voiceManager) {
             return window.voiceManager.toggleMic();
         } else {
             const currentState = this.getUnifiedVoiceState();
@@ -318,12 +318,12 @@ class LocalStorageManager {
                 isMuted: newMutedState
             });
             
-            return newMutedState;
+            return !newMutedState;
         }
     }
 
     toggleVoiceDeafen() {
-        if (window.voiceManager && window.voiceManager.isConnected) {
+        if (window.voiceManager) {
             return window.voiceManager.toggleDeafen();
         } else {
             const currentState = this.getUnifiedVoiceState();

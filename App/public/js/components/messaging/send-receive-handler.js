@@ -68,6 +68,10 @@ class SendReceiveHandler {
             return;
         }
 
+        if (!content && attachmentUrls.length > 0) {
+            content = " ";
+        }
+
         if (content && this.detectSQLInjection(content)) {
             showToast('Bang ngapain bang jangan di sql injection', 'warning', 5000);
             this.chatSection.messageInput.value = '';
@@ -96,7 +100,6 @@ class SendReceiveHandler {
             
             if (attachmentUrls.length > 0) {
                 options.attachments = attachmentUrls;
-                console.log('🔗 [SEND-RECEIVE] Sending message with attachments:', attachmentUrls);
                 if (!content) {
                     content = '';
                 }
@@ -184,7 +187,7 @@ class SendReceiveHandler {
         
         const tempMessageData = {
             id: tempId,
-            content: content,
+            content: content || '',
             user_id: window.globalSocketManager?.userId,
             username: window.globalSocketManager?.username,
             avatar_url: window.globalSocketManager?.avatarUrl || '/public/assets/common/default-profile-picture.png',
@@ -206,8 +209,6 @@ class SendReceiveHandler {
                 username: this.chatSection.replyingTo.username
             };
         }
-        
-        console.log('📤 [SEND-RECEIVE] Temp message data:', tempMessageData);
 
         this.chatSection.hideEmptyState();
         
@@ -216,7 +217,7 @@ class SendReceiveHandler {
         this.sendStopTypingEvent();
 
         const messageData = {
-            content: content,
+            content: content || '',
             target_type: this.chatSection.chatType === 'direct' ? 'dm' : this.chatSection.chatType,
             target_id: this.chatSection.targetId,
             message_type: options.message_type || 'text',

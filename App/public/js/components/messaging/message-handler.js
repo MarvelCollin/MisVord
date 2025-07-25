@@ -18,13 +18,6 @@ class MessageHandler {
             return;
         }
         
-        console.log('📨 [MESSAGE-HANDLER] Adding message:', {
-            id: messageData.id,
-            content: messageData.content?.substring(0, 50) + '...',
-            attachments: messageData.attachments,
-            hasAttachments: messageData.attachments?.length > 0
-        });
-        
 
         const isTemporary = messageData.is_bot ? false : 
                            (messageData.is_temporary === true || messageData.id.toString().startsWith('temp-'));
@@ -301,40 +294,36 @@ class MessageHandler {
             return '';
         }
         
-        console.log('🎨 [MESSAGE-HANDLER] Generating attachments HTML for:', attachments);
-        
         return `<div class="bubble-attachments">${attachments.map(att => {
             const url = att.url || att.file_url || att;
             const name = att.name || att.file_name || 'attachment';
             const size = att.size || att.file_size;
             const type = att.type || att.mime_type || '';
             
-            console.log('📎 [MESSAGE-HANDLER] Processing attachment:', { url, name, size, type });
-            
             let displayContent = '';
             if (type.startsWith('image/')) {
                 displayContent = `<div class="attachment-image">
-                    <img src="${url}" alt="${name}" style="max-width: 300px; max-height: 200px; border-radius: 8px;">
-                    <div class="attachment-info">
-                        <span class="attachment-name">${name}</span>
-                        ${size ? `<span class="attachment-size">${this.formatFileSize(size)}</span>` : ''}
-                    </div>
+                    <img src="${url}" alt="${name}" style="max-width: 300px; max-height: 200px; border-radius: 8px; cursor: pointer;">
                 </div>`;
             } else {
                 displayContent = `<div class="attachment-file">
                     <i class="fas fa-file attachment-icon"></i>
-                    <div class="attachment-info">
-                        <span class="attachment-name">${name}</span>
-                        ${size ? `<span class="attachment-size">${this.formatFileSize(size)}</span>` : ''}
-                    </div>
                 </div>`;
             }
             
-            return `<div class="bubble-attachment">
-                <a href="${url}" download="${name}" class="attachment-link">
-                    ${displayContent}
-                </a>
-            </div>`;
+            if (type.startsWith('image/')) {
+                return `<div class="bubble-attachment">
+                    <div class="attachment-link" onclick="window.messageHandler.openImageModal('${url}', '${name}')" style="cursor: pointer;">
+                        ${displayContent}
+                    </div>
+                </div>`;
+            } else {
+                return `<div class="bubble-attachment">
+                    <a href="${url}" download="${name}" class="attachment-link">
+                        ${displayContent}
+                    </a>
+                </div>`;
+            }
         }).join('')}</div>`;
     }
     
@@ -1698,6 +1687,61 @@ class MessageHandler {
                 button.dataset.listenerAdded = 'true';
             }
         });
+    }
+
+    openImageModal(imageUrl, imageName) {
+        const modal = document.getElementById('file-preview-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContent = document.getElementById('modal-content');
+        const modalDownload = document.getElementById('modal-download');
+        const modalClose = document.getElementById('modal-close');
+        
+        if (!modal) {
+            console.error('Image modal not found');
+            return;
+        }
+        
+        const closeModal = () => {
+            modal.classList.add('hidden');
+            modal.classList.add('opacity-0');
+            modal.classList.add('invisible');
+            modal.style.display = 'none';
+        };
+        
+        modal.style.display = 'flex';
+        modalTitle.textContent = imageName || 'Image';
+        modalContent.innerHTML = `<div class="flex items-center justify-center h-full">
+            <img src="${imageUrl}" alt="${imageName}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+        </div>`;
+        
+        modalDownload.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const link = document.createElement('a');
+            link.href = imageUrl;
+            link.download = imageName || 'image';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+        
+        modalClose.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+        };
+        
+        modal.onclick = (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        };
+        
+        setTimeout(() => {
+            modal.classList.remove('hidden');
+            modal.classList.remove('opacity-0');
+            modal.classList.remove('invisible');
+        }, 10);
     }
 }
 

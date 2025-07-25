@@ -145,22 +145,7 @@ class VoiceCallSection {
         if (this.micBtn) {
             this.micBtn.addEventListener("click", () => {
                 if (window.voiceManager) {
-                    const newState = window.voiceManager.toggleMic();
-                    this.updateMicButton(newState);
-                    
-                    if (newState) {
-                        MusicLoaderStatic.playDiscordUnmuteSound();
-                    } else {
-                        MusicLoaderStatic.playDiscordMuteSound();
-                    }
-                    
-                    if (window.localStorageManager) {
-                        const currentState = window.localStorageManager.getUnifiedVoiceState();
-                        window.localStorageManager.setUnifiedVoiceState({
-                            ...currentState,
-                            isMuted: !newState
-                        });
-                    }
+                    window.voiceManager.toggleMic();
                 }
             });
         }
@@ -177,26 +162,7 @@ class VoiceCallSection {
         if (this.deafenBtn) {
             this.deafenBtn.addEventListener("click", () => {
                 if (window.voiceManager) {
-                    const wasPreviouslyDeafened = window.voiceManager._deafened;
-                    const state = window.voiceManager.toggleDeafen();
-                    this.updateDeafenButton(state);
-                    
-                    if (window.MusicLoaderStatic) {
-                        if (wasPreviouslyDeafened) {
-                            window.MusicLoaderStatic.playDiscordUnmuteSound();
-                        } else {
-                            window.MusicLoaderStatic.playDiscordMuteSound();
-                        }
-                    }
-                    
-                    if (window.localStorageManager) {
-                        const currentState = window.localStorageManager.getUnifiedVoiceState();
-                        window.localStorageManager.setUnifiedVoiceState({
-                            ...currentState,
-                            isDeafened: state,
-                            isMuted: state ? true : currentState.isMuted
-                        });
-                    }
+                    window.voiceManager.toggleDeafen();
                 }
             });
         }
@@ -1103,6 +1069,15 @@ class VoiceCallSection {
     }
     
     handleVoiceStateChanged(event) {
+        if (event.detail.source === 'voiceManager' && window.voiceManager) {
+            this.updateMicButton(window.voiceManager._micOn);
+            this.updateDeafenButton(window.voiceManager._deafened);
+            this.updateVideoButton(window.voiceManager._videoOn);
+            this.updateScreenButton(window.voiceManager._screenShareOn);
+            this.updateLocalParticipantIndicators();
+            return;
+        }
+        
         const { type, state } = event.detail;
         
         switch (type) {

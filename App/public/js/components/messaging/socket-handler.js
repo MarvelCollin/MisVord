@@ -526,8 +526,14 @@ class SocketHandler {
                 }
             }
             
-            if (this.chatSection && this.chatSection.showNotification) {
-                this.chatSection.showNotification('Message failed to save: ' + (data.error || 'Unknown error'), 'error');
+            if (data.error && data.error.includes('attachment_url') && data.error.includes('Data too long')) {
+                if (window.showToast) {
+                    window.showToast('Try again with smaller image - file size too large', 'warning', 7000);
+                }
+            } else {
+                if (this.chatSection && this.chatSection.showNotification) {
+                    this.chatSection.showNotification('Message failed to save: ' + (data.error || 'Unknown error'), 'error');
+                }
             }
         } catch (error) {
             console.error('❌ Error handling message save failure:', error);

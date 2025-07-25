@@ -39,6 +39,7 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.24);
   animation: scaleIn 0.2s ease;
   max-height: 90vh;
+  transition: left 0.1s ease, top 0.1s ease;
 }
 
 

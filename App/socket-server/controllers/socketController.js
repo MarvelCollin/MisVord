@@ -650,6 +650,28 @@ function setup(io) {
             
             io.to(voiceChannelRoom).emit('voice-state-update', stateData);
             io.to(`channel-${channel_id}`).emit('voice-state-update', stateData);
+            
+            if (type === 'deafen' && state === true) {
+                const micStateData = {
+                    user_id: userId,
+                    username: username,
+                    channel_id: channel_id,
+                    type: 'mic',
+                    state: false,
+                    timestamp: Date.now()
+                };
+                
+                console.log(`📢 [VOICE-STATE] Auto-broadcasting mic mute for deafen:`, {
+                    channelId: channel_id,
+                    userId,
+                    stateType: 'mic',
+                    newState: false,
+                    toRoom: voiceChannelRoom
+                });
+                
+                io.to(voiceChannelRoom).emit('voice-state-update', micStateData);
+                io.to(`channel-${channel_id}`).emit('voice-state-update', micStateData);
+            }
         });
         
         client.on('get-voice-states', (data) => {

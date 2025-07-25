@@ -372,7 +372,10 @@ function getActivityText(activityDetails, status) {
 }
 
 function updateParticipantDisplay() {
-
+    let participantContentArea = document.querySelector('.participant-content');
+    if (participantContentArea) {
+        participantContentArea.classList.add('loading');
+    }
     
     const roleGroups = {
         'owner': [],
@@ -535,6 +538,11 @@ function updateParticipantDisplay() {
         skeleton.style.display = 'none';
     }
     
+    participantContentArea = document.querySelector('.participant-content');
+    if (participantContentArea) {
+        participantContentArea.classList.remove('loading');
+        participantContentArea.classList.add('loaded');
+    }
 
     const membersDisplayed = container.querySelectorAll('.user-profile-trigger').length;
     
@@ -1123,7 +1131,12 @@ document.addEventListener('DOMContentLoaded', function() {
     pointer-events: none;
 }
 
-.participant-content:not(.scrolling) .user-profile-trigger {
+.participant-content.loading .user-profile-trigger {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.participant-content:not(.scrolling):not(.loading) .user-profile-trigger {
     pointer-events: auto;
 }
 </style>

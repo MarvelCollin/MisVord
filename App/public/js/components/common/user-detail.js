@@ -136,6 +136,14 @@ class UserDetailModal {
                 return;
             }
             
+            const isParticipantLoaded = participantContainer.querySelector('.user-profile-trigger');
+            if (!isParticipantLoaded) {
+                setTimeout(() => {
+                    this.show(options);
+                }, 200);
+                return;
+            }
+            
             const scrollBefore = participantContainer.scrollTop;
             requestAnimationFrame(() => {
                 const scrollAfter = participantContainer.scrollTop;
@@ -150,6 +158,12 @@ class UserDetailModal {
     }
 
     performShow(options = {}) {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.performShow(options);
+            }, { once: true });
+            return;
+        }
 
         this.isOpening = true;
         this.openingTimeout = setTimeout(() => {
@@ -168,6 +182,11 @@ class UserDetailModal {
         
         if (options.triggerElement && typeof options.triggerElement.getBoundingClientRect === 'function') {
             const rect = options.triggerElement.getBoundingClientRect();
+            
+            if (!options.triggerElement.offsetParent && options.triggerElement.style.display !== 'none') {
+                this.showCenteredModal();
+                return;
+            }
             
             if (rect.width === 0 && rect.height === 0) {
                 this.showCenteredModal();
@@ -197,8 +216,39 @@ class UserDetailModal {
             if (participantContainer) {
                 const containerRect = participantContainer.getBoundingClientRect();
                 
+                if (containerRect.width === 0 || containerRect.height === 0) {
+                    this.showCenteredModal();
+                    return;
+                }
+                
                 adjustedTop = rect.top;
                 adjustedLeft = rect.left;
+                
+                const spaceAbove = rect.top - containerRect.top;
+                const spaceBelow = containerRect.bottom - rect.bottom;
+                const spaceLeft = rect.left - containerRect.left;
+                const spaceRight = containerRect.right - rect.right;
+                
+                const isNearBottom = spaceBelow < modalHeight + 20;
+                const isNearTop = spaceAbove < modalHeight + 20;
+                const isNearLeft = spaceLeft < modalWidth + 20;
+                const isNearRight = spaceRight < modalWidth + 20;
+                
+                const elementPositionInContainer = (rect.top - containerRect.top) / (containerRect.height);
+                const isInBottomHalf = elementPositionInContainer > 0.6;
+                const isInTopHalf = elementPositionInContainer < 0.4;
+                
+                if (isNearBottom && !isNearTop) {
+                    adjustedTop = rect.top - modalHeight - 10;
+                } else if (isInBottomHalf && spaceAbove >= modalHeight + 30) {
+                    adjustedTop = rect.top - modalHeight + rect.height;
+                } else if (isNearTop && !isNearBottom) {
+                    adjustedTop = rect.bottom + 10;
+                } else if (isInTopHalf) {
+                    adjustedTop = rect.bottom + 10;
+                } else {
+                    adjustedTop = rect.top - (modalHeight / 2) + (rect.height / 2);
+                }
                 
                 if (adjustedTop < containerRect.top + 10) {
                     adjustedTop = containerRect.top + 10;
@@ -210,14 +260,54 @@ class UserDetailModal {
                 if (adjustedLeft < containerRect.left) {
                     adjustedLeft = containerRect.left + 10;
                 }
+                
+                const elementPositionInContainerX = (rect.left - containerRect.left) / (containerRect.width);
+                const isInRightHalf = elementPositionInContainerX > 0.5;
+                
+                if (isInRightHalf && spaceLeft >= modalWidth + 20) {
+                    adjustedLeft = rect.left - modalWidth - 10;
+                } else {
+                    adjustedLeft = rect.right + 10;
+                }
             }
 
-            const showOnRight = adjustedLeft + rect.width + modalWidth <= viewportWidth;
-            let left = showOnRight ? adjustedLeft + rect.width + 10 : adjustedLeft - modalWidth - 10;
+            const showOnRight = adjustedLeft + modalWidth <= viewportWidth - 10;
+            const showOnLeft = adjustedLeft >= 10;
+            const spaceOnRight = viewportWidth - adjustedLeft;
+            const spaceOnLeft = adjustedLeft;
+            
+            let left = adjustedLeft;
+            
+            if (!showOnRight && showOnLeft) {
+                left = adjustedLeft - modalWidth - rect.width - 20;
+            } else if (!showOnLeft && showOnRight) {
+                left = adjustedLeft;
+            } else if (spaceOnRight < modalWidth + 20 && spaceOnLeft >= modalWidth + 20) {
+                left = adjustedLeft - modalWidth - rect.width - 20;
+            }
 
             let top = adjustedTop;
-            if (top + modalHeight > viewportHeight) {
-                top = Math.max(10, viewportHeight - modalHeight - 10);
+            
+            const spaceAboveViewport = rect.top;
+            const spaceBelowViewport = viewportHeight - rect.bottom;
+            
+            if (participantContainer) {
+                const containerRect = participantContainer.getBoundingClientRect();
+                const elementBottomInContainer = rect.bottom - containerRect.top;
+                const containerHeight = containerRect.height;
+                const isVeryBottom = elementBottomInContainer > containerHeight * 0.8;
+                
+                if (isVeryBottom && spaceAboveViewport >= modalHeight + 30) {
+                    top = rect.top - modalHeight + 20;
+                }
+            }
+            
+            if (top + modalHeight > viewportHeight - 10) {
+                if (spaceAboveViewport > spaceBelowViewport && spaceAboveViewport >= modalHeight + 20) {
+                    top = rect.top - modalHeight - 10;
+                } else {
+                    top = Math.max(10, viewportHeight - modalHeight - 10);
+                }
             }
             if (top < 10) {
                 top = 10;
@@ -236,12 +326,15 @@ class UserDetailModal {
             if (top + modalHeight > viewportHeight - 10) {
                 top = viewportHeight - modalHeight - 10;
             }
+
+            const finalLeft = Math.max(10, Math.min(left, viewportWidth - modalWidth - 10));
+            const finalTop = Math.max(10, Math.min(top, viewportHeight - modalHeight - 10));
             
             const container = this.modal.querySelector('.user-detail-container');
             if (container) {
                 container.style.position = 'absolute';
-                container.style.left = `${Math.max(10, left)}px`;
-                container.style.top = `${Math.max(10, top)}px`;
+                container.style.left = `${finalLeft}px`;
+                container.style.top = `${finalTop}px`;
                 container.style.transform = 'none';
                 container.style.zIndex = '1001';
             }

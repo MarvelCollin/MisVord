@@ -52,14 +52,10 @@ class FileUploadHandler {
         try {
             const uploadedFiles = await this.uploadFilesToServer(validFiles);
             
-            console.log('📁 [FILE-UPLOAD] Server response:', uploadedFiles);
-            
             uploadedFiles.forEach((fileData, index) => {
                 this.currentFileUploads.push(fileData);
                 this.createFileCard(fileData, index);
             });
-
-            console.log('📁 [FILE-UPLOAD] Current file uploads:', this.currentFileUploads);
 
             if (this.currentFileUploads.length > 0) {
                 fileUploadArea.classList.remove('hidden');
@@ -129,12 +125,20 @@ class FileUploadHandler {
         const iconContainer = document.createElement('div');
         iconContainer.className = 'w-12 h-12 rounded-lg overflow-hidden bg-[#2b2d31] flex items-center justify-center flex-shrink-0';
         
-        const icon = this.getFileIcon(fileData.type, fileData.name);
-        iconContainer.innerHTML = icon;
-        
         if (fileData.type.startsWith('image/')) {
             iconContainer.id = `file-icon-${index}`;
-            this.loadImagePreviewFromUrl(fileData.url, index);
+            iconContainer.innerHTML = '<i class="fas fa-spinner fa-spin text-[#5865f2] text-xs"></i>';
+            
+            if (fileData.originalFile) {
+                this.loadImagePreview(fileData.originalFile, index);
+            }
+            
+            setTimeout(() => {
+                this.loadImagePreviewFromUrl(fileData.url, index);
+            }, 200);
+        } else {
+            const icon = this.getFileIcon(fileData.type, fileData.name);
+            iconContainer.innerHTML = icon;
         }
 
         const fileName = document.createElement('div');
@@ -189,21 +193,49 @@ class FileUploadHandler {
 
     loadImagePreviewFromUrl(url, index) {
         const iconContainer = document.getElementById(`file-icon-${index}`);
-        if (!iconContainer) return;
+        if (!iconContainer) {
+            return;
+        }
 
-        const img = document.createElement('img');
-        img.src = url;
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'cover';
-        img.style.borderRadius = '4px';
+        if (iconContainer.querySelector('img')) {
+            return;
+        }
+
+        if (!url || url.trim() === '') {
+            iconContainer.innerHTML = '<i class="fas fa-image text-[#5865f2] text-xl"></i>';
+            return;
+        }
+
+        const img = new Image();
+        
         img.onload = () => {
+            if (iconContainer.querySelector('img')) {
+                return;
+            }
+            
+            const imgElement = document.createElement('img');
+            imgElement.src = url;
+            imgElement.style.width = '100%';
+            imgElement.style.height = '100%';
+            imgElement.style.objectFit = 'cover';
+            imgElement.style.borderRadius = '4px';
+            imgElement.style.display = 'block';
+            
             iconContainer.innerHTML = '';
-            iconContainer.appendChild(img);
+            iconContainer.style.background = 'none';
+            iconContainer.style.display = 'flex';
+            iconContainer.style.alignItems = 'center';
+            iconContainer.style.justifyContent = 'center';
+            iconContainer.appendChild(imgElement);
         };
+        
         img.onerror = () => {
-            console.warn('Failed to load image preview for:', url);
+            if (!iconContainer.querySelector('img')) {
+                iconContainer.innerHTML = '<i class="fas fa-image text-[#5865f2] text-xl"></i>';
+            }
         };
+
+        img.src = url;
     }
 
     loadImagePreview(file, index) {
@@ -212,14 +244,27 @@ class FileUploadHandler {
 
         const reader = new FileReader();
         reader.onload = (e) => {
+            if (iconContainer.querySelector('img')) {
+                return;
+            }
+            
             const img = document.createElement('img');
             img.src = e.target.result;
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'cover';
             img.style.borderRadius = '4px';
+            img.style.display = 'block';
+            
             iconContainer.innerHTML = '';
+            iconContainer.style.background = 'none';
+            iconContainer.style.display = 'flex';
+            iconContainer.style.alignItems = 'center';
+            iconContainer.style.justifyContent = 'center';
             iconContainer.appendChild(img);
+        };
+        reader.onerror = () => {
+            console.warn('FileReader failed for image preview');
         };
         reader.readAsDataURL(file);
     }
@@ -384,7 +429,7 @@ class FileUploadHandler {
     }
 
     getUploadedFileUrls() {
-        const fileUrls = this.currentFileUploads.filter(file => file.uploaded && file.url).map(file => ({
+        return this.currentFileUploads.filter(file => file.uploaded && file.url).map(file => ({
             url: file.url,
             name: file.name,
             size: file.size,
@@ -394,9 +439,6 @@ class FileUploadHandler {
             mime_type: file.type,
             file_url: file.url
         }));
-        
-        console.log('🔗 [FILE-UPLOAD] Generated file URLs:', fileUrls);
-        return fileUrls;
     }
 
     getFileIcon(mimeType, fileName) {

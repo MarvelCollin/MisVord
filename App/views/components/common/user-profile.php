@@ -247,9 +247,15 @@ class UserProfileVoiceControls {
         try {
             let state = null;
             
-            if (window.localStorageManager) {
+            if (window.voiceManager) {
+                state = {
+                    isMuted: !window.voiceManager._micOn,
+                    isDeafened: window.voiceManager._deafened,
+                    isConnected: window.voiceManager.isConnected,
+                    volume: 100
+                };
+            } else if (window.localStorageManager) {
                 state = window.localStorageManager.getUnifiedVoiceState();
-                
             }
             
             if (!state) {
@@ -313,42 +319,28 @@ class UserProfileVoiceControls {
     
     handleMicClick() {
         try {
-            if (!window.localStorageManager) {
-                console.warn('LocalStorageManager not available');
-                return;
+            if (window.voiceManager) {
+                window.voiceManager.toggleMic();
+            } else if (window.localStorageManager) {
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                const newMutedState = !currentState.isMuted;
+                
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    isMuted: newMutedState
+                });
             }
-            
-            const currentState = window.localStorageManager.getUnifiedVoiceState();
-            const wasPreviouslyMuted = currentState.isMuted;
-            
-            const newMutedState = !wasPreviouslyMuted;
-            
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
-                isMuted: newMutedState
-            });
             
             if (window.MusicLoaderStatic) {
-                if (wasPreviouslyMuted) {
-                    window.MusicLoaderStatic.playDiscordUnmuteSound();
-                } else {
+                const currentState = window.localStorageManager?.getUnifiedVoiceState();
+                if (currentState?.isMuted) {
                     window.MusicLoaderStatic.playDiscordMuteSound();
-                }
-            }
-            
-            if (window.voiceManager && window.voiceManager.isConnected) {
-                if (newMutedState) {
-                    window.voiceManager.localParticipant?.disableMic();
-                    window.voiceManager._micOn = false;
                 } else {
-                    window.voiceManager.localParticipant?.enableMic();
-                    window.voiceManager._micOn = true;
+                    window.MusicLoaderStatic.playDiscordUnmuteSound();
                 }
             }
             
             this.updateControls();
-            
-            
             
         } catch (error) {
             console.error('Error in user profile mic click handler:', error);
@@ -357,87 +349,34 @@ class UserProfileVoiceControls {
     
     handleDeafenClick() {
         try {
-            if (!window.localStorageManager) {
-                console.warn('LocalStorageManager not available');
-                return;
+            if (window.voiceManager) {
+                window.voiceManager.toggleDeafen();
+            } else if (window.localStorageManager) {
+                const currentState = window.localStorageManager.getUnifiedVoiceState();
+                const newDeafenedState = !currentState.isDeafened;
+                
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    isDeafened: newDeafenedState,
+                    isMuted: newDeafenedState ? true : currentState.isMuted
+                });
             }
-            
-            const currentState = window.localStorageManager.getUnifiedVoiceState();
-            const wasPreviouslyDeafened = currentState.isDeafened;
-            
-            const newDeafenedState = !wasPreviouslyDeafened;
-            
-            window.localStorageManager.setUnifiedVoiceState({
-                ...currentState,
-                isDeafened: newDeafenedState,
-                isMuted: newDeafenedState ? true : currentState.isMuted
-            });
             
             if (window.MusicLoaderStatic) {
-                if (wasPreviouslyDeafened) {
-                    window.MusicLoaderStatic.playDiscordUnmuteSound();
-                } else {
+                const currentState = window.localStorageManager?.getUnifiedVoiceState();
+                if (currentState?.isDeafened) {
                     window.MusicLoaderStatic.playDiscordMuteSound();
-                }
-            }
-            
-            if (window.voiceManager && window.voiceManager.isConnected) {
-                window.voiceManager._deafened = newDeafenedState;
-                
-                if (newDeafenedState) {
-                    window.voiceManager.meeting.participants.forEach(participant => {
-                        if (participant.id !== window.voiceManager.localParticipant.id) {
-                            const participantData = window.voiceManager.participants.get(participant.id);
-                            if (participantData && participantData.streams) {
-                                participantData.streams.forEach((stream, kind) => {
-                                    if (kind === 'audio' && stream.track) {
-                                        stream.track.enabled = false;
-                                    }
-                                });
-                            }
-                        }
-                    });
                 } else {
-                    window.voiceManager.meeting.participants.forEach(participant => {
-                        if (participant.id !== window.voiceManager.localParticipant.id) {
-                            const participantData = window.voiceManager.participants.get(participant.id);
-                            if (participantData && participantData.streams) {
-                                participantData.streams.forEach((stream, kind) => {
-                                    if (kind === 'audio' && stream.track) {
-                                        stream.track.enabled = true;
-                                    }
-                                });
-                            }
-                        }
-                    });
+                    window.MusicLoaderStatic.playDiscordUnmuteSound();
                 }
-                
-                window.voiceManager.broadcastVoiceState('deafen', newDeafenedState);
-                
-                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-                if (currentUserId) {
-                    window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
-                        detail: {
-                            userId: currentUserId,
-                            channelId: window.voiceManager.currentChannelId,
-                            type: 'deafen',
-                            state: newDeafenedState
-                        }
-                    }));
-                }
-                
-                window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                    detail: { type: 'deafen', state: newDeafenedState }
-                }));
             }
             
             if (window.voiceCallSection && window.voiceCallSection.updateAllAudioElementsMute) {
-                window.voiceCallSection.updateAllAudioElementsMute(newDeafenedState);
+                const currentState = window.localStorageManager?.getUnifiedVoiceState();
+                window.voiceCallSection.updateAllAudioElementsMute(currentState?.isDeafened || false);
             }
             
             this.updateControls();
-            
-            
             
         } catch (error) {
             console.error('Error in user profile deafen click handler:', error);

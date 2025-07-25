@@ -1308,9 +1308,26 @@ class VoiceManager {
     }
     
     toggleMic() {
-        if (!this.meeting || !this.localParticipant) return this._micOn;
+        if (!this.meeting || !this.localParticipant) {
+            const currentState = window.localStorageManager?.getUnifiedVoiceState() || {};
+            const newMutedState = !currentState.isMuted;
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    isMuted: newMutedState
+                });
+            }
+            
+            this.syncUIComponents();
+            return !newMutedState;
+        }
         
         try {
+            if (this._deafened) {
+                return this._micOn;
+            }
+            
             if (this._micOn) {
                 this.localParticipant.disableMic();
                 this._micOn = false;
@@ -1324,22 +1341,7 @@ class VoiceManager {
             });
             
             this.broadcastVoiceState('mic', this._micOn);
-            
-            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-            if (currentUserId) {
-                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
-                    detail: {
-                        userId: currentUserId,
-                        channelId: this.currentChannelId,
-                        type: 'mic',
-                        state: this._micOn
-                    }
-                }));
-            }
-            
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: { type: 'mic', state: this._micOn }
-            }));
+            this.syncUIComponents();
             
             return this._micOn;
         } catch (error) {
@@ -1379,12 +1381,31 @@ class VoiceManager {
     }
     
     toggleDeafen() {
-        if (!this.meeting || !this.localParticipant) return this._deafened;
+        if (!this.meeting || !this.localParticipant) {
+            const currentState = window.localStorageManager?.getUnifiedVoiceState() || {};
+            const newDeafenedState = !currentState.isDeafened;
+            
+            if (window.localStorageManager) {
+                window.localStorageManager.setUnifiedVoiceState({
+                    ...currentState,
+                    isDeafened: newDeafenedState,
+                    isMuted: newDeafenedState ? true : currentState.isMuted
+                });
+            }
+            
+            this.syncUIComponents();
+            return newDeafenedState;
+        }
         
         try {
             this._deafened = !this._deafened;
             
             if (this._deafened) {
+                if (this._micOn) {
+                    this.localParticipant.disableMic();
+                    this._micOn = false;
+                }
+                
                 this.meeting.participants.forEach(participant => {
                     if (participant.id !== this.localParticipant.id) {
                         const participantData = this.participants.get(participant.id);
@@ -1418,22 +1439,8 @@ class VoiceManager {
             });
             
             this.broadcastVoiceState('deafen', this._deafened);
-            
-            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-            if (currentUserId) {
-                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
-                    detail: {
-                        userId: currentUserId,
-                        channelId: this.currentChannelId,
-                        type: 'deafen',
-                        state: this._deafened
-                    }
-                }));
-            }
-            
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: { type: 'deafen', state: this._deafened }
-            }));
+            this.broadcastVoiceState('mic', this._micOn);
+            this.syncUIComponents();
             
             return this._deafened;
         } catch (error) {
@@ -1504,6 +1511,75 @@ class VoiceManager {
     getVideoState() { return this._videoOn; }
     getDeafenState() { return this._deafened; }
     getScreenShareState() { return this._screenShareOn; }
+    
+    syncUIComponents() {
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        
+        if (window.userProfileVoiceControls) {
+            window.userProfileVoiceControls.updateControls();
+        }
+        
+        if (window.voiceCallSection) {
+            window.voiceCallSection.syncButtonStates();
+            if (currentUserId) {
+                window.voiceCallSection.updateParticipantVoiceState(currentUserId, 'mic', this._micOn);
+                window.voiceCallSection.updateParticipantVoiceState(currentUserId, 'deafen', this._deafened);
+            }
+        }
+        
+        if (window.ChannelVoiceParticipants && currentUserId && this.currentChannelId) {
+            const instance = window.ChannelVoiceParticipants.getInstance();
+            instance.updateParticipantVoiceState(currentUserId, this.currentChannelId, 'mic', this._micOn);
+            instance.updateParticipantVoiceState(currentUserId, this.currentChannelId, 'deafen', this._deafened);
+        }
+        
+        if (currentUserId && this.currentChannelId) {
+            window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                detail: {
+                    userId: currentUserId,
+                    channelId: this.currentChannelId,
+                    type: 'mic',
+                    state: this._micOn
+                }
+            }));
+            
+            window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
+                detail: {
+                    userId: currentUserId,
+                    channelId: this.currentChannelId,
+                    type: 'deafen',
+                    state: this._deafened
+                }
+            }));
+        }
+        
+        this.validateStateConsistency();
+        
+        window.dispatchEvent(new CustomEvent('voiceStateChanged', {
+            detail: { 
+                micState: this._micOn,
+                deafenState: this._deafened,
+                source: 'voiceManager'
+            }
+        }));
+    }
+    
+    validateStateConsistency() {
+        if (window.localStorageManager) {
+            const storageState = window.localStorageManager.getUnifiedVoiceState();
+            const managerState = {
+                isMuted: !this._micOn,
+                isDeafened: this._deafened,
+                isConnected: this.isConnected
+            };
+            
+            if (storageState.isMuted !== managerState.isMuted || 
+                storageState.isDeafened !== managerState.isDeafened) {
+                
+                this.updateUnifiedVoiceState(managerState);
+            }
+        }
+    }
     
     async getOrCreateMeeting(channelId) {
 
@@ -1704,6 +1780,10 @@ class VoiceManager {
                 if (userState.user_id) {
                     this.syncSocketVoiceState(userState.user_id, 'mic', !userState.isMuted);
                     this.syncSocketVoiceState(userState.user_id, 'deafen', userState.isDeafened);
+                    
+                    if (userState.isDeafened) {
+                        this.syncSocketVoiceState(userState.user_id, 'mic', false);
+                    }
                 }
             });
         });
@@ -1716,9 +1796,7 @@ class VoiceManager {
         if (!currentUserId) return;
         
         this.broadcastVoiceState('mic', this._micOn);
-        if (this._deafened) {
-            this.broadcastVoiceState('deafen', this._deafened);
-        }
+        this.broadcastVoiceState('deafen', this._deafened);
         
         this.requestVoiceStatesFromSocket();
     }
@@ -1728,11 +1806,19 @@ class VoiceManager {
         
         if (window.voiceCallSection) {
             window.voiceCallSection.updateParticipantVoiceState(userId, type, state);
+            
+            if (type === 'deafen' && state === true) {
+                window.voiceCallSection.updateParticipantVoiceState(userId, 'mic', false);
+            }
         }
         
         if (window.ChannelVoiceParticipants) {
             const instance = window.ChannelVoiceParticipants.getInstance();
             instance.updateParticipantVoiceState(userId, this.currentChannelId, type, state);
+            
+            if (type === 'deafen' && state === true) {
+                instance.updateParticipantVoiceState(userId, this.currentChannelId, 'mic', false);
+            }
         }
         
         this.debugVoiceIndicators(userId);
