@@ -8,9 +8,6 @@ if (!headers_sent()) {
     header('Content-Security-Policy: frame-ancestors *');
 }
 
-require_once dirname(dirname(__DIR__)) . '/config/iframe.php';
-validateIframeAccess();
-
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 
 if (session_status() === PHP_SESSION_NONE) {
