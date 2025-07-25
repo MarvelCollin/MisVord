@@ -483,12 +483,12 @@ class ServerController extends BaseController
             
             $this->inviteRepository->useInvite($inviteCode);
 
+            $user = $this->userRepository->find($this->getCurrentUserId());
+
             $this->logActivity('server_joined', [
                 'server_id' => $server->id,
                 'invite_code' => $inviteCode
             ]);
-
-            $this->emitServerMemberJoinedEvent($server->id, $this->getCurrentUserId());
                 
             $redirectUrl = "/server/{$server->id}";
             
@@ -503,9 +503,30 @@ class ServerController extends BaseController
             if ($this->isApiRoute() || $this->isAjaxRequest()) {
                 return $this->success([
                     'message' => 'Successfully joined server',
+                    'server_id' => $server->id,
+                    'server_name' => $server->name,
+                    'user_data' => [
+                        'user_id' => $this->getCurrentUserId(),
+                        'username' => $user->username,
+                        'display_name' => $user->display_name ?? $user->username,
+                        'avatar_url' => $user->avatar_url ?? '/public/assets/common/default-profile-picture.png',
+                        'role' => 'member',
+                        'status' => $user->status ?? 'online',
+                        'discriminator' => $user->discriminator ?? '0000'
+                    ],
                     'redirect' => $redirectUrl
                 ]);
             } else {
+                $GLOBALS['server'] = $server;
+                $GLOBALS['user_data'] = [
+                    'user_id' => $this->getCurrentUserId(),
+                    'username' => $user->username,
+                    'display_name' => $user->display_name ?? $user->username,
+                    'avatar_url' => $user->avatar_url ?? '/public/assets/common/default-profile-picture.png',
+                    'role' => 'member',
+                    'status' => $user->status ?? 'online',
+                    'discriminator' => $user->discriminator ?? '0000'
+                ];
                 header('Location: ' . $redirectUrl);
                 exit;
             }
@@ -625,12 +646,12 @@ class ServerController extends BaseController
                 return $this->serverError('Failed to join server');
             }
 
+            $user = $this->userRepository->find($userId);
+
             $this->logActivity('server_joined_by_id', [
                 'server_id' => $serverId,
                 'user_id' => $userId
             ]);
-
-            $this->emitServerMemberJoinedEvent($serverId, $userId);
 
             http_response_code(200);
             header('Content-Type: application/json');
@@ -638,6 +659,16 @@ class ServerController extends BaseController
                 'success' => true,
                 'message' => 'Successfully joined server',
                 'server_id' => $serverId,
+                'server_name' => $server->name,
+                'user_data' => [
+                    'user_id' => $userId,
+                    'username' => $user->username,
+                    'display_name' => $user->display_name ?? $user->username,
+                    'avatar_url' => $user->avatar_url ?? '/public/assets/common/default-profile-picture.png',
+                    'role' => 'member',
+                    'status' => $user->status ?? 'online',
+                    'discriminator' => $user->discriminator ?? '0000'
+                ],
                 'redirect' => '/server/' . $serverId
             ]);
             exit;
@@ -1840,13 +1871,18 @@ class ServerController extends BaseController
             $user = $this->userRepository->find($userId);
             if (!$user) return;
             
+            $membership = $this->userServerMembershipRepository->getUserServerMembership($userId, $serverId);
+            $role = $membership ? $membership->role : 'member';
+            
             $userData = [
                 'server_id' => $serverId,
                 'user_id' => $userId,
                 'username' => $user->username,
                 'display_name' => $user->display_name ?? $user->username,
                 'avatar_url' => $user->avatar_url ?? '/public/assets/common/default-profile-picture.png',
-                'role' => 'member',
+                'role' => $role,
+                'status' => $user->status ?? 'online',
+                'discriminator' => $user->discriminator ?? '0000',
                 'timestamp' => time()
             ];
             

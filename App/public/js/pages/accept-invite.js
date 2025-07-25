@@ -66,10 +66,24 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success && data.data && data.data.redirect) {
-                    window.location.href = data.data.redirect;
-                } else if (data.redirect) {
-                    window.location.href = data.redirect;
+                if (data.success) {
+                    if (data.data && data.data.user_data) {
+                        if (window.globalSocketManager && window.globalSocketManager.isReady()) {
+                            window.globalSocketManager.io.emit('server-member-joined', {
+                                server_id: data.data.server_id,
+                                server_name: data.data.server_name,
+                                user_data: data.data.user_data
+                            });
+                        }
+                    }
+                    
+                    if (data.data && data.data.redirect) {
+                        window.location.href = data.data.redirect;
+                    } else if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = '/home';
+                    }
                 } else {
                     window.location.href = '/home';
                 }

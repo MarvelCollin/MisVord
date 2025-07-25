@@ -1,3 +1,5 @@
+import { showToast } from '../../core/ui/toast.js';
+
 class FileUploadHandler {
     constructor(chatSection) {
         this.chatSection = chatSection;
@@ -35,7 +37,7 @@ class FileUploadHandler {
         let validFiles = [];
         Array.from(files).forEach((file, index) => {
             if (file.size > (50 * 1024 * 1024)) {
-                this.chatSection.showNotification(`File ${file.name} is too large. Maximum size is 50MB`, 'error');
+                showToast(`File ${file.name} is too large. Maximum size is 50MB`, 'error');
                 return;
             }
             validFiles.push(file);
@@ -47,7 +49,7 @@ class FileUploadHandler {
         }
 
 
-        this.chatSection.showNotification(`Uploading ${validFiles.length} file${validFiles.length !== 1 ? 's' : ''}...`, 'info');
+        showToast(`Uploading ${validFiles.length} file${validFiles.length !== 1 ? 's' : ''}...`, 'info');
 
         try {
             const uploadedFiles = await this.uploadFilesToServer(validFiles);
@@ -60,14 +62,14 @@ class FileUploadHandler {
             if (this.currentFileUploads.length > 0) {
                 fileUploadArea.classList.remove('hidden');
                 fileCount.textContent = `${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`;
-                this.chatSection.showNotification(`Successfully uploaded ${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`, 'success');
+                showToast(`Successfully uploaded ${this.currentFileUploads.length} file${this.currentFileUploads.length !== 1 ? 's' : ''}`, 'success');
             }
 
             this.chatSection.updateSendButton();
 
         } catch (error) {
             console.error('❌ File upload failed:', error);
-            this.chatSection.showNotification('Failed to upload files: ' + error.message, 'error');
+            showToast('Failed to upload files: ' + error.message, 'error');
         } finally {
             this.isUploading = false;
         }

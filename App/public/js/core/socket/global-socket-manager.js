@@ -448,6 +448,7 @@
             
             window.dispatchEvent(authEvent);
             
+            this.joinCurrentServerRoom();
 
         });
         
@@ -1515,6 +1516,19 @@
             }, 'voice-state-sync');
         } else {
             this.updatePresence('online', { type: 'active' }, 'voice-state-sync');
+        }
+    }
+    
+    joinCurrentServerRoom() {
+        if (!this.isReady()) return;
+        
+        const currentPath = window.location.pathname;
+        const serverMatch = currentPath.match(/\/server\/(\d+)/);
+        
+        if (serverMatch && serverMatch[1]) {
+            const serverId = serverMatch[1];
+            this.log(`Auto-joining server room for server ID: ${serverId}`);
+            this.io.emit('join-server', { server_id: serverId });
         }
     }
 }

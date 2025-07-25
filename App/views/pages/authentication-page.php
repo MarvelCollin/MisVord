@@ -527,9 +527,7 @@ try {
                         <?php if (!empty($currentUser['avatar_url'])): ?>
                         <img src="<?php echo htmlspecialchars($currentUser['avatar_url']); ?>" alt="Profile Picture" class="w-12 h-12 rounded-full border-2 border-[#40444b]">
                         <?php else: ?>
-                        <div class="w-12 h-12 rounded-full bg-discord-blue flex items-center justify-center">
-                            <i class="fas fa-user text-white"></i>
-                        </div>
+                        <img src="<?php echo asset('assets/common/default-profile-picture.png'); ?>" alt="Default Profile Picture" class="w-12 h-12 rounded-full border-2 border-[#40444b]">
                         <?php endif; ?>
                         <div>
                             <p class="text-white font-medium"><?php echo htmlspecialchars($currentUser['display_name'] ?? $currentUser['username'] ?? 'User'); ?></p>

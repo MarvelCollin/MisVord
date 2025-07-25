@@ -124,6 +124,7 @@ let onlineUsers = {};
 let updateTimer = null;
 
 let allMembers = <?php echo json_encode($members); ?>;
+window.allMembers = allMembers;
 
 function loadSocketIO(callback) {
     if (window.io) {
@@ -155,16 +156,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (window.globalSocketManager && window.globalSocketManager.isReady()) {
         setupSocketListeners();
+        joinServerRoom();
     } else {
-        window.addEventListener('globalSocketReady', setupSocketListeners);
-        window.addEventListener('socketAuthenticated', setupSocketListeners);
+        window.addEventListener('globalSocketReady', function() {
+            setupSocketListeners();
+            joinServerRoom();
+        });
+        window.addEventListener('socketAuthenticated', function() {
+            if (!window.socketRoomJoined) {
+                window.socketRoomJoined = true;
+                joinServerRoom();
+            }
+        });
+    }
+});
+
+window.addEventListener('beforeunload', function() {
+    const serverId = getCurrentServerId();
+    if (serverId && window.globalSocketManager && window.globalSocketManager.isReady()) {
+        window.globalSocketManager.io.emit('leave-server', { server_id: serverId });
     }
 });
 
 function initializeParticipantSystem() {
-
-    window.testParticipantScroll(30);
-    
     setupFriendsManagerIntegration();
     setupVoiceEventListeners();
     updateParticipantDisplay();
@@ -270,27 +284,77 @@ function setupFriendsManagerIntegration() {
     setupSocketListeners();
 }
     
+function getCurrentServerId() {
+    return <?php echo $currentServerId; ?>;
+}
+    
 function setupSocketListeners() {
     if (window.globalSocketManager && window.globalSocketManager.io) {
+        const serverId = <?php echo $currentServerId; ?>;
+        
         window.globalSocketManager.io.on('user-presence-update', (data) => {
-
             scheduleUpdate();
         });
 
         window.globalSocketManager.io.on('server-member-joined', (data) => {
             console.log('🎉 [PARTICIPANT] Server member joined event received:', data);
-            if (data.server_id == <?php echo $currentServerId; ?>) {
-                
-                if (window.showToast) {
-                    window.showToast(`${data.display_name || data.username} joined the server`, 'success', 5000, 'New Member');
-                }
-                
-                setTimeout(async () => {
-                    await window.refreshServerMembers();
-                }, 500);
+            if (data.server_id == serverId) {
+                handleNewMemberJoined(data);
             }
         });
+
+        window.globalSocketManager.io.on('server-member-joined-global', (data) => {
+            console.log('🌍 [PARTICIPANT] Global server member joined event received:', data);
+            if (data.server_id == serverId) {
+                handleNewMemberJoined(data);
+            }
+        });
+        
+        window.globalSocketManager.io.on('server-joined', (data) => {
+            console.log(`✅ [PARTICIPANT] Successfully joined server room: ${data.room_name}`);
+        });
     }
+}
+
+function handleNewMemberJoined(data) {
+    const newMember = {
+        id: data.user_id,
+        username: data.username,
+        display_name: data.display_name,
+        avatar_url: data.avatar_url,
+        role: data.role || 'member',
+        status: data.status || 'online',
+        discriminator: data.discriminator || '0000',
+        joined_at: new Date().toISOString()
+    };
+    
+    const existingIndex = window.allMembers.findIndex(m => m.id == data.user_id);
+    if (existingIndex === -1) {
+        window.allMembers.push(newMember);
+        console.log('✅ [PARTICIPANT] Added new member to list:', newMember);
+        
+        if (window.showToast) {
+            window.showToast(`${data.display_name || data.username} joined the server`, 'success', 5000, 'New Member');
+        }
+    } else {
+        window.allMembers[existingIndex] = { ...window.allMembers[existingIndex], ...newMember };
+        console.log('✅ [PARTICIPANT] Updated existing member:', newMember);
+    }
+    
+    updateParticipantDisplay();
+}
+
+function joinServerRoom() {
+    const serverId = getCurrentServerId();
+    if (!serverId || !window.globalSocketManager || !window.globalSocketManager.isReady()) {
+        return;
+    }
+    
+    console.log(`🏠 [PARTICIPANT] Attempting to join server room for server ID: ${serverId}`);
+    window.globalSocketManager.io.emit('join-server', { 
+        server_id: serverId,
+        user_id: <?= isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'null' ?>
+    });
 }
 
 function scheduleUpdate() {
@@ -450,6 +514,12 @@ function updateParticipantDisplay() {
 
     const currentMembersToProcess = window.allMembers || allMembers;
     
+    console.log('📋 [PARTICIPANT] Processing members:', {
+        totalMembers: currentMembersToProcess.length,
+        source: window.allMembers ? 'dynamic' : 'initial',
+        sampleMembers: currentMembersToProcess.slice(0, 3).map(m => ({ id: m.id, username: m.username, role: m.role }))
+    });
+    
     currentMembersToProcess.forEach(member => {
         const role = member.role || 'member';
         const isBot = member.status === 'bot';
@@ -469,11 +539,12 @@ function updateParticipantDisplay() {
 
         member._correctedUserData = userData;
         
-        const isOnline = isBot || (userData && (userData.status === 'online' || userData.status === 'afk'));
+        const memberStatus = userData?.status || member.status || 'offline';
+        const isOnline = isBot || (memberStatus === 'online' || memberStatus === 'afk' || memberStatus === 'do_not_disturb');
         const isInVoice = userData?.activity_details?.type && 
                           (userData.activity_details.type === 'In Voice Call' || 
                            userData.activity_details.type.startsWith('In Voice'));
-        const isActuallyOffline = !isBot && (userData?.status === 'offline' || userData?.status === 'invisible');
+        const isActuallyOffline = !isBot && (memberStatus === 'offline' || memberStatus === 'invisible');
 
         const wouldHaveGreyBubble = !isBot && !isOnline && !isInVoice;
         const shouldShowAsOffline = !isBot && (isActuallyOffline || wouldHaveGreyBubble) && !isInVoice;
@@ -1101,6 +1172,14 @@ window.addParticipantScrollHandler = function() {
 
 document.addEventListener('DOMContentLoaded', function() {
     window.addParticipantScrollHandler();
+});
+
+window.addEventListener('beforeunload', function() {
+    const serverId = <?php echo $currentServerId; ?>;
+    if (serverId && window.globalSocketManager && window.globalSocketManager.io) {
+        window.globalSocketManager.io.emit('leave-server', { server_id: serverId });
+        console.log(`🚪 [PARTICIPANT] Leaving server room for server ID: ${serverId}`);
+    }
 });
 
 </script>

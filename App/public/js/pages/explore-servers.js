@@ -50,6 +50,7 @@ function initExplorePage() {
     initServerDetailTriggers();
     initScrollAnimations();
     initInfiniteScroll();
+    initSocketListeners();
 }
 
 window.initExplorePage = initExplorePage;
@@ -493,18 +494,7 @@ function handleJoinServer(serverId, button) {
     })
     .then(response => response.json())
     .then(data => {
-        
-        
         if (data.success) {
-            const redirectUrl = data.redirect;
-            
-            
-            if (redirectUrl) {
-                
-                window.location.href = redirectUrl;
-                return;
-            }
-            
             button.innerHTML = '<i class="fas fa-check mr-2"></i>Joined';
             button.classList.remove('bg-discord-primary', 'hover:bg-discord-primary-dark');
             button.classList.add('bg-discord-green');
@@ -512,6 +502,20 @@ function handleJoinServer(serverId, button) {
             
             if (window.showToast) {
                 window.showToast('Successfully joined the server!', 'success');
+            }
+
+            if (window.globalSocketManager && window.globalSocketManager.isReady() && data.user_data) {
+                window.globalSocketManager.io.emit('server-member-joined', {
+                    server_id: serverId,
+                    server_name: data.server_name,
+                    user_data: data.user_data
+                });
+            }
+            
+            const redirectUrl = data.redirect;
+            if (redirectUrl) {
+                window.location.href = redirectUrl;
+                return;
             }
         } else {
             throw new Error(data.message || 'Failed to join server');
@@ -924,5 +928,50 @@ function initLazyLoadingForNewCards(container) {
         lazyImages.forEach(img => {
             img.setAttribute('data-lazy-loaded', 'true');
         });
+    }
+}
+
+function initSocketListeners() {
+    if (window.globalSocketManager && window.globalSocketManager.io) {
+        window.globalSocketManager.io.on('server-member-joined', (data) => {
+            handleServerMemberJoined(data);
+        });
+
+        window.globalSocketManager.io.on('server-member-joined-global', (data) => {
+            handleServerMemberJoined(data);
+        });
+        
+        console.log('📡 [EXPLORE] Socket listeners initialized for server events');
+    } else {
+        window.addEventListener('globalSocketReady', initSocketListeners);
+        window.addEventListener('socketAuthenticated', initSocketListeners);
+    }
+}
+
+function handleServerMemberJoined(data) {
+    if (!data || !data.server_id) return;
+    
+    console.log('🎉 [EXPLORE] Server member joined:', data);
+    
+    const serverCard = document.querySelector(`[data-server-id="${data.server_id}"]`);
+    if (serverCard) {
+        updateServerMemberCount(serverCard, 1);
+    }
+}
+
+function updateServerMemberCount(serverCard, increment) {
+    const memberCountElement = serverCard.querySelector('.server-stats span');
+    if (memberCountElement) {
+        const currentText = memberCountElement.textContent;
+        const currentCount = parseInt(currentText.replace(/[^\d]/g, '')) || 0;
+        const newCount = currentCount + increment;
+        memberCountElement.textContent = `${newCount.toLocaleString()} members`;
+        
+        if (increment > 0) {
+            memberCountElement.style.color = '#00d26a';
+            setTimeout(() => {
+                memberCountElement.style.color = '';
+            }, 2000);
+        }
     }
 }

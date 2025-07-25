@@ -117,6 +117,71 @@ function setup(io) {
             RoomHandler.joinDMRoom(io, client, data);
         });
         
+        client.on('join-server', (data) => {
+            if (!data || !data.server_id) {
+                console.warn(`⚠️ [SERVER] Invalid join server data:`, data);
+                return;
+            }
+            
+            const serverRoom = `server_${data.server_id}`;
+            roomManager.joinRoom(client, serverRoom);
+            client.emit('server-joined', { 
+                server_id: data.server_id, 
+                room_name: serverRoom,
+                success: true 
+            });
+            
+            console.log(`🏠 [SERVER] User ${client.data?.username || client.id} joined server room: ${serverRoom}`);
+        });
+        
+        client.on('leave-server', (data) => {
+            if (!data || !data.server_id) {
+                console.warn(`⚠️ [SERVER] Invalid leave server data:`, data);
+                return;
+            }
+            
+            const serverRoom = `server_${data.server_id}`;
+            roomManager.leaveRoom(client, serverRoom);
+            client.emit('server-left', { 
+                server_id: data.server_id, 
+                room_name: serverRoom,
+                success: true 
+            });
+            
+            console.log(`🚪 [SERVER] User ${client.data?.username || client.id} left server room: ${serverRoom}`);
+        });
+
+        client.on('server-member-joined', (data) => {
+            if (!data || !data.server_id || !data.user_data) {
+                console.warn(`⚠️ [SERVER] Invalid server member joined data:`, data);
+                return;
+            }
+
+            const serverRoom = `server_${data.server_id}`;
+            const eventData = {
+                server_id: data.server_id,
+                server_name: data.server_name,
+                user_id: data.user_data.user_id,
+                username: data.user_data.username,
+                display_name: data.user_data.display_name,
+                avatar_url: data.user_data.avatar_url,
+                role: data.user_data.role,
+                status: data.user_data.status,
+                discriminator: data.user_data.discriminator,
+                timestamp: Date.now()
+            };
+
+            io.to(serverRoom).emit('server-member-joined', eventData);
+            io.emit('server-member-joined-global', eventData);
+
+            console.log(`👤 [SERVER] Member joined event broadcasted:`, {
+                serverId: data.server_id,
+                userId: data.user_data.user_id,
+                username: data.user_data.username,
+                serverRoom: serverRoom
+            });
+        });
+        
         client.on('new-channel-message', (data) => {
             console.log(`📨 [MESSAGE-CHANNEL] New channel message from ${client.id}:`, {
                 messageId: data.id || data.message_id,

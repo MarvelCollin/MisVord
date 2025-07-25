@@ -224,10 +224,10 @@ function handleServerMemberJoined(req, res) {
                 timestamp: Date.now()
             };
 
-            io.emit('server-member-joined', eventData);
+            io.emit('server-member-joined-global', eventData);
             io.to(`server_${memberData.server_id}`).emit('server-member-joined', eventData);
 
-            console.log('📢 [SERVER-MEMBER] Broadcasted member joined event:', {
+            console.log('📢 [SERVER-MEMBER] Broadcasted member joined event globally:', {
                 serverId: memberData.server_id,
                 userId: memberData.user_id,
                 username: memberData.username,
