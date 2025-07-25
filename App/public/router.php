@@ -21,8 +21,31 @@ try {
     exit;
 }
 
+require_once APP_ROOT . '/config/iframe.php';
+
 $requestUri = $_SERVER['REQUEST_URI'];
 $parsedUri = parse_url($requestUri, PHP_URL_PATH);
+
+$allowedDirectAccess = [
+    '/',
+    '/login',
+    '/register',
+    '/not-allowed',
+    '/forgot-password',
+    '/reset-password',
+    '/security-verify',
+    '/set-security-question',
+    '/google',
+    '/auth/google'
+];
+
+$isStaticFile = preg_match('/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $parsedUri);
+$isApiRoute = strpos($parsedUri, '/api/') === 0;
+$isAllowedDirectAccess = in_array($parsedUri, $allowedDirectAccess);
+
+if (!$isStaticFile && !$isAllowedDirectAccess) {
+    validateIframeAccess();
+}
 
 if (preg_match('/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|webp|map)$/', $parsedUri)) {
     $filePath = __DIR__ . $parsedUri;

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Iframe Test</title>
+</head>
+<body>
+    <h1>MisVord Iframe Test</h1>
+    <p>This page tests iframe access validation.</p>
+    
+    <h2>Direct Access Test</h2>
+    <p>Try accessing: <a href="http://localhost:1001/home" target="_blank">http://localhost:1001/home</a></p>
+    <p>This should be blocked in production mode (when IS_DEVELOPMENT = false)</p>
+    
+    <h2>Iframe Access Test</h2>
+    <iframe src="http://localhost:1001/home" width="800" height="600" frameborder="1"></iframe>
+    <p>This should work in both development and production modes</p>
+    
+    <h2>Development Mode</h2>
+    <p>Currently IS_DEVELOPMENT is set to <strong>true</strong></p>
+    <p>To test production mode, change IS_DEVELOPMENT to false in config/iframe.php</p>
+</body>
+</html>

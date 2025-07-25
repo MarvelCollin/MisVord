@@ -34,6 +34,7 @@ class ServerController extends BaseController
     public function show($id)
     {
         try {
+            $this->requireIframeAccess();
             $this->requireAuth();
 
             $server = $this->serverRepository->find($id);

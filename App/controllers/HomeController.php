@@ -38,6 +38,7 @@ class HomeController extends BaseController
             ]);
         }
 
+        $this->requireIframeAccess();
         $this->requireAuth();
 
         if (strpos($_SERVER['REQUEST_URI'] ?? '', '/home/friends') === 0) {

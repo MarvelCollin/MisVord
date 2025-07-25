@@ -26,6 +26,9 @@ class BaseController
         } else {
             $this->ajaxConfig = ['enabled' => true];
         }
+        
+        require_once __DIR__ . '/../config/iframe.php';
+        
         if (session_status() === PHP_SESSION_NONE) {
             require_once __DIR__ . '/../config/session.php';
             if (!headers_sent()) {
@@ -170,6 +173,13 @@ class BaseController
                 }
                 exit;
             }
+        }
+    }
+
+    protected function requireIframeAccess()
+    {
+        if (!validateIframeAccess()) {
+            exit;
         }
     }
 

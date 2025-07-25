@@ -16,6 +16,7 @@ class SettingsController extends BaseController
         $this->channelRepository = new ChannelRepository();
     }    public function prepareSettingsData()
     {
+        $this->requireIframeAccess();
         $this->requireAuth();
 
         $serverId = $_GET['server_id'] ?? null;

@@ -1,5 +1,7 @@
 <?php
 
+define('IS_DEVELOPMENT', false);
+
 function isIframeRequest() {
     $secFetchDest = $_SERVER['HTTP_SEC_FETCH_DEST'] ?? '';
     $secFetchSite = $_SERVER['HTTP_SEC_FETCH_SITE'] ?? '';
@@ -32,6 +34,21 @@ function isIframeRequest() {
     }
     
     return false;
+}
+
+function validateIframeAccess() {
+    if (IS_DEVELOPMENT || defined('BYPASS_IFRAME_CHECK')) {
+        return true;
+    }
+    
+    if (!isIframeRequest()) {
+        if (!headers_sent()) {
+            header('Location: /not-allowed');
+        }
+        exit;
+    }
+    
+    return true;
 }
 
 function setIframeCookieOptions() {

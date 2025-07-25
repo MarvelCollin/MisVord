@@ -44,6 +44,7 @@ class ChatController extends BaseController
 
     public function getMessages($targetType, $targetId)
     {
+        $this->requireIframeAccess();
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
 
@@ -296,6 +297,7 @@ class ChatController extends BaseController
 
     public function sendMessage()
     {
+        $this->requireIframeAccess();
         $this->requireAuth();
         $userId = $this->getCurrentUserId();
 

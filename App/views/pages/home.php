@@ -11,6 +11,9 @@ if (!headers_sent()) {
 
 ob_start();
 
+require_once dirname(dirname(__DIR__)) . '/config/iframe.php';
+validateIframeAccess();
+
 
 require_once dirname(dirname(__DIR__)) . '/config/session.php';
 

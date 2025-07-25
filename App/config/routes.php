@@ -50,6 +50,7 @@ class Route {
 }
 
 Route::get('/', 'pages/landing-page.php');
+Route::get('/not-allowed', 'pages/not-allowed.php');
 Route::get('/home', 'pages/home.php');
 Route::get('/app', function() {
     header('Location: /home');
