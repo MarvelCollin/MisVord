@@ -287,7 +287,7 @@ class VoiceCallSection {
         });
         
         socket.on('voice-state-update', (data) => {
-            
+            console.log(`🔄 [VOICE-CALL-SECTION] Received voice-state-update:`, data);
             
             if (!data.user_id || !data.channel_id || !data.type) return;
             
@@ -295,7 +295,6 @@ class VoiceCallSection {
             if (data.user_id === currentUserId) {
                 return;
             }
-            
             
             this.updateParticipantVoiceState(data.user_id, data.type, data.state);
         });
@@ -1206,7 +1205,7 @@ class VoiceCallSection {
                 videoIndicator.classList.remove('bg-red-500', 'bg-green-500');
                 videoIndicator.classList.add('bg-green-500');
                 
-                
+                console.log(`📹 [VOICE-CALL-SECTION] Updated video state for ${userId}: videoOn=${state}`);
             }
         }
     }

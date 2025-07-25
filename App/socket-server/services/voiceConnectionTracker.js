@@ -24,6 +24,7 @@ class VoiceConnectionTracker {
         this.participantStates.set(userKey, {
             isMuted: false,
             isDeafened: false,
+            videoOn: false,
             lastUpdated: Date.now()
         });
     }
@@ -35,6 +36,7 @@ class VoiceConnectionTracker {
             this.participantStates.set(userKey, {
                 isMuted: false,
                 isDeafened: false,
+                videoOn: false,
                 lastUpdated: Date.now()
             });
         }
@@ -48,6 +50,8 @@ class VoiceConnectionTracker {
             if (state === true) {
                 currentState.isMuted = true;
             }
+        } else if (type === 'video') {
+            currentState.videoOn = state;
         }
         
         currentState.lastUpdated = Date.now();
@@ -60,6 +64,7 @@ class VoiceConnectionTracker {
         return this.participantStates.get(userKey) || {
             isMuted: false,
             isDeafened: false,
+            videoOn: false,
             lastUpdated: null
         };
     }

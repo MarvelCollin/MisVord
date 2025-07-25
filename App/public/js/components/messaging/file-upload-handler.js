@@ -89,6 +89,9 @@ class FileUploadHandler {
         });
 
         if (!response.ok) {
+            if (response.status === 413) {
+                throw new Error('File(s) too large. Try smaller file sizes!');
+            }
             throw new Error(`Upload failed with status: ${response.status}`);
         }
 

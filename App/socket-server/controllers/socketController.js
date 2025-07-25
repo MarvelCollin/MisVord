@@ -767,6 +767,7 @@ function setup(io) {
                         username: participant.username,
                         isMuted: state.isMuted,
                         isDeafened: state.isDeafened,
+                        videoOn: state.videoOn,
                         lastUpdated: state.lastUpdated
                     };
                 }

@@ -1366,21 +1366,8 @@ class VoiceManager {
                 videoOn: this._videoOn
             });
             
-            window.dispatchEvent(new CustomEvent('voiceStateChanged', {
-                detail: { type: 'video', state: this._videoOn }
-            }));
-            
-            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-            if (currentUserId && this.currentChannelId) {
-                window.dispatchEvent(new CustomEvent('localVoiceStateChanged', {
-                    detail: {
-                        userId: currentUserId,
-                        channelId: this.currentChannelId,
-                        type: 'video',
-                        state: this._videoOn
-                    }
-                }));
-            }
+            this.broadcastVoiceState('video', this._videoOn);
+            this.syncUIComponents();
             
             this.forceStreamSync();
             this.ensureAllParticipantsSeeMyCam();
@@ -1582,6 +1569,7 @@ class VoiceManager {
             detail: { 
                 micState: this._micOn,
                 deafenState: this._deafened,
+                videoState: this._videoOn,
                 source: 'voiceManager'
             }
         }));
@@ -1767,13 +1755,17 @@ class VoiceManager {
     broadcastVoiceState(type, state) {
         if (!window.globalSocketManager?.io || !this.currentChannelId) return;
         
+        const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+        if (!currentUserId) return;
+        
         const stateData = {
             channel_id: this.currentChannelId,
+            user_id: currentUserId,
             type: type,
             state: state
         };
         
-        
+        console.log(`📡 [VOICE-MANAGER] Broadcasting voice state:`, stateData);
         
         window.globalSocketManager.io.emit('voice-state-change', stateData);
     }
@@ -1803,6 +1795,7 @@ class VoiceManager {
                 if (userState.user_id) {
                     this.syncSocketVoiceState(userState.user_id, 'mic', !userState.isMuted);
                     this.syncSocketVoiceState(userState.user_id, 'deafen', userState.isDeafened);
+                    this.syncSocketVoiceState(userState.user_id, 'video', userState.videoOn);
                     
                     if (userState.isDeafened) {
                         this.syncSocketVoiceState(userState.user_id, 'mic', false);
@@ -1820,6 +1813,7 @@ class VoiceManager {
         
         this.broadcastVoiceState('mic', this._micOn);
         this.broadcastVoiceState('deafen', this._deafened);
+        this.broadcastVoiceState('video', this._videoOn);
         
         this.requestVoiceStatesFromSocket();
     }
