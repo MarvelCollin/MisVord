@@ -426,29 +426,29 @@ ob_start();
                 <p class="text-sm md:text-base text-discord-lighter mb-4 md:mb-6">Manage channel names and settings for your server.</p>
                 
                 <div class="channels-header-section">
-                    <div class="channels-controls flex flex-col sm:flex-row gap-3 mb-4">
-                        <div class="search-container flex-grow">
-                            <div class="search-input-wrapper relative">
-                                <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-discord-lighter text-sm"></i>
-                                <input type="text" id="channel-search" class="w-full pl-10 pr-4 py-2 bg-discord-dark-input text-white rounded-md border border-discord-darker focus:ring-2 focus:ring-discord-primary text-sm" placeholder="Search channels">
-                            </div>
+                <div class="channels-controls flex flex-col sm:flex-row gap-3 mb-4">
+                    <div class="search-container flex-grow">
+                        <div class="search-input-wrapper relative">
+                            <i class="fas fa-search search-icon absolute left-3 top-1/2 transform -translate-y-1/2 text-discord-lighter text-sm pointer-events-none"></i>
+                            <input type="text" id="channel-search" class="w-full pl-10 pr-4 py-2 bg-discord-dark-input text-white rounded-md border border-discord-darker focus:ring-2 focus:ring-discord-primary text-sm" placeholder="Search channels">
                         </div>
-                        
-                        <div class="controls-right">
-                            <div id="channel-filter" class="filter-dropdown-container relative">
-                                <button type="button" class="filter-button flex items-center justify-between w-full sm:w-auto bg-discord-dark-input text-white px-4 py-2 rounded-md border border-discord-darker hover:bg-discord-bg-hover text-sm">
-                                    <span class="filter-selected-text">All Channels</span>
-                                    <i class="fas fa-chevron-down filter-arrow ml-2 text-xs"></i>
-                                </button>
-                                
-                                <div id="channel-filter-dropdown" class="filter-dropdown absolute top-full right-0 mt-1 bg-discord-darker border border-discord-dark rounded-md shadow-lg z-20 min-w-[150px] hidden">
-                                    <div class="filter-option flex items-center px-3 py-2 hover:bg-discord-bg-hover cursor-pointer text-sm" data-filter="all">
-                                        <div class="radio-container mr-2">
-                                            <input type="radio" name="channel-filter" checked class="radio-input sr-only">
-                                            <div class="radio-dot w-3 h-3 rounded-full border border-discord-lighter"></div>
-                                        </div>
-                                        <span>All Channels</span>
+                    </div>
+                    
+                    <div class="controls-right">
+                        <div id="channel-filter" class="filter-dropdown-container relative">
+                            <button type="button" class="filter-button flex items-center justify-between w-full sm:w-auto bg-discord-dark-input text-white px-4 py-2 rounded-md border border-discord-darker hover:bg-discord-bg-hover text-sm">
+                                <span class="filter-selected-text">All Channels</span>
+                                <i class="fas fa-chevron-down filter-arrow ml-2 text-xs"></i>
+                            </button>
+                            
+                            <div id="channel-filter-dropdown" class="filter-dropdown absolute top-full right-0 mt-1 bg-discord-darker border border-discord-dark rounded-md shadow-lg z-20 min-w-[150px] hidden">
+                                <div class="filter-option flex items-center px-3 py-2 hover:bg-discord-bg-hover cursor-pointer text-sm" data-filter="all">
+                                    <div class="radio-container mr-2">
+                                        <input type="radio" name="channel-filter" checked class="radio-input sr-only">
+                                        <div class="radio-dot w-3 h-3 rounded-full border border-discord-lighter"></div>
                                     </div>
+                                    <span>All Channels</span>
+                                </div>
                                     <div class="filter-option flex items-center px-3 py-2 hover:bg-discord-bg-hover cursor-pointer text-sm" data-filter="text">
                                         <div class="radio-container mr-2">
                                             <input type="radio" name="channel-filter" class="radio-input sr-only">

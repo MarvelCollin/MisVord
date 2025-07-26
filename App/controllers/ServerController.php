@@ -1587,11 +1587,21 @@ class ServerController extends BaseController
                     break;
                 case 'admin':
                     error_log("Admin -> Owner promotion detected, performing ownership transfer");
-                    $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $userId);
+                    error_log("Transfer parameters: serverId=$serverId, currentOwner=$currentUserId, newOwner=$userId");
+                    $transferResult = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $userId);
                     
-                    if (!$transferSuccess) {
-                        error_log("Ownership transfer failed for admin promotion");
-                        throw new Exception('Failed to transfer ownership');
+                    if (!$transferResult['success']) {
+                        $errorDetails = [
+                            'server_id' => $serverId,
+                            'current_owner_id' => $currentUserId,
+                            'new_owner_id' => $userId,
+                            'error_type' => $transferResult['error_type'] ?? 'unknown',
+                            'error_message' => $transferResult['error_message'] ?? 'Unknown error',
+                            'step_failed' => $transferResult['step_failed'] ?? 'unknown'
+                        ];
+                        
+                        error_log("Ownership transfer failed for admin promotion - Details: " . json_encode($errorDetails));
+                        throw new Exception("Failed to transfer ownership: {$errorDetails['error_message']} at step: {$errorDetails['step_failed']}");
                     }
                     
                     $this->logActivity('ownership_transferred_via_promotion', [
@@ -2355,9 +2365,9 @@ class ServerController extends BaseController
             }
             
             $newOwnerVerify = $membershipRepository->findByUserAndServer($newOwnerId, $serverId);
-            if (!$newOwnerVerify || $newOwnerVerify->role !== 'admin') {
-                error_log("Transfer ownership error: New owner verification failed - User ID: $newOwnerId, Server ID: $serverId, Found role: " . ($newOwnerVerify ? $newOwnerVerify->role : 'not found'));
-                return $this->validationError(['new_owner_id' => 'Selected user must be an admin to receive ownership. Current role: ' . ($newOwnerVerify ? $newOwnerVerify->role : 'not a member')]);
+            if (!$newOwnerVerify) {
+                error_log("Transfer ownership error: New owner not a member - User ID: $newOwnerId, Server ID: $serverId");
+                return $this->validationError(['new_owner_id' => 'Selected user must be a member of this server']);
             }
             
             $transferResult = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $newOwnerId);

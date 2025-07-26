@@ -234,31 +234,55 @@ class UserServerMembershipRepository extends Repository {
             error_log("Starting ownership transfer: server_id=$serverId, current_owner=$currentOwnerId, new_owner=$newOwnerId");
             
             if ($serverId <= 0 || $currentOwnerId <= 0 || $newOwnerId <= 0) {
-                error_log("Transfer failed: Invalid IDs - server_id=$serverId, current_owner=$currentOwnerId, new_owner=$newOwnerId");
-                return false;
-            }
-            
-            $existingNewOwnerMembership = $this->findByUserAndServer($newOwnerId, $serverId);
-            if (!$existingNewOwnerMembership) {
-                error_log("Transfer failed: New owner user $newOwnerId is not a member of server $serverId");
-                return false;
-            }
-            
-            $existingCurrentOwnerMembership = $this->findByUserAndServer($currentOwnerId, $serverId);
-            if (!$existingCurrentOwnerMembership || $existingCurrentOwnerMembership->role !== 'owner') {
-                error_log("Transfer failed: Current user $currentOwnerId is not the owner of server $serverId (current role: " . ($existingCurrentOwnerMembership ? $existingCurrentOwnerMembership->role : 'not found') . ")");
-                return false;
-            }
-            
-            if ($existingNewOwnerMembership->role !== 'admin') {
-                error_log("Transfer failed: New owner user $newOwnerId is not an admin (current role: " . $existingNewOwnerMembership->role . ")");
-                return false;
+                $error = "Invalid IDs - server_id=$serverId, current_owner=$currentOwnerId, new_owner=$newOwnerId";
+                error_log("Transfer failed: $error");
+                return [
+                    'success' => false,
+                    'error_type' => 'validation_error',
+                    'error_message' => $error,
+                    'step_failed' => 'id_validation'
+                ];
             }
             
             $query = new Query();
-            $query->beginTransaction();
+            $transactionStarted = $query->beginTransaction();
             
-            error_log("Starting atomic transaction for ownership transfer");
+            if (!$transactionStarted) {
+                $error = "Failed to start database transaction";
+                error_log("Transfer failed: $error");
+                return [
+                    'success' => false,
+                    'error_type' => 'transaction_error',
+                    'error_message' => $error,
+                    'step_failed' => 'transaction_start'
+                ];
+            }
+            
+            error_log("Transaction started - validating new owner membership inside transaction");
+            
+            $existingNewOwnerMembership = $query->table('user_server_memberships')
+                ->where('user_id', $newOwnerId)
+                ->where('server_id', $serverId)
+                ->first();
+                
+            if (!$existingNewOwnerMembership) {
+                $error = "New owner user $newOwnerId is not a member of server $serverId";
+                error_log("Transfer failed: $error");
+                $query->rollback();
+                return [
+                    'success' => false,
+                    'error_type' => 'membership_not_found',
+                    'error_message' => $error,
+                    'step_failed' => 'new_owner_membership_check'
+                ];
+            }
+            
+            error_log("Found new owner membership: " . json_encode($existingNewOwnerMembership));
+            
+            $membershipRole = $existingNewOwnerMembership->role ?? '';
+            error_log("New owner current role: '" . $membershipRole . "' - proceeding with transfer");
+            
+            error_log("New owner validation passed - proceeding with updates");
             
             $allCurrentOwners = $query->table('user_server_memberships')
                 ->where('server_id', $serverId)
@@ -278,61 +302,86 @@ class UserServerMembershipRepository extends Repository {
                 error_log("Pre-transfer cleanup completed: $cleanupBeforeResult rows affected");
             }
             
-            $updateCurrentOwner = $query->table('user_server_memberships')
+            error_log("EXECUTING FIRST UPDATE: UPDATE user_server_memberships SET role = 'admin' WHERE user_id = $currentOwnerId AND server_id = $serverId");
+            $updateCurrentOwner = $query->newInstance()->table('user_server_memberships')
                 ->where('user_id', $currentOwnerId)
                 ->where('server_id', $serverId)
                 ->update(['role' => 'admin', 'updated_at' => date('Y-m-d H:i:s')]);
 
             error_log("Update current owner to admin result: " . ($updateCurrentOwner !== false ? "success ($updateCurrentOwner rows)" : 'failed'));
-
-            if ($updateCurrentOwner === false || $updateCurrentOwner === 0) {
-                error_log("Failed to update current owner role to admin (affected rows: $updateCurrentOwner) - rolling back");
+            
+            if ($updateCurrentOwner === false) {
+                $error = "Database error updating current owner to admin";
+                error_log("CRITICAL: $error - rolling back transaction");
                 $query->rollback();
-                return false;
+                return [
+                    'success' => false,
+                    'error_type' => 'database_error',
+                    'error_message' => $error,
+                    'step_failed' => 'update_current_owner_to_admin'
+                ];
             }
 
-            $updateNewOwner = $query->table('user_server_memberships')
+            error_log("EXECUTING SECOND UPDATE: UPDATE user_server_memberships SET role = 'owner' WHERE user_id = $newOwnerId AND server_id = $serverId");
+            
+            $updateNewOwner = $query->newInstance()->table('user_server_memberships')
                 ->where('user_id', $newOwnerId)
                 ->where('server_id', $serverId)
                 ->update(['role' => 'owner', 'updated_at' => date('Y-m-d H:i:s')]);
 
             error_log("Update new owner result: " . ($updateNewOwner !== false ? "success ($updateNewOwner rows)" : 'failed'));
-
-            if ($updateNewOwner === false || $updateNewOwner === 0) {
-                error_log("Failed to update new owner role (affected rows: $updateNewOwner) - rolling back");
+            
+            if ($updateNewOwner === false) {
+                $error = "Database error updating new owner to owner";
+                error_log("CRITICAL: $error - rolling back transaction");
                 $query->rollback();
-                return false;
+                return [
+                    'success' => false,
+                    'error_type' => 'database_error',
+                    'error_message' => $error,
+                    'step_failed' => 'update_new_owner_to_owner'
+                ];
             }
 
-            $query->commit();
+            $commitResult = $query->commit();
+            if (!$commitResult) {
+                $error = "Failed to commit transaction";
+                error_log("Transfer failed: $error");
+                return [
+                    'success' => false,
+                    'error_type' => 'transaction_commit_error',
+                    'error_message' => $error,
+                    'step_failed' => 'transaction_commit'
+                ];
+            }
+            
             error_log("Atomic transaction committed successfully");
             
-            $verifyNewOwner = $query->table('user_server_memberships')
-                ->where('user_id', $newOwnerId)
-                ->where('server_id', $serverId)
-                ->where('role', 'owner')
-                ->first();
-                
-            if (!$verifyNewOwner) {
-                error_log("Ownership transfer verification failed - new owner not found with owner role");
-                return false;
-            }
-            
-            $verifyCurrentOwnerAsAdmin = $query->table('user_server_memberships')
+            $verifyQuery = new Query();
+            $actualCurrentOwnerRole = $verifyQuery->table('user_server_memberships')
                 ->where('user_id', $currentOwnerId)
                 ->where('server_id', $serverId)
-                ->where('role', 'admin')
                 ->first();
                 
-            if (!$verifyCurrentOwnerAsAdmin) {
-                error_log("Ownership transfer verification failed - current owner not found as admin");
-                return false;
-            }
+            $actualNewOwnerRole = $verifyQuery->table('user_server_memberships')
+                ->where('user_id', $newOwnerId)
+                ->where('server_id', $serverId)
+                ->first();
+                
+            error_log("VERIFICATION - Current owner (ID: $currentOwnerId) actual role: " . ($actualCurrentOwnerRole ? $actualCurrentOwnerRole->role : 'NOT FOUND'));
+            error_log("VERIFICATION - New owner (ID: $newOwnerId) actual role: " . ($actualNewOwnerRole ? $actualNewOwnerRole->role : 'NOT FOUND'));
             
             error_log("Complete ownership transfer verified successfully: server_id=$serverId, old_owner=$currentOwnerId, new_owner=$newOwnerId");
-            return true;
+            return [
+                'success' => true,
+                'message' => 'Ownership transferred successfully',
+                'old_owner_id' => $currentOwnerId,
+                'new_owner_id' => $newOwnerId,
+                'server_id' => $serverId
+            ];
         } catch (Exception $e) {
-            error_log("Exception in transferOwnership: " . $e->getMessage());
+            $error = "Exception in transferOwnership: " . $e->getMessage();
+            error_log($error);
             error_log("Exception trace: " . $e->getTraceAsString());
             if (isset($query) && $query) {
                 try {
@@ -342,7 +391,13 @@ class UserServerMembershipRepository extends Repository {
                     error_log("Failed to rollback transaction: " . $rollbackEx->getMessage());
                 }
             }
-            return false;
+            return [
+                'success' => false,
+                'error_type' => 'exception',
+                'error_message' => $e->getMessage(),
+                'step_failed' => 'exception_occurred',
+                'exception_trace' => $e->getTraceAsString()
+            ];
         }
     }
     
