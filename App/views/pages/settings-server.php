@@ -264,7 +264,7 @@ ob_start();
                                     <i class="fas fa-chevron-down filter-arrow ml-2 text-xs"></i>
                                 </button>
                                 
-                                <div id="filter-dropdown" class="filter-dropdown absolute top-full right-0 mt-1 bg-discord-darker border border-discord-dark rounded-md shadow-lg z-20 min-w-[150px] hidden">
+                                <div id="member-filter-dropdown" class="filter-dropdown absolute top-full right-0 mt-1 bg-discord-darker border border-discord-dark rounded-md shadow-lg z-20 min-w-[150px] hidden">
                                     <div class="filter-option flex items-center px-3 py-2 hover:bg-discord-bg-hover cursor-pointer text-sm" data-filter="all">
                                         <div class="radio-container mr-2">
                                             <input type="radio" name="filter" checked class="radio-input sr-only">

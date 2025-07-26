@@ -1,15 +1,5 @@
 function initChannelManagementTab() {
-    console.log('INIT: Channel Management Tab Starting');
-    
-    const elementsCheck = {
-        channelFilter: document.getElementById('channel-filter'),
-        filterButton: document.querySelector('#channel-filter .filter-button'),
-        filterDropdown: document.getElementById('channel-filter-dropdown'),
-        filterOptions: document.querySelectorAll('#channel-filter-dropdown .filter-option')
-    };
-    
-    console.log('INIT: Elements Check:', elementsCheck);
-    console.log('INIT: Current URL section:', new URLSearchParams(window.location.search).get('section'));
+    console.log('Initializing Channel Management Tab');
     
     const channelsList = document.getElementById('channels-list');
     const channelSearch = document.getElementById('channel-search');
@@ -19,6 +9,7 @@ function initChannelManagementTab() {
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
     
     if (!channelsList || !channelTemplate || !serverId) {
+        console.error('Missing required elements for channel management');
         return;
     }
     
@@ -33,59 +24,46 @@ function initChannelManagementTab() {
             </div>
         `;
         
-        try {
-
-            fetch(`/api/servers/${serverId}/channels`, {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+        fetch(`/api/servers/${serverId}/channels`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(async response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                    return;
                 }
-            })
-            .then(async response => {
-                if (!response.ok) {
-                    if (response.status === 401) {
-                        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                        return;
-                    }
-                    try {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
-                    } catch (jsonError) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
+                try {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || errorData.error || `HTTP error! Status: ${response.status}`);
+                } catch (jsonError) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-                return response.json();
-            })
-            .then(response => {
-                if (response && response.success) {
-                    if (response.data && response.data.channels) {
-                        allChannels = response.data.channels;
-                    } else if (response.channels) {
-                        allChannels = response.channels;
-                    } else {
-                        allChannels = [];
-                    }
-                    
-                    filterChannels(currentFilter);
+            }
+            return response.json();
+        })
+        .then(response => {
+            if (response && response.success) {
+                if (response.data && response.data.channels) {
+                    allChannels = response.data.channels;
+                } else if (response.channels) {
+                    allChannels = response.channels;
                 } else {
-                    throw new Error(response.message || 'Failed to load server channels');
+                    allChannels = [];
                 }
-            })
-            .catch(error => {
-                console.error('Error loading server channels:', error);
                 
-                channelsList.innerHTML = `
-                    <div class="channels-empty-state">
-                        <i class="fas fa-exclamation-triangle text-red-400"></i>
-                        <div class="text-lg">Error loading channels</div>
-                        <div class="text-sm">Please try refreshing the page</div>
-                    </div>
-                `;
-            });
-        } catch (error) {
-            console.error('Error initiating channel loading:', error);
+                filterChannels(currentFilter);
+            } else {
+                throw new Error(response.message || 'Failed to load server channels');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading server channels:', error);
             
             channelsList.innerHTML = `
                 <div class="channels-empty-state">
@@ -94,7 +72,7 @@ function initChannelManagementTab() {
                     <div class="text-sm">Please try refreshing the page</div>
                 </div>
             `;
-        }
+        });
     }
     
     function filterChannels(filterType) {
@@ -107,52 +85,25 @@ function initChannelManagementTab() {
                 }
                 return channel.type.toLowerCase() === filterType.toLowerCase();
             });
-            console.log(`📊 Filtered from ${beforeFilter} to ${filteredChannels.length} channels`);
         }
         
         filteredChannels.sort((a, b) => {
             return (a.position || 0) - (b.position || 0);
         });
         
-        console.log('📤 Rendering filtered channels:', filteredChannels.length);
         renderChannels(filteredChannels);
     }
     
     if (filterOptions) {
-        console.log('🎛️ Setting up filter options:', filterOptions.length);
-        
-        const firstOption = filterOptions[0];
-        if (firstOption) {
-            console.log('✅ Setting default selection on first option:', firstOption.textContent.trim());
-            const firstRadio = firstOption.querySelector('input[type="radio"]');
-            if (firstRadio) firstRadio.checked = true;
-            const firstRadioDot = firstOption.querySelector('.radio-dot');
-            if (firstRadioDot) firstRadioDot.classList.add('checked');
-        }
-        
-        filterOptions.forEach((option, index) => {
-            option.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
+        filterOptions.forEach(option => {
+            option.addEventListener('click', function() {
                 filterOptions.forEach(opt => {
-                    const radio = opt.querySelector('input[type="radio"]');
-                    if (radio) radio.checked = false;
-                    const radioDot = opt.querySelector('.radio-dot');
-                    if (radioDot) radioDot.classList.remove('checked');
+                    opt.querySelector('input[type="radio"]').checked = false;
                 });
-                
-                const radio = this.querySelector('input[type="radio"]');
-                if (radio) radio.checked = true;
-                const radioDot = this.querySelector('.radio-dot');
-                if (radioDot) radioDot.classList.add('checked');
+                this.querySelector('input[type="radio"]').checked = true;
                 
                 if (channelFilter) {
-                    const selectedText = channelFilter.querySelector('.filter-selected-text');
-                    if (selectedText) {
-                        console.log('📝 Updating filter button text to:', this.textContent.trim());
-                        selectedText.textContent = this.textContent.trim();
-                    }
+                    channelFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
                     
                     const filterDropdown = document.getElementById('channel-filter-dropdown');
                     if (filterDropdown) {
@@ -164,63 +115,24 @@ function initChannelManagementTab() {
                 filterChannels(currentFilter);
             });
         });
-    } else {
     }
     
     if (channelFilter) {
-        const filterButton = channelFilter.querySelector('.filter-button');
-        const filterDropdown = document.getElementById('channel-filter-dropdown');
-        
-        if (filterButton && filterDropdown) {
-            console.log('✅ Both filter button and dropdown found, binding click event');
-            
-            filterButton.addEventListener('click', function(e) {
-                console.log('🖱️ Filter button clicked! Event details:', {
-                    target: e.target,
-                    currentTarget: e.currentTarget,
-                    type: e.type
-                });
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const wasHidden = filterDropdown.classList.contains('hidden');
-                console.log('📊 Before toggle - dropdown hidden:', wasHidden);
-                
-                if (wasHidden) {
-                    filterDropdown.classList.remove('hidden');
-                    console.log('� Dropdown SHOWN');
-                } else {
-                    filterDropdown.classList.add('hidden');
-                    console.log('� Dropdown HIDDEN');
-                }
-                
-                console.log('� After toggle:', {
-                    classes: filterDropdown.className,
-                    display: window.getComputedStyle(filterDropdown).display,
-                    visibility: window.getComputedStyle(filterDropdown).visibility
-                });
-            }, true);
-            
-            console.log('✅ Click event listener added successfully');
-        } else {
-            console.error('❌ Missing elements:', {
-                filterButton: !!filterButton,
-                filterDropdown: !!filterDropdown
-            });
-        }
+        channelFilter.addEventListener('click', function(e) {
+            const filterDropdown = document.getElementById('channel-filter-dropdown');
+            if (filterDropdown) {
+                filterDropdown.classList.toggle('hidden');
+            }
+        });
         
         document.addEventListener('click', function(e) {
             if (!channelFilter.contains(e.target)) {
                 const filterDropdown = document.getElementById('channel-filter-dropdown');
                 if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
-                    console.log('🔒 Closing dropdown due to outside click');
                     filterDropdown.classList.add('hidden');
                 }
             }
         });
-    } else {
-        console.error('❌ Channel filter element not found!');
     }
     
     function renderChannels(channels) {
@@ -622,81 +534,7 @@ function initChannelManagementTab() {
         }, 300));
     }
     
-    console.log('🚀 Starting channel loading...');
     loadChannels();
-    
-    setupBackupEventHandlers();
-}
-
-function setupBackupEventHandlers() {
-    console.log('BACKUP: Setting up backup event handlers');
-    
-    const filterButton = document.querySelector('#channel-filter .filter-button');
-    const filterDropdown = document.getElementById('channel-filter-dropdown');
-    
-    console.log('BACKUP: Elements found:', {
-        filterButton: !!filterButton,
-        filterDropdown: !!filterDropdown
-    });
-    
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('#channel-filter .filter-button')) {
-            console.log('BACKUP: Event delegation click detected!');
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const filterDropdown = document.getElementById('channel-filter-dropdown');
-            if (filterDropdown) {
-                const wasHidden = filterDropdown.classList.contains('hidden');
-                console.log('BACKUP: Dropdown was hidden:', wasHidden);
-                if (wasHidden) {
-                    filterDropdown.classList.remove('hidden');
-                    filterDropdown.style.display = 'block';
-                    filterDropdown.style.visibility = 'visible';
-                    filterDropdown.style.opacity = '1';
-                    filterDropdown.style.pointerEvents = 'auto';
-                    filterDropdown.style.zIndex = '99999';
-                    console.log('BACKUP: Dropdown SHOWN');
-                } else {
-                    filterDropdown.classList.add('hidden');
-                    filterDropdown.style.display = 'none';
-                    filterDropdown.style.visibility = 'hidden';
-                    console.log('BACKUP: Dropdown HIDDEN');
-                }
-            } else {
-                console.log('BACKUP: Dropdown not found!');
-            }
-        }
-    }, true);
-    
-    if (filterButton) {
-        console.log('BACKUP: Adding direct onclick handler');
-        filterButton.onclick = function(e) {
-            console.log('BACKUP: Direct onclick triggered!');
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const filterDropdown = document.getElementById('channel-filter-dropdown');
-            if (filterDropdown) {
-                const wasHidden = filterDropdown.classList.contains('hidden');
-                if (wasHidden) {
-                    filterDropdown.classList.remove('hidden');
-                    filterDropdown.style.display = 'block';
-                    filterDropdown.style.visibility = 'visible';
-                    filterDropdown.style.opacity = '1';
-                    filterDropdown.style.pointerEvents = 'auto';
-                    filterDropdown.style.zIndex = '99999';
-                } else {
-                    filterDropdown.classList.add('hidden');
-                    filterDropdown.style.display = 'none';
-                    filterDropdown.style.visibility = 'hidden';
-                }
-                console.log('BACKUP: Dropdown toggled, now hidden:', filterDropdown.classList.contains('hidden'));
-            }
-        };
-    } else {
-        console.log('BACKUP: Filter button not found!');
-    }
 }
 
 function updateServerPreviewBanner(imageUrl) {
@@ -1532,6 +1370,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         serverSettingsInitialized = true;
         initServerSettingsPage();
+        
+        setTimeout(() => {
+            const allDropdownButtons = document.querySelectorAll('.filter-button');
+            allDropdownButtons.forEach(button => {
+                const parent = button.closest('.filter-dropdown-container');
+                if (parent) {
+                    const dropdown = parent.querySelector('.filter-dropdown, [id$="-dropdown"]');
+                    if (dropdown && !button.dataset.initialized) {
+                        button.dataset.initialized = 'true';
+                        button.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dropdown.classList.toggle('hidden');
+                        });
+                        
+                        document.addEventListener('click', function(e) {
+                            if (!parent.contains(e.target)) {
+                                dropdown.classList.add('hidden');
+                            }
+                        });
+                    }
+                }
+            });
+        }, 100);
     }
 });
 
@@ -1910,12 +1772,59 @@ function initMemberManagementTab() {
     const memberSearch = document.getElementById('member-search');
     const memberTemplate = document.getElementById('member-template');
     const memberFilter = document.getElementById('member-filter');
-    const filterOptions = document.querySelectorAll('#filter-dropdown .filter-option');
+    const filterDropdown = document.getElementById('member-filter-dropdown');
+    const filterButton = memberFilter?.querySelector('.filter-button');
+    const filterOptions = document.querySelectorAll('#member-filter-dropdown .filter-option');
     const serverId = document.querySelector('meta[name="server-id"]')?.content;
     const userRole = document.querySelector('meta[name="user-role"]')?.content || 'member';
     
-
     document.body.dataset.userRole = userRole;
+    
+    if (!membersList || !memberTemplate || !serverId) return;
+    
+    let allMembers = [];
+    let currentFilter = 'all';
+    let isLoadingMembers = false;
+    
+    if (filterButton && filterDropdown) {
+        filterButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            filterDropdown.classList.toggle('hidden');
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!memberFilter.contains(e.target)) {
+                filterDropdown.classList.add('hidden');
+            }
+        });
+    }
+    
+    if (filterOptions.length > 0) {
+        filterOptions.forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                filterOptions.forEach(opt => {
+                    const radio = opt.querySelector('input[type="radio"]');
+                    if (radio) radio.checked = false;
+                });
+                
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) radio.checked = true;
+                
+                const selectedText = filterButton?.querySelector('.filter-selected-text');
+                if (selectedText) {
+                    selectedText.textContent = this.textContent.trim();
+                }
+                
+                filterDropdown.classList.add('hidden');
+                currentFilter = this.dataset.filter;
+                filterMembers(currentFilter);
+            });
+        });
+    }
     
     function getMemberPermissions(currentUserRole, currentUserId, member, isBot) {
         const isCurrentUser = String(member.id) === String(currentUserId);
@@ -1929,12 +1838,6 @@ function initMemberManagementTab() {
             canTransferOwnership: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser
         };
     }
-    
-    if (!membersList || !memberTemplate || !serverId) return;
-    
-    let allMembers = [];
-    let currentFilter = 'all';
-    let isLoadingMembers = false;
     
     async function loadMembers() {
         if (isLoadingMembers) {
@@ -2027,7 +1930,7 @@ function initMemberManagementTab() {
                 if (memberFilter) {
                     memberFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
                     
-                    const filterDropdown = document.getElementById('filter-dropdown');
+                    const filterDropdown = document.getElementById('member-filter-dropdown');
                     if (filterDropdown) {
                         filterDropdown.classList.add('hidden');
                     }
@@ -2041,7 +1944,7 @@ function initMemberManagementTab() {
     
     if (memberFilter) {
         memberFilter.addEventListener('click', function(e) {
-            const filterDropdown = document.getElementById('filter-dropdown');
+            const filterDropdown = document.getElementById('member-filter-dropdown');
             if (filterDropdown) {
                 filterDropdown.classList.toggle('hidden');
             }
@@ -2049,7 +1952,7 @@ function initMemberManagementTab() {
         
         document.addEventListener('click', function(e) {
             if (!memberFilter.contains(e.target)) {
-                const filterDropdown = document.getElementById('filter-dropdown');
+                const filterDropdown = document.getElementById('member-filter-dropdown');
                 if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
                     filterDropdown.classList.add('hidden');
                 }
@@ -2667,392 +2570,3 @@ function initMemberManagementTab() {
     loadMembers();
 }
 
-window.diagnoseFilterIssue = function() {
-    console.log('=== COMPREHENSIVE FILTER DIAGNOSIS ===');
-    
-    // Check URL section
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentSection = urlParams.get('section');
-    console.log('1. Current URL section:', currentSection);
-    
-    // Check if we're on the channels page
-    const isChannelsPage = currentSection === 'channels';
-    console.log('2. Is channels page:', isChannelsPage);
-    
-    // Check for all related elements
-    const elements = {
-        channelFilter: document.getElementById('channel-filter'),
-        filterButton: document.querySelector('#channel-filter .filter-button'),
-        filterDropdown: document.getElementById('channel-filter-dropdown'),
-        filterOptions: document.querySelectorAll('#channel-filter-dropdown .filter-option')
-    };
-    
-    console.log('3. Elements existence:');
-    Object.entries(elements).forEach(([name, element]) => {
-        console.log(`   ${name}:`, !!element);
-        if (element) {
-            console.log(`   ${name} classes:`, element.className);
-            console.log(`   ${name} visible:`, element.offsetParent !== null);
-        }
-    });
-    
-    // Check dropdown specific details
-    if (elements.filterDropdown) {
-        const computedStyle = window.getComputedStyle(elements.filterDropdown);
-        console.log('4. Dropdown computed styles:');
-        console.log('   display:', computedStyle.display);
-        console.log('   visibility:', computedStyle.visibility);
-        console.log('   opacity:', computedStyle.opacity);
-        console.log('   z-index:', computedStyle.zIndex);
-        console.log('   position:', computedStyle.position);
-        
-        const rect = elements.filterDropdown.getBoundingClientRect();
-        console.log('5. Dropdown position:');
-        console.log('   top:', rect.top);
-        console.log('   left:', rect.left);
-        console.log('   width:', rect.width);
-        console.log('   height:', rect.height);
-    }
-    
-    // Check button click handlers
-    if (elements.filterButton) {
-        console.log('6. Button event handlers:');
-        console.log('   onclick function exists:', typeof elements.filterButton.onclick === 'function');
-        console.log('   button disabled:', elements.filterButton.disabled);
-        
-        // Test manual click
-        console.log('7. Testing manual click simulation...');
-        try {
-            elements.filterButton.click();
-            console.log('   Manual click executed');
-        } catch (error) {
-            console.log('   Manual click error:', error);
-        }
-    }
-    
-    console.log('=== END DIAGNOSIS ===');
-    return elements;
-};
-
-window.testDropdown = function() {
-    console.log('TEST: Manual dropdown test');
-    const dropdown = document.getElementById('channel-filter-dropdown');
-    const button = document.querySelector('#channel-filter .filter-button');
-    
-    console.log('TEST: Elements:', {
-        dropdown: !!dropdown,
-        button: !!button,
-        dropdownClasses: dropdown?.className,
-        buttonExists: !!button
-    });
-    
-    if (dropdown) {
-        const wasHidden = dropdown.classList.contains('hidden');
-        if (wasHidden) {
-            dropdown.classList.remove('hidden');
-            dropdown.style.display = 'block';
-            dropdown.style.visibility = 'visible';
-            dropdown.style.opacity = '1';
-            dropdown.style.pointerEvents = 'auto';
-            dropdown.style.zIndex = '99999';
-            dropdown.style.position = 'absolute';
-            dropdown.style.backgroundColor = '#2f3136';
-            dropdown.style.border = '3px solid lime';
-            console.log('TEST: FORCE SHOWN dropdown');
-        } else {
-            dropdown.classList.add('hidden');
-            dropdown.style.display = 'none';
-            console.log('TEST: HIDDEN dropdown');
-        }
-        console.log('TEST: Toggled from', wasHidden ? 'HIDDEN' : 'VISIBLE', 'to', dropdown.classList.contains('hidden') ? 'HIDDEN' : 'VISIBLE');
-    }
-};
-window.fixFilterNow = function() {
-    console.log('🛠️ SIMPLE FIX: Adding direct onclick to filter button');
-    const btn = document.querySelector('#channel-filter .filter-button');
-    const dropdown = document.getElementById('channel-filter-dropdown');
-    
-    console.log('🔍 Found elements:', {
-        button: !!btn,
-        dropdown: !!dropdown,
-        buttonSelector: '#channel-filter .filter-button',
-        dropdownSelector: '#channel-filter-dropdown'
-    });
-    
-    if (btn && dropdown) {
-        btn.onclick = function(e) {
-            console.log('✅ SIMPLE FIX: Button clicked!');
-            e.preventDefault();
-            e.stopPropagation();
-            dropdown.classList.toggle('hidden');
-            console.log('📊 Dropdown is now:', dropdown.classList.contains('hidden') ? 'HIDDEN' : 'VISIBLE');
-        };
-        console.log('✅ Simple fix applied - try clicking the button now');
-        return 'SUCCESS: Click handler added';
-    } else {
-        console.error('❌ Button or dropdown not found');
-        return 'ERROR: Elements not found';
-    }
-};
-
-window.listAllButtons = function() {
-    console.log('📋 All buttons with filter-button class:');
-    const buttons = document.querySelectorAll('.filter-button');
-    console.log('Found', buttons.length, 'buttons with .filter-button class');
-    
-    buttons.forEach((btn, i) => {
-        console.log(`Button ${i}:`, btn, 'Parent:', btn.parentElement?.id);
-    });
-    
-    console.log('📋 Channel filter container:');
-    const container = document.getElementById('channel-filter');
-    console.log('Container:', container);
-    if (container) {
-        console.log('Container children:', Array.from(container.children).map(c => c.tagName + '.' + c.className));
-    }
-    
-    console.log('📋 Channel filter dropdown:');
-    const dropdown = document.getElementById('channel-filter-dropdown');
-    console.log('Dropdown:', dropdown);
-    if (dropdown) {
-        console.log('Dropdown classes:', dropdown.className);
-        console.log('Dropdown display:', window.getComputedStyle(dropdown).display);
-    }
-    
-    return {
-        buttons: buttons.length,
-        container: !!container,
-        dropdown: !!dropdown
-    };
-};
-
-window.testDropdownToggle = function() {
-    console.log('🧪 Testing dropdown toggle directly');
-    const dropdown = document.getElementById('channel-filter-dropdown');
-    if (dropdown) {
-        const wasHidden = dropdown.classList.contains('hidden');
-        dropdown.classList.toggle('hidden');
-        console.log('🔄 Toggled dropdown from', wasHidden ? 'HIDDEN' : 'VISIBLE', 'to', dropdown.classList.contains('hidden') ? 'HIDDEN' : 'VISIBLE');
-        return 'Toggled successfully';
-    } else {
-        console.error('❌ Dropdown not found');
-        return 'Dropdown not found';
-    }
-};
-
-window.findChannelElements = function() {
-    console.log('🔍 Searching for all channel management elements...');
-    
-    // Check current section
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentSection = urlParams.get('section') || 'profile';
-    console.log('📍 Current section:', currentSection);
-    
-    // Find all possible button locations
-    const allButtons = document.querySelectorAll('.filter-button');
-    console.log('🔘 All filter buttons found:', allButtons.length);
-    allButtons.forEach((btn, i) => {
-        console.log(`  Button ${i}:`, {
-            text: btn.textContent.trim(),
-            parent: btn.parentElement?.id || 'no-id',
-            parentClass: btn.parentElement?.className || 'no-class',
-            visible: btn.offsetParent !== null
-        });
-    });
-    
-    // Search for elements by different selectors
-    const selectors = [
-        '#channel-filter',
-        '.filter-dropdown-container',
-        '[id*="filter"]',
-        '#channel-filter-dropdown',
-        '.filter-dropdown'
-    ];
-    
-    selectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        console.log(`🎯 "${selector}":`, elements.length, 'found');
-        elements.forEach((el, i) => {
-            console.log(`  Element ${i}:`, {
-                id: el.id,
-                className: el.className,
-                visible: el.offsetParent !== null,
-                display: window.getComputedStyle(el).display
-            });
-        });
-    });
-    
-    // Check if we're on the right page
-    const channelsSection = document.querySelector('[data-section="channels"], .channels-header-section');
-    console.log('📋 Channels section element:', !!channelsSection);
-    
-    return {
-        currentSection,
-        totalButtons: allButtons.length,
-        channelsSectionExists: !!channelsSection
-    };
-};
-
-window.switchToChannels = function() {
-    console.log('🔄 Switching to channels section...');
-    const channelLink = document.querySelector('a[href*="section=channels"]');
-    if (channelLink) {
-        channelLink.click();
-        console.log('✅ Clicked channels link, wait a moment then try again');
-        
-        setTimeout(() => {
-            console.log('⏰ Auto-running findChannelElements after switch...');
-            window.findChannelElements();
-        }, 1000);
-        
-        return 'Switching to channels section...';
-    } else {
-        console.error('❌ Channels link not found');
-        return 'Channels link not found';
-    }
-};
-
-window.debugClickIssue = function() {
-    console.log('🕵️ Debugging click issues...');
-    const btn = document.querySelector('#channel-filter .filter-button');
-    
-    if (!btn) {
-        console.error('❌ Button not found');
-        return 'Button not found';
-    }
-    
-    // Check button properties
-    const rect = btn.getBoundingClientRect();
-    const style = window.getComputedStyle(btn);
-    
-    console.log('🔘 Button properties:', {
-        visible: btn.offsetParent !== null,
-        disabled: btn.disabled,
-        display: style.display,
-        visibility: style.visibility,
-        pointerEvents: style.pointerEvents,
-        zIndex: style.zIndex,
-        position: style.position,
-        opacity: style.opacity
-    });
-    
-    console.log('📏 Button position:', {
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height,
-        bottom: rect.bottom,
-        right: rect.right
-    });
-    
-    // Check what element is at the button's center
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const elementAtCenter = document.elementFromPoint(centerX, centerY);
-    
-    console.log('🎯 Element at button center:', {
-        element: elementAtCenter,
-        isButton: elementAtCenter === btn,
-        isChildOfButton: btn.contains(elementAtCenter),
-        actualElement: elementAtCenter?.tagName + '.' + elementAtCenter?.className
-    });
-    
-    // Try to trigger click programmatically
-    console.log('🖱️ Triggering programmatic click...');
-    btn.click();
-    
-    // Add visual indicator
-    btn.style.border = '3px solid lime';
-    btn.style.background = 'red';
-    setTimeout(() => {
-        btn.style.border = '';
-        btn.style.background = '';
-    }, 2000);
-    
-    return 'Debug complete - check console for details';
-};
-
-window.fixChildClicks = function() {
-    console.log('🔧 Fixing child element clicks...');
-    const btn = document.querySelector('#channel-filter .filter-button');
-    const dropdown = document.getElementById('channel-filter-dropdown');
-    
-    if (!btn || !dropdown) {
-        console.error('❌ Button or dropdown not found');
-        return 'Elements not found';
-    }
-    
-    // Function to force toggle dropdown
-    function forceToggleDropdown() {
-        const wasHidden = dropdown.classList.contains('hidden');
-        console.log('� Current dropdown state:', wasHidden ? 'HIDDEN' : 'VISIBLE');
-        
-        if (wasHidden) {
-            // Force show
-            dropdown.classList.remove('hidden');
-            dropdown.style.display = 'block';
-            dropdown.style.visibility = 'visible';
-            dropdown.style.opacity = '1';
-            console.log('🔓 Dropdown FORCE SHOWN');
-        } else {
-            // Force hide
-            dropdown.classList.add('hidden');
-            dropdown.style.display = 'none';
-            console.log('� Dropdown FORCE HIDDEN');
-        }
-    }
-    
-    // Add click handlers to all child elements
-    const children = btn.querySelectorAll('*');
-    console.log('� Found', children.length, 'child elements in button');
-    
-    children.forEach((child, i) => {
-        console.log(`  Child ${i}:`, child.tagName + '.' + child.className);
-        
-        child.addEventListener('click', function(e) {
-            console.log('🎯 CHILD CLICK:', this.tagName + '.' + this.className);
-            e.preventDefault();
-            e.stopPropagation();
-            forceToggleDropdown();
-        }, true);
-    });
-    
-    // Also ensure the button itself handles clicks
-    btn.addEventListener('click', function(e) {
-        console.log('🎯 BUTTON DIRECT CLICK');
-        e.preventDefault();
-        e.stopPropagation();
-        forceToggleDropdown();
-    }, true);
-    
-    console.log('✅ Child click handlers with force toggle added');
-    return 'Child click handlers with force toggle added - try clicking now';
-};
-
-window.forceShowDropdown = function() {
-    console.log('💪 Force showing dropdown...');
-    const dropdown = document.getElementById('channel-filter-dropdown');
-    if (dropdown) {
-        dropdown.classList.remove('hidden');
-        dropdown.style.display = 'block';
-        dropdown.style.visibility = 'visible';
-        dropdown.style.opacity = '1';
-        dropdown.style.zIndex = '99999';
-        console.log('✅ Dropdown force shown');
-        return 'Dropdown force shown';
-    } else {
-        console.error('❌ Dropdown not found');
-        return 'Dropdown not found';
-    }
-};
-
-console.log('🎯 Global debug functions loaded:', {
-    fixFilterNow: typeof window.fixFilterNow,
-    listAllButtons: typeof window.listAllButtons,
-    testDropdownToggle: typeof window.testDropdownToggle,
-    findChannelElements: typeof window.findChannelElements,
-    switchToChannels: typeof window.switchToChannels,
-    debugClickIssue: typeof window.debugClickIssue,
-    forceShowDropdown: typeof window.forceShowDropdown,
-    fixChildClicks: typeof window.fixChildClicks
-});
