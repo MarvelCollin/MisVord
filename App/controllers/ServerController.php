@@ -1551,26 +1551,34 @@ class ServerController extends BaseController
         $this->requireAuth();
         $currentUserId = $this->getCurrentUserId();
 
+        error_log("Promote member attempt: server_id=$serverId, user_id=$userId, current_user=$currentUserId");
+
         try {
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
+                error_log("Promote failed: Server $serverId not found");
                 return $this->notFound('Server not found');
             }
 
             if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
+                error_log("Promote failed: User $currentUserId is not owner of server $serverId");
                 return $this->forbidden('You are not eligible to promote members. Only the server owner has permission to promote members to admin or moderator roles.');
             }
 
             if ($userId == $currentUserId) {
+                error_log("Promote failed: User $userId trying to promote themselves");
                 return $this->validationError(['user' => 'You cannot promote yourself']);
             }
 
             $targetMembership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
             if (!$targetMembership) {
+                error_log("Promote failed: User $userId is not a member of server $serverId");
                 return $this->notFound('User is not a member of this server');
             }
 
             $currentRole = $targetMembership->role;
+            error_log("User $userId current role: $currentRole");
+
             $newRole = null;
 
             switch ($currentRole) {
@@ -1578,12 +1586,44 @@ class ServerController extends BaseController
                     $newRole = 'admin';
                     break;
                 case 'admin':
-                    return $this->validationError(['role' => 'User is already at the highest promotable role']);
+                    error_log("Admin -> Owner promotion detected, performing ownership transfer");
+                    $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $userId);
+                    
+                    if (!$transferSuccess) {
+                        error_log("Ownership transfer failed for admin promotion");
+                        throw new Exception('Failed to transfer ownership');
+                    }
+                    
+                    $this->logActivity('ownership_transferred_via_promotion', [
+                        'server_id' => $serverId,
+                        'user_id' => $userId,
+                        'old_owner' => $currentUserId,
+                        'new_owner' => $userId
+                    ]);
+
+                    error_log("Ownership transfer successful: user $userId promoted from $currentRole to owner");
+
+                    return $this->success([
+                        'user_id' => intval($userId),
+                        'old_role' => $currentRole,
+                        'new_role' => 'owner',
+                        'success' => true,
+                        'ownership_transferred' => true
+                    ], 'Member promoted to owner successfully');
+                case 'owner':
+                    error_log("Promote failed: Cannot promote owner");
+                    return $this->validationError(['role' => 'Cannot promote server owner']);
                 default:
-                    return $this->validationError(['role' => 'Cannot promote this user']);
+                    error_log("Promote failed: Invalid role $currentRole");
+                    return $this->validationError(['role' => 'Invalid current role for promotion']);
             }
 
-            if ($this->userServerMembershipRepository->updateRole($userId, $serverId, $newRole)) {
+            error_log("Attempting to update role from $currentRole to $newRole");
+
+            $updateResult = $this->userServerMembershipRepository->updateRole($userId, $serverId, $newRole);
+            error_log("Update role result: " . ($updateResult ? 'success' : 'failed'));
+
+            if ($updateResult) {
                 $this->logActivity('member_promoted', [
                     'server_id' => $serverId,
                     'user_id' => $userId,
@@ -1591,15 +1631,20 @@ class ServerController extends BaseController
                     'new_role' => $newRole
                 ]);
 
+                error_log("Promotion successful: user $userId promoted from $currentRole to $newRole");
+
                 return $this->success([
-                    'user_id' => $userId,
+                    'user_id' => intval($userId),
                     'old_role' => $currentRole,
-                    'new_role' => $newRole
+                    'new_role' => $newRole,
+                    'success' => true
                 ], 'Member promoted successfully');
             } else {
+                error_log("Failed to update member role in database");
                 throw new Exception('Failed to update member role');
             }
         } catch (Exception $e) {
+            error_log("Exception in promoteMember: " . $e->getMessage());
             $this->logActivity('member_promotion_error', [
                 'server_id' => $serverId,
                 'user_id' => $userId,
@@ -1614,26 +1659,34 @@ class ServerController extends BaseController
         $this->requireAuth();
         $currentUserId = $this->getCurrentUserId();
 
+        error_log("Demote member attempt: server_id=$serverId, user_id=$userId, current_user=$currentUserId");
+
         try {
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
+                error_log("Demote failed: Server $serverId not found");
                 return $this->notFound('Server not found');
             }
 
             if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
+                error_log("Demote failed: User $currentUserId is not owner of server $serverId");
                 return $this->forbidden('Only server owners can demote members');
             }
 
             if ($userId == $currentUserId) {
+                error_log("Demote failed: User $userId trying to demote themselves");
                 return $this->validationError(['user' => 'You cannot demote yourself']);
             }
 
             $targetMembership = $this->userServerMembershipRepository->findByUserAndServer($userId, $serverId);
             if (!$targetMembership) {
+                error_log("Demote failed: User $userId is not a member of server $serverId");
                 return $this->notFound('User is not a member of this server');
             }
 
             $currentRole = $targetMembership->role;
+            error_log("User $userId current role: $currentRole");
+
             $newRole = null;
 
             switch ($currentRole) {
@@ -1641,14 +1694,22 @@ class ServerController extends BaseController
                     $newRole = 'member';
                     break;
                 case 'member':
-                    return $this->validationError(['role' => 'User is already at the lowest role']);
+                    error_log("Demote failed: User $userId is already member");
+                    return $this->validationError(['role' => 'User is already a member and cannot be demoted further']);
                 case 'owner':
+                    error_log("Demote failed: Cannot demote owner");
                     return $this->validationError(['role' => 'Cannot demote server owner']);
                 default:
-                    return $this->validationError(['role' => 'Cannot demote this user']);
+                    error_log("Demote failed: Invalid role $currentRole");
+                    return $this->validationError(['role' => 'Invalid current role for demotion']);
             }
 
-            if ($this->userServerMembershipRepository->updateRole($userId, $serverId, $newRole)) {
+            error_log("Attempting to update role from $currentRole to $newRole");
+
+            $updateResult = $this->userServerMembershipRepository->updateRole($userId, $serverId, $newRole);
+            error_log("Update role result: " . ($updateResult ? 'success' : 'failed'));
+
+            if ($updateResult) {
                 $this->logActivity('member_demoted', [
                     'server_id' => $serverId,
                     'user_id' => $userId,
@@ -1656,15 +1717,20 @@ class ServerController extends BaseController
                     'new_role' => $newRole
                 ]);
 
+                error_log("Demotion successful: user $userId demoted from $currentRole to $newRole");
+
                 return $this->success([
-                    'user_id' => $userId,
+                    'user_id' => intval($userId),
                     'old_role' => $currentRole,
-                    'new_role' => $newRole
+                    'new_role' => $newRole,
+                    'success' => true
                 ], 'Member demoted successfully');
             } else {
+                error_log("Failed to update member role in database");
                 throw new Exception('Failed to update member role');
             }
         } catch (Exception $e) {
+            error_log("Exception in demoteMember: " . $e->getMessage());
             $this->logActivity('member_demotion_error', [
                 'server_id' => $serverId,
                 'user_id' => $userId,
@@ -2247,91 +2313,76 @@ class ServerController extends BaseController
             $input = $this->getInput();
             $newOwnerId = $input['new_owner_id'] ?? null;
             
+            $serverId = intval($serverId);
+            $currentUserId = intval($currentUserId);
+            $newOwnerId = intval($newOwnerId);
+            
             error_log("Transfer ownership request - Server: $serverId, Current Owner: $currentUserId, New Owner: $newOwnerId");
             
-            if (!$serverId) {
-                error_log("Transfer ownership error: Missing server ID");
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Server ID is required'
-                ]);
-                exit;
+            if (!$serverId || $serverId <= 0) {
+                error_log("Transfer ownership error: Invalid server ID: $serverId");
+                return $this->validationError(['server_id' => 'Server ID is required']);
             }
             
-            if (!$newOwnerId) {
-                error_log("Transfer ownership error: Missing new owner ID");
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'New owner ID is required'
-                ]);
-                exit;
+            if (!$newOwnerId || $newOwnerId <= 0) {
+                error_log("Transfer ownership error: Invalid new owner ID: $newOwnerId");
+                return $this->validationError(['new_owner_id' => 'New owner ID is required']);
             }
             
             $server = $this->serverRepository->find($serverId);
             if (!$server) {
                 error_log("Transfer ownership error: Server not found - ID: $serverId");
-                http_response_code(404);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Server not found'
-                ]);
-                exit;
+                return $this->notFound('Server not found');
             }
             
             if (!$this->userServerMembershipRepository->isOwner($currentUserId, $serverId)) {
                 error_log("Transfer ownership error: User $currentUserId is not owner of server $serverId");
-                http_response_code(403);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'You are not eligible to transfer ownership. Only the current server owner can transfer ownership to another member.'
-                ]);
-                exit;
+                return $this->forbidden('You are not eligible to transfer ownership. Only the current server owner can transfer ownership to another member.');
             }
             
             if ($newOwnerId == $currentUserId) {
                 error_log("Transfer ownership error: Cannot transfer to self");
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Cannot transfer ownership to yourself'
-                ]);
-                exit;
-            }
-            
-            $newOwnerMembership = $this->userServerMembershipRepository->findByUserAndServer($newOwnerId, $serverId);
-            if (!$newOwnerMembership) {
-                error_log("Transfer ownership error: New owner $newOwnerId is not a member of server $serverId");
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'The selected user is not eligible for ownership transfer. Only server members can become owners.'
-                ]);
-                exit;
-            }
-            
-            if ($newOwnerMembership->role === 'owner') {
-                error_log("Transfer ownership error: New owner $newOwnerId is already owner of server $serverId");
-                http_response_code(400);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Selected user is already the server owner'
-                ]);
-                exit;
+                return $this->validationError(['new_owner_id' => 'Cannot transfer ownership to yourself']);
             }
             
             error_log("Attempting transfer ownership - Server: $serverId, From: $currentUserId, To: $newOwnerId");
-            $transferSuccess = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $newOwnerId);
             
-            if (!$transferSuccess) {
-                error_log("Transfer ownership failed for server $serverId from user $currentUserId to user $newOwnerId");
-                http_response_code(500);
-                echo json_encode([
-                    'success' => false,
-                    'error' => 'Database operation failed during ownership transfer'
-                ]);
-                exit;
+            $membershipRepository = $this->userServerMembershipRepository;
+            $currentOwnerVerify = $membershipRepository->findByUserAndServer($currentUserId, $serverId);
+            if (!$currentOwnerVerify || $currentOwnerVerify->role !== 'owner') {
+                error_log("Transfer ownership error: Current user verification failed - User ID: $currentUserId, Server ID: $serverId, Found role: " . ($currentOwnerVerify ? $currentOwnerVerify->role : 'not found'));
+                return $this->forbidden('You are not the current server owner');
+            }
+            
+            $newOwnerVerify = $membershipRepository->findByUserAndServer($newOwnerId, $serverId);
+            if (!$newOwnerVerify || $newOwnerVerify->role !== 'admin') {
+                error_log("Transfer ownership error: New owner verification failed - User ID: $newOwnerId, Server ID: $serverId, Found role: " . ($newOwnerVerify ? $newOwnerVerify->role : 'not found'));
+                return $this->validationError(['new_owner_id' => 'Selected user must be an admin to receive ownership. Current role: ' . ($newOwnerVerify ? $newOwnerVerify->role : 'not a member')]);
+            }
+            
+            $transferResult = $this->userServerMembershipRepository->transferOwnership($serverId, $currentUserId, $newOwnerId);
+            
+            if (!$transferResult['success']) {
+                $errorDetails = [
+                    'server_id' => $serverId,
+                    'current_owner_id' => $currentUserId,
+                    'new_owner_id' => $newOwnerId,
+                    'error_type' => $transferResult['error_type'] ?? 'unknown',
+                    'error_message' => $transferResult['error_message'] ?? 'Unknown error',
+                    'step_failed' => $transferResult['step_failed'] ?? 'unknown',
+                    'affected_rows' => $transferResult['affected_rows'] ?? 'unknown'
+                ];
+                
+                error_log("Transfer ownership failed - Details: " . json_encode($errorDetails));
+                
+                $detailedMessage = "Ownership transfer failed at step: {$errorDetails['step_failed']}. ";
+                $detailedMessage .= "Error: {$errorDetails['error_message']}. ";
+                if (isset($errorDetails['affected_rows'])) {
+                    $detailedMessage .= "Database affected rows: {$errorDetails['affected_rows']}. ";
+                }
+                $detailedMessage .= "Server: {$serverId}, From User: {$currentUserId}, To User: {$newOwnerId}";
+                
+                return $this->serverError($detailedMessage);
             }
             
             $this->logActivity('ownership_transferred', [
@@ -2342,14 +2393,13 @@ class ServerController extends BaseController
             ]);
             
             error_log("Transfer ownership successful - Server: $serverId, From: $currentUserId, To: $newOwnerId");
-            http_response_code(200);
-            echo json_encode([
-                'success' => true,
+            
+            return $this->success([
                 'message' => 'Ownership transferred successfully',
                 'old_owner_id' => $currentUserId,
-                'new_owner_id' => $newOwnerId
+                'new_owner_id' => $newOwnerId,
+                'server_id' => $serverId
             ]);
-            exit;
             
         } catch (Exception $e) {
             error_log("Transfer ownership exception: " . $e->getMessage());
@@ -2362,12 +2412,7 @@ class ServerController extends BaseController
                 'trace' => $e->getTraceAsString()
             ]);
             
-            http_response_code(500);
-            echo json_encode([
-                'success' => false,
-                'error' => 'Failed to transfer ownership: ' . $e->getMessage()
-            ]);
-            exit;
+            return $this->serverError('Failed to transfer ownership: ' . $e->getMessage());
         }
     }
 

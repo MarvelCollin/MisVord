@@ -1,1096 +1,3 @@
-import ImageCutter from '../common/image-cutter.js';
-import { showToast } from '../../core/ui/toast.js';
-
-let serverSettingsInitialized = false;
-
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.body.classList.contains('settings-page') && document.querySelector('meta[name="server-id"]')) {
-        if (serverSettingsInitialized) {
-            return;
-        }
-        serverSettingsInitialized = true;
-        initServerSettingsPage();
-    }
-});
-
-function initServerSettingsPage() {
-    if (!document.body.classList.contains('authenticated')) {
-        console.error('User is not authenticated');
-        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-        return;
-    }
-    
-    const tabs = document.querySelectorAll('.sidebar-item');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const activeSection = urlParams.get('section') || 'profile';
-    
-    tabs.forEach(tab => {
-        if (tab.dataset.tab === activeSection) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
-        
-        tab.addEventListener('mouseenter', () => {
-            if (!tab.classList.contains('active')) {
-                tab.style.transition = 'background-color 0.15s ease';
-                tab.style.backgroundColor = 'rgba(79, 84, 92, 0.16)';
-            }
-        });
-        
-        tab.addEventListener('mouseleave', () => {
-            if (!tab.classList.contains('active')) {
-                tab.style.transition = 'background-color 0.15s ease';
-                tab.style.backgroundColor = '';
-            }
-        });
-        
-        tab.addEventListener('click', () => {
-            const tabId = tab.dataset.tab;
-            
-            const url = new URL(window.location);
-            url.searchParams.set('section', tabId);
-            window.history.pushState({}, '', url);
-            
-            tabs.forEach(t => {
-                t.classList.remove('active');
-                t.style.backgroundColor = '';
-            });
-            tab.classList.add('active');
-            
-            tabContents.forEach(content => {
-                if (content.id === `${tabId}-tab`) {
-                    content.classList.remove('hidden');
-                    content.style.opacity = '0';
-                    content.style.transform = 'translateY(5px)';
-                    
-                    setTimeout(() => {
-                        content.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-                        content.style.opacity = '1';
-                        content.style.transform = 'translateY(0)';
-                    }, 10);
-                } else {
-                    content.classList.add('hidden');
-                }
-            });
-        });
-    });
-    
-    tabContents.forEach(content => {
-        if (content.id === `${activeSection}-tab`) {
-            content.classList.remove('hidden');
-        } else {
-            content.classList.add('hidden');
-        }
-    });
-    
-    if (activeSection === 'profile') {
-        initServerProfileForm();
-    } else if (activeSection === 'roles') {
-        initMemberManagementTab();
-    } else if (activeSection === 'channels') {
-        initChannelManagementTab();
-    } else if (activeSection === 'delete') {
-        initDeleteServerTab();
-    }
-    
-    initCloseButton();
-}
-
-function createImageUploadHandler(containerId, previewId, placeholderId, type, onSuccess) {
-    const container = document.getElementById(containerId);
-    const preview = document.getElementById(previewId);
-    const placeholder = document.getElementById(placeholderId);
-    const inputId = type === 'profile' ? 'server-icon-input' : 'server-banner-input';
-    const input = document.getElementById(inputId);
-
-    if (!container || !input) {
-        console.warn(`Image upload handler for ${type} could not be initialized.`);
-        return;
-    }
-    
-    if (input.dataset.listenerAttached) {
-        return;
-    }
-    input.dataset.listenerAttached = 'true';
-    
-    try {
-        const cutter = new ImageCutter({
-            container: container,
-            type: type,
-            modalTitle: `Upload Server ${type === 'profile' ? 'Icon' : 'Banner'}`,
-            aspectRatio: type === 'profile' ? 1 : 16/9,
-            fileInputSelector: `#${inputId}`,
-            onCrop: async (result) => {
-                if (result && result.error) {
-                    showToast(result.message || 'An error occurred during cropping.', 'error');
-                    return;
-                }
-                
-                if (!result || !result.dataUrl) {
-                    showToast('Cropping was cancelled or failed.', 'info');
-                    return;
-                }
-
-                const serverId = document.querySelector('meta[name="server-id"]').content;
-                const blob = dataURLtoBlob(result.dataUrl);
-
-                try {
-                    const response = await (type === 'profile' 
-                        ? window.serverAPI.updateServerIcon(serverId, blob)
-                        : window.serverAPI.updateServerBanner(serverId, blob));
-
-                    if (response.success) {
-                        if (preview) {
-                            preview.src = result.dataUrl;
-                            preview.classList.remove('hidden');
-                        }
-                        if (placeholder) {
-                            placeholder.classList.add('hidden');
-                        }
-
-                        if (onSuccess) {
-                            onSuccess(result.dataUrl);
-                        }
-
-                        showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated successfully`, 'success');
-                        window.location.reload();
-                    } else {
-                        throw new Error(response.message || `Failed to update server ${type}`);
-                    }
-                } catch (error) {
-                    console.error(`Error updating server ${type}:`, error);
-                    showToast(error.message || 'An error occurred while uploading.', 'error');
-                }
-            }
-        });
-
-        input.addEventListener('change', (e) => {
-             const file = e.target.files[0];
-             if (!file) return;
- 
-             const reader = new FileReader();
-             reader.onload = (event) => {
-                 cutter.loadImage(event.target.result);
-             };
-             reader.readAsDataURL(file);
-             
-             e.target.value = '';
-         });
- 
-         if (type === 'profile') {
-             window.serverIconCutter = cutter;
-         } else {
-             window.serverBannerCutter = cutter;
-         }
-    } catch (error) {
-        console.error(`Error initializing ${type} cutter:`, error);
-        showToast(`Could not initialize image uploader for server ${type}.`, 'error');
-    }
-}
-
-function initServerIconUpload() {
-    createImageUploadHandler(
-        'server-icon-container',
-        'server-icon-preview',
-        'server-icon-placeholder',
-        'profile',
-        updateServerPreviewIcon
-    );
-}
-
-function initServerBannerUpload() {
-    createImageUploadHandler(
-        'server-banner-container',
-        'server-banner-preview', 
-        'server-banner-placeholder',
-        'banner',
-        updateServerPreviewBanner
-    );
-}
-
-function updateServerPreviewIcon(imageUrl) {
-    const previewIcon = document.querySelector('.server-icon-preview img');
-    const previewPlaceholder = document.querySelector('.server-icon-preview div');
-    
-    if (previewIcon) {
-        previewIcon.src = imageUrl;
-        previewIcon.classList.remove('hidden');
-        
-        if (previewPlaceholder) {
-            previewPlaceholder.classList.add('hidden');
-        }
-    } else if (previewPlaceholder) {
-        const img = document.createElement('img');
-        img.src = imageUrl;
-        img.alt = "Server Icon";
-        img.className = "w-full h-full object-cover";
-        
-        previewPlaceholder.parentNode.appendChild(img);
-        previewPlaceholder.classList.add('hidden');
-    }
-}
-
-function resetServerPreviewIcon() {
-    const previewIcon = document.querySelector('.server-icon-preview img');
-    const previewPlaceholder = document.querySelector('.server-icon-preview div');
-    
-    if (previewIcon) {
-        previewIcon.classList.add('hidden');
-    }
-    
-    if (previewPlaceholder) {
-        previewPlaceholder.classList.remove('hidden');
-    }
-}
-                
-function initServerProfileForm() {
-    const form = document.getElementById('server-profile-form');
-    const serverNameInput = document.getElementById('server-name');
-    const serverDescriptionInput = document.getElementById('server-description');
-    const isPublicInput = document.getElementById('is-public');
-    const serverCategorySelect = document.getElementById('server-category');
-    const saveButton = document.getElementById('save-changes-btn');
-    const serverId = document.querySelector('meta[name="server-id"]')?.content;
-    const formCards = document.querySelectorAll('.bg-discord-darker');
-    
-    if (!form || !serverId) return;
-    
-    initServerIconUpload();
-    initServerBannerUpload();
-    
-    if (formCards.length) {
-        formCards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateY(10px)';
-            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-            
-            setTimeout(() => {
-                card.style.opacity = '1';
-                card.style.transform = 'translateY(0)';
-            }, 100 + (index * 100));
-        });
-    }
-    
-    const formInputs = form.querySelectorAll('input, textarea, select');
-    formInputs.forEach(input => {
-        input.addEventListener('focus', function() {
-            this.closest('.form-group')?.classList.add('is-focused');
-        });
-        
-        input.addEventListener('blur', function() {
-            this.closest('.form-group')?.classList.remove('is-focused');
-        });
-    });
-    
-    if (serverNameInput) {
-        serverNameInput.addEventListener('input', debounce(function() {
-            updateServerNamePreview(this.value);
-        }, 300));
-    }
-
-    if (serverDescriptionInput) {
-        serverDescriptionInput.addEventListener('input', debounce(function() {
-            updateServerDescriptionPreview(this.value);
-        }, 300));
-    }
-    
-
-    initServerInputApproveButtons(serverId);
-}
-
-function initCloseButton() {
-    const closeButton = document.querySelector('.close-button');
-    if (!closeButton) return;
-    
-    closeButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const serverId = document.querySelector('meta[name="server-id"]')?.content;
-        if (!serverId) {
-            window.location.href = '/home';
-            return;
-        }
-        
-        window.location.href = `/server/${serverId}`;
-    });
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-            if (!serverId) {
-                window.location.href = '/home';
-                return;
-            }
-            
-            window.location.href = `/server/${serverId}`;
-        }
-    });
-}
-
-
-function updateServerNameInUI(newName) {
-    const sidebarServerName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold');
-    if (sidebarServerName) {
-        sidebarServerName.textContent = newName;
-    }
-    
-    document.title = `MisVord - ${newName} Settings`;
-}
-
-
-function updateServerNamePreview(newName) {
-    const serverNamePreview = document.querySelector('.server-name');
-    if (serverNamePreview) {
-        serverNamePreview.textContent = newName || 'Server Name';
-    }
-}
-
-
-function updateServerDescriptionPreview(newDescription) {
-    const serverDescriptionPreview = document.querySelector('.server-description-preview');
-    if (serverDescriptionPreview) {
-        serverDescriptionPreview.textContent = newDescription || 'Tell people what your server is about...';
-    }
-}
-
-
-function dataURLtoBlob(dataURL) {
-    const arr = dataURL.split(',');
-    const mime = arr[0].match(/:(.*?);/)[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    
-    while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-    }
-    
-    return new Blob([u8arr], { type: mime });
-}
-
-
-function debounce(func, wait) {
-    let timeout;
-    return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
-}
-
-
-
-
-function initMemberManagementTab() {
-    const membersList = document.getElementById('members-list');
-    const memberSearch = document.getElementById('member-search');
-    const memberTemplate = document.getElementById('member-template');
-    const memberFilter = document.getElementById('member-filter');
-    const filterOptions = document.querySelectorAll('#filter-dropdown .filter-option');
-    const serverId = document.querySelector('meta[name="server-id"]')?.content;
-    const userRole = document.querySelector('meta[name="user-role"]')?.content || 'member';
-    
-
-    document.body.dataset.userRole = userRole;
-    
-    function getMemberPermissions(currentUserRole, currentUserId, member, isBot) {
-        const isCurrentUser = String(member.id) === String(currentUserId);
-        
-        return {
-            canPromote: currentUserRole === 'owner' && (member.role === 'member' || member.role === 'admin') && !isCurrentUser && !isBot,
-            canDemote: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser,
-            canKick: !isCurrentUser && member.role !== 'owner' && !isBot && 
-                    ((currentUserRole === 'owner') || 
-                     (currentUserRole === 'admin' && member.role === 'member')),
-            canTransferOwnership: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser
-        };
-    }
-    
-    if (!membersList || !memberTemplate || !serverId) return;
-    
-    let allMembers = [];
-    let currentFilter = 'all';
-    
-    async function loadMembers() {
-        try {
-            const response = await window.serverAPI.getServerMembers(serverId);
-            
-            if (response && response.success) {
-                if (response.data && response.data.members) {
-                    allMembers = response.data.members;
-                } else if (response.members) {
-                    allMembers = response.members;
-                } else {
-                    allMembers = [];
-                }
-                
-                filterMembers(currentFilter);
-            } else if (response && response.error && response.error.code === 401) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            } else {
-                throw new Error(response.message || 'Failed to load server members');
-            }
-        } catch (error) {
-            console.error('Error loading server members:', error);
-            
-            if (error.message && error.message.toLowerCase().includes('unauthorized')) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
-                return;
-            }
-            
-            membersList.innerHTML = `
-                <div class="flex items-center justify-center p-8 text-discord-lighter">
-                    <i class="fas fa-exclamation-triangle mr-2 text-red-400"></i>
-                    <span>Error loading members. Please try again.</span>
-                </div>
-            `;
-        }
-    }
-    
-    function filterMembers(filterType) {
-        let filteredMembers = [...allMembers];
-        
-        if (filterType !== 'all') {
-            if (filterType === 'bot') {
-                filteredMembers = filteredMembers.filter(member => member.status === 'bot');
-            } else {
-                filteredMembers = filteredMembers.filter(member => member.role === filterType && member.status !== 'bot');
-            }
-        }
-        
-        filteredMembers.sort((a, b) => {
-            const isABot = a.status === 'bot';
-            const isBBot = b.status === 'bot';
-            
-
-            if (isABot && !isBBot) return 1;
-            if (!isABot && isBBot) return -1;
-            
-
-            const roleOrder = { 'owner': 0, 'admin': 1, 'members': 2, 'member': 2, 'moderator': 3 };
-            const roleA = roleOrder[a.role] !== undefined ? roleOrder[a.role] : 4;
-            const roleB = roleOrder[b.role] !== undefined ? roleOrder[b.role] : 4;
-            
-            if (roleA !== roleB) {
-                return roleA - roleB;
-            }
-            
-            return a.username.localeCompare(b.username);
-        });
-        
-        renderMembers(filteredMembers);
-    }
-    
-    if (filterOptions) {
-        filterOptions.forEach(option => {
-            option.addEventListener('click', function() {
-                filterOptions.forEach(opt => {
-                    opt.querySelector('input[type="radio"]').checked = false;
-                });
-                this.querySelector('input[type="radio"]').checked = true;
-                
-                if (memberFilter) {
-                    memberFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
-                    
-                    const filterDropdown = document.getElementById('filter-dropdown');
-                    if (filterDropdown) {
-                        filterDropdown.classList.add('hidden');
-                    }
-                }
-                
-                currentFilter = this.dataset.filter;
-                filterMembers(currentFilter);
-            });
-        });
-    }
-    
-    if (memberFilter) {
-        memberFilter.addEventListener('click', function(e) {
-            const filterDropdown = document.getElementById('filter-dropdown');
-            if (filterDropdown) {
-                filterDropdown.classList.toggle('hidden');
-            }
-        });
-        
-        document.addEventListener('click', function(e) {
-            if (!memberFilter.contains(e.target)) {
-                const filterDropdown = document.getElementById('filter-dropdown');
-                if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
-                    filterDropdown.classList.add('hidden');
-                }
-            }
-        });
-    }
-    
-    function renderMembers(members) {
-        if (!members.length) {
-            membersList.innerHTML = `
-                <div class="flex items-center justify-center p-8 text-discord-lighter">
-                    <i class="fas fa-users mr-2 opacity-50"></i>
-                    <span>No members found</span>
-                </div>
-            `;
-            return;
-        }
-        
-        membersList.innerHTML = '';
-        
-        members.forEach(member => {
-            const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
-            
-            const isBot = member.status === 'bot';
-            
-            const avatarImg = memberElement.querySelector('.member-avatar img');
-            if (avatarImg && member.avatar_url) {
-                avatarImg.src = member.avatar_url;
-            } else {
-                const avatarDiv = memberElement.querySelector('.member-avatar');
-                if (avatarDiv) {
-                    avatarDiv.innerHTML = `
-                        <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">
-                    `;
-                }
-            }
-            
-            const usernameElement = memberElement.querySelector('.member-username');
-            if (usernameElement) {
-                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-                const isCurrentUser = String(member.id) === String(currentUserId);
-                const displayName = member.display_name || member.username;
-                
-                
-                
-                
-                
-                let usernameText = displayName;
-                if (isCurrentUser) {
-                    usernameText += ' (you)';
-                }
-                
-                usernameElement.textContent = usernameText;
-                if (isBot) {
-                    usernameElement.innerHTML = `${usernameText} <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>`;
-                }
-            }
-            
-            const discriminatorElement = memberElement.querySelector('.member-discriminator');
-            if (discriminatorElement) {
-                discriminatorElement.textContent = `#${member.discriminator || '0000'}`;
-            }
-            
-            const roleElement = memberElement.querySelector('.member-role-badge');
-            if (roleElement) {
-                if (isBot) {
-                    roleElement.textContent = 'Bot';
-                    roleElement.className = 'member-role-badge bot';
-                } else {
-                    roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                    roleElement.className = `member-role-badge ${member.role}`;
-                }
-            }
-            
-            const joinedElement = memberElement.querySelector('.member-joined');
-            if (joinedElement && member.joined_at) {
-                const joinedDate = new Date(member.joined_at);
-                joinedElement.textContent = joinedDate.toLocaleDateString();
-            }
-            
-            memberElement.dataset.memberId = member.id;
-            
-            const promoteBtn = memberElement.querySelector('.promote-btn');
-            const demoteBtn = memberElement.querySelector('.demote-btn');
-            const kickBtn = memberElement.querySelector('.kick-btn');
-            
-            const currentUserRole = document.body.dataset.userRole;
-            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
-            const permissions = getMemberPermissions(currentUserRole, currentUserId, member, isBot);
-            
-            if (promoteBtn) {
-                promoteBtn.style.display = permissions.canPromote ? 'inline-flex' : 'none';
-                
-                if (permissions.canPromote && permissions.canTransferOwnership) {
-                    promoteBtn.title = 'Transfer Ownership';
-                    promoteBtn.innerHTML = '<i class="fas fa-crown"></i>';
-                } else if (permissions.canPromote) {
-                    promoteBtn.title = 'Promote Member';
-                    promoteBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-                }
-            }
-            if (demoteBtn) {
-                demoteBtn.style.display = permissions.canDemote ? 'inline-flex' : 'none';
-            }
-            if (kickBtn) {
-                kickBtn.style.display = permissions.canKick ? 'inline-flex' : 'none';
-            }
-            
-            if (promoteBtn && promoteBtn.style.display !== 'none') {
-                promoteBtn.replaceWith(promoteBtn.cloneNode(true));
-                const newPromoteBtn = memberElement.querySelector('.promote-btn');
-                
-                newPromoteBtn.addEventListener('click', () => {
-                    if (permissions.canTransferOwnership) {
-                        showMemberActionModal('transfer-ownership', member);
-                    } else if (member.role === 'member') {
-                        showMemberActionModal('promote', member);
-                    }
-                });
-            }
-            
-            if (demoteBtn && demoteBtn.style.display !== 'none') {
-                demoteBtn.replaceWith(demoteBtn.cloneNode(true));
-                const newDemoteBtn = memberElement.querySelector('.demote-btn');
-                
-                newDemoteBtn.addEventListener('click', () => {
-                    showMemberActionModal('demote', member);
-                });
-            }
-            
-            if (kickBtn && kickBtn.style.display !== 'none') {
-                kickBtn.replaceWith(kickBtn.cloneNode(true));
-                const newKickBtn = memberElement.querySelector('.kick-btn');
-                
-                newKickBtn.addEventListener('click', () => showMemberActionModal('kick', member));
-            }
-            
-            membersList.appendChild(memberElement);
-        });
-    }
-    
-    function showMemberActionModal(action, member) {
-        try {
-            
-            
-            if (!member) {
-                console.error('No member provided to action modal');
-                showToast('Error: Member data is missing', 'error');
-                return;
-            }
-            
-            const modal = document.getElementById('member-action-modal');
-            if (!modal) {
-                console.error('Member action modal not found in the DOM');
-                showToast('Error: Modal not found', 'error');
-                return;
-            }
-
-
-            const modalContainer = modal.querySelector('.modal-container');
-            if (!modalContainer) {
-                console.error('Modal container not found');
-                showToast('Error: Modal structure is incomplete', 'error');
-                return;
-            }
-            
-
-            const safeSetContent = (selector, content, defaultContent = '') => {
-                const element = modal.querySelector(selector);
-                if (element) {
-                    if (typeof content === 'string') {
-                        element.textContent = content;
-                    } else if (typeof content === 'function') {
-                        content(element);
-                    }
-                    return element;
-                }
-                console.warn(`Element not found: ${selector}`);
-                return null;
-            };
-            
-
-            const safeToggleClass = (selector, className, add = true) => {
-                const element = modal.querySelector(selector);
-                if (element) {
-                    if (add) {
-                        element.classList.add(className);
-                    } else {
-                        element.classList.remove(className);
-                    }
-                    return element;
-                }
-                console.warn(`Element not found for class toggle: ${selector}`);
-                return null;
-            };
-            
-
-
-            safeSetContent('.modal-icon i', icon => {
-                if (icon) icon.className = '';
-            });
-            
-
-            safeSetContent('.modal-title', 'Confirm Action');
-            safeSetContent('.member-name', member.display_name || member.username);
-            safeSetContent('.member-current-role', `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`);
-            safeSetContent('.action-message', '');
-            
-
-            safeSetContent('.from-role', '');
-            safeSetContent('.to-role', '');
-            if (modal.querySelector('.from-role')) {
-                modal.querySelector('.from-role').className = 'role-badge from-role';
-            }
-            if (modal.querySelector('.to-role')) {
-                modal.querySelector('.to-role').className = 'role-badge to-role';
-            }
-            
-
-            safeToggleClass('.role-change-preview', 'hidden', true);
-            
-
-            const avatarContainer = modal.querySelector('.member-avatar-small');
-            if (avatarContainer) {
-                if (member.avatar_url) {
-                    avatarContainer.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
-                } else {
-                    avatarContainer.innerHTML = `<img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
-                }
-            }
-            
-
-            const confirmBtn = modal.querySelector('#modal-confirm-btn');
-            if (confirmBtn) {
-                confirmBtn.className = 'modal-btn modal-btn-confirm';
-                
-
-                let confirmText = confirmBtn.querySelector('.confirm-text');
-                if (!confirmText) {
-
-                    const checkIcon = confirmBtn.querySelector('i');
-                    if (checkIcon) {
-                        confirmBtn.innerHTML = ''; 
-                        const iconEl = document.createElement('i');
-                        iconEl.className = 'fas fa-check mr-2';
-                        confirmBtn.appendChild(iconEl);
-                    } else {
-                        confirmBtn.innerHTML = '';
-                    }
-                    
-                    confirmText = document.createElement('span');
-                    confirmText.className = 'confirm-text';
-                    confirmBtn.appendChild(confirmText);
-                }
-                
-                confirmText.textContent = 'Confirm';
-            }
-            
-
-            const modalIcon = modal.querySelector('.modal-icon i');
-            const modalTitle = modal.querySelector('.modal-title');
-            const actionMessage = modal.querySelector('.action-message');
-            const roleChangePreview = modal.querySelector('.role-change-preview');
-            const fromRole = modal.querySelector('.from-role');
-            const toRole = modal.querySelector('.to-role');
-            const cancelBtn = modal.querySelector('#modal-cancel-btn');
-            
-
-            let actionHandler;
-            
-
-            switch (action) {
-                case 'transfer-ownership':
-                    if (modalIcon) modalIcon.className = 'fas fa-crown';
-                    if (modalTitle) modalTitle.textContent = 'Transfer Ownership';
-                    if (actionMessage) actionMessage.textContent = `Are you sure you want to transfer server ownership to ${member.display_name || member.username}? This will make them the server owner and you will become an admin. This action cannot be undone.`;
-                    
-                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
-                    if (fromRole) {
-                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                        fromRole.className = `role-badge ${member.role}`;
-                    }
-                    if (toRole) {
-                        toRole.textContent = 'Owner';
-                        toRole.className = 'role-badge owner';
-                    }
-                    
-                    if (confirmBtn) {
-                        confirmBtn.classList.add('danger');
-                        const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Transfer Ownership';
-                    }
-                    
-                    actionHandler = () => handleTransferOwnership(member);
-                    break;
-                    
-                case 'promote':
-                    if (modalIcon) modalIcon.className = 'fas fa-arrow-up';
-                    if (modalTitle) modalTitle.textContent = 'Promote Member';
-                    if (actionMessage) actionMessage.textContent = `Are you sure you want to promote ${member.display_name || member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
-                    
-                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
-                    if (fromRole) {
-                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                        fromRole.className = `role-badge ${member.role}`;
-                    }
-                    if (toRole) {
-                        toRole.textContent = 'Admin';
-                        toRole.className = 'role-badge admin';
-                    }
-                    
-                    if (confirmBtn) {
-                        confirmBtn.classList.add('warning');
-                        const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Promote';
-                    }
-                    
-                    actionHandler = () => handlePromote(member);
-                    break;
-                    
-                case 'demote':
-                    if (modalIcon) modalIcon.className = 'fas fa-arrow-down';
-                    if (modalTitle) modalTitle.textContent = 'Demote Member';
-                    if (actionMessage) actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
-                    
-
-                    if (roleChangePreview) {
-                        roleChangePreview.classList.remove('hidden');
-                    }
-                    
-
-                    if (fromRole) {
-                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                        fromRole.className = `role-badge ${member.role}`;
-                    }
-                    
-
-                    if (toRole) {
-
-                        toRole.innerHTML = 'Member';
-                        toRole.className = 'role-badge member';
-                    }
-                    
-
-                    if (confirmBtn) {
-                        confirmBtn.classList.add('warning');
-                        const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = 'Demote';
-                    }
-                    
-
-                    actionHandler = () => handleDemote(member);
-                    break;
-                    
-                case 'kick':
-                    const isBot = member.status === 'bot';
-                    if (modalIcon) modalIcon.className = 'fas fa-user-times';
-                    if (modalTitle) modalTitle.textContent = isBot ? 'Remove Bot' : 'Kick Member';
-                    
-                    if (actionMessage) {
-                        if (isBot) {
-                            actionMessage.textContent = `Are you sure you want to remove ${member.display_name || member.username} from the server? The bot will be removed immediately but can be added again later.`;
-                        } else {
-                            actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
-                        }
-                    }
-                    
-                    if (confirmBtn) {
-                        confirmBtn.classList.add('danger');
-                        const confirmText = confirmBtn.querySelector('.confirm-text');
-                        if (confirmText) confirmText.textContent = isBot ? 'Remove Bot' : 'Kick';
-                    }
-                    
-                    actionHandler = () => handleKick(member);
-                    break;
-                    
-                default:
-                    console.error('Unknown action type:', action);
-                    return;
-            }
-            
-
-            if (confirmBtn) confirmBtn.replaceWith(confirmBtn.cloneNode(true));
-            if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
-            
-
-            const newConfirmBtn = modal.querySelector('#modal-confirm-btn');
-            const newCancelBtn = modal.querySelector('#modal-cancel-btn');
-            
-
-            if (newConfirmBtn) {
-                newConfirmBtn.addEventListener('click', () => {
-                    modal.classList.add('hidden');
-                    if (actionHandler) actionHandler();
-                });
-            }
-            
-            if (newCancelBtn) {
-                newCancelBtn.addEventListener('click', () => {
-                    modal.classList.add('hidden');
-                });
-            }
-            
-
-            const handleKeydown = (e) => {
-                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                    modal.classList.add('hidden');
-                    document.removeEventListener('keydown', handleKeydown);
-                }
-            };
-            document.addEventListener('keydown', handleKeydown);
-            
-
-            const handleBackgroundClick = (e) => {
-                if (e.target === modal) {
-                    modal.classList.add('hidden');
-                    modal.removeEventListener('click', handleBackgroundClick);
-                }
-            };
-            modal.addEventListener('click', handleBackgroundClick);
-            
-
-            
-            
-
-            modal.classList.remove('hidden');
-            
-        } catch (error) {
-            console.error('Error showing member action modal:', error);
-            showToast('Error displaying the action modal. Please try again.', 'error');
-        }
-    }
-    
-    async function handlePromote(member) {
-        try {
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-            if (!serverId) throw new Error("Server ID not found");
-            
-
-            showToast(`Promoting ${member.display_name || member.username}...`, 'info', 2000);
-            
-            const response = await window.serverAPI.promoteMember(serverId, member.id);
-            if (response && response.success) {
-
-                const newRole = response.new_role ? 
-                    response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
-                    'Admin'; 
-                
-                showToast(`${member.display_name || member.username} has been promoted to ${newRole}`, 'success', 5000, 'Member Promoted');
-                loadMembers();
-            } else {
-                throw new Error(response.message || 'Failed to promote member');
-            }
-        } catch (error) {
-            console.error('Error promoting member:', error);
-            showToast(error.message || 'Failed to promote member', 'error', 5000, 'Promotion Failed');
-        }
-    }
-    
-    async function handleDemote(member) {
-        try {
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-            if (!serverId) throw new Error("Server ID not found");
-            
-
-            showToast(`Demoting ${member.display_name || member.username}...`, 'info', 2000);
-            
-            const response = await window.serverAPI.demoteMember(serverId, member.id);
-            if (response && response.success) {
-
-                const newRole = response.new_role ? 
-                    response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
-                    'Member'; 
-                
-                showToast(`${member.display_name || member.username} has been demoted to ${newRole}`, 'success', 5000, 'Member Demoted');
-                loadMembers();
-            } else {
-                throw new Error(response.message || 'Failed to demote member');
-            }
-        } catch (error) {
-            console.error('Error demoting member:', error);
-            showToast(error.message || 'Failed to demote member', 'error', 5000, 'Demotion Failed');
-        }
-    }
-    
-    async function handleKick(member) {
-        try {
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-            if (!serverId) throw new Error("Server ID not found");
-            
-            const isBot = member.status === 'bot';
-            
-
-            showToast(isBot ? `Removing ${member.display_name || member.username}...` : `Kicking ${member.display_name || member.username}...`, 'info', 2000);
-            
-            const response = await window.serverAPI.kickMember(serverId, member.id);
-            if (response && response.success) {
-                const actionText = isBot ? 'removed from' : 'kicked from';
-                const toastTitle = isBot ? 'Bot Removed' : 'Member Kicked';
-                
-                showToast(`${member.display_name || member.username} has been ${actionText} the server`, 'success', 5000, toastTitle);
-                loadMembers();
-            } else {
-                throw new Error(response.message || `Failed to ${isBot ? 'remove bot' : 'kick member'}`);
-            }
-        } catch (error) {
-            console.error('Error kicking member:', error);
-            const isBot = member.status === 'bot';
-            const errorTitle = isBot ? 'Bot Removal Failed' : 'Kick Failed';
-            showToast(error.message || `Failed to ${isBot ? 'remove bot' : 'kick member'}`, 'error', 5000, errorTitle);
-        }
-    }
-
-    async function handleTransferOwnership(member) {
-        try {
-            const serverId = document.querySelector('meta[name="server-id"]')?.content;
-            if (!serverId) throw new Error("Server ID not found");
-            
-            if (!member || !member.id) throw new Error("Invalid member data");
-            
-            const memberName = member.display_name || member.username || 'Unknown User';
-            
-            
-            showToast(`Transferring ownership to ${memberName}...`, 'info', 2000);
-            
-            const response = await window.serverAPI.transferOwnership(serverId, member.id);
-            
-            
-            
-            if (response && response.success) {
-                document.querySelector('meta[name="user-role"]')?.setAttribute('content', 'admin');
-                document.body.dataset.userRole = 'admin';
-                
-                showToast(`You have transferred server ownership to ${memberName}. You are now an admin.`, 'success', 5000, 'Ownership Transferred');
-                loadMembers();
-            } else {
-                const errorMessage = response?.error || response?.message || 'Failed to transfer server ownership';
-                throw new Error(errorMessage);
-            }
-        } catch (error) {
-            console.error('Error transferring server ownership:', error);
-            const errorMessage = error.message || 'Failed to transfer server ownership';
-            showToast(errorMessage, 'error', 5000, 'Transfer Failed');
-        }
-    }
-    
-    if (memberSearch) {
-        memberSearch.addEventListener('input', debounce(function() {
-            const searchTerm = this.value.toLowerCase().trim();
-            
-            if (!searchTerm) {
-                filterMembers(currentFilter);
-                return;
-            }
-            
-            const filteredMembers = allMembers.filter(member => {
-                const isBot = member.status === 'bot';
-                const roleToSearch = isBot ? 'bot' : member.role;
-                
-                return (
-                    member.username.toLowerCase().includes(searchTerm) ||
-                    roleToSearch.toLowerCase().includes(searchTerm)
-                );
-            });
-            
-            renderMembers(filteredMembers);
-        }, 300));
-    }
-    
-    loadMembers();
-}
-
-
 function initChannelManagementTab() {
     const channelsList = document.getElementById('channels-list');
     const channelSearch = document.getElementById('channel-search');
@@ -2444,4 +1351,1149 @@ async function updateServerCategory(serverId, category) {
         approveBtn.disabled = false;
         approveBtn.innerHTML = originalIcon;
     }
+}import ImageCutter from '../common/image-cutter.js';
+import { showToast } from '../../core/ui/toast.js';
+
+let serverSettingsInitialized = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.body.classList.contains('settings-page') && document.querySelector('meta[name="server-id"]')) {
+        if (serverSettingsInitialized) {
+            return;
+        }
+        serverSettingsInitialized = true;
+        initServerSettingsPage();
+    }
+});
+
+function initServerSettingsPage() {
+    if (!document.body.classList.contains('authenticated')) {
+        console.error('User is not authenticated');
+        window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+        return;
+    }
+    
+    const tabs = document.querySelectorAll('.sidebar-item');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const activeSection = urlParams.get('section') || 'profile';
+    
+    tabs.forEach(tab => {
+        if (tab.dataset.tab === activeSection) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+        
+        tab.addEventListener('mouseenter', () => {
+            if (!tab.classList.contains('active')) {
+                tab.style.transition = 'background-color 0.15s ease';
+                tab.style.backgroundColor = 'rgba(79, 84, 92, 0.16)';
+            }
+        });
+        
+        tab.addEventListener('mouseleave', () => {
+            if (!tab.classList.contains('active')) {
+                tab.style.transition = 'background-color 0.15s ease';
+                tab.style.backgroundColor = '';
+            }
+        });
+        
+        tab.addEventListener('click', () => {
+            const tabId = tab.dataset.tab;
+            
+            const url = new URL(window.location);
+            url.searchParams.set('section', tabId);
+            window.history.pushState({}, '', url);
+            
+            tabs.forEach(t => {
+                t.classList.remove('active');
+                t.style.backgroundColor = '';
+            });
+            tab.classList.add('active');
+            
+            tabContents.forEach(content => {
+                if (content.id === `${tabId}-tab`) {
+                    content.classList.remove('hidden');
+                    content.style.opacity = '0';
+                    content.style.transform = 'translateY(5px)';
+                    
+                    setTimeout(() => {
+                        content.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+                        content.style.opacity = '1';
+                        content.style.transform = 'translateY(0)';
+                    }, 10);
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        });
+    });
+    
+    tabContents.forEach(content => {
+        if (content.id === `${activeSection}-tab`) {
+            content.classList.remove('hidden');
+        } else {
+            content.classList.add('hidden');
+        }
+    });
+    
+    if (activeSection === 'profile') {
+        initServerProfileForm();
+    } else if (activeSection === 'roles') {
+        initMemberManagementTab();
+    } else if (activeSection === 'channels') {
+        initChannelManagementTab();
+    } else if (activeSection === 'delete') {
+        initDeleteServerTab();
+    }
+    
+    initCloseButton();
+}
+
+function createImageUploadHandler(containerId, previewId, placeholderId, type, onSuccess) {
+    const container = document.getElementById(containerId);
+    const preview = document.getElementById(previewId);
+    const placeholder = document.getElementById(placeholderId);
+    const inputId = type === 'profile' ? 'server-icon-input' : 'server-banner-input';
+    const input = document.getElementById(inputId);
+
+    if (!container || !input) {
+        console.warn(`Image upload handler for ${type} could not be initialized.`);
+        return;
+    }
+    
+    if (input.dataset.listenerAttached) {
+        return;
+    }
+    input.dataset.listenerAttached = 'true';
+    
+    try {
+        const cutter = new ImageCutter({
+            container: container,
+            type: type,
+            modalTitle: `Upload Server ${type === 'profile' ? 'Icon' : 'Banner'}`,
+            aspectRatio: type === 'profile' ? 1 : 16/9,
+            fileInputSelector: `#${inputId}`,
+            onCrop: async (result) => {
+                if (result && result.error) {
+                    showToast(result.message || 'An error occurred during cropping.', 'error');
+                    return;
+                }
+                
+                if (!result || !result.dataUrl) {
+                    showToast('Cropping was cancelled or failed.', 'info');
+                    return;
+                }
+
+                const serverId = document.querySelector('meta[name="server-id"]').content;
+                const blob = dataURLtoBlob(result.dataUrl);
+
+                try {
+                    const response = await (type === 'profile' 
+                        ? window.serverAPI.updateServerIcon(serverId, blob)
+                        : window.serverAPI.updateServerBanner(serverId, blob));
+
+                    if (response.success) {
+                        if (preview) {
+                            preview.src = result.dataUrl;
+                            preview.classList.remove('hidden');
+                        }
+                        if (placeholder) {
+                            placeholder.classList.add('hidden');
+                        }
+
+                        if (onSuccess) {
+                            onSuccess(result.dataUrl);
+                        }
+
+                        showToast(`Server ${type === 'profile' ? 'icon' : 'banner'} updated successfully`, 'success');
+                        window.location.reload();
+                    } else {
+                        throw new Error(response.message || `Failed to update server ${type}`);
+                    }
+                } catch (error) {
+                    console.error(`Error updating server ${type}:`, error);
+                    showToast(error.message || 'An error occurred while uploading.', 'error');
+                }
+            }
+        });
+
+        input.addEventListener('change', (e) => {
+             const file = e.target.files[0];
+             if (!file) return;
+ 
+             const reader = new FileReader();
+             reader.onload = (event) => {
+                 cutter.loadImage(event.target.result);
+             };
+             reader.readAsDataURL(file);
+             
+             e.target.value = '';
+         });
+ 
+         if (type === 'profile') {
+             window.serverIconCutter = cutter;
+         } else {
+             window.serverBannerCutter = cutter;
+         }
+    } catch (error) {
+        console.error(`Error initializing ${type} cutter:`, error);
+        showToast(`Could not initialize image uploader for server ${type}.`, 'error');
+    }
+}
+
+function initServerIconUpload() {
+    createImageUploadHandler(
+        'server-icon-container',
+        'server-icon-preview',
+        'server-icon-placeholder',
+        'profile',
+        updateServerPreviewIcon
+    );
+}
+
+function initServerBannerUpload() {
+    createImageUploadHandler(
+        'server-banner-container',
+        'server-banner-preview', 
+        'server-banner-placeholder',
+        'banner',
+        updateServerPreviewBanner
+    );
+}
+
+function updateServerPreviewIcon(imageUrl) {
+    const previewIcon = document.querySelector('.server-icon-preview img');
+    const previewPlaceholder = document.querySelector('.server-icon-preview div');
+    
+    if (previewIcon) {
+        previewIcon.src = imageUrl;
+        previewIcon.classList.remove('hidden');
+        
+        if (previewPlaceholder) {
+            previewPlaceholder.classList.add('hidden');
+        }
+    } else if (previewPlaceholder) {
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.alt = "Server Icon";
+        img.className = "w-full h-full object-cover";
+        
+        previewPlaceholder.parentNode.appendChild(img);
+        previewPlaceholder.classList.add('hidden');
+    }
+}
+
+function resetServerPreviewIcon() {
+    const previewIcon = document.querySelector('.server-icon-preview img');
+    const previewPlaceholder = document.querySelector('.server-icon-preview div');
+    
+    if (previewIcon) {
+        previewIcon.classList.add('hidden');
+    }
+    
+    if (previewPlaceholder) {
+        previewPlaceholder.classList.remove('hidden');
+    }
+}
+                
+function initServerProfileForm() {
+    const form = document.getElementById('server-profile-form');
+    const serverNameInput = document.getElementById('server-name');
+    const serverDescriptionInput = document.getElementById('server-description');
+    const isPublicInput = document.getElementById('is-public');
+    const serverCategorySelect = document.getElementById('server-category');
+    const saveButton = document.getElementById('save-changes-btn');
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const formCards = document.querySelectorAll('.bg-discord-darker');
+    
+    if (!form || !serverId) return;
+    
+    initServerIconUpload();
+    initServerBannerUpload();
+    
+    if (formCards.length) {
+        formCards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(10px)';
+            card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+            
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100 + (index * 100));
+        });
+    }
+    
+    const formInputs = form.querySelectorAll('input, textarea, select');
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.closest('.form-group')?.classList.add('is-focused');
+        });
+        
+        input.addEventListener('blur', function() {
+            this.closest('.form-group')?.classList.remove('is-focused');
+        });
+    });
+    
+    if (serverNameInput) {
+        serverNameInput.addEventListener('input', debounce(function() {
+            updateServerNamePreview(this.value);
+        }, 300));
+    }
+
+    if (serverDescriptionInput) {
+        serverDescriptionInput.addEventListener('input', debounce(function() {
+            updateServerDescriptionPreview(this.value);
+        }, 300));
+    }
+    
+
+    initServerInputApproveButtons(serverId);
+}
+
+function initCloseButton() {
+    const closeButton = document.querySelector('.close-button');
+    if (!closeButton) return;
+    
+    closeButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const serverId = document.querySelector('meta[name="server-id"]')?.content;
+        if (!serverId) {
+            window.location.href = '/home';
+            return;
+        }
+        
+        window.location.href = `/server/${serverId}`;
+    });
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) {
+                window.location.href = '/home';
+                return;
+            }
+            
+            window.location.href = `/server/${serverId}`;
+        }
+    });
+}
+
+
+function updateServerNameInUI(newName) {
+    const sidebarServerName = document.querySelector('.w-60.bg-discord-light .text-sm.font-semibold');
+    if (sidebarServerName) {
+        sidebarServerName.textContent = newName;
+    }
+    
+    document.title = `MisVord - ${newName} Settings`;
+}
+
+
+function updateServerNamePreview(newName) {
+    const serverNamePreview = document.querySelector('.server-name');
+    if (serverNamePreview) {
+        serverNamePreview.textContent = newName || 'Server Name';
+    }
+}
+
+
+function updateServerDescriptionPreview(newDescription) {
+    const serverDescriptionPreview = document.querySelector('.server-description-preview');
+    if (serverDescriptionPreview) {
+        serverDescriptionPreview.textContent = newDescription || 'Tell people what your server is about...';
+    }
+}
+
+
+function dataURLtoBlob(dataURL) {
+    const arr = dataURL.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    
+    while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    
+    return new Blob([u8arr], { type: mime });
+}
+
+
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+
+
+
+function initMemberManagementTab() {
+    const membersList = document.getElementById('members-list');
+    const memberSearch = document.getElementById('member-search');
+    const memberTemplate = document.getElementById('member-template');
+    const memberFilter = document.getElementById('member-filter');
+    const filterOptions = document.querySelectorAll('#filter-dropdown .filter-option');
+    const serverId = document.querySelector('meta[name="server-id"]')?.content;
+    const userRole = document.querySelector('meta[name="user-role"]')?.content || 'member';
+    
+
+    document.body.dataset.userRole = userRole;
+    
+    function getMemberPermissions(currentUserRole, currentUserId, member, isBot) {
+        const isCurrentUser = String(member.id) === String(currentUserId);
+        
+        return {
+            canPromote: currentUserRole === 'owner' && member.role === 'member' && !isCurrentUser && !isBot,
+            canDemote: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser,
+            canKick: !isCurrentUser && member.role !== 'owner' && !isBot && 
+                    ((currentUserRole === 'owner') || 
+                     (currentUserRole === 'admin' && member.role === 'member')),
+            canTransferOwnership: currentUserRole === 'owner' && member.role === 'admin' && !isCurrentUser
+        };
+    }
+    
+    if (!membersList || !memberTemplate || !serverId) return;
+    
+    let allMembers = [];
+    let currentFilter = 'all';
+    let isLoadingMembers = false;
+    
+    async function loadMembers() {
+        if (isLoadingMembers) {
+            console.log('Members already loading, skipping duplicate request');
+            return;
+        }
+        
+        isLoadingMembers = true;
+        
+        try {
+            const response = await window.serverAPI.getServerMembers(serverId);
+            
+            if (response && response.success) {
+                if (response.data && response.data.members) {
+                    allMembers = response.data.members;
+                } else if (response.members) {
+                    allMembers = response.members;
+                } else {
+                    allMembers = [];
+                }
+                
+                filterMembers(currentFilter);
+            } else if (response && response.error && response.error.code === 401) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            } else {
+                throw new Error(response.message || 'Failed to load server members');
+            }
+        } catch (error) {
+            console.error('Error loading server members:', error);
+            
+            if (error.message && error.message.toLowerCase().includes('unauthorized')) {
+                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+                return;
+            }
+            
+            membersList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <i class="fas fa-exclamation-triangle mr-2 text-red-400"></i>
+                    <span>Error loading members. Please try again.</span>
+                </div>
+            `;
+        } finally {
+            isLoadingMembers = false;
+        }
+    }
+    
+    function filterMembers(filterType) {
+        let filteredMembers = [...allMembers];
+        
+        if (filterType !== 'all') {
+            if (filterType === 'bot') {
+                filteredMembers = filteredMembers.filter(member => member.status === 'bot');
+            } else {
+                filteredMembers = filteredMembers.filter(member => member.role === filterType && member.status !== 'bot');
+            }
+        }
+        
+        filteredMembers.sort((a, b) => {
+            const isABot = a.status === 'bot';
+            const isBBot = b.status === 'bot';
+            
+
+            if (isABot && !isBBot) return 1;
+            if (!isABot && isBBot) return -1;
+            
+
+            const roleOrder = { 'owner': 0, 'admin': 1, 'members': 2, 'member': 2, 'moderator': 3 };
+            const roleA = roleOrder[a.role] !== undefined ? roleOrder[a.role] : 4;
+            const roleB = roleOrder[b.role] !== undefined ? roleOrder[b.role] : 4;
+            
+            if (roleA !== roleB) {
+                return roleA - roleB;
+            }
+            
+            return a.username.localeCompare(b.username);
+        });
+        
+        renderMembers(filteredMembers);
+    }
+    
+    if (filterOptions) {
+        filterOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                filterOptions.forEach(opt => {
+                    opt.querySelector('input[type="radio"]').checked = false;
+                });
+                this.querySelector('input[type="radio"]').checked = true;
+                
+                if (memberFilter) {
+                    memberFilter.querySelector('.filter-selected-text').textContent = this.textContent.trim();
+                    
+                    const filterDropdown = document.getElementById('filter-dropdown');
+                    if (filterDropdown) {
+                        filterDropdown.classList.add('hidden');
+                    }
+                }
+                
+                currentFilter = this.dataset.filter;
+                filterMembers(currentFilter);
+            });
+        });
+    }
+    
+    if (memberFilter) {
+        memberFilter.addEventListener('click', function(e) {
+            const filterDropdown = document.getElementById('filter-dropdown');
+            if (filterDropdown) {
+                filterDropdown.classList.toggle('hidden');
+            }
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!memberFilter.contains(e.target)) {
+                const filterDropdown = document.getElementById('filter-dropdown');
+                if (filterDropdown && !filterDropdown.classList.contains('hidden')) {
+                    filterDropdown.classList.add('hidden');
+                }
+            }
+        });
+    }
+    
+    function renderMembers(members) {
+        if (!members.length) {
+            membersList.innerHTML = `
+                <div class="flex items-center justify-center p-8 text-discord-lighter">
+                    <i class="fas fa-users mr-2 opacity-50"></i>
+                    <span>No members found</span>
+                </div>
+            `;
+            return;
+        }
+        
+        membersList.innerHTML = '';
+        
+        members.forEach(member => {
+            const memberElement = document.importNode(memberTemplate.content, true).firstElementChild;
+            
+            const isBot = member.status === 'bot';
+            
+            const avatarImg = memberElement.querySelector('.member-avatar img');
+            if (avatarImg && member.avatar_url) {
+                avatarImg.src = member.avatar_url;
+            } else {
+                const avatarDiv = memberElement.querySelector('.member-avatar');
+                if (avatarDiv) {
+                    avatarDiv.innerHTML = `
+                        <img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">
+                    `;
+                }
+            }
+            
+            const usernameElement = memberElement.querySelector('.member-username');
+            if (usernameElement) {
+                const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+                const isCurrentUser = String(member.id) === String(currentUserId);
+                const displayName = member.display_name || member.username;
+                
+                
+                
+                
+                
+                let usernameText = displayName;
+                if (isCurrentUser) {
+                    usernameText += ' (you)';
+                }
+                
+                usernameElement.textContent = usernameText;
+                if (isBot) {
+                    usernameElement.innerHTML = `${usernameText} <span class="ml-1 px-1 py-0.5 text-[10px] bg-blue-500 text-white rounded">BOT</span>`;
+                }
+            }
+            
+            const discriminatorElement = memberElement.querySelector('.member-discriminator');
+            if (discriminatorElement) {
+                discriminatorElement.textContent = `#${member.discriminator || '0000'}`;
+            }
+            
+            const roleElement = memberElement.querySelector('.member-role-badge');
+            if (roleElement) {
+                if (isBot) {
+                    roleElement.textContent = 'Bot';
+                    roleElement.className = 'member-role-badge bot';
+                } else {
+                    roleElement.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                    roleElement.className = `member-role-badge ${member.role}`;
+                }
+            }
+            
+            const joinedElement = memberElement.querySelector('.member-joined');
+            if (joinedElement && member.joined_at) {
+                const joinedDate = new Date(member.joined_at);
+                joinedElement.textContent = joinedDate.toLocaleDateString();
+            }
+            
+            memberElement.dataset.memberId = member.id;
+            
+            const promoteBtn = memberElement.querySelector('.promote-btn');
+            const demoteBtn = memberElement.querySelector('.demote-btn');
+            const kickBtn = memberElement.querySelector('.kick-btn');
+            
+            const currentUserRole = document.body.dataset.userRole;
+            const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
+            const permissions = getMemberPermissions(currentUserRole, currentUserId, member, isBot);
+            
+            if (promoteBtn) {
+                const shouldShowPromote = permissions.canPromote && member.role === 'member';
+                const shouldShowTransfer = permissions.canTransferOwnership && member.role === 'admin';
+                
+                if (shouldShowPromote || shouldShowTransfer) {
+                    promoteBtn.style.display = 'inline-flex';
+                    
+                    if (shouldShowTransfer) {
+                        promoteBtn.title = 'Transfer Ownership';
+                        promoteBtn.innerHTML = '<i class="fas fa-crown"></i>';
+                        promoteBtn.classList.add('transfer-ownership-btn');
+                    } else if (shouldShowPromote) {
+                        promoteBtn.title = 'Promote to Admin';
+                        promoteBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                        promoteBtn.classList.remove('transfer-ownership-btn');
+                    }
+                } else {
+                    promoteBtn.style.display = 'none';
+                }
+            }
+            if (demoteBtn) {
+                demoteBtn.style.display = permissions.canDemote ? 'inline-flex' : 'none';
+            }
+            if (kickBtn) {
+                kickBtn.style.display = permissions.canKick ? 'inline-flex' : 'none';
+            }
+            
+            if (promoteBtn && promoteBtn.style.display !== 'none') {
+                promoteBtn.replaceWith(promoteBtn.cloneNode(true));
+                const newPromoteBtn = memberElement.querySelector('.promote-btn');
+                
+                newPromoteBtn.addEventListener('click', () => {
+                    if (permissions.canTransferOwnership && member.role === 'admin') {
+                        showMemberActionModal('transfer-ownership', member);
+                    } else if (permissions.canPromote && member.role === 'member') {
+                        showMemberActionModal('promote', member);
+                    }
+                });
+            }
+            
+            if (demoteBtn && demoteBtn.style.display !== 'none') {
+                demoteBtn.replaceWith(demoteBtn.cloneNode(true));
+                const newDemoteBtn = memberElement.querySelector('.demote-btn');
+                
+                newDemoteBtn.addEventListener('click', () => {
+                    showMemberActionModal('demote', member);
+                });
+            }
+            
+            if (kickBtn && kickBtn.style.display !== 'none') {
+                kickBtn.replaceWith(kickBtn.cloneNode(true));
+                const newKickBtn = memberElement.querySelector('.kick-btn');
+                
+                newKickBtn.addEventListener('click', () => showMemberActionModal('kick', member));
+            }
+            
+            membersList.appendChild(memberElement);
+        });
+    }
+    
+    function showMemberActionModal(action, member) {
+        try {
+            
+            
+            if (!member) {
+                console.error('No member provided to action modal');
+                showToast('Error: Member data is missing', 'error');
+                return;
+            }
+            
+            const modal = document.getElementById('member-action-modal');
+            if (!modal) {
+                console.error('Member action modal not found in the DOM');
+                showToast('Error: Modal not found', 'error');
+                return;
+            }
+
+
+            const modalContainer = modal.querySelector('.modal-container');
+            if (!modalContainer) {
+                console.error('Modal container not found');
+                showToast('Error: Modal structure is incomplete', 'error');
+                return;
+            }
+            
+
+            const safeSetContent = (selector, content, defaultContent = '') => {
+                const element = modal.querySelector(selector);
+                if (element) {
+                    if (typeof content === 'string') {
+                        element.textContent = content;
+                    } else if (typeof content === 'function') {
+                        content(element);
+                    }
+                    return element;
+                }
+                console.warn(`Element not found: ${selector}`);
+                return null;
+            };
+            
+
+            const safeToggleClass = (selector, className, add = true) => {
+                const element = modal.querySelector(selector);
+                if (element) {
+                    if (add) {
+                        element.classList.add(className);
+                    } else {
+                        element.classList.remove(className);
+                    }
+                    return element;
+                }
+                console.warn(`Element not found for class toggle: ${selector}`);
+                return null;
+            };
+            
+
+
+            safeSetContent('.modal-icon i', icon => {
+                if (icon) icon.className = '';
+            });
+            
+
+            safeSetContent('.modal-title', 'Confirm Action');
+            safeSetContent('.member-name', member.display_name || member.username);
+            safeSetContent('.member-current-role', `Current Role: ${member.role.charAt(0).toUpperCase() + member.role.slice(1)}`);
+            safeSetContent('.action-message', '');
+            
+
+            safeSetContent('.from-role', '');
+            safeSetContent('.to-role', '');
+            if (modal.querySelector('.from-role')) {
+                modal.querySelector('.from-role').className = 'role-badge from-role';
+            }
+            if (modal.querySelector('.to-role')) {
+                modal.querySelector('.to-role').className = 'role-badge to-role';
+            }
+            
+
+            safeToggleClass('.role-change-preview', 'hidden', true);
+            
+
+            const avatarContainer = modal.querySelector('.member-avatar-small');
+            if (avatarContainer) {
+                if (member.avatar_url) {
+                    avatarContainer.innerHTML = `<img src="${member.avatar_url}" alt="Avatar" class="w-full h-full object-cover">`;
+                } else {
+                    avatarContainer.innerHTML = `<img src="/public/assets/common/default-profile-picture.png" alt="Default Avatar" class="w-full h-full object-cover">`;
+                }
+            }
+            
+
+            const confirmBtn = modal.querySelector('#modal-confirm-btn');
+            if (confirmBtn) {
+                confirmBtn.className = 'modal-btn modal-btn-confirm';
+                
+
+                let confirmText = confirmBtn.querySelector('.confirm-text');
+                if (!confirmText) {
+
+                    const checkIcon = confirmBtn.querySelector('i');
+                    if (checkIcon) {
+                        confirmBtn.innerHTML = ''; 
+                        const iconEl = document.createElement('i');
+                        iconEl.className = 'fas fa-check mr-2';
+                        confirmBtn.appendChild(iconEl);
+                    } else {
+                        confirmBtn.innerHTML = '';
+                    }
+                    
+                    confirmText = document.createElement('span');
+                    confirmText.className = 'confirm-text';
+                    confirmBtn.appendChild(confirmText);
+                }
+                
+                confirmText.textContent = 'Confirm';
+            }
+            
+
+            const modalIcon = modal.querySelector('.modal-icon i');
+            const modalTitle = modal.querySelector('.modal-title');
+            const actionMessage = modal.querySelector('.action-message');
+            const roleChangePreview = modal.querySelector('.role-change-preview');
+            const fromRole = modal.querySelector('.from-role');
+            const toRole = modal.querySelector('.to-role');
+            const cancelBtn = modal.querySelector('#modal-cancel-btn');
+            
+
+            let actionHandler;
+            
+
+            switch (action) {
+                case 'transfer-ownership':
+                    if (modalIcon) modalIcon.className = 'fas fa-crown';
+                    if (modalTitle) modalTitle.textContent = 'Transfer Ownership';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to transfer server ownership to ${member.display_name || member.username}? This will make them the server owner and you will become an admin. This action cannot be undone.`;
+                    
+                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
+                    if (fromRole) {
+                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                        fromRole.className = `role-badge ${member.role}`;
+                    }
+                    if (toRole) {
+                        toRole.textContent = 'Owner';
+                        toRole.className = 'role-badge owner';
+                    }
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('danger');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Transfer Ownership';
+                    }
+                    
+                    actionHandler = () => handleTransferOwnership(member);
+                    break;
+                    
+                case 'promote':
+                    if (modalIcon) modalIcon.className = 'fas fa-arrow-up';
+                    if (modalTitle) modalTitle.textContent = 'Promote Member';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to promote ${member.display_name || member.username} to Admin? This will give them additional permissions to manage channels and kick members.`;
+                    
+                    if (roleChangePreview) roleChangePreview.classList.remove('hidden');
+                    if (fromRole) {
+                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                        fromRole.className = `role-badge ${member.role}`;
+                    }
+                    if (toRole) {
+                        toRole.textContent = 'Admin';
+                        toRole.className = 'role-badge admin';
+                    }
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('warning');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Promote';
+                    }
+                    
+                    actionHandler = () => handlePromote(member);
+                    break;
+                    
+                case 'demote':
+                    if (modalIcon) modalIcon.className = 'fas fa-arrow-down';
+                    if (modalTitle) modalTitle.textContent = 'Demote Member';
+                    if (actionMessage) actionMessage.textContent = `Are you sure you want to demote ${member.display_name || member.username} to Member? This will remove their administrative permissions.`;
+                    
+
+                    if (roleChangePreview) {
+                        roleChangePreview.classList.remove('hidden');
+                    }
+                    
+
+                    if (fromRole) {
+                        fromRole.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                        fromRole.className = `role-badge ${member.role}`;
+                    }
+                    
+
+                    if (toRole) {
+
+                        toRole.innerHTML = 'Member';
+                        toRole.className = 'role-badge member';
+                    }
+                    
+
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('warning');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = 'Demote';
+                    }
+                    
+
+                    actionHandler = () => handleDemote(member);
+                    break;
+                    
+                case 'kick':
+                    const isBot = member.status === 'bot';
+                    if (modalIcon) modalIcon.className = 'fas fa-user-times';
+                    if (modalTitle) modalTitle.textContent = isBot ? 'Remove Bot' : 'Kick Member';
+                    
+                    if (actionMessage) {
+                        if (isBot) {
+                            actionMessage.textContent = `Are you sure you want to remove ${member.display_name || member.username} from the server? The bot will be removed immediately but can be added again later.`;
+                        } else {
+                            actionMessage.textContent = `Are you sure you want to kick ${member.display_name || member.username} from the server? They will be removed immediately and can only rejoin with a new invite.`;
+                        }
+                    }
+                    
+                    if (confirmBtn) {
+                        confirmBtn.classList.add('danger');
+                        const confirmText = confirmBtn.querySelector('.confirm-text');
+                        if (confirmText) confirmText.textContent = isBot ? 'Remove Bot' : 'Kick';
+                    }
+                    
+                    actionHandler = () => handleKick(member);
+                    break;
+                    
+                default:
+                    console.error('Unknown action type:', action);
+                    return;
+            }
+            
+
+            if (confirmBtn) confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+            if (cancelBtn) cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            
+
+            const newConfirmBtn = modal.querySelector('#modal-confirm-btn');
+            const newCancelBtn = modal.querySelector('#modal-cancel-btn');
+            
+
+            if (newConfirmBtn) {
+                newConfirmBtn.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                    if (actionHandler) actionHandler();
+                });
+            }
+            
+            if (newCancelBtn) {
+                newCancelBtn.addEventListener('click', () => {
+                    modal.classList.add('hidden');
+                });
+            }
+            
+
+            const handleKeydown = (e) => {
+                if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                    modal.classList.add('hidden');
+                    document.removeEventListener('keydown', handleKeydown);
+                }
+            };
+            document.addEventListener('keydown', handleKeydown);
+            
+
+            const handleBackgroundClick = (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                    modal.removeEventListener('click', handleBackgroundClick);
+                }
+            };
+            modal.addEventListener('click', handleBackgroundClick);
+            
+
+            
+            
+
+            modal.classList.remove('hidden');
+            
+        } catch (error) {
+            console.error('Error showing member action modal:', error);
+            showToast('Error displaying the action modal. Please try again.', 'error');
+        }
+    }
+    
+    async function handlePromote(member) {
+        try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
+            const currentUserRole = document.body.dataset.userRole;
+            if (currentUserRole !== 'owner') {
+                throw new Error("Only server owners can promote members");
+            }
+            
+            if (member.role !== 'member') {
+                throw new Error("Can only promote members to admin");
+            }
+
+            showToast(`Promoting ${member.display_name || member.username}...`, 'info', 2000);
+            
+            const response = await window.serverAPI.promoteMember(serverId, member.id);
+            if (response && response.success) {
+                const newRole = response.new_role ? 
+                    response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
+                    'Admin'; 
+                
+                showToast(`${member.display_name || member.username} has been promoted to ${newRole}`, 'success', 5000, 'Member Promoted');
+                loadMembers();
+            } else {
+                throw new Error(response.message || 'Failed to promote member');
+            }
+        } catch (error) {
+            console.error('Error promoting member:', error);
+            showToast(error.message || 'Failed to promote member', 'error', 5000, 'Promotion Failed');
+        }
+    }
+    
+    async function handleDemote(member) {
+        try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
+            const currentUserRole = document.body.dataset.userRole;
+            if (currentUserRole !== 'owner') {
+                throw new Error("Only server owners can demote members");
+            }
+            
+            if (member.role !== 'admin') {
+                throw new Error("Can only demote admins to member");
+            }
+
+            showToast(`Demoting ${member.display_name || member.username}...`, 'info', 2000);
+            
+            const response = await window.serverAPI.demoteMember(serverId, member.id);
+            if (response && response.success) {
+                const newRole = response.new_role ? 
+                    response.new_role.charAt(0).toUpperCase() + response.new_role.slice(1) : 
+                    'Member'; 
+                
+                showToast(`${member.display_name || member.username} has been demoted to ${newRole}`, 'success', 5000, 'Member Demoted');
+                loadMembers();
+            } else {
+                throw new Error(response.message || 'Failed to demote member');
+            }
+        } catch (error) {
+            console.error('Error demoting member:', error);
+            showToast(error.message || 'Failed to demote member', 'error', 5000, 'Demotion Failed');
+        }
+    }
+    
+    async function handleKick(member) {
+        try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
+            const isBot = member.status === 'bot';
+            
+
+            showToast(isBot ? `Removing ${member.display_name || member.username}...` : `Kicking ${member.display_name || member.username}...`, 'info', 2000);
+            
+            const response = await window.serverAPI.kickMember(serverId, member.id);
+            if (response && response.success) {
+                const actionText = isBot ? 'removed from' : 'kicked from';
+                const toastTitle = isBot ? 'Bot Removed' : 'Member Kicked';
+                
+                showToast(`${member.display_name || member.username} has been ${actionText} the server`, 'success', 5000, toastTitle);
+                loadMembers();
+            } else {
+                throw new Error(response.message || `Failed to ${isBot ? 'remove bot' : 'kick member'}`);
+            }
+        } catch (error) {
+            console.error('Error kicking member:', error);
+            const isBot = member.status === 'bot';
+            const errorTitle = isBot ? 'Bot Removal Failed' : 'Kick Failed';
+            showToast(error.message || `Failed to ${isBot ? 'remove bot' : 'kick member'}`, 'error', 5000, errorTitle);
+        }
+    }
+
+    async function handleTransferOwnership(member) {
+        try {
+            const serverId = document.querySelector('meta[name="server-id"]')?.content;
+            if (!serverId) throw new Error("Server ID not found");
+            
+            if (!member || !member.id) throw new Error("Invalid member data");
+            
+            const currentUserRole = document.body.dataset.userRole;
+            if (currentUserRole !== 'owner') {
+                throw new Error("Only server owners can transfer ownership");
+            }
+            
+            if (member.role !== 'admin') {
+                throw new Error("Can only transfer ownership to admins");
+            }
+            
+            const memberName = member.display_name || member.username || 'Unknown User';
+            
+            showToast(`Transferring ownership to ${memberName}...`, 'info', 2000);
+            
+            const response = await window.serverAPI.transferOwnership(serverId, member.id);
+            
+            if (response && response.success) {
+                document.querySelector('meta[name="user-role"]')?.setAttribute('content', 'admin');
+                document.body.dataset.userRole = 'admin';
+                
+                showToast(`You have transferred server ownership to ${memberName}. You are now an admin.`, 'success', 5000, 'Ownership Transferred');
+                
+                setTimeout(() => {
+                    loadMembers();
+                }, 1000);
+            } else {
+                const errorMessage = response?.error || response?.message || 'Failed to transfer server ownership';
+                throw new Error(errorMessage);
+            }
+        } catch (error) {
+            console.error('Error transferring server ownership:', error);
+            let errorMessage = 'Failed to transfer server ownership';
+            
+            if (error.message) {
+                if (error.message.includes('admin')) {
+                    errorMessage = 'The selected user must be an admin to receive ownership';
+                } else if (error.message.includes('Database operation failed')) {
+                    errorMessage = 'Database error occurred during transfer. Please try again or contact support.';
+                } else if (error.message.includes('not the current server owner')) {
+                    errorMessage = 'You are not authorized to transfer ownership of this server';
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+            
+            showToast(errorMessage, 'error', 5000, 'Transfer Failed');
+        }
+    }
+    
+    if (memberSearch) {
+        memberSearch.addEventListener('input', debounce(function() {
+            const searchTerm = this.value.toLowerCase().trim();
+            
+            if (!searchTerm) {
+                filterMembers(currentFilter);
+                return;
+            }
+            
+            const filteredMembers = allMembers.filter(member => {
+                const isBot = member.status === 'bot';
+                const roleToSearch = isBot ? 'bot' : member.role;
+                
+                return (
+                    member.username.toLowerCase().includes(searchTerm) ||
+                    roleToSearch.toLowerCase().includes(searchTerm)
+                );
+            });
+            
+            renderMembers(filteredMembers);
+        }, 300));
+    }
+    
+    loadMembers();
 }

@@ -7,6 +7,9 @@ class UserServerMembership extends Model {
     protected $fillable = ['id', 'user_id', 'server_id', 'role', 'notification_settings', 'created_at', 'updated_at'];
 
     public static function findByUserAndServer($userId, $serverId) {
+        $userId = intval($userId);
+        $serverId = intval($serverId);
+        
         $result = static::where('user_id', $userId)
             ->where('server_id', $serverId)
             ->first();

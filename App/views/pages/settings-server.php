@@ -544,7 +544,7 @@ ob_start();
                                 <div class="channel-edit-form">
                                     <div class="form-group">
                                         <label for="new-channel-name" class="block text-sm font-medium text-white mb-2">New Name</label>
-                                        <input type="text" id="new-channel-name" class="w-full px-3 py-2 bg-discord-dark-input text-white rounded-md border border-discord-darker focus:ring-2 focus:ring-discord-primary text-sm" placeholder="Enter new channel name">
+                                        <input type="text" id="new-channel-name" class="form-input" placeholder="Enter new channel name">
                                     </div>
                                 </div>
                             </div>

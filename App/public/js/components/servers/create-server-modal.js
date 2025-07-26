@@ -701,25 +701,12 @@ document.addEventListener('click', function (e) {
     const modal = document.getElementById('create-server-modal');
     const closeBtn = document.getElementById('close-create-server-modal');
 
-    if ((closeBtn && (e.target === closeBtn || closeBtn.contains(e.target))) || (e.target === modal)) {
+    if (closeBtn && (e.target === closeBtn || closeBtn.contains(e.target))) {
         const form = document.getElementById('create-server-form');
         if (form) {
             FormValidator.clearErrors(form);
         }
         closeModal(modal);
-    }
-});
-
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') {
-        const modal = document.getElementById('create-server-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-            const form = document.getElementById('create-server-form');
-            if (form) {
-                FormValidator.clearErrors(form);
-            }
-            closeModal(modal);
-        }
     }
 });
 

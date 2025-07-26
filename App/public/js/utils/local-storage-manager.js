@@ -1,81 +1,96 @@
+export class LocalStorageManager {
+    static KEYS = {
+        SERVER_GROUPS: 'discord_server_groups',
+        GROUP_STATES: 'discord_group_states'
+    };
 
-class LocalStorageManager {
     constructor() {
         this.keys = {
             USER_PREFERENCES: 'misvord_user_preferences',
             THEME_SETTINGS: 'misvord_theme_settings',
-            SERVER_GROUPS: 'misvord_server_groups',
+            SERVER_GROUPS: 'misvord_server_groups_v2',
             COLLAPSED_CATEGORIES: 'misvord_collapsed_categories',
             DRAFT_MESSAGES: 'misvord_draft_messages',
-            UNIFIED_VOICE_STATE: 'misvord_unified_voice_state'
+            UNIFIED_VOICE_STATE: 'misvord_unified_voice_state',
+            GROUP_STATES: 'misvord_group_states'
         };
         
         this.voiceStateListeners = new Set();
         this.debounceTimers = new Map();
         
-        this.migrateOldVoiceState();
-        this.cleanupStaleVoiceConnections();
+        this.initializeVoiceStateWatcher();
     }
 
-    migrateOldVoiceState() {
-        const oldState = this.get('misvord_voice_state');
-        const oldConnectionState = this.get('voiceConnectionState');
-        
-        if (oldState || oldConnectionState) {
-            const unified = {
-                isMuted: oldState?.isMuted || false,
-                isDeafened: oldState?.isDeafened || false,
-                volume: oldState?.volume || 100,
-                isConnected: oldConnectionState?.isConnected || false,
-                channelId: oldConnectionState?.currentChannelId || oldState?.channelId || null,
-                channelName: oldConnectionState?.channelName || oldState?.channelName || null,
-                meetingId: oldConnectionState?.meetingId || null,
-                connectionTime: oldConnectionState?.connectionTime || Date.now()
-            };
-            
-            this.set(this.keys.UNIFIED_VOICE_STATE, unified);
-            this.remove('misvord_voice_state');
-            this.remove('voiceConnectionState');
+    static getServerGroups() {
+        try {
+            const groups = localStorage.getItem(this.KEYS.SERVER_GROUPS);
+            return groups ? JSON.parse(groups) : [];
+        } catch (e) {
+            console.error('Error parsing server groups:', e);
+            return [];
         }
     }
-    
-    cleanupStaleVoiceConnections() {
-        const voiceState = this.getUnifiedVoiceState();
+
+    static setServerGroups(groups) {
+        try {
+            const validGroups = groups.filter(g => g && g.servers && g.servers.length > 0);
+            localStorage.setItem(this.KEYS.SERVER_GROUPS, JSON.stringify(validGroups));
+        } catch (e) {
+            console.error('Error saving server groups:', e);
+        }
+    }
+
+    static removeServerFromAllGroups(serverId) {
+        const groups = this.getServerGroups();
+        let modified = false;
         
-        if (voiceState.isConnected) {
+        groups.forEach(group => {
+            const index = group.servers.indexOf(serverId);
+            if (index > -1) {
+                group.servers.splice(index, 1);
+                modified = true;
+            }
+        });
+        
+        if (modified) {
+            this.setServerGroups(groups);
+        }
+    }
+
+    static isGroupOpen(groupId) {
+        try {
+            const states = localStorage.getItem(this.KEYS.GROUP_STATES);
+            const groupStates = states ? JSON.parse(states) : {};
+            return groupStates[groupId] !== false;
+        } catch (e) {
+            return true;
+        }
+    }
+
+    static toggleGroupOpen(groupId) {
+        try {
+            const states = localStorage.getItem(this.KEYS.GROUP_STATES);
+            const groupStates = states ? JSON.parse(states) : {};
+            groupStates[groupId] = !this.isGroupOpen(groupId);
+            localStorage.setItem(this.KEYS.GROUP_STATES, JSON.stringify(groupStates));
+        } catch (e) {
+            console.error('Error toggling group state:', e);
+        }
+    }
+
+    initializeVoiceStateWatcher() {
+        setInterval(() => {
+            const voiceState = this.getUnifiedVoiceState();
             const now = Date.now();
-            const connectionTime = voiceState.connectionTime || 0;
-            const timeSinceConnection = now - connectionTime;
             
-            if (timeSinceConnection > 300000) {
-                console.log('🧹 [LOCAL-STORAGE] Detected very stale voice connection, cleaning up:', {
-                    channelId: voiceState.channelId,
-                    meetingId: voiceState.meetingId,
-                    since: voiceState.connectionTime ? new Date(voiceState.connectionTime).toLocaleTimeString() : 'unknown',
-                    timeSinceConnection: Math.round(timeSinceConnection / 1000) + 's'
-                });
-                
-                this.setUnifiedVoiceState({
-                    ...voiceState,
-                    isConnected: false,
-                    disconnectionReason: 'very_stale_connection_cleanup',
-                    disconnectionTime: now
-                });
-            } else {
-                console.log('🔄 [LOCAL-STORAGE] Voice connection detected, preserving for restoration:', {
-                    channelId: voiceState.channelId,
-                    meetingId: voiceState.meetingId,
-                    since: voiceState.connectionTime ? new Date(voiceState.connectionTime).toLocaleTimeString() : 'unknown',
-                    timeSinceConnection: Math.round(timeSinceConnection / 1000) + 's'
-                });
-                
+            if (voiceState.isConnected && voiceState.needsRestoration) {
                 this.setUnifiedVoiceState({
                     ...voiceState,
                     needsRestoration: true,
                     lastActivity: now
                 });
             }
-        }
+        }, 5000);
     }
 
     get(key, defaultValue = null) {
@@ -498,5 +513,4 @@ const localStorageManager = new LocalStorageManager();
 
 window.localStorageManager = localStorageManager;
 
-export { LocalStorageManager };
 export default localStorageManager;

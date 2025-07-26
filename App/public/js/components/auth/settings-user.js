@@ -2069,79 +2069,169 @@ function initDeleteAccount() {
                 servers.forEach(server => {
                     const escapedServerName = escapeHtml(server.name);
                     const serverFirstChar = escapeHtml(server.name.charAt(0));
+                    const displayMemberCount = server.human_member_count || server.member_count || 0;
+                    const totalMemberCount = server.member_count || 0;
                     
                     const serverElement = document.createElement('div');
                     serverElement.className = 'p-4 bg-discord-bg-secondary rounded-md border border-gray-700 h-full';
                     serverElement.setAttribute('data-server-id', server.id);
                     
-                    if (server.can_be_deleted) {
-                        
-                        serverElement.innerHTML = `
-                            <div class="flex items-center mb-3">
-                                <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
-                                    ${server.icon_url ? 
-                                        `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
-                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
-                                    }
-                                </div>
-                                <div>
-                                    <div class="font-medium text-white text-lg">${escapedServerName}</div>
-                                    <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
-                                </div>
+                    serverElement.innerHTML = `
+                        <div class="flex items-center mb-3">
+                            <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                ${server.icon_url ? 
+                                    `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
+                                    `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
+                                }
                             </div>
-                            <div class="server-delete-section bg-green-900/20 p-4 rounded-md border border-green-500/30">
-                                <div class="flex items-center text-green-400 text-sm">
-                                    <i class="fas fa-info-circle mr-2"></i>
-                                    <span>This server will be automatically deleted</span>
-                                </div>
+                            <div>
+                                <div class="font-medium text-white text-lg">${escapedServerName}</div>
+                                <div class="text-sm text-discord-interactive-normal">${totalMemberCount} member${totalMemberCount !== 1 ? 's' : ''}</div>
                             </div>
-                        `;
-                        serverElement.classList.add('server-can-delete');
-                    } else {
-                        
-                        serverElement.innerHTML = `
-                            <div class="flex items-center mb-3">
-                                <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
-                                    ${server.icon_url ? 
-                                        `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
-                                        `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
-                                    }
-                                </div>
-                                <div>
-                                    <div class="font-medium text-white text-lg">${escapedServerName}</div>
-                                    <div class="text-sm text-discord-interactive-normal">${server.member_count || 0} member${server.member_count !== 1 ? 's' : ''}</div>
-                                </div>
+                        </div>
+                        <div class="server-check-section bg-discord-bg-tertiary p-4 rounded-md">
+                            <div class="text-center py-3">
+                                <i class="fas fa-spinner fa-spin text-discord-blurple mr-2"></i>
+                                <span class="text-discord-interactive-normal">Checking eligible members...</span>
                             </div>
-                            <div class="server-transfer-section bg-discord-bg-tertiary p-4 rounded-md">
-                                <div class="text-sm text-white font-medium mb-3">Transfer ownership to ${server.member_count === 2 ? 'the only other member' : 'a member'}:</div>
-                                ${server.member_count === 2 ? '<div class="text-xs text-yellow-400 mb-2"><i class="fas fa-info-circle mr-1"></i>This server has only 1 other member - they will be automatically selected</div>' : ''}
-                                <div class="relative">
-                                    <div class="flex items-center space-x-2 mb-2">
-                                        <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="${server.member_count === 2 ? 'Click search to auto-select the only member' : 'Search by name or role...'}">>
-                                        <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded">
-                                            <i class="fas fa-search"></i>
-                                        </button>
-                                    </div>
-                                    <div class="members-dropdown hidden absolute w-full mt-1 z-10 rounded-md overflow-hidden bg-discord-bg-secondary border border-gray-600 max-h-60 overflow-y-auto"></div>
-                                </div>
-                                <div class="selected-member mt-3 hidden">
-                                    <div class="flex items-center justify-between p-3 rounded-md bg-discord-bg-secondary border border-gray-600">
-                                        <div class="flex items-center">
-                                            <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3 selected-member-avatar"></div>
-                                            <div class="selected-member-name"></div>
-                                        </div>
-                                    </div>
-                                    <div class="transfer-error text-red-400 text-xs mt-2 hidden"></div>
-                                </div>
-                                <div class="transfer-success hidden mt-3 text-green-400 text-sm bg-green-900/20 p-2 rounded-md border border-green-500/30">
-                                    <i class="fas fa-check-circle mr-1"></i> Ownership transferred successfully
-                                </div>
-                            </div>
-                        `;
-                        initServerTransferControls(serverElement, server.id);
-                    }
+                        </div>
+                    `;
                     
                     serversList.appendChild(serverElement);
+                    
+                    window.serverAPI.getEligibleNewOwners(server.id)
+                        .then(response => {
+                            if (response.success && response.data && response.data.users && response.data.users.length > 0) {
+                                const members = response.data.users;
+                                
+                                serverElement.innerHTML = `
+                                    <div class="flex items-center mb-3">
+                                        <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                            ${server.icon_url ? 
+                                                `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
+                                                `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
+                                            }
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-white text-lg">${escapedServerName}</div>
+                                            <div class="text-sm text-discord-interactive-normal">${totalMemberCount} member${totalMemberCount !== 1 ? 's' : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="server-transfer-section bg-discord-bg-tertiary p-4 rounded-md">
+                                        <div class="text-sm text-white font-medium mb-3">Transfer ownership to ${members.length === 1 ? 'the only other member' : 'a member'}:</div>
+                                        <div class="relative">
+                                            <div class="flex items-center space-x-2 mb-2">
+                                                <input type="text" class="member-search-input w-full bg-discord-bg-secondary border border-gray-600 rounded-md px-3 py-2 text-sm text-white" placeholder="${members.length === 1 ? 'Auto-selected member' : 'Search by name or role...'}" ${members.length === 1 ? 'readonly' : ''}>
+                                                <button class="fetch-members-btn bg-discord-blurple hover:bg-discord-blurple-dark text-white text-xs px-3 py-2 rounded" ${members.length === 1 ? 'style="display: none;"' : ''}>
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                            <div class="members-dropdown absolute w-full mt-1 z-10 rounded-md overflow-hidden bg-discord-bg-secondary border border-gray-600 max-h-60 overflow-y-auto"></div>
+                                        </div>
+                                        <div class="selected-member mt-3 hidden">
+                                            <div class="flex items-center justify-between p-3 rounded-md bg-discord-bg-secondary border border-gray-600">
+                                                <div class="flex items-center">
+                                                    <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3 selected-member-avatar"></div>
+                                                    <div class="selected-member-name"></div>
+                                                </div>
+                                            </div>
+                                            <div class="transfer-error text-red-400 text-xs mt-2 hidden"></div>
+                                        </div>
+                                        <div class="transfer-success hidden mt-3 text-green-400 text-sm bg-green-900/20 p-2 rounded-md border border-green-500/30">
+                                            <i class="fas fa-check-circle mr-1"></i> Ownership transferred successfully
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                initServerTransferControls(serverElement, server.id);
+                                
+                                if (members.length === 1) {
+                                    const dropdown = serverElement.querySelector('.members-dropdown');
+                                    const member = members[0];
+                                    const roleColor = getRoleColor(member.role);
+                                    const roleDisplayName = getRoleDisplayName(member.role);
+                                    const escapedUsername = escapeHtml(member.username);
+                                    const escapedDisplayName = escapeHtml(member.display_name || member.username);
+                                    const usernameFirstChar = escapeHtml(member.username.charAt(0));
+                                    
+                                    selectMember(serverElement, member);
+                                    dropdown.innerHTML = `
+                                        <div class="text-center py-3 bg-discord-bg-secondary text-sm text-green-400 mb-2">
+                                            Only one eligible member - automatically selected
+                                        </div>
+                                        <div class="p-3 bg-green-900/20 rounded-md border border-green-500/30">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                                    <img src="${member.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                                                         alt="${escapedUsername}" 
+                                                         class="w-full h-full object-cover"
+                                                         onerror="this.src='/public/assets/common/default-profile-picture.png'">
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-medium text-white">${escapedDisplayName}</div>
+                                                    <div class="text-xs text-discord-interactive-normal flex items-center gap-2">
+                                                        <span>${escapedUsername}</span>
+                                                        <span class="text-xs px-2 py-0.5 rounded ${roleColor}">${escapeHtml(roleDisplayName)}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                    dropdown.classList.remove('hidden');
+                                }
+                            } else {
+                                const botCount = totalMemberCount - 1;
+                                const deleteReason = botCount > 0 ? 
+                                    `Only bots remain - server will be automatically deleted` : 
+                                    `Single member server - will be automatically deleted`;
+                                
+                                serverElement.innerHTML = `
+                                    <div class="flex items-center mb-3">
+                                        <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                            ${server.icon_url ? 
+                                                `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
+                                                `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
+                                            }
+                                        </div>
+                                        <div>
+                                            <div class="font-medium text-white text-lg">${escapedServerName}</div>
+                                            <div class="text-sm text-discord-interactive-normal">${totalMemberCount} member${totalMemberCount !== 1 ? 's' : ''} ${botCount > 0 ? `(${botCount} bot${botCount !== 1 ? 's' : ''})` : ''}</div>
+                                        </div>
+                                    </div>
+                                    <div class="server-delete-section bg-green-900/20 p-4 rounded-md border border-green-500/30">
+                                        <div class="flex items-center text-green-400 text-sm">
+                                            <i class="fas fa-info-circle mr-2"></i>
+                                            <span>${deleteReason}</span>
+                                        </div>
+                                    </div>
+                                `;
+                                serverElement.classList.add('server-can-delete');
+                            }
+                            checkAllServersReady();
+                        })
+                        .catch(error => {
+                            console.error('Error checking members for server', server.id, ':', error);
+                            serverElement.innerHTML = `
+                                <div class="flex items-center mb-3">
+                                    <div class="w-12 h-12 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                        ${server.icon_url ? 
+                                            `<img src="${escapeHtml(server.icon_url)}" alt="${escapedServerName}" class="w-full h-full object-cover">` : 
+                                            `<div class="w-full h-full flex items-center justify-center bg-discord-blurple text-white font-bold text-xl">${serverFirstChar}</div>`
+                                        }
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-white text-lg">${escapedServerName}</div>
+                                        <div class="text-sm text-discord-interactive-normal">${totalMemberCount} member${totalMemberCount !== 1 ? 's' : ''}</div>
+                                    </div>
+                                </div>
+                                <div class="server-error-section bg-red-900/20 p-4 rounded-md border border-red-500/30">
+                                    <div class="flex items-center text-red-400 text-sm">
+                                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                                        <span>Error checking members - please refresh</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
                 });
             } else {
                 serverSection.innerHTML = '<div class="text-center py-4 text-red-400">Failed to load your servers.</div>';
@@ -2229,16 +2319,64 @@ function initDeleteAccount() {
                 const members = response.data.users;
                 
                 if (members.length === 0) {
-                    dropdown.innerHTML = '<div class="text-center py-3 bg-discord-bg-secondary text-sm text-discord-interactive-normal">No eligible members found</div>';
+                    const serverElement = dropdown.closest('[data-server-id]');
+                    const serverId = serverElement.getAttribute('data-server-id');
+                    
+                    serverElement.classList.add('server-can-delete');
+                    serverElement.classList.remove('server-requires-transfer');
+                    
+                    const transferSection = serverElement.querySelector('.server-transfer-section');
+                    if (transferSection) {
+                        transferSection.innerHTML = `
+                            <div class="server-delete-section bg-green-900/20 p-4 rounded-md border border-green-500/30">
+                                <div class="flex items-center text-green-400 text-sm">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <span>Only bots remain - server will be automatically deleted</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    dropdown.innerHTML = '<div class="text-center py-3 bg-discord-bg-secondary text-sm text-discord-interactive-normal">Only bots available - server will be deleted</div>';
+                    checkAllServersReady();
                     return;
                 }
                 
+                const serverElement = dropdown.closest('[data-server-id]');
                 serverElement.dataset.members = JSON.stringify(members);
                 
                 if (members.length === 1) {
                     
                     selectMember(serverElement, members[0]);
-                    dropdown.innerHTML = '<div class="text-center py-3 bg-discord-bg-secondary text-sm text-green-400">Only one eligible member - automatically selected</div>';
+                    const member = members[0];
+                    const roleColor = getRoleColor(member.role);
+                    const roleDisplayName = getRoleDisplayName(member.role);
+                    const escapedUsername = escapeHtml(member.username);
+                    const escapedDisplayName = escapeHtml(member.display_name || member.username);
+                    const usernameFirstChar = escapeHtml(member.username.charAt(0));
+                    
+                    dropdown.innerHTML = `
+                        <div class="text-center py-3 bg-discord-bg-secondary text-sm text-green-400 mb-2">
+                            Only one eligible member - automatically selected
+                        </div>
+                        <div class="p-3 bg-green-900/20 rounded-md border border-green-500/30">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
+                                    ${member.avatar_url ? 
+                                        `<img src="${escapeHtml(member.avatar_url)}" alt="${escapedUsername}" class="w-full h-full object-cover">` : 
+                                        `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${usernameFirstChar}</div>`
+                                    }
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">${escapedDisplayName}</div>
+                                    <div class="text-xs text-discord-interactive-normal flex items-center gap-2">
+                                        <span>${escapedUsername}</span>
+                                        <span class="text-xs px-2 py-0.5 rounded ${roleColor}">${escapeHtml(roleDisplayName)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 } else {
                     renderMembersList(serverElement, members);
                 }
@@ -2283,10 +2421,10 @@ function initDeleteAccount() {
             memberElement.innerHTML = `
                 <div class="flex items-center">
                     <div class="w-8 h-8 rounded-full bg-discord-bg-tertiary overflow-hidden flex-shrink-0 mr-3">
-                        ${member.avatar_url ? 
-                            `<img src="${escapeHtml(member.avatar_url)}" alt="${escapedUsername}" class="w-full h-full object-cover">` : 
-                            `<div class="w-full h-full flex items-center justify-center bg-discord-interactive-muted text-white text-xs font-bold">${usernameFirstChar}</div>`
-                        }
+                        <img src="${member.avatar_url || '/public/assets/common/default-profile-picture.png'}" 
+                             alt="${escapedUsername}" 
+                             class="w-full h-full object-cover"
+                             onerror="this.src='/public/assets/common/default-profile-picture.png'">
                     </div>
                     <div>
                         <div class="text-sm font-medium text-white">${escapedDisplayName}</div>

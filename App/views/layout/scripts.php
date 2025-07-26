@@ -85,6 +85,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="<?php echo js('api/friend-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/channel-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/server-api'); ?>?v=<?php echo time(); ?>" type="module"></script>
+<script src="<?php echo js('components/servers/server-drag'); ?>?v=<?php echo time(); ?>" type="module"></script>
 <script src="<?php echo js('api/bot-api'); ?>?v=<?php echo time(); ?>"></script>
 
 <script src="<?php echo js('components/common/image-cutter'); ?>?v=<?php echo time(); ?>" type="module"></script>

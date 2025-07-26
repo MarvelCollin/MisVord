@@ -48,6 +48,11 @@
   --discord-background-modifier-accent: rgba(79, 84, 92, 0.48);
 
   
+  --discord-primary: #5865f2;
+  --discord-primary-dark: #4752c4;
+  --discord-dark-input: #1e1f22;
+
+  
   --discord-border-radius-primary: 8px;
   --discord-border-radius-secondary: 4px;
   --discord-border-radius-tertiary: 3px;

@@ -1384,9 +1384,11 @@ class UserController extends BaseController
             
             foreach ($servers as &$server) {
                 $memberCount = $membershipRepository->getMemberCount($server['id']);
+                $humanMemberCount = $membershipRepository->getHumanMemberCount($server['id']);
                 $server['member_count'] = $memberCount;
-                $server['can_be_deleted'] = $memberCount <= 1;
-                $server['requires_transfer'] = $memberCount > 1;
+                $server['human_member_count'] = $humanMemberCount;
+                $server['can_be_deleted'] = $humanMemberCount <= 1;
+                $server['requires_transfer'] = $humanMemberCount > 1;
                 
                 if (!empty($server['image_url'])) {
                     if (!str_starts_with($server['image_url'], 'http') && !str_starts_with($server['image_url'], '/public/')) {

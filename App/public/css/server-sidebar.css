@@ -178,10 +178,19 @@
 
 
 .server-sidebar-group.drag-over {
-  transform: scale(1.05);
-  background-color: rgba(88, 101, 242, 0.1);
+  transform: scale(1.1);
+  box-shadow: 0 0 10px var(--discord-primary);
+  background-color: rgba(88, 101, 242, 0.15);
   border-radius: 16px;
-  box-shadow: 0 0 0 2px var(--discord-primary);
+}
+
+@keyframes group-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 0 2px var(--discord-primary), 0 4px 15px rgba(88, 101, 242, 0.3);
+  }
+  50% { 
+    box-shadow: 0 0 0 3px var(--discord-primary), 0 6px 20px rgba(88, 101, 242, 0.5);
+  }
 }
 
 .server-sidebar-group.drag-over .group-header {
@@ -339,13 +348,32 @@
   }
 }
 
+.server-sidebar-icon[draggable="true"] {
+  cursor: grab;
+}
+
+.server-sidebar-icon[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 
 .server-sidebar-icon.dragging {
-  opacity: 0.6;
-  transform: scale(1.1) rotate(5deg);
+  opacity: 0.5;
+  transform: scale(1.1);
   z-index: 1000;
   transition: none;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  cursor: grabbing;
+}
+
+.drop-indicator {
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--discord-primary), rgba(88, 101, 242, 0.8), var(--discord-primary));
+  border-radius: 2px;
+  margin: -6px 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 8px rgba(88, 101, 242, 0.6);
+  animation: pulse-glow 1s infinite ease-in-out;
 }
 
 .server-sidebar-icon.drop-target {
@@ -466,10 +494,12 @@
 }
 
 .server-sidebar-icon.dragging {
-  opacity: 0.6;
-  transform: scale(1.05) rotate(5deg);
+  opacity: 0.8;
+  transform: scale(1.15) rotate(8deg);
   z-index: 1000;
   transition: none;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.4), 0 0 0 2px rgba(88, 101, 242, 0.5), 0 0 20px rgba(88, 101, 242, 0.3);
+  filter: brightness(1.1);
 }
 
 .drag-helper {
@@ -512,6 +542,42 @@
   border-radius: 50%;
   pointer-events: none;
   z-index: 10;
+  animation: pulse-border 1s infinite ease-in-out;
+}
+
+.drop-indicator {
+  position: absolute;
+  height: 3px;
+  background: linear-gradient(90deg, var(--discord-primary), rgba(88, 101, 242, 0.8), var(--discord-primary));
+  width: 48px;
+  border-radius: 2px;
+  display: none;
+  z-index: 1000;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(88, 101, 242, 0.6);
+  animation: pulse-glow 1s infinite ease-in-out;
+}
+
+@keyframes pulse-border {
+  0%, 100% { 
+    border-color: var(--discord-primary);
+    transform: scale(1);
+  }
+  50% { 
+    border-color: rgba(88, 101, 242, 0.6);
+    transform: scale(1.05);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 8px rgba(88, 101, 242, 0.6);
+    opacity: 1;
+  }
+  50% { 
+    box-shadow: 0 0 15px rgba(88, 101, 242, 0.9);
+    opacity: 0.8;
+  }
 }
 
 .server-sidebar-list.drop-target::after {

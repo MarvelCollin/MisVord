@@ -1,0 +1,6 @@
+[2025-07-26 02:20:27] DEBUG [b0ccdf] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-26 02:20:41] ERROR [b0ccdf] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-26 02:21:06] DEBUG [262cfa] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-26 02:21:20] ERROR [262cfa] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
+[2025-07-26 02:47:41] DEBUG [d9530f] Connecting to database - Context: {"host":"db","port":"1003","database":"misvord","charset":"utf8mb4"}
+[2025-07-26 02:47:48] ERROR [d9530f] Database connection failed - Context: {"error":"SQLSTATE[HY000] [2002] php_network_getaddresses: getaddrinfo failed: No such host is known. ","host":"db","port":"1003","database":"misvord","user":"root"}
