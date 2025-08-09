@@ -1,1 +1,9 @@
-App/node_modules/
+node_modules/
+.cursorignore
+rules.txt
+system.txt
+rules2.txt
+vendor/
+.env
+storage/
+socket-server/node_modules/
