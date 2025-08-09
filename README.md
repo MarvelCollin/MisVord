@@ -4,6 +4,8 @@ Using REST API + MVC + Repository Pattern
 
 Views -> Rest API -> Routes -> Controller -> Repository -> Model -> Database
 
+Supporting Video call, Bot system, Chat system like discord.
+
 <img width="1031" height="454" alt="image" src="https://github.com/user-attachments/assets/85e56410-3534-4792-9be0-1b0d37e76a22" />
 <img width="1275" height="596" alt="image" src="https://github.com/user-attachments/assets/e3e708e3-9989-4c22-b649-8f9ffe9d1ede" />
 <img width="1275" height="596" alt="image" src="https://github.com/user-attachments/assets/05409f1a-24bf-4221-bb90-41f9540764e0" />
