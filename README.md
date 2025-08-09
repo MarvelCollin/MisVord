@@ -1,4 +1,4 @@
-<img width="1343" height="604" alt="image" src="https://github.com/user-attachments/assets/5560aaac-2295-489c-8643-9bb050f4d9d5" />PHP Native with Custom lookalike laravel framework with selfmade migration, orm, error handling, log handling, routes system, Javascript, VideoSDK, PlayWright, Socket.IO, AJAX JQuery
+PHP Native with Custom lookalike laravel framework with selfmade migration, orm, error handling, log handling, routes system, Javascript, VideoSDK, PlayWright, Socket.IO, AJAX JQuery
 
 Using REST API + MVC + Repository Pattern 
 
@@ -14,6 +14,6 @@ Views -> Rest API -> Routes -> Controller -> Repository -> Model -> Database
 <img width="835" height="296" alt="image" src="https://github.com/user-attachments/assets/a210b134-ac1f-426d-a99b-bd8a18b8fd0b" />
 <img width="876" height="417" alt="image" src="https://github.com/user-attachments/assets/a4815523-8e16-49c5-912f-28bba157eba2" />
 <img width="844" height="376" alt="image" src="https://github.com/user-attachments/assets/c505ebe0-7e42-4875-b0f1-916f42d9152c" />
-
+<img width="1343" height="604" alt="image" src="https://github.com/user-attachments/assets/5560aaac-2295-489c-8643-9bb050f4d9d5" />
 
 
